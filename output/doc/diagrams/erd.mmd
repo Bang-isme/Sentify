@@ -1,0 +1,6 @@
+﻿erDiagram
+    USER ||--o{ RESTAURANT_USER : joins
+    RESTAURANT ||--o{ RESTAURANT_USER : has
+    RESTAURANT ||--o{ REVIEW : owns
+    RESTAURANT ||--|| INSIGHT_SUMMARY : caches
+    RESTAURANT ||--o{ COMPLAINT_KEYWORD : tracks

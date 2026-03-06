@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>InsightFlow - Cinematic Intelligence v2.0</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#d4af37", 
+                        "primary-dark": "#b08d1a",
+                        "background-light": "#f9f9f7",
+                        "background-dark": "#181711", 
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#222019",
+                        "text-charcoal": "#1a1a1a",
+                        "text-gold": "#d4af37",
+                        "text-silver": "#7a7a7a",
+                        "border-gold-light": "rgba(212, 175, 55, 0.3)",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "serif": ["Playfair Display", "serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem", 
+                        "lg": "1rem", 
+                        "xl": "1.5rem", 
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                    backgroundImage: {
+                        'gold-gradient': 'linear-gradient(135deg, #d4af37 0%, #b08d1a 100%)',
+                        'light-gradient': 'linear-gradient(to bottom, #ffffff 0%, #f4f4f0 100%)',
+                        'pearlescent': 'linear-gradient(120deg, #fdfbf7 0%, #f2efe9 100%)',
+                    },
+                    animation: {
+                        'text-glow': 'text-glow 3s ease-in-out infinite alternate',
+                        'float-slow': 'float 6s ease-in-out infinite',
+                        'float-medium': 'float 5s ease-in-out infinite',
+                        'float-fast': 'float 4s ease-in-out infinite',
+                        'pulse-border': 'pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        'text-glow': {
+                            '0%': { textShadow: '0 0 20px rgba(212,175,55,0.1)' },
+                            '100%': { textShadow: '0 0 30px rgba(212,175,55,0.4), 0 0 10px rgba(212,175,55,0.2)' },
+                        },
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        'pulse-border': {
+                            '0%, 100%': { borderColor: 'rgba(212, 175, 55, 0.2)' },
+                            '50%': { borderColor: 'rgba(212, 175, 55, 0.6)' },
+                        }
+                    },
+                    boxShadow: {
+                        'soft-gold': '0 10px 40px -10px rgba(212,175,55,0.15)',
+                        'card-hover': '0 20px 40px -15px rgba(0,0,0,0.1), 0 0 0 1px rgba(212,175,55,0.3)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .bento-card:hover {
+            box-shadow: 0 20px 40px -12px rgba(212,175,55,0.25), inset 0 0 20px rgba(255,255,255,0.8);
+        }
+        .frosted-glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background-light text-text-charcoal font-display min-h-screen flex flex-col overflow-x-hidden selection:bg-primary/20 selection:text-primary-dark transition-colors duration-300">
+<header class="fixed top-0 left-0 right-0 z-50 pt-4 flex justify-center pointer-events-none">
+<div class="pointer-events-auto frosted-glass border border-white/40 rounded-full shadow-[0_4px_30px_rgba(0,0,0,0.03)] px-6 h-14 flex items-center gap-8 max-w-5xl mx-4 transition-all duration-300 hover:border-primary/30 hover:shadow-soft-gold bg-white/80">
+<a class="flex items-center gap-2 group cursor-pointer mr-2" href="#">
+<div class="size-6 text-primary transition-transform duration-500 group-hover:rotate-180">
+<span class="material-symbols-outlined text-2xl">token</span>
+</div>
+<span class="text-text-charcoal text-lg font-bold tracking-tight hidden sm:block">InsightFlow</span>
+</a>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-xs font-medium text-text-silver hover:text-primary-dark transition-colors uppercase tracking-wide" href="#">Solutions</a>
+<a class="text-xs font-medium text-text-silver hover:text-primary-dark transition-colors uppercase tracking-wide" href="#">Platform</a>
+<a class="text-xs font-medium text-text-silver hover:text-primary-dark transition-colors uppercase tracking-wide" href="#">Pricing</a>
+<a class="text-xs font-medium text-text-silver hover:text-primary-dark transition-colors uppercase tracking-wide" href="#">Resources</a>
+</nav>
+<div class="flex items-center gap-3 ml-auto">
+<button aria-label="Toggle theme" class="flex items-center justify-center size-8 rounded-full text-text-silver hover:text-primary hover:bg-black/5 transition-colors">
+<span class="material-symbols-outlined text-lg">light_mode</span>
+</button>
+<div class="relative group">
+<button class="flex items-center gap-1 text-xs font-bold text-text-silver hover:text-text-charcoal transition-colors h-8 px-2 rounded hover:bg-black/5">
+<span class="uppercase">EN</span>
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+<div class="absolute right-0 top-full mt-2 w-24 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
+<div class="py-1">
+<a class="block px-4 py-2 text-xs text-primary bg-primary/5 font-medium" href="#">EN</a>
+<a class="block px-4 py-2 text-xs text-text-silver hover:bg-black/5 hover:text-text-charcoal transition-colors" href="#">VI</a>
+<a class="block px-4 py-2 text-xs text-text-silver hover:bg-black/5 hover:text-text-charcoal transition-colors" href="#">JP</a>
+</div>
+</div>
+</div>
+<div class="h-4 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+<button class="hidden sm:block text-xs font-bold text-text-charcoal hover:text-primary-dark transition-colors px-2">Log In</button>
+<button class="flex items-center justify-center px-4 h-9 rounded-full bg-primary text-white text-xs font-bold hover:bg-primary-dark transition-colors shadow-[0_4px_14px_rgba(212,175,55,0.4)] hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)]">
+                    Get Started
+                </button>
+</div>
+</div>
+</header>
+<main class="flex-grow pt-20">
+<section class="relative min-h-[90vh] flex flex-col items-center justify-center px-6 overflow-hidden bg-background-light">
+<div class="absolute inset-0 z-0">
+<div class="absolute inset-0 bg-pearlescent opacity-100"></div>
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[100px] animate-float-slow mix-blend-multiply"></div>
+<div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-primary/10 rounded-full blur-[80px] animate-float-medium mix-blend-multiply"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0%,transparent_70%)]"></div>
+<div class="absolute bottom-0 w-full h-1/2 bg-[linear-gradient(to_bottom,transparent_0%,#f9f9f7_100%),repeating-linear-gradient(90deg,rgba(0,0,0,0.03)_0px,rgba(0,0,0,0.03)_1px,transparent_1px,transparent_100px),repeating-linear-gradient(0deg,rgba(0,0,0,0.03)_0px,rgba(0,0,0,0.03)_1px,transparent_1px,transparent_100px)] [transform:perspective(1000px)_rotateX(60deg)_translateY(200px)] origin-bottom"></div>
+</div>
+<div class="relative z-10 max-w-5xl mx-auto text-center flex flex-col items-center gap-8">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-white shadow-sm text-primary-dark text-xs font-bold uppercase tracking-wider mb-4 animate-fade-in-up">
+<span class="size-2 rounded-full bg-primary animate-pulse"></span>
+                    Variant 2.0 Live
+                </div>
+<h1 class="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-text-charcoal leading-[1.1]">
+                    Orchestrate <br/>
+<span class="font-serif italic font-normal text-primary animate-text-glow pr-4 bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">Intelligence</span>
+</h1>
+<p class="max-w-2xl text-lg md:text-xl text-text-silver font-light leading-relaxed">
+                    Elevate enterprise decision-making with cinematic data visualization and a predictive modeling engine designed for the future of business.
+                </p>
+<div class="flex flex-wrap justify-center gap-4 mt-4">
+<button class="group relative flex items-center gap-3 px-8 h-14 rounded-full bg-primary text-white text-base font-bold overflow-hidden transition-all hover:pr-6 hover:shadow-[0_10px_30px_rgba(212,175,55,0.4)]">
+<span class="relative z-10">Request Demo</span>
+<span class="material-symbols-outlined relative z-10 text-xl transition-transform group-hover:translate-x-1">arrow_forward</span>
+<div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+</button>
+<button class="flex items-center gap-3 px-8 h-14 rounded-full border border-gray-200 bg-white text-text-charcoal text-base font-bold hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm">
+<span class="material-symbols-outlined text-primary">play_circle</span>
+                        View Showreel
+                    </button>
+</div>
+</div>
+<div class="relative w-full max-w-6xl mt-20 perspective-1000 mx-auto px-4">
+<div class="relative w-full aspect-[21/9] bg-white rounded-t-2xl border border-white/60 border-b-0 overflow-hidden shadow-2xl shadow-gray-200 group">
+<div class="absolute top-0 w-full h-8 bg-gray-50 border-b border-gray-100 flex items-center px-4 gap-2">
+<div class="size-2.5 rounded-full bg-gray-300"></div>
+<div class="size-2.5 rounded-full bg-gray-300"></div>
+<div class="size-2.5 rounded-full bg-gray-300"></div>
+</div>
+<div class="w-full h-full bg-cover bg-center pt-8 transform transition-transform duration-1000 group-hover:scale-105" data-alt="Abstract gold data visualization map" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD4jdZfGIO5m2sZdEe80PO9nrwCvXf6-hoRF8sNuB0V-Sv11cYB89gAAL4EK4bKODCXtr8oI_LXoQKENFjmtH-YHERRj0v5su25Ngj-mjcf0-p1JCeTKVJykMPvBaKi_r9SMiwZ_8koWVzBIZ_76eyhCKozW3YWj5iCnyDlYoxYCpPUJLe0iN9FHwV2_WVSSF9-kvYD9GLdcSHmr28QwpUqeCXwRgQ1V3P5ws4Yyp0pwhuWcAf1rphOHufuU9KW07YDfK-BuYZQen1b'); filter: invert(0.9) hue-rotate(180deg) saturate(1.5);">
+<div class="flex h-full w-full items-center justify-center">
+<div class="grid grid-cols-3 gap-8 w-3/4 opacity-90">
+<div class="frosted-glass p-4 rounded-xl border border-white/60 flex flex-col gap-2 animate-float-slow hover:border-primary/30 transition-colors shadow-lg shadow-gray-200/50">
+<span class="text-xs text-text-silver uppercase tracking-widest font-bold">Revenue Flow</span>
+<span class="text-2xl text-text-charcoal font-mono font-bold">$4,291.00</span>
+<div class="h-1 w-full bg-gray-200 rounded-full overflow-hidden"><div class="h-full w-[70%] bg-primary"></div></div>
+</div>
+<div class="frosted-glass p-4 rounded-xl border border-white/60 flex flex-col gap-2 mt-8 animate-float-medium hover:border-primary/30 transition-colors shadow-lg shadow-gray-200/50">
+<span class="text-xs text-text-silver uppercase tracking-widest font-bold">Active Nodes</span>
+<span class="text-2xl text-text-charcoal font-mono font-bold">842</span>
+<div class="h-1 w-full bg-gray-200 rounded-full overflow-hidden"><div class="h-full w-[45%] bg-primary"></div></div>
+</div>
+<div class="frosted-glass p-4 rounded-xl border border-white/60 flex flex-col gap-2 animate-float-fast hover:border-primary/30 transition-colors shadow-lg shadow-gray-200/50">
+<span class="text-xs text-text-silver uppercase tracking-widest font-bold">Latency</span>
+<span class="text-2xl text-text-charcoal font-mono font-bold">12ms</span>
+<div class="h-1 w-full bg-gray-200 rounded-full overflow-hidden"><div class="h-full w-[90%] bg-green-500"></div></div>
+</div>
+</div>
+</div>
+</div>
+<div class="absolute bottom-0 w-full h-32 bg-gradient-to-t from-background-light via-background-light/80 to-transparent"></div>
+</div>
+</div>
+</section>
+<div class="w-full bg-[#f2f2f0] border-y border-gray-200 py-4 overflow-hidden relative">
+<div class="flex w-full whitespace-nowrap animate-marquee">
+<div class="flex items-center gap-12 px-6">
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">bolt</span> Supply Chain Optimized +15%</span>
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">trending_up</span> Q3 Predictions: Bullish</span>
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">language</span> Giao hàng nhanh hơn 15%</span>
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">psychology</span> Sentiment Analysis: Positive Shift</span>
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">security</span> Threat Detected &amp; Neutralized</span>
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">bolt</span> Supply Chain Optimized +15%</span>
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">trending_up</span> Q3 Predictions: Bullish</span>
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">language</span> Giao hàng nhanh hơn 15%</span>
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">psychology</span> Sentiment Analysis: Positive Shift</span>
+<span class="flex items-center gap-2 text-sm text-text-silver font-medium"><span class="material-symbols-outlined text-primary text-lg">security</span> Threat Detected &amp; Neutralized</span>
+</div>
+</div>
+</div>
+<section class="py-24 px-6 md:px-12 bg-background-light relative">
+<div class="max-w-[1440px] mx-auto">
+<div class="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="max-w-xl">
+<h3 class="text-primary-dark text-sm font-bold uppercase tracking-widest mb-2">System Core</h3>
+<h2 class="text-4xl md:text-5xl font-bold text-text-charcoal mb-4">Precision Engineered <br/> <span class="font-serif italic text-text-silver font-normal">for the Enterprise</span></h2>
+</div>
+<p class="text-text-silver max-w-sm text-sm leading-relaxed text-right md:text-left font-medium">
+                        Our modular architecture allows for seamless integration into existing workflows, providing immediate value through advanced AI heuristics.
+                    </p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-6 auto-rows-[minmax(180px,auto)]">
+<div class="group bento-card relative md:col-span-6 lg:col-span-8 row-span-2 rounded-2xl bg-white border border-gray-100 overflow-hidden transition-all duration-500 hover:border-primary/60 shadow-sm">
+<div class="absolute inset-0 bg-gradient-to-br from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+<div class="absolute right-0 top-0 w-2/3 h-full">
+<img class="w-full h-full object-cover object-left opacity-10 mix-blend-multiply group-hover:opacity-20 transition-all duration-700" data-alt="Dark themed analytics dashboard user interface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7IDqbn2G_W3WevFGouYYv777TSq4W0xCYFb9MdIt82GbfbypqXCQ4anGYLgIIfL_mjL4pgXTyyM1kLtu4ffNJnKSXRaxnas8yc3z-W06iOtcuv57xhpzK24APFoDHYyuD7CWfY9wNVASFof-rVHC8cST6WwDhyRArkWiy9PbEIYmhY9hglbv-Q93HkVhf5N1f71adSUbiw__VT4kXGtQOrl3gBZ-hl4TLuxq3JWcBPIcKrizdUjABhTzlyzuz8_8DPyUDnT5U9D46"/>
+<div class="absolute inset-0 bg-gradient-to-r from-white via-white/50 to-transparent"></div>
+</div>
+<div class="relative p-8 h-full flex flex-col justify-end max-w-lg z-10">
+<div class="size-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 text-primary-dark group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-2xl">hub</span>
+</div>
+<h3 class="text-2xl font-bold text-text-charcoal mb-2">Centralized Neural Hub</h3>
+<p class="text-text-silver">Connect all data streams into a single source of truth. The Neural Hub processes millions of endpoints in real-time.</p>
+</div>
+<div class="absolute inset-0 border border-transparent group-hover:animate-pulse-border rounded-2xl pointer-events-none"></div>
+</div>
+<div class="group bento-card relative md:col-span-3 lg:col-span-4 row-span-1 rounded-2xl bg-white border border-gray-100 overflow-hidden p-6 transition-all duration-300 hover:border-primary/60 hover:-translate-y-1 shadow-sm">
+<div class="flex justify-between items-start mb-8">
+<span class="material-symbols-outlined text-3xl text-gray-400 group-hover:text-primary transition-colors">lock_person</span>
+<span class="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">SEC_LVL_9</span>
+</div>
+<h3 class="text-xl font-bold text-text-charcoal mb-2">Enterprise Security</h3>
+<p class="text-sm text-text-silver">Bank-grade encryption for all sensitive predictive models.</p>
+<div class="absolute inset-0 border border-transparent group-hover:animate-pulse-border rounded-2xl pointer-events-none"></div>
+</div>
+<div class="group bento-card relative md:col-span-3 lg:col-span-4 row-span-1 rounded-2xl bg-white border border-gray-100 overflow-hidden p-6 transition-all duration-300 hover:border-primary/60 hover:-translate-y-1 shadow-sm">
+<div class="flex justify-between items-start mb-8">
+<span class="material-symbols-outlined text-3xl text-gray-400 group-hover:text-primary transition-colors">speed</span>
+<span class="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">RT_LATENCY_LOW</span>
+</div>
+<h3 class="text-xl font-bold text-text-charcoal mb-2">Low Latency Core</h3>
+<p class="text-sm text-text-silver">Decisions executed in microseconds, faster than market shifts.</p>
+<div class="absolute inset-0 border border-transparent group-hover:animate-pulse-border rounded-2xl pointer-events-none"></div>
+</div>
+<div class="group bento-card relative md:col-span-6 lg:col-span-5 row-span-2 rounded-2xl bg-white border border-gray-100 overflow-hidden transition-all duration-500 hover:border-primary/60 shadow-sm">
+<div class="absolute inset-0 bg-[url('https://placeholder.pics/svg/600/ffffff/f2f2f0/Abstract%20Globe%20Network')] bg-cover bg-center opacity-40 group-hover:scale-105 transition-transform duration-700" data-alt="Abstract wireframe globe network pattern" data-location="Global Network"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-white to-transparent"></div>
+<div class="relative p-8 h-full flex flex-col justify-end z-10">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary text-2xl animate-pulse">public</span>
+<span class="text-primary-dark text-sm font-bold uppercase">Global Coverage</span>
+</div>
+<h3 class="text-2xl font-bold text-text-charcoal mb-2">Macro-Economic Pulse</h3>
+<p class="text-text-silver">Track global supply chains and geopolitical shifts as they happen. Visualize impact radius instantly.</p>
+</div>
+<div class="absolute inset-0 border border-transparent group-hover:animate-pulse-border rounded-2xl pointer-events-none"></div>
+</div>
+<div class="group bento-card relative md:col-span-6 lg:col-span-7 row-span-2 rounded-2xl bg-white border border-gray-100 overflow-hidden flex flex-col md:flex-row items-center transition-all duration-500 hover:border-primary/60 shadow-sm">
+<div class="w-full md:w-1/2 p-8 flex flex-col justify-center relative z-10">
+<h3 class="text-2xl font-bold text-text-charcoal mb-3">Predictive Forecasting</h3>
+<p class="text-text-silver mb-6">Move beyond reactive analytics. Our AI models simulate thousands of future scenarios to find the optimal path.</p>
+<a class="inline-flex items-center text-primary-dark font-bold text-sm hover:underline underline-offset-4" href="#">
+                                Explore Models <span class="material-symbols-outlined text-base ml-1">arrow_right_alt</span>
+</a>
+</div>
+<div class="w-full md:w-1/2 h-48 md:h-full relative bg-gray-50">
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-3/4 h-3/4 flex items-end justify-between gap-1 px-4 pb-4 border-b border-l border-gray-200">
+<div class="w-full bg-primary/20 hover:bg-primary transition-all duration-300 rounded-t-sm h-[30%]"></div>
+<div class="w-full bg-primary/30 hover:bg-primary transition-all duration-300 rounded-t-sm h-[50%]"></div>
+<div class="w-full bg-primary/40 hover:bg-primary transition-all duration-300 rounded-t-sm h-[40%]"></div>
+<div class="w-full bg-primary/60 hover:bg-primary transition-all duration-300 rounded-t-sm h-[75%]"></div>
+<div class="w-full bg-primary hover:bg-primary-dark transition-all duration-300 rounded-t-sm h-[90%] shadow-[0_4px_10px_rgba(212,175,55,0.3)]"></div>
+</div>
+</div>
+</div>
+<div class="absolute inset-0 border border-transparent group-hover:animate-pulse-border rounded-2xl pointer-events-none"></div>
+</div>
+</div>
+</div>
+</section>
+<section class="py-20 bg-[#f2f2f0]">
+<div class="max-w-[1440px] mx-auto px-6">
+<div class="flex items-center justify-between mb-8">
+<h4 class="text-text-silver text-sm font-bold uppercase tracking-[0.1em] flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                        Live Intelligence Stream
+                    </h4>
+<button class="text-primary-dark text-sm font-medium hover:text-text-charcoal transition-colors">View All Streams</button>
+</div>
+<div class="flex overflow-x-auto gap-6 pb-6 no-scrollbar snap-x">
+<div class="min-w-[300px] md:min-w-[380px] snap-center bg-white border border-gray-100 rounded-xl p-5 hover:border-primary/30 transition-colors group cursor-pointer shadow-sm hover:shadow-md">
+<div class="w-full aspect-video rounded-lg bg-gray-100 mb-4 overflow-hidden relative">
+<img class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700 mix-blend-multiply" data-alt="Stock market volatility chart displaying red and green candles" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFb-_R53S3gIDfbNixdrtgR93xITZuY__6YeAEA2hKYQlF9G8MMJlEcQ608lCPnjKRVErSTO_nFMk3cuD0yCtYtDZs6eX-k396yoxEDZzDufbJQ5y6rxu1et_FT3wO1hBP12Vb98qzNFndiXQHGHoq41bPUFQ1FQdBFu3J1T954q1WervDugTBoKLE2CBMo8yxlmUxLmLpTfocc2jI310heJw4oMdNEBjGYZZ_HBlrn7mYsDyeuY8mvAsrCBIPhtXsg0CzqTGm3Zah"/>
+<div class="absolute top-2 right-2 bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded text-xs font-bold">CRITICAL</div>
+</div>
+<h5 class="text-text-charcoal text-lg font-medium mb-1 group-hover:text-primary-dark transition-colors">Market Volatility Detected</h5>
+<p class="text-text-silver text-sm">Automated hedge recommendations generated based on APAC trading volume spike.</p>
+<div class="mt-4 flex items-center gap-2 text-xs text-gray-400">
+<span class="material-symbols-outlined text-sm">schedule</span> 2 mins ago
+                        </div>
+</div>
+<div class="min-w-[300px] md:min-w-[380px] snap-center bg-white border border-gray-100 rounded-xl p-5 hover:border-primary/30 transition-colors group cursor-pointer shadow-sm hover:shadow-md">
+<div class="w-full aspect-video rounded-lg bg-gray-100 mb-4 overflow-hidden relative">
+<img class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700 mix-blend-multiply" data-alt="Logistics supply chain map with highlighted routes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk6EJJ9EStSP9-ojFY-6cESFlauxqhRkik1CDDNfg59FmmcIaTo0vVsKJId5gyjL3kU2R5d2TLdg8oeuoDCE5ULjIQj-C7jmU2ZJs0Nx2lO-kdyJtFChmTy9yz2NTlMbZ_f-LkEOWZ7LMLnI4JvUtAD9UiKxjoayoWbhRbXTta-iqVq3PNny8SlEF3BW0m7PGNkI2D9bxjYg26tzl82Ij74E5G0XTWBQWRz_IQBmgFmGFk-l5v01Uh0nTFJJjRt9QHfVq1UOF8kXnu"/>
+<div class="absolute top-2 right-2 bg-green-50 text-green-600 border border-green-200 px-2 py-0.5 rounded text-xs font-bold">OPTIMIZED</div>
+</div>
+<h5 class="text-text-charcoal text-lg font-medium mb-1 group-hover:text-primary-dark transition-colors">Route Efficiency +12%</h5>
+<p class="text-text-silver text-sm">Real-time rerouting applied to logistics fleet #42 in North American sector.</p>
+<div class="mt-4 flex items-center gap-2 text-xs text-gray-400">
+<span class="material-symbols-outlined text-sm">schedule</span> 14 mins ago
+                        </div>
+</div>
+<div class="min-w-[300px] md:min-w-[380px] snap-center bg-white border border-gray-100 rounded-xl p-5 hover:border-primary/30 transition-colors group cursor-pointer shadow-sm hover:shadow-md">
+<div class="w-full aspect-video rounded-lg bg-gray-100 mb-4 overflow-hidden relative">
+<img class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700 mix-blend-multiply" data-alt="Social media sentiment analysis word cloud" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVL51QbhhMlDnntxuaWZYSl1n1eBeuLZcypVVJSyig5M-2EzY8_GsZRxyG4USV01rLAhOGYIHL9p486RLBK0PyZqv4M8xzBUOPVRaPLTqG9Eji6Up_d6Z-pnC83EompfVQDSeR66b7EUsEIfIrLgXpN-kNLkA5JBqug6HhhCZooOuve_B5g27S857IG_C2a5wX0GzMFUeja1DDu1poKH1KCynQG7coOk1LXxJdgfAzU9AVU-Mh-pyeDeo2WFWmPEUmSmsivBxcBZ9Q"/>
+<div class="absolute top-2 right-2 bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded text-xs font-bold">ANALYSIS</div>
+</div>
+<h5 class="text-text-charcoal text-lg font-medium mb-1 group-hover:text-primary-dark transition-colors">Brand Sentiment Shift</h5>
+<p class="text-text-silver text-sm">Positive correlation detected following "Project Gold" announcement.</p>
+<div class="mt-4 flex items-center gap-2 text-xs text-gray-400">
+<span class="material-symbols-outlined text-sm">schedule</span> 45 mins ago
+                        </div>
+</div>
+<div class="min-w-[300px] md:min-w-[380px] snap-center bg-white border border-gray-100 rounded-xl p-5 hover:border-primary/30 transition-colors group cursor-pointer shadow-sm hover:shadow-md">
+<div class="w-full aspect-video rounded-lg bg-gray-100 mb-4 overflow-hidden relative">
+<img class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700 mix-blend-multiply" data-alt="Server node connections visualization" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKMomJ4yeXn_UCB0b3jD-wqd3KKydG7IHBsz7qpmm3Peo3NWAx7LliqxwVSN6lWwktR4wp27ubJSpNov0iE6icEnddieJeRAG4riZbNUnvlGohrX8pwxNf0y9-ee7GKVNIIkusxU8gJybVt3O_RVt1d6cUOJVqKwMzlnc4pF2mqeEqVn4vhAGx5F2MRfVDyFdgOZwUlc9zAWCoya92SoXqMiGp8AXjAHZBWqGqesx18-K6UfWg3hGV6O2Mxj1j0iqiJqTizLGahSdA"/>
+</div>
+<h5 class="text-text-charcoal text-lg font-medium mb-1 group-hover:text-primary-dark transition-colors">Infrastructure Scale Up</h5>
+<p class="text-text-silver text-sm">Automatic provisioning of 50 new GPU nodes to handle increased load.</p>
+<div class="mt-4 flex items-center gap-2 text-xs text-gray-400">
+<span class="material-symbols-outlined text-sm">schedule</span> 1 hr ago
+                        </div>
+</div>
+</div>
+</div>
+</section>
+<section class="py-24 relative overflow-hidden bg-white">
+<div class="absolute inset-0">
+<div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,rgba(255,255,255,0)_60%)]"></div>
+</div>
+<div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
+<h2 class="text-4xl md:text-6xl font-bold text-text-charcoal mb-6 tracking-tight">Ready to see <span class="text-primary italic font-serif pr-2">further?</span></h2>
+<p class="text-text-silver text-lg mb-10 max-w-2xl mx-auto">Join the Fortune 500 companies already using InsightFlow to predict, adapt, and conquer their markets.</p>
+<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+<input class="w-full sm:w-80 h-14 px-6 rounded-full bg-gray-50 border border-gray-200 text-text-charcoal placeholder-gray-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner" placeholder="Enter your work email" type="email"/>
+<button class="w-full sm:w-auto px-8 h-14 rounded-full bg-primary text-white font-bold hover:bg-primary-dark transition-colors shadow-[0_10px_20px_rgba(212,175,55,0.3)] whitespace-nowrap">
+                        Start Free Trial
+                    </button>
+</div>
+<p class="mt-4 text-xs text-gray-400">No credit card required for 14-day trial.</p>
+</div>
+</section>
+</main>
+<footer class="bg-gray-50 border-t border-gray-200 pt-16 pb-8">
+<div class="max-w-[1440px] mx-auto px-6">
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
+<div class="col-span-2 lg:col-span-2">
+<div class="flex items-center gap-3 text-text-charcoal mb-6">
+<div class="size-6 text-primary">
+<span class="material-symbols-outlined text-2xl">token</span>
+</div>
+<h2 class="text-text-charcoal text-lg font-bold">InsightFlow</h2>
+</div>
+<p class="text-text-silver text-sm leading-relaxed max-w-xs mb-6">
+                        The world's most advanced predictive modeling engine for enterprise decision making.
+                    </p>
+<div class="flex gap-4">
+<a class="text-gray-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">rocket_launch</span></a>
+<a class="text-gray-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">alternate_email</span></a>
+<a class="text-gray-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">rss_feed</span></a>
+</div>
+</div>
+<div>
+<h4 class="text-text-charcoal font-bold mb-6">Product</h4>
+<ul class="space-y-4 text-sm text-text-silver">
+<li><a class="hover:text-primary transition-colors" href="#">Intelligence Engine</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Data Visualization</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Integrations</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Enterprise Security</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-text-charcoal font-bold mb-6">Resources</h4>
+<ul class="space-y-4 text-sm text-text-silver">
+<li><a class="hover:text-primary transition-colors" href="#">Documentation</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">API Reference</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Case Studies</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Community</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-text-charcoal font-bold mb-6">Company</h4>
+<ul class="space-y-4 text-sm text-text-silver">
+<li><a class="hover:text-primary transition-colors" href="#">About</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Careers</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Blog</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Contact</a></li>
+</ul>
+</div>
+</div>
+<div class="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
+<p>© 2024 InsightFlow Inc. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="hover:text-gray-600" href="#">Privacy Policy</a>
+<a class="hover:text-gray-600" href="#">Terms of Service</a>
+<a class="hover:text-gray-600" href="#">Cookies Settings</a>
+</div>
+</div>
+</div>
+</footer>
+<style>
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            animation: marquee 30s linear infinite;
+        }
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        @keyframes fade-in-up {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.8s ease-out forwards;
+        }
+    </style>
+
+</body></html>
