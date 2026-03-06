@@ -1,5 +1,6 @@
-const { ZodError, z } = require('zod')
+const { z } = require('zod')
 
+const { handleControllerError } = require('../lib/controller-error')
 const authService = require('../services/auth.service')
 
 const registerSchema = z.object({
@@ -13,37 +14,6 @@ const loginSchema = z.object({
     password: z.string().min(1, 'Password is required'),
 })
 
-function sendError(res, status, code, message, details) {
-    return res.status(status).json({
-        error: {
-            code,
-            message,
-            ...(details ? { details } : {}),
-        },
-    })
-}
-
-function handleAuthError(res, error) {
-    if (error instanceof ZodError) {
-        return sendError(res, 400, 'VALIDATION_FAILED', 'Request validation failed', error.issues)
-    }
-
-    if (error.code === 'EMAIL_ALREADY_EXISTS') {
-        return sendError(res, 409, 'EMAIL_ALREADY_EXISTS', error.message)
-    }
-
-    if (error.code === 'AUTH_INVALID_CREDENTIALS') {
-        return sendError(res, 401, 'AUTH_INVALID_CREDENTIALS', error.message)
-    }
-
-    if (error.code === 'AUTH_MISSING_TOKEN' || error.code === 'AUTH_INVALID_TOKEN') {
-        return sendError(res, 401, error.code, error.message)
-    }
-
-    console.error(error)
-    return sendError(res, 500, 'INTERNAL_SERVER_ERROR', 'Something went wrong')
-}
-
 async function register(req, res) {
     try {
         const input = registerSchema.parse(req.body)
@@ -53,7 +23,7 @@ async function register(req, res) {
             data: result,
         })
     } catch (error) {
-        return handleAuthError(res, error)
+        return handleControllerError(req, res, error)
     }
 }
 
@@ -66,7 +36,7 @@ async function login(req, res) {
             data: result,
         })
     } catch (error) {
-        return handleAuthError(res, error)
+        return handleControllerError(req, res, error)
     }
 }
 
@@ -78,7 +48,7 @@ async function logout(req, res) {
             },
         })
     } catch (error) {
-        return handleAuthError(res, error)
+        return handleControllerError(req, res, error)
     }
 }
 

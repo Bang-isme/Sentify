@@ -13,12 +13,16 @@ Project 3/
 │   └── web/                     # Frontend: React + Vite
 ├── backend-sentify/             # Backend: Express + Prisma
 │   ├── prisma/
+│   │   ├── migrations/
 │   │   └── schema.prisma
 │   ├── src/
 │   │   ├── app.js
 │   │   ├── server.js
-│   │   └── lib/
-│   │       └── prisma.js
+│   │   ├── controllers/
+│   │   ├── lib/
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   └── services/
 │   ├── .env
 │   ├── .env.example
 │   ├── prisma.config.ts
@@ -40,16 +44,15 @@ Project 3/
 Prisma 7 no longer keeps the datasource URL inside `schema.prisma`.
 `prisma.config.ts` is now the place where Prisma CLI commands receive `DATABASE_URL`.
 
-### Recommended next folders
+### Actual backend folders
 
 ```text
 backend-sentify/src/
-├── routes/          # Express route files by domain
-├── controllers/     # Request/response handlers
-├── services/        # Business logic: scraper, sentiment, insights
-├── middleware/      # JWT auth, permission guard, error handler
-├── lib/             # Prisma client, shared helpers
-└── utils/           # Small reusable helpers
+├── routes/              # auth.js, restaurants.js
+├── controllers/         # auth, restaurants, import, reviews, dashboard
+├── services/            # auth, restaurant, scraper, sentiment, insight, dashboard
+├── middleware/          # JWT auth, requestId
+└── lib/                 # Prisma client, AppError, controller error mapper
 ```
 
 ## 6.3 Suggested Growth Order
@@ -73,14 +76,20 @@ backend-sentify/src/
 
 - `src/routes/restaurants.js`
 - `src/controllers/restaurants.controller.js`
-- `src/services/restaurants.service.js`
+- `src/services/restaurant.service.js`
+- `src/services/restaurant-access.service.js`
 
 ### Step 4: Import + Insights
 
-- `src/routes/reviews.js`
-- `src/services/googleScraper.js`
-- `src/services/sentimentAnalyzer.js`
+- `src/controllers/import.controller.js`
+- `src/controllers/reviews.controller.js`
+- `src/controllers/dashboard.controller.js`
+- `src/services/google-scraper.service.js`
+- `src/services/sentiment-analyzer.service.js`
 - `src/services/insight.service.js`
+- `src/services/review-import.service.js`
+- `src/services/review.service.js`
+- `src/services/dashboard.service.js`
 
 ## 6.4 Frontend Structure
 

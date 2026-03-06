@@ -226,6 +226,10 @@ The server can still expose an acknowledgement endpoint.
 **Request:**
 No body required. The backend uses the saved `googleMapUrl`.
 
+Local development note:
+- The current repo implements import behind a replaceable scraper adapter.
+- The endpoint contract stays the same whether the adapter uses deterministic fixtures or a real Google integration.
+
 **Response (200):**
 
 ```json
@@ -338,8 +342,11 @@ Query params:
 | Code | HTTP | Meaning |
 |------|------|---------|
 | `VALIDATION_FAILED` | 400 | Invalid request payload |
+| `INVALID_DATE_RANGE` | 400 | `from` date is after `to` date |
 | `MISSING_GOOGLE_MAP_URL` | 400 | Restaurant has no Google Maps URL |
 | `AUTH_INVALID_CREDENTIALS` | 401 | Wrong login data |
+| `AUTH_MISSING_TOKEN` | 401 | JWT is missing |
+| `AUTH_INVALID_TOKEN` | 401 | JWT is invalid |
 | `AUTH_TOKEN_EXPIRED` | 401 | JWT expired |
 | `FORBIDDEN` | 403 | User lacks restaurant access |
 | `NOT_FOUND` | 404 | Restaurant or review not found |

@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 
+const { conflict, unauthorized } = require('../lib/app-error')
 const prisma = require('../lib/prisma')
 
 const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 15 * 60
@@ -40,9 +41,7 @@ async function register(input) {
     })
 
     if (existingUser) {
-        const error = new Error('Email already exists')
-        error.code = 'EMAIL_ALREADY_EXISTS'
-        throw error
+        throw conflict('EMAIL_ALREADY_EXISTS', 'Email already exists')
     }
 
     const passwordHash = await bcrypt.hash(input.password, PASSWORD_SALT_ROUNDS)
@@ -79,17 +78,13 @@ async function login(input) {
     })
 
     if (!user) {
-        const error = new Error('Invalid email or password')
-        error.code = 'AUTH_INVALID_CREDENTIALS'
-        throw error
+        throw unauthorized('AUTH_INVALID_CREDENTIALS', 'Invalid email or password')
     }
 
     const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash)
 
     if (!isPasswordValid) {
-        const error = new Error('Invalid email or password')
-        error.code = 'AUTH_INVALID_CREDENTIALS'
-        throw error
+        throw unauthorized('AUTH_INVALID_CREDENTIALS', 'Invalid email or password')
     }
 
     return {
