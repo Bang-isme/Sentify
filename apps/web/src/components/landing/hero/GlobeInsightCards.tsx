@@ -1,13 +1,21 @@
-﻿import { memo, useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLanguage } from '../../../contexts/languageContext'
+
+export interface GlobeLayoutMetrics {
+  shellWidth: number
+  shellHeight: number
+  sphereLeft: number
+  sphereTop: number
+  sphereWidth: number
+  sphereHeight: number
+}
 
 interface GlobeInsightSeed {
   id: number
-  dotX: number
-  dotY: number
-  cardX: number
-  cardY: number
-  cardSide: 'left' | 'right'
+  latitude: number
+  longitude: number
+  cardOffsetX: number
+  cardOffsetY: number
 }
 
 type GlobeInsight = GlobeInsightSeed & {
@@ -19,128 +27,358 @@ type GlobeInsight = GlobeInsightSeed & {
   metricLabel?: string
 }
 
+type ProjectedInsight = GlobeInsight & {
+  dotLeft: number
+  dotTop: number
+  cardLeft: number
+  cardTop: number
+  cardSide: 'left' | 'right'
+  lineX2: number
+  lineY2: number
+  lineLength: number
+  dotSize: number
+  motionX: number
+  motionY: number
+  isVisible: boolean
+}
+
+type CardSize = {
+  width: number
+  height: number
+}
+
+interface GlobeInsightCardsProps {
+  layout: GlobeLayoutMetrics | null
+  phase: number
+}
+
 const INSIGHT_SEEDS: GlobeInsightSeed[] = [
   {
     id: 1,
-    dotX: 30,
-    dotY: 20,
-    cardX: -8,
-    cardY: 2,
-    cardSide: 'left',
+    latitude: 40.7128,
+    longitude: -74.006,
+    cardOffsetX: -272,
+    cardOffsetY: -154,
   },
   {
     id: 2,
-    dotX: 52,
-    dotY: 16,
-    cardX: 58,
-    cardY: 4,
-    cardSide: 'right',
+    latitude: 51.5072,
+    longitude: -0.1276,
+    cardOffsetX: 22,
+    cardOffsetY: -156,
   },
   {
     id: 3,
-    dotX: 78,
-    dotY: 38,
-    cardX: 62,
-    cardY: 24,
-    cardSide: 'right',
+    latitude: 35.6762,
+    longitude: 139.6503,
+    cardOffsetX: 24,
+    cardOffsetY: -110,
   },
   {
     id: 4,
-    dotX: 36,
-    dotY: 62,
-    cardX: -4,
-    cardY: 52,
-    cardSide: 'left',
+    latitude: -23.5505,
+    longitude: -46.6333,
+    cardOffsetX: -264,
+    cardOffsetY: 18,
   },
   {
     id: 5,
-    dotX: 68,
-    dotY: 42,
-    cardX: 66,
-    cardY: 46,
-    cardSide: 'right',
+    latitude: 19.076,
+    longitude: 72.8777,
+    cardOffsetX: 34,
+    cardOffsetY: 54,
   },
 ]
 
-const VISIBLE_COUNT = 2
+const DESKTOP_VISIBLE_COUNT = 2
 const CYCLE_DURATION = 4500
+const DEG_TO_RAD = Math.PI / 180
+const BASE_SPHERE_WIDTH = 560
+const FRONT_VISIBILITY_THRESHOLD = 0.16
+const DEFAULT_CARD_SIZE: CardSize = {
+  width: 220,
+  height: 108,
+}
 
-export const GlobeInsightCards = memo(function GlobeInsightCards() {
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
+}
+
+function pickActiveVisibleInsights(
+  visibleIndices: number[],
+  projectedInsights: ProjectedInsight[],
+  visibleCount: number,
+  cycleStep: number,
+): number[] {
+  if (!visibleIndices.length) return []
+
+  if (visibleCount === 1 || visibleIndices.length === 1) {
+    return [visibleIndices[cycleStep % visibleIndices.length]]
+  }
+
+  if (visibleIndices.length <= visibleCount) {
+    return visibleIndices
+  }
+
+  const orderedByX = [...visibleIndices].sort(
+    (leftIndex, rightIndex) =>
+      projectedInsights[leftIndex].dotLeft - projectedInsights[rightIndex].dotLeft,
+  )
+  const midpoint = Math.floor(orderedByX.length / 2)
+  const leftPool = orderedByX.slice(0, midpoint)
+  const rightPool = orderedByX.slice(midpoint)
+  const nextActive = [
+    leftPool[cycleStep % leftPool.length],
+    rightPool[cycleStep % rightPool.length],
+  ].filter((value, index, items) => items.indexOf(value) === index)
+
+  for (const index of orderedByX) {
+    if (nextActive.length >= visibleCount) break
+    if (!nextActive.includes(index)) {
+      nextActive.push(index)
+    }
+  }
+
+  return nextActive
+}
+
+function projectInsight(
+  insight: GlobeInsight,
+  layout: GlobeLayoutMetrics,
+  cardSize: CardSize,
+  phase: number,
+): ProjectedInsight {
+  const latitude = insight.latitude * DEG_TO_RAD
+  const longitude = insight.longitude * DEG_TO_RAD - phase
+  const cosLatitude = Math.cos(latitude)
+  const x = Math.sin(longitude) * cosLatitude
+  const y = Math.sin(latitude)
+  const z = Math.cos(longitude) * cosLatitude
+  const dotLeft = layout.sphereLeft + layout.sphereWidth * 0.5 + x * layout.sphereWidth * 0.5
+  const dotTop = layout.sphereTop + layout.sphereHeight * 0.5 - y * layout.sphereHeight * 0.5
+  const scale = clamp(layout.sphereWidth / BASE_SPHERE_WIDTH, 0.78, 1.18)
+  const horizontalPadding = Math.max(16, layout.shellWidth * 0.028)
+  const verticalPadding = Math.max(34, layout.shellHeight * 0.085)
+  const cardLeft = clamp(
+    dotLeft + insight.cardOffsetX * scale,
+    horizontalPadding,
+    layout.shellWidth - cardSize.width - horizontalPadding,
+  )
+  const cardTop = clamp(
+    dotTop + insight.cardOffsetY * scale,
+    verticalPadding,
+    layout.shellHeight - cardSize.height - verticalPadding,
+  )
+  const cardSide: 'left' | 'right' = cardLeft + cardSize.width * 0.5 >= dotLeft ? 'right' : 'left'
+  const connectorInset = Math.min(24, cardSize.width * 0.18)
+  const lineX2 = cardSide === 'right' ? cardLeft + connectorInset : cardLeft + cardSize.width - connectorInset
+  const lineY2 = cardTop + Math.min(cardSize.height * 0.32, 34 * scale)
+  const lineLength = Math.hypot(lineX2 - dotLeft, lineY2 - dotTop)
+  const motionX = clamp((dotLeft - lineX2) * 0.12, -20, 20)
+  const motionY = clamp((dotTop - lineY2) * 0.1, -14, 14)
+  const dotSize = clamp(layout.sphereWidth / 54, 8, 12)
+
+  return {
+    ...insight,
+    dotLeft,
+    dotTop,
+    cardLeft,
+    cardTop,
+    cardSide,
+    lineX2,
+    lineY2,
+    lineLength,
+    dotSize,
+    motionX,
+    motionY,
+    isVisible: z > FRONT_VISIBILITY_THRESHOLD,
+  }
+}
+
+export const GlobeInsightCards = memo(function GlobeInsightCards({
+  layout,
+  phase,
+}: GlobeInsightCardsProps) {
   const { copy } = useLanguage()
-  const [activeIndices, setActiveIndices] = useState<number[]>([0, 2])
+  const [cycleStep, setCycleStep] = useState(0)
+  const [cardSizes, setCardSizes] = useState<Record<number, CardSize>>({})
+  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const visibleCount = layout && layout.shellWidth < 540 ? 1 : DESKTOP_VISIBLE_COUNT
 
-  const insights = useMemo<GlobeInsight[]>(() => {
-    const translatedById = new Map<number, (typeof copy.globe.insights)[number]>(
-      copy.globe.insights.map((item) => [item.id, item]),
-    )
+  const translatedById = new Map<number, (typeof copy.globe.insights)[number]>(
+    copy.globe.insights.map((item) => [item.id, item]),
+  )
 
-    return INSIGHT_SEEDS.map((seed) => {
-      const translated = translatedById.get(seed.id)
+  const insights: GlobeInsight[] = INSIGHT_SEEDS.map((seed) => {
+    const translated = translatedById.get(seed.id)
 
-      return {
-        ...seed,
-        avatar: translated?.avatar ?? 'US',
-        name: translated?.name ?? 'Sentify Signal',
-        location: translated?.location ?? '',
-        text: translated?.text ?? '',
-        metric: translated?.metric,
-        metricLabel: translated?.metricLabel,
-      }
-    })
-  }, [copy])
+    return {
+      ...seed,
+      avatar: translated?.avatar ?? 'US',
+      name: translated?.name ?? 'Sentify Signal',
+      location: translated?.location ?? '',
+      text: translated?.text ?? '',
+      metric: translated?.metric,
+      metricLabel: translated?.metricLabel,
+    }
+  })
 
   useEffect(() => {
-    let tick = 0
     const interval = window.setInterval(() => {
-      tick += 1
-      setActiveIndices((prev) => {
-        const slot = tick % VISIBLE_COUNT
-        const nextIndices = [...prev]
-        let next = (nextIndices[slot] + VISIBLE_COUNT) % insights.length
-
-        while (nextIndices.includes(next) && next !== nextIndices[slot]) {
-          next = (next + 1) % insights.length
-        }
-
-        nextIndices[slot] = next
-        return nextIndices
-      })
-    }, CYCLE_DURATION / VISIBLE_COUNT)
+      setCycleStep((previous) => previous + 1)
+    }, CYCLE_DURATION / visibleCount)
 
     return () => window.clearInterval(interval)
-  }, [insights.length])
+  }, [visibleCount])
+
+  useEffect(() => {
+    if (!layout) return
+
+    const nodes = INSIGHT_SEEDS
+      .map((insight) => cardRefs.current[insight.id])
+      .filter((node): node is HTMLDivElement => node !== null)
+
+    if (!nodes.length) return
+
+    let frameId = 0
+
+    const measureCardSizes = () => {
+      frameId = 0
+
+      setCardSizes((previous) => {
+        const next: Record<number, CardSize> = {}
+        let hasChange = false
+
+        for (const insight of INSIGHT_SEEDS) {
+          const node = cardRefs.current[insight.id]
+
+          if (!node) {
+            next[insight.id] = previous[insight.id] ?? DEFAULT_CARD_SIZE
+            continue
+          }
+
+          const bounds = node.getBoundingClientRect()
+          const measuredSize = {
+            width: Math.round(bounds.width),
+            height: Math.round(bounds.height),
+          }
+
+          next[insight.id] = measuredSize
+
+          const previousSize = previous[insight.id]
+
+          if (
+            !previousSize ||
+            previousSize.width !== measuredSize.width ||
+            previousSize.height !== measuredSize.height
+          ) {
+            hasChange = true
+          }
+        }
+
+        if (!hasChange && Object.keys(previous).length === Object.keys(next).length) {
+          return previous
+        }
+
+        return next
+      })
+    }
+
+    const scheduleMeasurement = () => {
+      if (frameId !== 0) return
+      frameId = window.requestAnimationFrame(measureCardSizes)
+    }
+
+    const resizeObserver = new ResizeObserver(scheduleMeasurement)
+
+    for (const node of nodes) {
+      resizeObserver.observe(node)
+    }
+
+    scheduleMeasurement()
+    window.addEventListener('resize', scheduleMeasurement)
+
+    return () => {
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId)
+      }
+
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', scheduleMeasurement)
+    }
+  }, [layout])
+
+  const projectedInsights = layout
+    ? insights.map((insight) =>
+        projectInsight(insight, layout, cardSizes[insight.id] ?? DEFAULT_CARD_SIZE, phase),
+      )
+    : []
+  const visibleIndices = projectedInsights
+    .map((insight, index) => (insight.isVisible ? index : -1))
+    .filter((index) => index !== -1)
+  const activeIndices = pickActiveVisibleInsights(
+    visibleIndices,
+    projectedInsights,
+    visibleCount,
+    cycleStep,
+  )
+
+  if (!layout) return null
 
   return (
     <div className="globe-insight-layer" aria-hidden>
-      {insights.map((insight, index) => {
+      {projectedInsights.map((insight, index) => {
         const isActive = activeIndices.includes(index)
+        const groupStyle = {
+          '--insight-dot-size': `${insight.dotSize}px`,
+          '--card-shift-x': `${insight.motionX}px`,
+          '--card-shift-y': `${insight.motionY}px`,
+        } as CSSProperties
 
         return (
           <div
             key={insight.id}
-            className={`globe-insight-group ${isActive ? 'globe-insight-active' : ''}`}
+            className={[
+              'globe-insight-group',
+              insight.isVisible ? '' : 'globe-insight-hidden',
+              isActive ? 'globe-insight-active' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            style={groupStyle}
           >
             <div
               className="globe-insight-dot"
-              style={{ left: `${insight.dotX}%`, top: `${insight.dotY}%` }}
+              style={{ left: `${insight.dotLeft}px`, top: `${insight.dotTop}px` }}
             >
               <span className="globe-insight-dot-core" />
               <span className="globe-insight-dot-ping" />
             </div>
 
-            <svg className="globe-insight-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <svg
+              className="globe-insight-svg"
+              viewBox={`0 0 ${layout.shellWidth} ${layout.shellHeight}`}
+              preserveAspectRatio="none"
+            >
               <line
-                x1={insight.dotX}
-                y1={insight.dotY}
-                x2={insight.cardX + 10}
-                y2={insight.cardY + 4}
+                x1={insight.dotLeft}
+                y1={insight.dotTop}
+                x2={insight.lineX2}
+                y2={insight.lineY2}
                 className="globe-insight-line"
+                style={{
+                  strokeDasharray: `${insight.lineLength}px`,
+                  strokeDashoffset: isActive ? '0px' : `${insight.lineLength}px`,
+                }}
               />
             </svg>
 
             <div
               className={`globe-insight-card globe-insight-card-${insight.cardSide}`}
-              style={{ left: `${insight.cardX}%`, top: `${insight.cardY}%` }}
+              style={{ left: `${insight.cardLeft}px`, top: `${insight.cardTop}px` }}
+              ref={(node) => {
+                cardRefs.current[insight.id] = node
+              }}
             >
               <div className="globe-insight-card-header">
                 <span className="globe-insight-avatar">{insight.avatar}</span>
