@@ -35,8 +35,18 @@ export const AsciiGlobe = memo(function AsciiGlobe() {
   const bodyRef = useRef<HTMLPreElement>(null)
   const spherePhase = sphereTick * 0.085
 
-  const sphere = useMemo(() => {
-    return buildSphereLayers(spherePhase, sphereTick)
+  const sphereState = useMemo(() => {
+    try {
+      return {
+        hasError: false,
+        layers: buildSphereLayers(spherePhase, sphereTick),
+      }
+    } catch {
+      return {
+        hasError: true,
+        layers: null,
+      }
+    }
   }, [spherePhase, sphereTick])
 
   useEffect(() => {
@@ -138,6 +148,28 @@ export const AsciiGlobe = memo(function AsciiGlobe() {
     }
   }, [])
 
+  if (sphereState.hasError || !sphereState.layers) {
+    return (
+      <div className="hero-globe-pane" aria-hidden>
+        <div className="hero-globe-viewport">
+          <div className="hero-globe-round">
+            <div className="globe-cinema-rig">
+              <div className="globe-stage globe-stage-right">
+                <div className="globe-shell">
+                  <div className="flex min-h-[24rem] items-center justify-center px-6 text-center">
+                    <div className="rounded-[1.6rem] border border-border-dark/80 bg-surface-dark/70 px-6 py-5 text-sm text-text-silver-dark">
+                      Live globe unavailable. Review signals remain available below.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="hero-globe-pane" aria-hidden>
       <div className="hero-globe-viewport">
@@ -155,14 +187,24 @@ export const AsciiGlobe = memo(function AsciiGlobe() {
                 <div className="globe-scan-ring globe-scan-ring-3"></div>
 
                 <div className="ascii-sphere-wrapper">
-                  <pre className="ascii-sphere-layer ascii-sphere-shadow">{sphere.shadow}</pre>
-                  <pre className="ascii-sphere-layer ascii-sphere-body" ref={bodyRef}>
-                    {sphere.body}
+                  <pre className="ascii-sphere-layer ascii-sphere-shadow">
+                    {sphereState.layers.shadow}
                   </pre>
-                  <pre className="ascii-sphere-layer ascii-sphere-land">{sphere.land}</pre>
-                  <pre className="ascii-sphere-layer ascii-sphere-cloud">{sphere.cloud}</pre>
-                  <pre className="ascii-sphere-layer ascii-sphere-wire">{sphere.wire}</pre>
-                  <pre className="ascii-sphere-layer ascii-sphere-rim">{sphere.rim}</pre>
+                  <pre className="ascii-sphere-layer ascii-sphere-body" ref={bodyRef}>
+                    {sphereState.layers.body}
+                  </pre>
+                  <pre className="ascii-sphere-layer ascii-sphere-land">
+                    {sphereState.layers.land}
+                  </pre>
+                  <pre className="ascii-sphere-layer ascii-sphere-cloud">
+                    {sphereState.layers.cloud}
+                  </pre>
+                  <pre className="ascii-sphere-layer ascii-sphere-wire">
+                    {sphereState.layers.wire}
+                  </pre>
+                  <pre className="ascii-sphere-layer ascii-sphere-rim">
+                    {sphereState.layers.rim}
+                  </pre>
                 </div>
 
                 <GlobeInsightCards layout={layoutMetrics} phase={spherePhase} />

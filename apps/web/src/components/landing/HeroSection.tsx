@@ -2,7 +2,19 @@ import { AsciiGlobe } from './hero/AsciiGlobe'
 import { MarqueeTicker } from './MarqueeTicker'
 import { useLanguage } from '../../contexts/languageContext'
 
-export function HeroSection() {
+interface HeroSectionProps {
+  primaryLabel: string
+  secondaryLabel: string
+  onPrimaryAction: () => void
+  onSecondaryAction: () => void
+}
+
+export function HeroSection({
+  primaryLabel,
+  secondaryLabel,
+  onPrimaryAction,
+  onSecondaryAction,
+}: HeroSectionProps) {
   const { copy } = useLanguage()
 
   return (
@@ -52,23 +64,30 @@ export function HeroSection() {
             </div>
 
             <div className="mt-2 flex flex-wrap justify-center gap-4 lg:justify-start">
-              <a
+              <button
+                type="button"
                 className="group relative flex h-14 items-center gap-3 overflow-hidden rounded-full bg-primary px-8 text-base font-bold text-white transition-all hover:pr-6 hover:shadow-[0_10px_30px_rgba(212,175,55,0.4)] dark:text-bg-dark dark:hover:shadow-[0_0_30px_rgba(242,208,13,0.4)]"
-                href="#workflow"
+                onClick={onPrimaryAction}
               >
-                <span className="relative z-10">{copy.hero.primaryCta}</span>
-                <span className="material-symbols-outlined relative z-10 text-xl transition-transform group-hover:translate-x-1">
+                <span className="relative z-10">{primaryLabel}</span>
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined relative z-10 text-xl transition-transform group-hover:translate-x-1"
+                >
                   arrow_forward
                 </span>
                 <div className="absolute inset-0 translate-y-full bg-white/20 transition-transform duration-300 group-hover:translate-y-0"></div>
-              </a>
-              <a
+              </button>
+              <button
+                type="button"
                 className="flex h-14 items-center gap-3 rounded-full border border-border-light bg-surface-white px-8 text-base font-bold text-text-charcoal shadow-sm transition-all hover:bg-surface-ticker-light dark:border-border-dark dark:bg-surface-dark/50 dark:text-white dark:shadow-none dark:hover:bg-surface-highlight"
-                href="#dashboard"
+                onClick={onSecondaryAction}
               >
-                <span className="material-symbols-outlined text-primary">dashboard</span>
-                {copy.hero.secondaryCta}
-              </a>
+                <span aria-hidden="true" className="material-symbols-outlined text-primary">
+                  dashboard
+                </span>
+                {secondaryLabel}
+              </button>
             </div>
           </div>
 

@@ -8,6 +8,7 @@ const { sendError } = require('./lib/controller-error')
 const errorHandler = require('./middleware/error-handler')
 const { apiLimiter } = require('./middleware/rate-limit')
 const requestIdMiddleware = require('./middleware/request-id')
+const requestLogger = require('./middleware/request-logger')
 const restaurantRoutes = require('./routes/restaurants')
 
 const app = express()
@@ -15,6 +16,7 @@ const app = express()
 app.disable('x-powered-by')
 app.set('trust proxy', env.TRUST_PROXY_VALUE)
 app.use(requestIdMiddleware)
+app.use(requestLogger)
 app.use(
     cors({
         origin: env.CORS_ORIGINS,

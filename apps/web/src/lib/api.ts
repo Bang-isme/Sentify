@@ -1,0 +1,315 @@
+const DEFAULT_LOCAL_DEV_API_BASE_URL = 'http://localhost:3000/api'
+
+const ENV_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)
+  ?.trim()
+  .replace(/\/$/, '')
+
+const API_BASE_URL = ENV_API_BASE_URL
+  ? ENV_API_BASE_URL
+  : import.meta.env.DEV
+    ? DEFAULT_LOCAL_DEV_API_BASE_URL
+    : '/api'
+
+export type SentimentLabel = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE'
+export type TrendPeriod = 'week' | 'month'
+
+export interface RestaurantMembership {
+  id: string
+  name: string
+  slug: string
+  permission: string
+  googleMapUrl?: string | null
+  totalReviews?: number
+}
+
+export interface InsightSummary {
+  totalReviews: number
+  averageRating: number
+  positivePercentage: number
+  neutralPercentage: number
+  negativePercentage: number
+}
+
+export interface RestaurantDetail {
+  id: string
+  name: string
+  slug: string
+  address: string | null
+  googleMapUrl: string | null
+  permission: string
+  insightSummary: InsightSummary
+}
+
+export interface AuthUser {
+  id: string
+  email: string
+  fullName: string
+  restaurants?: RestaurantMembership[]
+}
+
+export interface AuthResponse {
+  accessToken: string
+  expiresIn: number
+  user: AuthUser
+}
+
+export interface RegisterInput {
+  fullName: string
+  email: string
+  password: string
+}
+
+export interface LoginInput {
+  email: string
+  password: string
+}
+
+export interface CreateRestaurantInput {
+  name: string
+  address?: string
+  googleMapUrl?: string
+}
+
+export interface UpdateRestaurantInput {
+  name?: string
+  address?: string | null
+  googleMapUrl?: string | null
+}
+
+export interface SentimentBreakdownRow {
+  label: SentimentLabel
+  count: number
+  percentage: number
+}
+
+export interface TrendPoint {
+  label: string
+  averageRating: number
+  reviewCount: number
+}
+
+export interface ComplaintKeyword {
+  keyword: string
+  count: number
+  percentage: number
+}
+
+export interface ReviewItem {
+  id: string
+  externalId: string
+  authorName: string | null
+  rating: number
+  content: string | null
+  sentiment: SentimentLabel | null
+  reviewDate: string | null
+}
+
+export interface ReviewListResponse {
+  data: ReviewItem[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
+export interface ImportResult {
+  imported: number
+  skipped: number
+  total: number
+  message: string
+}
+
+export interface ApiErrorPayload {
+  code: string
+  message: string
+  details?: unknown
+}
+
+export class ApiClientError extends Error {
+  status: number
+  code: string
+  details?: unknown
+
+  constructor(status: number, payload: ApiErrorPayload) {
+    super(payload.message)
+    this.name = 'ApiClientError'
+    this.status = status
+    this.code = payload.code
+    this.details = payload.details
+  }
+}
+
+interface ApiRequestOptions {
+  body?: unknown
+  method?: 'GET' | 'POST' | 'PATCH'
+  token?: string
+  unwrapData?: boolean
+}
+
+export interface ReviewsQuery {
+  rating?: string
+  from?: string
+  to?: string
+  page?: number
+  limit?: number
+}
+
+function buildUrl(path: string, query?: Record<string, string | number | undefined>) {
+  const url = new URL(`${API_BASE_URL}${path}`)
+
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== '') {
+        url.searchParams.set(key, String(value))
+      }
+    }
+  }
+
+  return url
+}
+
+async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  const headers = new Headers({
+    Accept: 'application/json',
+  })
+
+  if (options.body) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  if (options.token) {
+    headers.set('Authorization', `Bearer ${options.token}`)
+  }
+
+  const response = await fetch(buildUrl(path), {
+    method: options.method ?? 'GET',
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  })
+
+  const payload = (await response.json().catch(() => null)) as
+    | { data?: T; error?: ApiErrorPayload }
+    | T
+    | null
+
+  if (!response.ok) {
+    const errorPayload =
+      payload && typeof payload === 'object' && 'error' in payload && payload.error
+        ? payload.error
+        : {
+            code: 'REQUEST_FAILED',
+            message: 'Request failed',
+          }
+
+    throw new ApiClientError(response.status, errorPayload)
+  }
+
+  if (options.unwrapData === false) {
+    return payload as T
+  }
+
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return payload.data as T
+  }
+
+  return payload as T
+}
+
+export function register(input: RegisterInput) {
+  return request<AuthResponse>('/auth/register', {
+    method: 'POST',
+    body: input,
+  })
+}
+
+export function login(input: LoginInput) {
+  return request<AuthResponse>('/auth/login', {
+    method: 'POST',
+    body: input,
+  })
+}
+
+export function logout(token: string) {
+  return request<{ message: string }>('/auth/logout', {
+    method: 'POST',
+    token,
+  })
+}
+
+export function listRestaurants(token: string) {
+  return request<RestaurantMembership[]>('/restaurants', {
+    token,
+  })
+}
+
+export function createRestaurant(token: string, input: CreateRestaurantInput) {
+  return request<RestaurantMembership>('/restaurants', {
+    method: 'POST',
+    token,
+    body: input,
+  })
+}
+
+export function getRestaurantDetail(token: string, restaurantId: string) {
+  return request<RestaurantDetail>(`/restaurants/${restaurantId}`, {
+    token,
+  })
+}
+
+export function updateRestaurant(token: string, restaurantId: string, input: UpdateRestaurantInput) {
+  return request<RestaurantDetail>(`/restaurants/${restaurantId}`, {
+    method: 'PATCH',
+    token,
+    body: input,
+  })
+}
+
+export function importReviews(token: string, restaurantId: string) {
+  return request<ImportResult>(`/restaurants/${restaurantId}/import`, {
+    method: 'POST',
+    token,
+  })
+}
+
+export function getDashboardKpi(token: string, restaurantId: string) {
+  return request<InsightSummary>(`/restaurants/${restaurantId}/dashboard/kpi`, {
+    token,
+  })
+}
+
+export function getSentimentBreakdown(token: string, restaurantId: string) {
+  return request<SentimentBreakdownRow[]>(`/restaurants/${restaurantId}/dashboard/sentiment`, {
+    token,
+  })
+}
+
+export function getTrend(token: string, restaurantId: string, period: TrendPeriod) {
+  return request<TrendPoint[]>(`/restaurants/${restaurantId}/dashboard/trend?period=${period}`, {
+    token,
+  })
+}
+
+export function getComplaintKeywords(token: string, restaurantId: string) {
+  return request<ComplaintKeyword[]>(`/restaurants/${restaurantId}/dashboard/complaints`, {
+    token,
+  })
+}
+
+export function listReviewEvidence(token: string, restaurantId: string, query: ReviewsQuery) {
+  const searchParams = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== '') {
+      searchParams.set(key, String(value))
+    }
+  }
+
+  const suffix = searchParams.size ? `?${searchParams.toString()}` : ''
+
+  return request<ReviewListResponse>(`/restaurants/${restaurantId}/reviews${suffix}`, {
+    token,
+    unwrapData: false,
+  })
+}

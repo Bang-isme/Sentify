@@ -27,7 +27,7 @@ async function run() {
             compressed += chars[val];
         }
 
-        console.log("MAP_DATA:|" + compressed + "|");
+        process.stdout.write(`MAP_DATA:|${compressed}|\n`);
     } catch (e) {
         console.error(e);
     }

@@ -1,6 +1,18 @@
-﻿import { useLanguage } from '../../contexts/languageContext'
+import { useLanguage } from '../../contexts/languageContext'
 
-export function CTASection() {
+interface CTASectionProps {
+  primaryLabel: string
+  secondaryLabel: string
+  onPrimaryAction: () => void
+  onSecondaryAction: () => void
+}
+
+export function CTASection({
+  primaryLabel,
+  secondaryLabel,
+  onPrimaryAction,
+  onSecondaryAction,
+}: CTASectionProps) {
   const { copy } = useLanguage()
 
   return (
@@ -20,18 +32,20 @@ export function CTASection() {
         </p>
 
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a
+          <button
+            type="button"
             className="inline-flex h-14 w-full items-center justify-center rounded-full bg-primary px-8 font-bold whitespace-nowrap text-white shadow-[0_10px_20px_rgba(212,175,55,0.3)] transition-colors hover:bg-primary-dark dark:text-bg-dark dark:shadow-[0_0_20px_rgba(242,208,13,0.3)] dark:hover:bg-yellow-400 sm:w-auto"
-            href="#workflow"
+            onClick={onPrimaryAction}
           >
-            {copy.cta.primaryCta}
-          </a>
-          <a
+            {primaryLabel}
+          </button>
+          <button
+            type="button"
             className="inline-flex h-14 w-full items-center justify-center rounded-full border border-border-light px-8 font-bold whitespace-nowrap text-text-charcoal transition-colors hover:border-primary/50 hover:text-primary dark:border-border-dark dark:text-white sm:w-auto"
-            href="#overview"
+            onClick={onSecondaryAction}
           >
-            {copy.cta.secondaryCta}
-          </a>
+            {secondaryLabel}
+          </button>
         </div>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-xs font-medium text-text-silver-light dark:text-text-silver-dark">
           {copy.cta.chips.map((item) => (
