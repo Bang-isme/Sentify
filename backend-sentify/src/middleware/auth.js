@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
 
 const env = require('../config/env')
+const { readAuthCookie } = require('../lib/auth-cookie')
 const prisma = require('../lib/prisma')
 
 function sendUnauthorized(req, res, code, message) {
@@ -13,14 +14,22 @@ function sendUnauthorized(req, res, code, message) {
     })
 }
 
-async function authMiddleware(req, res, next) {
+function extractAccessToken(req) {
     const authHeader = req.headers.authorization || ''
 
-    if (!authHeader.startsWith('Bearer ')) {
-        return sendUnauthorized(req, res, 'AUTH_MISSING_TOKEN', 'Access token is required')
+    if (authHeader.startsWith('Bearer ')) {
+        return authHeader.slice('Bearer '.length)
     }
 
-    const token = authHeader.slice('Bearer '.length)
+    return readAuthCookie(req)
+}
+
+async function authMiddleware(req, res, next) {
+    const token = extractAccessToken(req)
+
+    if (!token) {
+        return sendUnauthorized(req, res, 'AUTH_MISSING_TOKEN', 'Access token is required')
+    }
 
     try {
         const payload = jwt.verify(token, env.JWT_SECRET, {

@@ -20,6 +20,7 @@ app.use(requestLogger)
 app.use(
     cors({
         origin: env.CORS_ORIGINS,
+        credentials: true,
         methods: ['GET', 'POST', 'PATCH'],
         allowedHeaders: ['Authorization', 'Content-Type'],
     }),

@@ -48,8 +48,11 @@ export interface AuthUser {
 }
 
 export interface AuthResponse {
-  accessToken: string
   expiresIn: number
+  user: AuthUser
+}
+
+export interface SessionResponse {
   user: AuthUser
 }
 
@@ -156,8 +159,17 @@ export interface ReviewsQuery {
   limit?: number
 }
 
+function resolveApiBaseUrl() {
+  if (/^https?:\/\//i.test(API_BASE_URL)) {
+    return API_BASE_URL
+  }
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+  return new URL(API_BASE_URL, origin).toString().replace(/\/$/, '')
+}
+
 function buildUrl(path: string, query?: Record<string, string | number | undefined>) {
-  const url = new URL(`${API_BASE_URL}${path}`)
+  const url = new URL(`${resolveApiBaseUrl()}${path}`)
 
   if (query) {
     for (const [key, value] of Object.entries(query)) {
@@ -185,6 +197,7 @@ async function request<T>(path: string, options: ApiRequestOptions = {}): Promis
 
   const response = await fetch(buildUrl(path), {
     method: options.method ?? 'GET',
+    credentials: 'include',
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
   })
@@ -231,73 +244,61 @@ export function login(input: LoginInput) {
   })
 }
 
-export function logout(token: string) {
+export function getSession() {
+  return request<SessionResponse>('/auth/session')
+}
+
+export function logout() {
   return request<{ message: string }>('/auth/logout', {
     method: 'POST',
-    token,
   })
 }
 
-export function listRestaurants(token: string) {
-  return request<RestaurantMembership[]>('/restaurants', {
-    token,
-  })
+export function listRestaurants() {
+  return request<RestaurantMembership[]>('/restaurants')
 }
 
-export function createRestaurant(token: string, input: CreateRestaurantInput) {
+export function createRestaurant(input: CreateRestaurantInput) {
   return request<RestaurantMembership>('/restaurants', {
     method: 'POST',
-    token,
     body: input,
   })
 }
 
-export function getRestaurantDetail(token: string, restaurantId: string) {
-  return request<RestaurantDetail>(`/restaurants/${restaurantId}`, {
-    token,
-  })
+export function getRestaurantDetail(restaurantId: string) {
+  return request<RestaurantDetail>(`/restaurants/${restaurantId}`)
 }
 
-export function updateRestaurant(token: string, restaurantId: string, input: UpdateRestaurantInput) {
+export function updateRestaurant(restaurantId: string, input: UpdateRestaurantInput) {
   return request<RestaurantDetail>(`/restaurants/${restaurantId}`, {
     method: 'PATCH',
-    token,
     body: input,
   })
 }
 
-export function importReviews(token: string, restaurantId: string) {
+export function importReviews(restaurantId: string) {
   return request<ImportResult>(`/restaurants/${restaurantId}/import`, {
     method: 'POST',
-    token,
   })
 }
 
-export function getDashboardKpi(token: string, restaurantId: string) {
-  return request<InsightSummary>(`/restaurants/${restaurantId}/dashboard/kpi`, {
-    token,
-  })
+export function getDashboardKpi(restaurantId: string) {
+  return request<InsightSummary>(`/restaurants/${restaurantId}/dashboard/kpi`)
 }
 
-export function getSentimentBreakdown(token: string, restaurantId: string) {
-  return request<SentimentBreakdownRow[]>(`/restaurants/${restaurantId}/dashboard/sentiment`, {
-    token,
-  })
+export function getSentimentBreakdown(restaurantId: string) {
+  return request<SentimentBreakdownRow[]>(`/restaurants/${restaurantId}/dashboard/sentiment`)
 }
 
-export function getTrend(token: string, restaurantId: string, period: TrendPeriod) {
-  return request<TrendPoint[]>(`/restaurants/${restaurantId}/dashboard/trend?period=${period}`, {
-    token,
-  })
+export function getTrend(restaurantId: string, period: TrendPeriod) {
+  return request<TrendPoint[]>(`/restaurants/${restaurantId}/dashboard/trend?period=${period}`)
 }
 
-export function getComplaintKeywords(token: string, restaurantId: string) {
-  return request<ComplaintKeyword[]>(`/restaurants/${restaurantId}/dashboard/complaints`, {
-    token,
-  })
+export function getComplaintKeywords(restaurantId: string) {
+  return request<ComplaintKeyword[]>(`/restaurants/${restaurantId}/dashboard/complaints`)
 }
 
-export function listReviewEvidence(token: string, restaurantId: string, query: ReviewsQuery) {
+export function listReviewEvidence(restaurantId: string, query: ReviewsQuery) {
   const searchParams = new URLSearchParams()
 
   for (const [key, value] of Object.entries(query)) {
@@ -309,7 +310,6 @@ export function listReviewEvidence(token: string, restaurantId: string, query: R
   const suffix = searchParams.size ? `?${searchParams.toString()}` : ''
 
   return request<ReviewListResponse>(`/restaurants/${restaurantId}/reviews${suffix}`, {
-    token,
     unwrapData: false,
   })
 }

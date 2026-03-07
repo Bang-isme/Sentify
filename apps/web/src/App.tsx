@@ -13,6 +13,7 @@ import {
   createRestaurant,
   getComplaintKeywords,
   getDashboardKpi,
+  getSession,
   getRestaurantDetail,
   getSentimentBreakdown,
   getTrend,
@@ -34,8 +35,6 @@ import {
 type AppRoute = '/' | '/login' | '/signup' | '/app' | '/app/reviews' | '/app/settings'
 
 interface StoredSession {
-  accessToken: string
-  expiresAt: number
   user: AuthUser
   restaurants: RestaurantMembership[]
   selectedRestaurantId: string | null
@@ -61,7 +60,7 @@ interface UserIdentityViewModel {
   selectedRestaurantName?: string
 }
 
-const SESSION_STORAGE_KEY = 'sentify-session'
+const SELECTED_RESTAURANT_STORAGE_KEY = 'sentify-selected-restaurant'
 const EMPTY_DASHBOARD: DashboardState = {
   kpi: null,
   sentiment: [],
@@ -73,24 +72,9 @@ const DEFAULT_REVIEW_FILTERS: ReviewsQuery = {
   limit: 10,
 }
 
-function loadStoredSession(): StoredSession | null {
-  const raw = localStorage.getItem(SESSION_STORAGE_KEY)
-
-  if (!raw) {
-    return null
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as StoredSession
-
-    if (!parsed.accessToken || !parsed.user?.id || !parsed.expiresAt || parsed.expiresAt <= Date.now()) {
-      return null
-    }
-
-    return parsed
-  } catch {
-    return null
-  }
+function loadSelectedRestaurantId() {
+  const raw = localStorage.getItem(SELECTED_RESTAURANT_STORAGE_KEY)?.trim()
+  return raw || null
 }
 
 function getRouteFromHash(hash: string): AppRoute {
@@ -164,8 +148,9 @@ function SentifyShell() {
   const { language } = useLanguage()
   const productCopy = getProductUiCopy(language)
   const [route, setRoute] = useState<AppRoute>(() => getRouteFromHash(window.location.hash))
-  const [session, setSession] = useState<StoredSession | null>(() => loadStoredSession())
-  const [sessionLoading, setSessionLoading] = useState(() => Boolean(loadStoredSession()))
+  const [session, setSession] = useState<StoredSession | null>(null)
+  const [authBootLoading, setAuthBootLoading] = useState(true)
+  const [sessionRefreshing, setSessionRefreshing] = useState(false)
   const [sessionSyncKey, setSessionSyncKey] = useState(0)
   const [authPending, setAuthPending] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
@@ -185,7 +170,6 @@ function SentifyShell() {
   const [reviewsError, setReviewsError] = useState<string | null>(null)
   const [reviewFilters, setReviewFilters] = useState<ReviewsQuery>(DEFAULT_REVIEW_FILTERS)
 
-  const accessToken = session?.accessToken ?? null
   const restaurants = session?.restaurants ?? []
   const selectedRestaurantId = session?.selectedRestaurantId ?? null
   const isAuthenticated = Boolean(session)
@@ -306,15 +290,6 @@ function SentifyShell() {
   }, [])
 
   useEffect(() => {
-    if (session) {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
-      return
-    }
-
-    localStorage.removeItem(SESSION_STORAGE_KEY)
-  }, [session])
-
-  useEffect(() => {
     if (!notice) {
       return undefined
     }
@@ -327,19 +302,74 @@ function SentifyShell() {
   }, [notice])
 
   useEffect(() => {
-    if (!accessToken) {
-      setSessionLoading(false)
+    let cancelled = false
+
+    async function bootstrapSession() {
+      setAuthBootLoading(true)
+
+      try {
+        const result = await getSession()
+
+        if (cancelled) {
+          return
+        }
+
+        const memberships = result.user.restaurants ?? []
+        persistSession({
+          user: result.user,
+          restaurants: memberships,
+          selectedRestaurantId: getSafeSelectedRestaurantId(
+            memberships,
+            loadSelectedRestaurantId(),
+          ),
+        })
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+
+        if (!(error instanceof ApiClientError && error.status === 401)) {
+          setNotice({
+            tone: 'error',
+            message: getErrorMessage(error, getFeedbackError('refreshSession')),
+          })
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthBootLoading(false)
+        }
+      }
+    }
+
+    void bootstrapSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (selectedRestaurantId) {
+      localStorage.setItem(SELECTED_RESTAURANT_STORAGE_KEY, selectedRestaurantId)
       return
     }
 
-    const token = accessToken
+    localStorage.removeItem(SELECTED_RESTAURANT_STORAGE_KEY)
+  }, [selectedRestaurantId])
+
+  useEffect(() => {
+    if (!session?.user.id) {
+      setSessionRefreshing(false)
+      return
+    }
+
     let cancelled = false
 
     async function hydrateSession() {
-      setSessionLoading(true)
+      setSessionRefreshing(true)
 
       try {
-        const memberships = await listRestaurants(token)
+        const memberships = await listRestaurants()
 
         if (cancelled) {
           return
@@ -372,7 +402,7 @@ function SentifyShell() {
         }
       } finally {
         if (!cancelled) {
-          setSessionLoading(false)
+          setSessionRefreshing(false)
         }
       }
     }
@@ -382,10 +412,10 @@ function SentifyShell() {
     return () => {
       cancelled = true
     }
-  }, [accessToken, sessionSyncKey])
+  }, [session?.user.id, sessionSyncKey])
 
   useEffect(() => {
-    if (sessionLoading) {
+    if (authBootLoading) {
       return
     }
 
@@ -397,17 +427,16 @@ function SentifyShell() {
     if ((route === '/login' || route === '/signup') && session) {
       navigate('/app')
     }
-  }, [route, session, sessionLoading])
+  }, [route, session, authBootLoading])
 
   useEffect(() => {
-    if (!accessToken || !selectedRestaurantId || !isAppRoute(route)) {
+    if (!session?.user.id || !selectedRestaurantId || !isAppRoute(route)) {
       setRestaurantDetail(null)
       setRestaurantError(null)
       setRestaurantLoading(false)
       return
     }
 
-    const token = accessToken
     const restaurantId = selectedRestaurantId
     let cancelled = false
 
@@ -416,7 +445,7 @@ function SentifyShell() {
       setRestaurantError(null)
 
       try {
-        const detail = await getRestaurantDetail(token, restaurantId)
+        const detail = await getRestaurantDetail(restaurantId)
 
         if (!cancelled) {
           setRestaurantDetail(detail)
@@ -442,17 +471,16 @@ function SentifyShell() {
     return () => {
       cancelled = true
     }
-  }, [accessToken, route, selectedRestaurantId, sessionSyncKey])
+  }, [session?.user.id, route, selectedRestaurantId, sessionSyncKey])
 
   useEffect(() => {
-    if (route !== '/app' || !accessToken || !selectedRestaurantId) {
+    if (route !== '/app' || !session?.user.id || !selectedRestaurantId) {
       setDashboard(EMPTY_DASHBOARD)
       setDashboardError(null)
       setDashboardLoading(false)
       return
     }
 
-    const token = accessToken
     const restaurantId = selectedRestaurantId
     let cancelled = false
 
@@ -462,10 +490,10 @@ function SentifyShell() {
 
       try {
         const [kpi, sentiment, trend, complaints] = await Promise.all([
-          getDashboardKpi(token, restaurantId),
-          getSentimentBreakdown(token, restaurantId),
-          getTrend(token, restaurantId, trendPeriod),
-          getComplaintKeywords(token, restaurantId),
+          getDashboardKpi(restaurantId),
+          getSentimentBreakdown(restaurantId),
+          getTrend(restaurantId, trendPeriod),
+          getComplaintKeywords(restaurantId),
         ])
 
         if (!cancelled) {
@@ -497,17 +525,16 @@ function SentifyShell() {
     return () => {
       cancelled = true
     }
-  }, [accessToken, route, selectedRestaurantId, sessionSyncKey, trendPeriod])
+  }, [session?.user.id, route, selectedRestaurantId, sessionSyncKey, trendPeriod])
 
   useEffect(() => {
-    if (route !== '/app/reviews' || !accessToken || !selectedRestaurantId) {
+    if (route !== '/app/reviews' || !session?.user.id || !selectedRestaurantId) {
       setReviews(null)
       setReviewsError(null)
       setReviewsLoading(false)
       return
     }
 
-    const token = accessToken
     const restaurantId = selectedRestaurantId
     let cancelled = false
 
@@ -516,7 +543,7 @@ function SentifyShell() {
       setReviewsError(null)
 
       try {
-        const result = await listReviewEvidence(token, restaurantId, reviewFilters)
+        const result = await listReviewEvidence(restaurantId, reviewFilters)
 
         if (!cancelled) {
           setReviews(result)
@@ -542,7 +569,7 @@ function SentifyShell() {
     return () => {
       cancelled = true
     }
-  }, [accessToken, route, reviewFilters, selectedRestaurantId, sessionSyncKey])
+  }, [session?.user.id, route, reviewFilters, selectedRestaurantId, sessionSyncKey])
 
   async function handleLogin(input: { email: string; password: string }) {
     setAuthPending(true)
@@ -552,8 +579,6 @@ function SentifyShell() {
       const result = await login(input)
       const memberships = result.user.restaurants ?? []
       const nextSession: StoredSession = {
-        accessToken: result.accessToken,
-        expiresAt: Date.now() + result.expiresIn * 1000,
         user: result.user,
         restaurants: memberships,
         selectedRestaurantId: getSafeSelectedRestaurantId(memberships, null),
@@ -576,8 +601,6 @@ function SentifyShell() {
     try {
       const result = await register(input)
       const nextSession: StoredSession = {
-        accessToken: result.accessToken,
-        expiresAt: Date.now() + result.expiresIn * 1000,
         user: result.user,
         restaurants: [],
         selectedRestaurantId: null,
@@ -593,12 +616,10 @@ function SentifyShell() {
   }
 
   async function handleLogout() {
-    if (accessToken) {
-      try {
-        await logout(accessToken)
-      } catch {
-        // Clear the client session even if the server-side revoke request fails.
-      }
+    try {
+      await logout()
+    } catch {
+      // Clear the client session even if the server-side revoke request fails.
     }
 
     persistSession(null)
@@ -616,7 +637,7 @@ function SentifyShell() {
     address?: string
     googleMapUrl?: string
   }) {
-    if (!accessToken) {
+    if (!session?.user.id) {
       navigate('/login')
       return
     }
@@ -624,7 +645,7 @@ function SentifyShell() {
     setCreatePending(true)
 
     try {
-      const created = await createRestaurant(accessToken, input)
+      const created = await createRestaurant(input)
 
       setSession((current) => {
         if (!current) {
@@ -661,14 +682,14 @@ function SentifyShell() {
     address?: string | null
     googleMapUrl?: string | null
   }) {
-    if (!accessToken || !selectedRestaurantId) {
+    if (!session?.user.id || !selectedRestaurantId) {
       return
     }
 
     setSavePending(true)
 
     try {
-      const updated = await updateRestaurant(accessToken, selectedRestaurantId, input)
+      const updated = await updateRestaurant(selectedRestaurantId, input)
 
       setRestaurantDetail(updated)
       setSession((current) => {
@@ -709,14 +730,14 @@ function SentifyShell() {
   }
 
   async function handleImportReviews() {
-    if (!accessToken || !selectedRestaurantId) {
+    if (!session?.user.id || !selectedRestaurantId) {
       return
     }
 
     setImportPending(true)
 
     try {
-      const result = await importReviews(accessToken, selectedRestaurantId)
+      const result = await importReviews(selectedRestaurantId)
       setSessionSyncKey((current) => current + 1)
       setNotice({
         tone: 'success',
@@ -801,8 +822,18 @@ function SentifyShell() {
         </div>
       ) : null}
 
-      {route === '/login' || route === '/signup' ? (
+      {authBootLoading && route !== '/' ? (
+        <main
+          id="main-content"
+          className="flex min-h-screen items-center justify-center bg-bg-light px-6 pt-28 pb-14 dark:bg-bg-dark"
+        >
+          <div className="rounded-[1.8rem] border border-border-light/70 bg-surface-white/88 px-6 py-5 text-sm font-semibold text-text-charcoal shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 dark:text-white">
+            {productCopy.feedback.loadingSession}
+          </div>
+        </main>
+      ) : route === '/login' || route === '/signup' ? (
         <AuthScreen
+          key={route}
           mode={route === '/login' ? 'login' : 'signup'}
           copy={productCopy.auth}
           pending={authPending}
@@ -818,7 +849,7 @@ function SentifyShell() {
           restaurants={restaurants}
           selectedRestaurantId={selectedRestaurantId}
           selectedRestaurantDetail={restaurantDetail}
-          restaurantLoading={restaurantLoading || sessionLoading}
+          restaurantLoading={restaurantLoading || sessionRefreshing}
           restaurantError={restaurantError}
           dashboard={dashboard}
           dashboardLoading={dashboardLoading}

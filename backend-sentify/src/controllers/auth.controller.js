@@ -1,5 +1,6 @@
 const { z } = require('zod')
 
+const { clearAuthCookie, setAuthCookie } = require('../lib/auth-cookie')
 const { handleControllerError } = require('../lib/controller-error')
 const authService = require('../services/auth.service')
 
@@ -26,9 +27,17 @@ async function register(req, res) {
     try {
         const input = registerSchema.parse(req.body)
         const result = await authService.register(input, buildRequestContext(req))
+        setAuthCookie(
+            res,
+            result.accessToken,
+            authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1000,
+        )
 
         return res.status(201).json({
-            data: result,
+            data: {
+                user: result.user,
+                expiresIn: result.expiresIn,
+            },
         })
     } catch (error) {
         return handleControllerError(req, res, error)
@@ -39,6 +48,28 @@ async function login(req, res) {
     try {
         const input = loginSchema.parse(req.body)
         const result = await authService.login(input, buildRequestContext(req))
+        setAuthCookie(
+            res,
+            result.accessToken,
+            authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1000,
+        )
+
+        return res.status(200).json({
+            data: {
+                user: result.user,
+                expiresIn: result.expiresIn,
+            },
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
+async function getSession(req, res) {
+    try {
+        const result = await authService.getSession({
+            userId: req.user.userId,
+        })
 
         return res.status(200).json({
             data: result,
@@ -54,6 +85,7 @@ async function logout(req, res) {
             userId: req.user.userId,
             context: buildRequestContext(req),
         })
+        clearAuthCookie(res)
 
         return res.status(200).json({
             data: result,
@@ -64,6 +96,7 @@ async function logout(req, res) {
 }
 
 module.exports = {
+    getSession,
     register,
     login,
     logout,

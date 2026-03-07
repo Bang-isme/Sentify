@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../src/App'
 import {
+  ApiClientError,
   createRestaurant,
   getComplaintKeywords,
   getDashboardKpi,
+  getSession,
   getRestaurantDetail,
   getSentimentBreakdown,
   getTrend,
@@ -34,6 +36,7 @@ vi.mock('../src/lib/api', async () => {
     createRestaurant: vi.fn(),
     getComplaintKeywords: vi.fn(),
     getDashboardKpi: vi.fn(),
+    getSession: vi.fn(),
     getRestaurantDetail: vi.fn(),
     getSentimentBreakdown: vi.fn(),
     getTrend: vi.fn(),
@@ -50,6 +53,7 @@ vi.mock('../src/lib/api', async () => {
 const listRestaurantsMock = vi.mocked(listRestaurants)
 const getRestaurantDetailMock = vi.mocked(getRestaurantDetail)
 const getDashboardKpiMock = vi.mocked(getDashboardKpi)
+const getSessionMock = vi.mocked(getSession)
 const getSentimentBreakdownMock = vi.mocked(getSentimentBreakdown)
 const getTrendMock = vi.mocked(getTrend)
 const getComplaintKeywordsMock = vi.mocked(getComplaintKeywords)
@@ -106,29 +110,21 @@ function createReviewsResponse(overrides: Partial<ReviewListResponse> = {}): Rev
   }
 }
 
-function seedSession({
+function mockAuthenticatedSession({
   restaurants = [],
-  selectedRestaurantId = restaurants[0]?.id ?? null,
   user,
 }: {
   restaurants?: RestaurantMembership[]
-  selectedRestaurantId?: string | null
   user?: Partial<AuthUser>
 } = {}) {
-  localStorage.setItem(
-    'sentify-session',
-    JSON.stringify({
-      accessToken: 'test-token',
-      expiresAt: Date.now() + 60_000,
-      user: {
-        id: 'user-1',
-        email: user?.email ?? 'owner@sentify.test',
-        fullName: user?.fullName ?? 'Casey Owner',
-      },
+  getSessionMock.mockResolvedValue({
+    user: {
+      id: 'user-1',
+      email: user?.email ?? 'owner@sentify.test',
+      fullName: user?.fullName ?? 'Casey Owner',
       restaurants,
-      selectedRestaurantId,
-    }),
-  )
+    },
+  })
 }
 
 beforeEach(() => {
@@ -146,6 +142,12 @@ beforeEach(() => {
   ]
   const complaints: ComplaintKeyword[] = [{ keyword: 'Wait time', count: 5, percentage: 25 }]
 
+  getSessionMock.mockRejectedValue(
+    new ApiClientError(401, {
+      code: 'AUTH_MISSING_TOKEN',
+      message: 'Access token is required',
+    }),
+  )
   listRestaurantsMock.mockResolvedValue([membership])
   getRestaurantDetailMock.mockResolvedValue(detail)
   getDashboardKpiMock.mockResolvedValue(kpi)
@@ -154,7 +156,6 @@ beforeEach(() => {
   getComplaintKeywordsMock.mockResolvedValue(complaints)
   listReviewEvidenceMock.mockResolvedValue(createReviewsResponse())
   loginMock.mockResolvedValue({
-    accessToken: 'test-token',
     expiresIn: 3600,
     user: {
       id: 'user-1',
@@ -165,7 +166,6 @@ beforeEach(() => {
   })
   logoutMock.mockResolvedValue({ message: 'ok' })
   registerMock.mockResolvedValue({
-    accessToken: 'test-token',
     expiresIn: 3600,
     user: {
       id: 'user-1',
@@ -210,7 +210,7 @@ describe('Sentify app shell', () => {
   })
 
   it('shows onboarding instead of the sidebar when no restaurants exist', async () => {
-    seedSession({ restaurants: [] })
+    mockAuthenticatedSession({ restaurants: [] })
     listRestaurantsMock.mockResolvedValue([])
     window.location.hash = '#/app'
 
@@ -221,7 +221,7 @@ describe('Sentify app shell', () => {
   })
 
   it('renders the authenticated header with avatar menu and closes it on Escape', async () => {
-    seedSession()
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
     window.location.hash = '#/app'
     const user = userEvent.setup()
 
@@ -244,7 +244,7 @@ describe('Sentify app shell', () => {
   })
 
   it('switches language cleanly across English, Vietnamese, and Japanese', async () => {
-    seedSession()
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
     window.location.hash = '#/app'
     const user = userEvent.setup()
 
@@ -264,7 +264,7 @@ describe('Sentify app shell', () => {
   })
 
   it('shows the add-another-restaurant flow inside settings instead of the sidebar', async () => {
-    seedSession()
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
     window.location.hash = '#/app/settings'
 
     render(<App />)
@@ -276,7 +276,7 @@ describe('Sentify app shell', () => {
 
   it('guides the user to settings when the selected restaurant is missing a source URL', async () => {
     const membership = createMembership({ googleMapUrl: null })
-    seedSession({ restaurants: [membership] })
+    mockAuthenticatedSession({ restaurants: [membership] })
     listRestaurantsMock.mockResolvedValue([membership])
     getRestaurantDetailMock.mockResolvedValue(createDetail(membership, { googleMapUrl: null }))
     window.location.hash = '#/app'
@@ -288,7 +288,7 @@ describe('Sentify app shell', () => {
   })
 
   it('shows the localized empty state for review evidence', async () => {
-    seedSession()
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
     listReviewEvidenceMock.mockResolvedValue(
       createReviewsResponse({
         data: [],
@@ -310,6 +310,57 @@ describe('Sentify app shell', () => {
     ).toBeInTheDocument()
   })
 
+  it('blocks invalid signup input on the client before calling register', async () => {
+    window.location.hash = '#/signup'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    await user.type(await screen.findByLabelText('Full name'), '   ')
+    await user.type(screen.getByLabelText('Email'), 'owner@sentify.test')
+    await user.type(screen.getByLabelText('Password'), 'longenough')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+    expect(registerMock).not.toHaveBeenCalled()
+    expect(screen.getByText('Enter your full name.')).toBeInTheDocument()
+  })
+
+  it('blocks a non-Google source URL before creating a restaurant', async () => {
+    mockAuthenticatedSession({ restaurants: [] })
+    listRestaurantsMock.mockResolvedValue([])
+    window.location.hash = '#/app'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    expect(await screen.findByText('Connect your first restaurant')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Restaurant name'), 'Cafe Aurora')
+    await user.type(screen.getByLabelText('Google Maps URL'), 'https://example.com/place')
+    await user.click(screen.getByRole('button', { name: 'Create restaurant' }))
+
+    expect(createRestaurantMock).not.toHaveBeenCalled()
+    expect(screen.getByText('Use a Google Maps URL.')).toBeInTheDocument()
+  })
+
+  it('blocks an invalid review date range before refetching review evidence', async () => {
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
+    window.location.hash = '#/app/reviews'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
+
+    listReviewEvidenceMock.mockClear()
+    await user.type(screen.getByLabelText('From'), '2026-03-07')
+    await user.type(screen.getByLabelText('To'), '2026-03-01')
+    await user.click(screen.getByRole('button', { name: 'Apply filters' }))
+
+    expect(listReviewEvidenceMock).not.toHaveBeenCalled()
+    expect(screen.getByText('`From` must be before or equal to `To`.')).toBeInTheDocument()
+  })
+
   it('switches restaurant context through the custom switcher', async () => {
     const firstRestaurant = createMembership({ id: 'rest-1', name: 'Cafe Aurora' })
     const secondRestaurant = createMembership({
@@ -319,13 +370,12 @@ describe('Sentify app shell', () => {
       googleMapUrl: 'https://maps.google.com/bistro-nova',
     })
 
-    seedSession({
+    mockAuthenticatedSession({
       restaurants: [firstRestaurant, secondRestaurant],
-      selectedRestaurantId: firstRestaurant.id,
     })
 
     listRestaurantsMock.mockResolvedValue([firstRestaurant, secondRestaurant])
-    getRestaurantDetailMock.mockImplementation(async (_token, restaurantId) =>
+    getRestaurantDetailMock.mockImplementation(async (restaurantId) =>
       restaurantId === secondRestaurant.id ? createDetail(secondRestaurant) : createDetail(firstRestaurant),
     )
 
@@ -341,7 +391,7 @@ describe('Sentify app shell', () => {
     await user.click(screen.getByRole('option', { name: /bistro nova/i }))
 
     await waitFor(() => {
-      expect(getRestaurantDetailMock).toHaveBeenLastCalledWith('test-token', 'rest-2')
+      expect(getRestaurantDetailMock).toHaveBeenLastCalledWith('rest-2')
     })
   })
 })

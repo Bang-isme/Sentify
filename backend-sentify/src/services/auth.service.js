@@ -223,7 +223,37 @@ async function logout({ userId, context = {} }) {
     }
 }
 
+async function getSession({ userId }) {
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+        include: {
+            restaurants: {
+                include: {
+                    restaurant: true,
+                },
+            },
+        },
+    })
+
+    if (!user) {
+        throw unauthorized('AUTH_INVALID_TOKEN', 'Access token is invalid or expired')
+    }
+
+    return {
+        user: {
+            id: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            restaurants: mapRestaurants(user.restaurants),
+        },
+    }
+}
+
 module.exports = {
+    ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+    getSession,
     register,
     login,
     logout,

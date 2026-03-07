@@ -12,6 +12,13 @@ import type {
   TrendPoint,
   UpdateRestaurantInput,
 } from '../../lib/api'
+import {
+  FIELD_LIMITS,
+  isGoogleMapsUrl,
+  isValidDateRange,
+  normalizeText,
+  type FieldErrors,
+} from '../../lib/validation'
 import type { ProductUiCopy } from '../../content/productUiCopy'
 import { useLanguage } from '../../contexts/languageContext'
 
@@ -184,6 +191,14 @@ function StatusMessage({
   )
 }
 
+function FieldError({ message }: { message?: string }) {
+  if (!message) {
+    return null
+  }
+
+  return <span className="text-xs font-medium text-red-600 dark:text-red-300">{message}</span>
+}
+
 function EmptyPanel({ message }: { message: string }) {
   return (
     <div className="rounded-[1.5rem] border border-dashed border-border-light/90 bg-bg-light/70 p-6 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/60 dark:text-text-silver-dark">
@@ -210,16 +225,50 @@ function RestaurantSetupForm({
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [googleMapUrl, setGoogleMapUrl] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    const trimmedName = normalizeText(name)
+    const trimmedAddress = normalizeText(address)
+    const trimmedGoogleMapUrl = normalizeText(googleMapUrl)
+    const nextErrors: FieldErrors = {}
+
+    if (!trimmedName) {
+      nextErrors.name = copy.validation.restaurantNameRequired
+    } else if (trimmedName.length > FIELD_LIMITS.restaurantName) {
+      nextErrors.name = copy.validation.restaurantNameTooLong
+    }
+
+    if (trimmedAddress.length > FIELD_LIMITS.restaurantAddress) {
+      nextErrors.address = copy.validation.restaurantAddressTooLong
+    }
+
+    if (trimmedGoogleMapUrl) {
+      const sourceValidation = isGoogleMapsUrl(trimmedGoogleMapUrl)
+
+      if (!sourceValidation.valid) {
+        nextErrors.googleMapUrl =
+          sourceValidation.reason === 'not_google'
+            ? copy.validation.googleMapsUrlMustBeGoogle
+            : copy.validation.googleMapsUrlInvalid
+      }
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      return
+    }
+
+    setFieldErrors({})
     await onSubmit({
-      name,
-      address: address || undefined,
-      googleMapUrl: googleMapUrl || undefined,
+      name: trimmedName,
+      address: trimmedAddress || undefined,
+      googleMapUrl: trimmedGoogleMapUrl || undefined,
     })
 
+    setFieldErrors({})
     setName('')
     setAddress('')
     setGoogleMapUrl('')
@@ -236,11 +285,17 @@ function RestaurantSetupForm({
           <input
             id="setup-restaurant-name"
             required
+            maxLength={FIELD_LIMITS.restaurantName}
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => {
+              setName(event.target.value)
+              setFieldErrors((current) => ({ ...current, name: undefined }))
+            }}
+            aria-invalid={fieldErrors.name ? 'true' : 'false'}
             className="h-12 rounded-2xl border border-border-light bg-surface-white px-4 text-base outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
             type="text"
           />
+          <FieldError message={fieldErrors.name} />
         </label>
         <label
           htmlFor="setup-restaurant-address"
@@ -249,11 +304,17 @@ function RestaurantSetupForm({
           <span>{copy.restaurantAddressLabel}</span>
           <input
             id="setup-restaurant-address"
+            maxLength={FIELD_LIMITS.restaurantAddress}
             value={address}
-            onChange={(event) => setAddress(event.target.value)}
+            onChange={(event) => {
+              setAddress(event.target.value)
+              setFieldErrors((current) => ({ ...current, address: undefined }))
+            }}
+            aria-invalid={fieldErrors.address ? 'true' : 'false'}
             className="h-12 rounded-2xl border border-border-light bg-surface-white px-4 text-base outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
             type="text"
           />
+          <FieldError message={fieldErrors.address} />
         </label>
         <label
           htmlFor="setup-restaurant-source"
@@ -263,11 +324,16 @@ function RestaurantSetupForm({
           <input
             id="setup-restaurant-source"
             value={googleMapUrl}
-            onChange={(event) => setGoogleMapUrl(event.target.value)}
+            onChange={(event) => {
+              setGoogleMapUrl(event.target.value)
+              setFieldErrors((current) => ({ ...current, googleMapUrl: undefined }))
+            }}
+            aria-invalid={fieldErrors.googleMapUrl ? 'true' : 'false'}
             className="h-12 rounded-2xl border border-border-light bg-surface-white px-4 text-base outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
             type="url"
             placeholder={copy.googleMapsUrlPlaceholder}
           />
+          <FieldError message={fieldErrors.googleMapUrl} />
         </label>
         <div className="md:col-span-2">
           <button
@@ -687,6 +753,7 @@ function ReviewsPanel({
   onReviewPageChange: (page: number) => void
 }) {
   const [draftFilters, setDraftFilters] = useState<ReviewsQuery>(reviewFilters)
+  const [filterError, setFilterError] = useState<string | null>(null)
 
   useEffect(() => {
     setDraftFilters(reviewFilters)
@@ -700,6 +767,7 @@ function ReviewsPanel({
       <PageIntro title={copy.reviewsTitle} description={copy.reviewsDescription} />
 
       <SectionCard title={copy.reviewFilters}>
+        {filterError ? <StatusMessage tone="error">{filterError}</StatusMessage> : null}
         <div className="grid gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))_auto_auto]">
           <label
             htmlFor="review-filter-rating"
@@ -734,10 +802,13 @@ function ReviewsPanel({
               id="review-filter-from"
               value={draftFilters.from ?? ''}
               onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  from: event.target.value || undefined,
-                }))
+                {
+                  setFilterError(null)
+                  setDraftFilters((current) => ({
+                    ...current,
+                    from: event.target.value || undefined,
+                  }))
+                }
               }
               className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
               type="date"
@@ -752,10 +823,13 @@ function ReviewsPanel({
               id="review-filter-to"
               value={draftFilters.to ?? ''}
               onChange={(event) =>
-                setDraftFilters((current) => ({
-                  ...current,
-                  to: event.target.value || undefined,
-                }))
+                {
+                  setFilterError(null)
+                  setDraftFilters((current) => ({
+                    ...current,
+                    to: event.target.value || undefined,
+                  }))
+                }
               }
               className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
               type="date"
@@ -764,13 +838,19 @@ function ReviewsPanel({
           <button
             type="button"
             className="mt-auto inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark dark:text-bg-dark"
-            onClick={() =>
+            onClick={() => {
+              if (!isValidDateRange(draftFilters.from, draftFilters.to)) {
+                setFilterError(copy.validation.filterDateRangeInvalid)
+                return
+              }
+
+              setFilterError(null)
               onApplyReviewFilters({
                 ...draftFilters,
                 page: 1,
                 limit: 10,
               })
-            }
+            }}
           >
             {copy.applyFilters}
           </button>
@@ -778,6 +858,7 @@ function ReviewsPanel({
             type="button"
             className="mt-auto inline-flex h-11 items-center justify-center rounded-full border border-border-light px-5 text-sm font-semibold text-text-charcoal transition hover:border-primary/60 hover:text-primary dark:border-border-dark dark:text-white"
             onClick={() => {
+              setFilterError(null)
               setDraftFilters({
                 page: 1,
                 limit: 10,
@@ -875,13 +956,34 @@ function RestaurantProfileForm({
 }) {
   const [name, setName] = useState(detail.name)
   const [address, setAddress] = useState(detail.address ?? '')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    const trimmedName = normalizeText(name)
+    const trimmedAddress = normalizeText(address)
+    const nextErrors: FieldErrors = {}
+
+    if (!trimmedName) {
+      nextErrors.name = copy.validation.restaurantNameRequired
+    } else if (trimmedName.length > FIELD_LIMITS.restaurantName) {
+      nextErrors.name = copy.validation.restaurantNameTooLong
+    }
+
+    if (trimmedAddress.length > FIELD_LIMITS.restaurantAddress) {
+      nextErrors.address = copy.validation.restaurantAddressTooLong
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      return
+    }
+
+    setFieldErrors({})
     await onSaveRestaurant({
-      name,
-      address: address || null,
+      name: trimmedName,
+      address: trimmedAddress || null,
     })
   }
 
@@ -896,11 +998,17 @@ function RestaurantProfileForm({
           <input
             id="settings-restaurant-name"
             required
+            maxLength={FIELD_LIMITS.restaurantName}
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => {
+              setName(event.target.value)
+              setFieldErrors((current) => ({ ...current, name: undefined }))
+            }}
+            aria-invalid={fieldErrors.name ? 'true' : 'false'}
             className="h-12 rounded-2xl border border-border-light bg-surface-white px-4 text-base outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
             type="text"
           />
+          <FieldError message={fieldErrors.name} />
         </label>
         <label
           htmlFor="settings-restaurant-address"
@@ -909,11 +1017,17 @@ function RestaurantProfileForm({
           <span>{copy.restaurantAddressLabel}</span>
           <input
             id="settings-restaurant-address"
+            maxLength={FIELD_LIMITS.restaurantAddress}
             value={address}
-            onChange={(event) => setAddress(event.target.value)}
+            onChange={(event) => {
+              setAddress(event.target.value)
+              setFieldErrors((current) => ({ ...current, address: undefined }))
+            }}
+            aria-invalid={fieldErrors.address ? 'true' : 'false'}
             className="h-12 rounded-2xl border border-border-light bg-surface-white px-4 text-base outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
             type="text"
           />
+          <FieldError message={fieldErrors.address} />
         </label>
         <div>
           <button
@@ -941,12 +1055,30 @@ function SourceSettingsForm({
   onSaveRestaurant: (input: UpdateRestaurantInput) => Promise<void>
 }) {
   const [googleMapUrl, setGoogleMapUrl] = useState(detail.googleMapUrl ?? '')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    const trimmedGoogleMapUrl = normalizeText(googleMapUrl)
+
+    if (trimmedGoogleMapUrl) {
+      const sourceValidation = isGoogleMapsUrl(trimmedGoogleMapUrl)
+
+      if (!sourceValidation.valid) {
+        setFieldErrors({
+          googleMapUrl:
+            sourceValidation.reason === 'not_google'
+              ? copy.validation.googleMapsUrlMustBeGoogle
+              : copy.validation.googleMapsUrlInvalid,
+        })
+        return
+      }
+    }
+
+    setFieldErrors({})
     await onSaveRestaurant({
-      googleMapUrl: googleMapUrl || null,
+      googleMapUrl: trimmedGoogleMapUrl || null,
     })
   }
 
@@ -961,11 +1093,16 @@ function SourceSettingsForm({
           <input
             id="settings-restaurant-source"
             value={googleMapUrl}
-            onChange={(event) => setGoogleMapUrl(event.target.value)}
+            onChange={(event) => {
+              setGoogleMapUrl(event.target.value)
+              setFieldErrors((current) => ({ ...current, googleMapUrl: undefined }))
+            }}
+            aria-invalid={fieldErrors.googleMapUrl ? 'true' : 'false'}
             className="h-12 rounded-2xl border border-border-light bg-surface-white px-4 text-base outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
             type="url"
             placeholder={copy.googleMapsUrlPlaceholder}
           />
+          <FieldError message={fieldErrors.googleMapUrl} />
         </label>
         <div>
           <button

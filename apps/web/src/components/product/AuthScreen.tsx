@@ -1,6 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import type { LoginInput, RegisterInput } from '../../lib/api'
 import type { ProductUiCopy } from '../../content/productUiCopy'
+import {
+  FIELD_LIMITS,
+  isValidEmail,
+  normalizeEmail,
+  normalizeText,
+  type FieldErrors,
+} from '../../lib/validation'
 
 interface AuthScreenProps {
   mode: 'login' | 'signup'
@@ -10,6 +17,14 @@ interface AuthScreenProps {
   onLogin: (input: LoginInput) => Promise<void>
   onSignup: (input: RegisterInput) => Promise<void>
   onSwitchMode: (mode: 'login' | 'signup') => void
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) {
+    return null
+  }
+
+  return <span className="text-xs font-medium text-red-600 dark:text-red-300">{message}</span>
 }
 
 export function AuthScreen({
@@ -24,23 +39,55 @@ export function AuthScreen({
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const isLogin = mode === 'login'
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    const trimmedFullName = normalizeText(fullName)
+    const normalizedEmail = normalizeEmail(email)
+    const nextErrors: FieldErrors = {}
+
+    if (!isLogin) {
+      if (!trimmedFullName) {
+        nextErrors.fullName = copy.validation.fullNameRequired
+      } else if (trimmedFullName.length > FIELD_LIMITS.fullName) {
+        nextErrors.fullName = copy.validation.fullNameTooLong
+      }
+    }
+
+    if (!normalizedEmail) {
+      nextErrors.email = copy.validation.emailRequired
+    } else if (!isValidEmail(normalizedEmail)) {
+      nextErrors.email = copy.validation.emailInvalid
+    }
+
+    if (!password) {
+      nextErrors.password = copy.validation.passwordRequired
+    } else if (!isLogin && password.length < FIELD_LIMITS.passwordMin) {
+      nextErrors.password = copy.validation.passwordTooShort
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      return
+    }
+
+    setFieldErrors({})
+
     if (isLogin) {
       await onLogin({
-        email,
+        email: normalizedEmail,
         password,
       })
       return
     }
 
     await onSignup({
-      fullName,
-      email,
+      fullName: trimmedFullName,
+      email: normalizedEmail,
       password,
     })
   }
@@ -89,11 +136,18 @@ export function AuthScreen({
                 <input
                   id="auth-full-name"
                   required
+                  maxLength={FIELD_LIMITS.fullName}
                   value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
+                  onChange={(event) => {
+                    setFullName(event.target.value)
+                    setFieldErrors((current) => ({ ...current, fullName: undefined }))
+                  }}
+                  aria-invalid={fieldErrors.fullName ? 'true' : 'false'}
+                  autoComplete="name"
                   className="h-12 rounded-2xl border border-border-light bg-surface-white px-4 text-base text-text-charcoal outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-white"
                   type="text"
                 />
+                <FieldError message={fieldErrors.fullName} />
               </label>
             ) : null}
 
@@ -105,12 +159,18 @@ export function AuthScreen({
               <input
                 id="auth-email"
                 required
+                maxLength={FIELD_LIMITS.email}
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  setFieldErrors((current) => ({ ...current, email: undefined }))
+                }}
+                aria-invalid={fieldErrors.email ? 'true' : 'false'}
                 className="h-12 rounded-2xl border border-border-light bg-surface-white px-4 text-base text-text-charcoal outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-white"
                 type="email"
                 autoComplete="email"
               />
+              <FieldError message={fieldErrors.email} />
             </label>
 
             <label
@@ -123,11 +183,16 @@ export function AuthScreen({
                 required
                 minLength={8}
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => {
+                  setPassword(event.target.value)
+                  setFieldErrors((current) => ({ ...current, password: undefined }))
+                }}
+                aria-invalid={fieldErrors.password ? 'true' : 'false'}
                 className="h-12 rounded-2xl border border-border-light bg-surface-white px-4 text-base text-text-charcoal outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-white"
                 type="password"
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
               />
+              <FieldError message={fieldErrors.password} />
             </label>
 
             {error ? (

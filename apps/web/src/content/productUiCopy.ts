@@ -44,6 +44,14 @@ export interface ProductUiCopy {
     loginAltAction: string
     signupAltAction: string
     trustPoints: string[]
+    validation: {
+      fullNameRequired: string
+      fullNameTooLong: string
+      emailRequired: string
+      emailInvalid: string
+      passwordRequired: string
+      passwordTooShort: string
+    }
   }
   app: {
     shellTitle: string
@@ -127,9 +135,18 @@ export interface ProductUiCopy {
     anonymousGuest: string
     noReviewContent: string
     noSourceDate: string
+    validation: {
+      restaurantNameRequired: string
+      restaurantNameTooLong: string
+      restaurantAddressTooLong: string
+      googleMapsUrlInvalid: string
+      googleMapsUrlMustBeGoogle: string
+      filterDateRangeInvalid: string
+    }
   }
   feedback: {
     sessionExpired: string
+    loadingSession: string
     saved: string
     imported: string
     errors: {
@@ -201,6 +218,14 @@ export const productUiCopy = {
         'Restaurant-scoped data boundaries',
         'Import, insight, and review evidence in one loop',
       ],
+      validation: {
+        fullNameRequired: 'Enter your full name.',
+        fullNameTooLong: 'Full name must be 100 characters or fewer.',
+        emailRequired: 'Enter your email address.',
+        emailInvalid: 'Enter a valid email address.',
+        passwordRequired: 'Enter your password.',
+        passwordTooShort: 'Password must be at least 8 characters.',
+      },
     },
     app: {
       shellTitle: 'Sentify workspace',
@@ -300,9 +325,18 @@ export const productUiCopy = {
       anonymousGuest: 'Anonymous guest',
       noReviewContent: 'No review content available.',
       noSourceDate: 'No source date',
+      validation: {
+        restaurantNameRequired: 'Enter a restaurant name.',
+        restaurantNameTooLong: 'Restaurant name must be 120 characters or fewer.',
+        restaurantAddressTooLong: 'Address must be 255 characters or fewer.',
+        googleMapsUrlInvalid: 'Enter a valid URL.',
+        googleMapsUrlMustBeGoogle: 'Use a Google Maps URL.',
+        filterDateRangeInvalid: '`From` must be before or equal to `To`.',
+      },
     },
     feedback: {
       sessionExpired: 'Your session expired. Please login again.',
+      loadingSession: 'Checking your secure session...',
       saved: 'Changes saved.',
       imported: 'Review import completed.',
       errors: {
@@ -372,6 +406,14 @@ export const productUiCopy = {
         'Dữ liệu được khóa theo từng nhà hàng',
         'Nhập liệu, insight và bằng chứng đánh giá nằm trong một vòng lặp',
       ],
+      validation: {
+        fullNameRequired: 'Hãy nhập họ và tên.',
+        fullNameTooLong: 'Họ và tên không được vượt quá 100 ký tự.',
+        emailRequired: 'Hãy nhập địa chỉ email.',
+        emailInvalid: 'Email không hợp lệ.',
+        passwordRequired: 'Hãy nhập mật khẩu.',
+        passwordTooShort: 'Mật khẩu phải có ít nhất 8 ký tự.',
+      },
     },
     app: {
       shellTitle: 'Workspace Sentify',
@@ -471,9 +513,18 @@ export const productUiCopy = {
       anonymousGuest: 'Khách ẩn danh',
       noReviewContent: 'Không có nội dung đánh giá.',
       noSourceDate: 'Không có ngày đánh giá',
+      validation: {
+        restaurantNameRequired: 'Hãy nhập tên nhà hàng.',
+        restaurantNameTooLong: 'Tên nhà hàng không được vượt quá 120 ký tự.',
+        restaurantAddressTooLong: 'Địa chỉ không được vượt quá 255 ký tự.',
+        googleMapsUrlInvalid: 'URL không hợp lệ.',
+        googleMapsUrlMustBeGoogle: 'Hãy dùng URL Google Maps.',
+        filterDateRangeInvalid: 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.',
+      },
     },
     feedback: {
       sessionExpired: 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.',
+      loadingSession: 'Đang kiểm tra phiên đăng nhập an toàn...',
       saved: 'Đã lưu thay đổi.',
       imported: 'Đã hoàn tất nhập đánh giá.',
       errors: {
@@ -543,6 +594,14 @@ export const productUiCopy = {
         '店舗単位で区切られたデータ境界',
         '取込・インサイト・レビュー根拠が一つのループに集約',
       ],
+      validation: {
+        fullNameRequired: '氏名を入力してください。',
+        fullNameTooLong: '氏名は100文字以内で入力してください。',
+        emailRequired: 'メールアドレスを入力してください。',
+        emailInvalid: '有効なメールアドレスを入力してください。',
+        passwordRequired: 'パスワードを入力してください。',
+        passwordTooShort: 'パスワードは8文字以上で入力してください。',
+      },
     },
     app: {
       shellTitle: 'Sentify ワークスペース',
@@ -642,9 +701,18 @@ export const productUiCopy = {
       anonymousGuest: '匿名ユーザー',
       noReviewContent: 'レビュー本文がありません。',
       noSourceDate: '日付情報なし',
+      validation: {
+        restaurantNameRequired: '店舗名を入力してください。',
+        restaurantNameTooLong: '店舗名は120文字以内で入力してください。',
+        restaurantAddressTooLong: '住所は255文字以内で入力してください。',
+        googleMapsUrlInvalid: '有効なURLを入力してください。',
+        googleMapsUrlMustBeGoogle: 'Google Maps のURLを入力してください。',
+        filterDateRangeInvalid: '開始日は終了日以前である必要があります。',
+      },
     },
     feedback: {
       sessionExpired: 'セッションの有効期限が切れました。再度ログインしてください。',
+      loadingSession: '安全なセッションを確認しています...',
       saved: '変更を保存しました。',
       imported: 'レビューの取込が完了しました。',
       errors: {

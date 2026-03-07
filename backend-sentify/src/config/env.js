@@ -19,6 +19,22 @@ function parseTrustProxy(value) {
     return Number.isNaN(numericValue) ? value : numericValue
 }
 
+function parseBoolean(value, fallback) {
+    if (value === undefined || value === null || value === '') {
+        return fallback
+    }
+
+    if (value === 'true') {
+        return true
+    }
+
+    if (value === 'false') {
+        return false
+    }
+
+    return fallback
+}
+
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     LOG_FORMAT: z.enum(['auto', 'json', 'pretty']).default('auto'),
@@ -29,6 +45,10 @@ const envSchema = z.object({
     JWT_AUDIENCE: z.string().min(1).default('sentify-web'),
     CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
     BODY_LIMIT: z.string().min(1).default('100kb'),
+    AUTH_COOKIE_NAME: z.string().min(1).default('sentify_access_token'),
+    AUTH_COOKIE_DOMAIN: z.string().trim().optional(),
+    AUTH_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+    AUTH_COOKIE_SECURE: z.string().optional(),
     TRUST_PROXY: z.string().optional(),
     API_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
     API_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(500),
@@ -46,6 +66,10 @@ const parsedEnv = envSchema.parse(process.env)
 
 module.exports = {
     ...parsedEnv,
+    AUTH_COOKIE_SECURE_VALUE: parseBoolean(
+        parsedEnv.AUTH_COOKIE_SECURE,
+        parsedEnv.NODE_ENV === 'production',
+    ),
     TRUST_PROXY_VALUE: parseTrustProxy(parsedEnv.TRUST_PROXY),
     CORS_ORIGINS: parsedEnv.CORS_ORIGIN.split(',')
         .map((origin) => origin.trim())
