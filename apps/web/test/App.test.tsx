@@ -7,11 +7,13 @@ import {
   createRestaurant,
   getComplaintKeywords,
   getDashboardKpi,
+  getLatestImportRun,
   getSession,
   getRestaurantDetail,
   getSentimentBreakdown,
   getTrend,
   importReviews,
+  listImportRuns,
   listRestaurants,
   listReviewEvidence,
   login,
@@ -24,6 +26,8 @@ import {
   type RestaurantDetail,
   type RestaurantMembership,
   type ReviewListResponse,
+  type QueueImportResult,
+  type ImportRunSummary,
   type SentimentBreakdownRow,
   type TrendPoint,
 } from '../src/lib/api'
@@ -36,11 +40,13 @@ vi.mock('../src/lib/api', async () => {
     createRestaurant: vi.fn(),
     getComplaintKeywords: vi.fn(),
     getDashboardKpi: vi.fn(),
+    getLatestImportRun: vi.fn(),
     getSession: vi.fn(),
     getRestaurantDetail: vi.fn(),
     getSentimentBreakdown: vi.fn(),
     getTrend: vi.fn(),
     importReviews: vi.fn(),
+    listImportRuns: vi.fn(),
     listRestaurants: vi.fn(),
     listReviewEvidence: vi.fn(),
     login: vi.fn(),
@@ -53,10 +59,12 @@ vi.mock('../src/lib/api', async () => {
 const listRestaurantsMock = vi.mocked(listRestaurants)
 const getRestaurantDetailMock = vi.mocked(getRestaurantDetail)
 const getDashboardKpiMock = vi.mocked(getDashboardKpi)
+const getLatestImportRunMock = vi.mocked(getLatestImportRun)
 const getSessionMock = vi.mocked(getSession)
 const getSentimentBreakdownMock = vi.mocked(getSentimentBreakdown)
 const getTrendMock = vi.mocked(getTrend)
 const getComplaintKeywordsMock = vi.mocked(getComplaintKeywords)
+const listImportRunsMock = vi.mocked(listImportRuns)
 const listReviewEvidenceMock = vi.mocked(listReviewEvidence)
 const loginMock = vi.mocked(login)
 const logoutMock = vi.mocked(logout)
@@ -107,6 +115,49 @@ function createReviewsResponse(overrides: Partial<ReviewListResponse> = {}): Rev
       total: 0,
       totalPages: 0,
     },
+  }
+}
+
+function createImportRunSummary(overrides: Partial<ImportRunSummary> = {}): ImportRunSummary {
+  return {
+    id: overrides.id ?? 'run-1',
+    restaurantId: overrides.restaurantId ?? 'rest-1',
+    status: overrides.status ?? 'COMPLETED',
+    phase: overrides.phase ?? 'COMPLETED',
+    progressPercent: overrides.progressPercent ?? 100,
+    imported: overrides.imported ?? 10,
+    skipped: overrides.skipped ?? 0,
+    total: overrides.total ?? 10,
+    scrape: overrides.scrape ?? {
+      source: 'google-maps-browser',
+      advertisedTotalReviews: null,
+      collectedReviewCount: 10,
+      targetReviewCount: 320,
+      explicitTarget: null,
+      hardMaxReviews: 320,
+      reachedRequestedTarget: false,
+      reachedEndOfFeed: true,
+      coveragePercentage: null,
+      isCompleteSync: true,
+    },
+    message: overrides.message ?? 'done',
+    errorCode: overrides.errorCode ?? null,
+    errorMessage: overrides.errorMessage ?? null,
+    errorDetails: overrides.errorDetails,
+    startedAt: overrides.startedAt ?? null,
+    completedAt: overrides.completedAt ?? null,
+    failedAt: overrides.failedAt ?? null,
+    createdAt: overrides.createdAt ?? '2026-03-09T00:00:00.000Z',
+    updatedAt: overrides.updatedAt ?? '2026-03-09T00:00:00.000Z',
+  }
+}
+
+function createQueuedImportResult(overrides: Partial<QueueImportResult> = {}): QueueImportResult {
+  return {
+    queued: overrides.queued ?? true,
+    alreadyActive: overrides.alreadyActive ?? false,
+    run: overrides.run ?? createImportRunSummary(),
+    message: overrides.message ?? 'done',
   }
 }
 
@@ -176,12 +227,9 @@ beforeEach(() => {
   })
   createRestaurantMock.mockResolvedValue(membership)
   updateRestaurantMock.mockResolvedValue(detail)
-  importReviewsMock.mockResolvedValue({
-    imported: 10,
-    skipped: 0,
-    total: 10,
-    message: 'done',
-  })
+  importReviewsMock.mockResolvedValue(createQueuedImportResult())
+  getLatestImportRunMock.mockResolvedValue(createImportRunSummary())
+  listImportRunsMock.mockResolvedValue([createImportRunSummary()])
 })
 
 describe('Sentify app shell', () => {
@@ -236,11 +284,29 @@ describe('Sentify app shell', () => {
     await user.click(accountButton)
     expect(accountButton).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('owner@sentify.test')).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Landing page' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Dashboard' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Reviews' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Settings' })).not.toBeInTheDocument()
 
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => {
       expect(accountButton).toHaveAttribute('aria-expanded', 'false')
     })
+  })
+
+  it('keeps only one dashboard entry in the landing account menu', async () => {
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
+    window.location.hash = '#/'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    const accountButton = await screen.findByRole('button', { name: /open account menu/i })
+    await user.click(accountButton)
+
+    expect(screen.getByRole('menuitem', { name: 'Go to dashboard' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Dashboard' })).not.toBeInTheDocument()
   })
 
   it('switches language cleanly across English, Vietnamese, and Japanese', async () => {
@@ -285,6 +351,55 @@ describe('Sentify app shell', () => {
 
     expect(await screen.findByText('Add a source URL before running import.')).toBeInTheDocument()
     expect(screen.getAllByText('Open settings').length).toBeGreaterThan(0)
+  })
+
+  it('renders a compact sync status on the dashboard instead of full import history', async () => {
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
+    listImportRunsMock.mockResolvedValue([
+      createImportRunSummary({
+        imported: 18,
+        skipped: 4,
+        scrape: {
+          source: 'google-maps-browser',
+          advertisedTotalReviews: 286,
+          collectedReviewCount: 22,
+          targetReviewCount: 286,
+          explicitTarget: null,
+          hardMaxReviews: 640,
+          reachedRequestedTarget: false,
+          reachedEndOfFeed: true,
+          coveragePercentage: 76.9,
+          isCompleteSync: false,
+        },
+        message: 'Import completed.',
+      }),
+    ])
+    window.location.hash = '#/app'
+
+    render(<App />)
+
+    expect(await screen.findByText('Sync status')).toBeInTheDocument()
+    expect(screen.getByText('Latest sync completed and added new reviews.')).toBeInTheDocument()
+    expect(screen.getByText('New reviews')).toBeInTheDocument()
+    expect(screen.queryByText('Import history')).not.toBeInTheDocument()
+  })
+
+  it('keeps detailed import history in settings behind a toggle', async () => {
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
+    listImportRunsMock.mockResolvedValue([createImportRunSummary()])
+    window.location.hash = '#/app/settings'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    expect(await screen.findByText('Import history')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'View sync details' })).toBeInTheDocument()
+    expect(screen.queryByText('Collected')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'View sync details' }))
+
+    expect(screen.getByText('Collected')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hide sync details' })).toBeInTheDocument()
   })
 
   it('shows the localized empty state for review evidence', async () => {
@@ -353,8 +468,10 @@ describe('Sentify app shell', () => {
     expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
 
     listReviewEvidenceMock.mockClear()
-    await user.type(screen.getByLabelText('From'), '2026-03-07')
-    await user.type(screen.getByLabelText('To'), '2026-03-01')
+    await user.click(screen.getByRole('button', { name: 'From' }))
+    await user.click(screen.getByRole('button', { name: /march 7, 2026/i }))
+    await user.click(screen.getByRole('button', { name: 'To' }))
+    await user.click(screen.getByRole('button', { name: /march 1, 2026/i }))
     await user.click(screen.getByRole('button', { name: 'Apply filters' }))
 
     expect(listReviewEvidenceMock).not.toHaveBeenCalled()
@@ -386,9 +503,10 @@ describe('Sentify app shell', () => {
 
     expect(await screen.findByText('Operational triage dashboard')).toBeInTheDocument()
 
-    const switcherButton = screen.getByRole('button', { name: /cafe aurora/i })
+    const [switcherButton] = screen.getAllByRole('button', { name: /cafe aurora/i })
     await user.click(switcherButton)
-    await user.click(screen.getByRole('option', { name: /bistro nova/i }))
+    const [nextRestaurantOption] = screen.getAllByRole('option', { name: /bistro nova/i })
+    await user.click(nextRestaurantOption)
 
     await waitFor(() => {
       expect(getRestaurantDetailMock).toHaveBeenLastCalledWith('rest-2')

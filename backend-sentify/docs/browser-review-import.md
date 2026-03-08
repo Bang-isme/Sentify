@@ -2,158 +2,259 @@
 
 ## Goal
 
-Sentify now imports Google Maps reviews through a browser automation adapter instead of Google Places API.
+Sentify now imports Google Maps reviews through a browser automation adapter plus a DB-backed import run queue.
 
 The runtime path is:
 
 1. The web app sends `POST /restaurants/:id/import`.
-2. [review-import.service.js](/d:/Project%203/backend-sentify/src/services/review-import.service.js) loads the restaurant and calls the browser adapter.
-3. [google-browser-review-tool.service.js](/d:/Project%203/backend-sentify/src/services/google-browser-review-tool.service.js) opens the saved Google Maps URL with Playwright, opens the review surface, scrolls it, normalizes reviews, and returns them.
-4. The import service deduplicates by `externalId`, runs sentiment analysis, writes new rows, and rebuilds insights.
+2. [import.controller.js](/d:/Project%203/backend-sentify/src/controllers/import.controller.js) creates or reuses an import run.
+3. [review-import-run.service.js](/d:/Project%203/backend-sentify/src/services/review-import-run.service.js) persists `QUEUED/RUNNING/COMPLETED/FAILED` state in `ImportRun`.
+4. The worker calls [review-import.service.js](/d:/Project%203/backend-sentify/src/services/review-import.service.js).
+5. [google-browser-review-tool.service.js](/d:/Project%203/backend-sentify/src/services/google-browser-review-tool.service.js) opens the saved Google Maps URL with Playwright, scrolls the review feed, normalizes reviews, and returns both reviews and scrape metadata.
+6. The import service deduplicates by `externalId`, analyzes sentiment in batches, writes new rows, and rebuilds insights.
+7. The web app polls `GET /restaurants/:id/import/latest` until the run reaches a terminal state.
 
-## Why This Version Is More Stable
+## What This Pass Solved
 
-The earlier browser adapter had two concrete problems:
+### 1. Long-running import no longer blocks the HTTP request
 
-1. It replaced the saved Google Maps place URL with a search query built from `restaurantName` and `restaurantAddress`.
-   That could send the browser to the wrong place or a search result page.
-2. It waited for a generic `feed` selector that did not match the real Google Maps review layout reliably.
+Old behavior:
 
-The current adapter fixes both issues:
+- one request opened Google Maps
+- one request scraped reviews
+- one request analyzed everything
+- one request rebuilt dashboard data
 
-- It trusts the saved Google Maps URL first and only adds `hl`.
-- It reads real review cards from `div.jftiEf`.
-- It clicks the review trigger, finds the real scroll container by walking up from the first review card, then scrolls that container instead of waiting for a generic feed.
-- It snapshots `storageState` from the configured browser profile first, then launches a normal Playwright context. This avoids coupling the importer to a live browser window and keeps repeated runs consistent.
+That was not production-safe for a multi-minute browser crawl.
 
-## Required Runtime Configuration
+Current behavior:
 
-Environment variables are documented in [.env.example](/d:/Project%203/backend-sentify/.env.example).
+- `POST /restaurants/:id/import` returns quickly with a queued or already-running import run
+- background execution continues in-process
+- the latest run is queryable from the API
 
-The important browser settings are:
+### 2. Import status is persisted
+
+The new Prisma model is [ImportRun](/d:/Project%203/backend-sentify/prisma/schema.prisma).
+
+It stores:
+
+- `status`
+- `phase`
+- `progressPercent`
+- `imported / skipped / total`
+- scrape metadata
+- timestamps
+- failure details when the run fails
+
+This means an import is no longer just "fire and hope". It is now observable.
+
+### 3. Only one import per restaurant can run at a time
+
+If another import is requested while one is already `QUEUED` or `RUNNING`, the backend returns the existing run instead of starting a duplicate crawl.
+
+### 4. Stale runs are cleaned up on restart
+
+At server boot, [server.js](/d:/Project%203/backend-sentify/src/server.js) calls `recoverStaleImportRuns()`.
+
+Any run left in `QUEUED` or `RUNNING` from an interrupted process is marked `FAILED` with a restart-specific error code instead of staying stuck forever.
+
+## Data Quality Rules
+
+### No fake reviews
+
+The current importer only persists live reviews returned from the browser adapter.
+There is no fallback fixture source in the runtime path.
+
+### Unicode-first handling
+
+Review text, author names, and date labels are normalized with Unicode NFC and whitespace cleanup before persistence.
+The backend no longer degrades multilingual review text into broken ASCII-only forms.
+
+### Multilingual parsing
+
+The importer now parses relative review dates in:
+
+- English
+- Vietnamese
+- Japanese
+
+The sentiment analyzer also keeps multilingual text intact and can match complaint phrases in:
+
+- English
+- Vietnamese
+- Japanese
+
+### Honest metadata
+
+`advertisedTotalReviews` is best-effort only.
+
+If the page exposes a low-confidence count string that appears to merge rating and review count into the same DOM surface, the importer returns `advertisedTotalReviews: null`.
+
+The rule is deliberate:
+
+- correct count
+- or `null`
+- but never a fabricated number
+
+## Performance Changes
+
+### Browser crawl
+
+- `REVIEW_BROWSER_MAX_REVIEWS=0` means auto-target mode
+- auto-target mode crawls until feed exhaustion or `REVIEW_BROWSER_HARD_MAX_REVIEWS`
+- scroll behavior is no longer fixed to the old `12-step` pass
+- the adapter uses larger jumps early and smaller jumps near the tail of the feed
+- one recovery nudge is attempted before declaring the feed exhausted
+
+### Import pipeline
+
+- sentiment analysis now runs in batches instead of per-review serial awaits
+- complaint keyword rebuild analyzes negative reviews in parallel promise groups
+- run progress updates at coarse phases:
+  - `QUEUED`
+  - `SCRAPING`
+  - `ANALYZING`
+  - `PERSISTING`
+  - `REBUILDING`
+  - `COMPLETED`
+
+## Runtime Configuration
+
+Main browser settings are documented in [.env.example](/d:/Project%203/backend-sentify/.env.example).
+
+Current production-like local defaults:
 
 - `REVIEW_BROWSER_HEADLESS="true"`
 - `REVIEW_BROWSER_LANGUAGE_CODE="en"`
-- `REVIEW_BROWSER_EXECUTABLE_PATH`
-- `REVIEW_BROWSER_USER_DATA_DIR`
+- `REVIEW_BROWSER_TIMEOUT_MS=45000`
+- `REVIEW_BROWSER_SCROLL_STEPS=24`
+- `REVIEW_BROWSER_SCROLL_DELAY_MS=450`
+- `REVIEW_BROWSER_MAX_REVIEWS=0`
+- `REVIEW_BROWSER_HARD_MAX_REVIEWS=320`
+- `REVIEW_BROWSER_STALL_LIMIT=6`
 
-Practical notes:
+Semantics:
 
-- `REVIEW_BROWSER_LANGUAGE_CODE="en"` is the most stable option because the current trigger patterns were hardened around English labels first.
-- `REVIEW_BROWSER_USER_DATA_DIR` should point to a real Chromium-family profile directory that can open the full Google Maps place page.
-- A clean browser context without usable profile state often receives `limited view of Google Maps`, which is not enough for full review extraction.
+- `REVIEW_BROWSER_MAX_REVIEWS > 0`
+  means explicit target
+- `REVIEW_BROWSER_MAX_REVIEWS = 0`
+  means crawl until exhaustion, bounded by the hard ceiling
 
-## Supported Input
+## API Surface
 
-Most reliable:
+### Queue import
 
-- direct Google Maps place URLs
-- `maps.app.goo.gl` share links that redirect to a place page
+`POST /api/restaurants/:id/import`
 
-Less reliable:
+Returns:
 
-- generic search URLs
-- region/state pages
-- malformed or stale place URLs
+- queued run summary if a new run was created
+- existing run summary if one is already active
 
-The adapter now returns a concrete `SCRAPE_FAILED` error with a hint when it cannot reach visible review cards.
+### Read latest run
 
-## Code Map
+`GET /api/restaurants/:id/import/latest`
 
-Main files:
+Returns the most recent import run for that restaurant, including:
 
-- [google-browser-review-tool.service.js](/d:/Project%203/backend-sentify/src/services/google-browser-review-tool.service.js)
-- [review-import.service.js](/d:/Project%203/backend-sentify/src/services/review-import.service.js)
-- [review-browser-tool.js](/d:/Project%203/backend-sentify/scripts/review-browser-tool.js)
-- [google-browser-review-tool.test.js](/d:/Project%203/backend-sentify/test/google-browser-review-tool.test.js)
+- `status`
+- `phase`
+- `progressPercent`
+- final scrape/import counts
 
-Important behaviors in the adapter:
+## Concrete Live Evidence
 
-- `buildAutomationUrl(...)`
-  Keeps the saved Google Maps URL and only normalizes `hl`.
-- `createStorageStateSnapshot(...)`
-  Reads profile state once and writes a temporary Playwright `storageState` file.
-- `openReviewsPanel(...)`
-  Clicks `More reviews` or the reviews tab, then verifies that visible review cards exist.
-- `markReviewScroller(...)`
-  Finds the real scrollable review container by walking up the DOM from the first review card.
-- `scrollReviewFeed(...)`
-  Resets the scroller to the top, expands visible bodies, and scrolls until the max review target or until the scroller stops moving.
+Verification date: March 9, 2026
 
-## Concrete Evidence From Live Runs
-
-Date: March 8, 2026
-
-Target place used for verification:
+Target place:
 
 - `The 59 cafe`
-- direct URL stored in restaurant id `b6049295-1988-4ac1-845e-af43dadd9ff7`
+- restaurant id `b6049295-1988-4ac1-845e-af43dadd9ff7`
 
-### 1. CLI browser tool on live data
+### 1. Direct browser scrape with real data
 
-Command:
+Observed result from [scrapeGoogleReviewsWithBrowserDetailed](/d:/Project%203/backend-sentify/src/services/google-browser-review-tool.service.js):
 
-```powershell
-$env:REVIEW_BROWSER_HEADLESS='true'
-npm run reviews:tool -- "https://www.google.com/maps/place/The+59+cafe/@16.0717637,108.214946,17z/data=!4m14!1m7!3m6!1s0x314219bb28181783:0xdc89976718ec6b96!2sThe+59+cafe!8m2!3d16.0717586!4d108.2175209!16s%2Fg%2F11jdrj84zk!3m5!1s0x314219bb28181783:0xdc89976718ec6b96!8m2!3d16.0717586!4d108.2175209!16s%2Fg%2F11jdrj84zk?entry=ttu"
-```
+- `normalizedReviewCount: 269`
+- `reachedEndOfFeed: true`
+- `advertisedTotalReviews: null`
 
-Observed result:
+Interpretation:
 
-- `total: 60`
-- first author: `Dongsu Lee`
-- last author in the stable 60-review slice: `Duc Hao`
+- the importer is no longer capped at `60`
+- it collected `269` live reviews from this place
+- the advertised total was intentionally nulled because the DOM count source was not trustworthy enough
 
-### 2. Repeated scrape stability check
+### 2. Synchronous import service on real data
 
-Two consecutive runs of `scrapeGoogleReviewsWithBrowser(...)` on the same place returned:
+Observed result from [review-import.service.js](/d:/Project%203/backend-sentify/src/services/review-import.service.js):
 
-- run 1: `60`
-- run 2: `60`
-
-This matters because an earlier version drifted between `60` and `30` due to not resetting the review scroller before reading the virtualized list.
-
-### 3. End-to-end import through the Sprint 1 service
-
-Command path:
-
-- call [importReviews](/d:/Project%203/backend-sentify/src/services/review-import.service.js) with:
-  - `userId: a9d492e4-f366-4667-aba4-49b9a0454746`
-  - `restaurantId: b6049295-1988-4ac1-845e-af43dadd9ff7`
-
-Observed result on the first live import:
-
-- `before: 16`
-- `imported: 60`
-- `skipped: 0`
-- `total: 60`
-- `after: 76`
-
-Observed result on the repeated import:
-
-- `before: 76`
-- `imported: 0`
+- `before: 60`
+- `imported: 209`
 - `skipped: 60`
-- `total: 60`
-- `after: 76`
+- `total: 269`
+- `after: 269`
 
 This confirms:
 
-- the browser adapter returns real live data
+- live review data enters the DB
 - dedup still works
-- the Sprint 1 insight rebuild path still runs after import
+- insight rebuild still completes
+
+### 3. Queue and polling path on real data
+
+Observed result from [review-import-run.service.js](/d:/Project%203/backend-sentify/src/services/review-import-run.service.js):
+
+- initial API-equivalent run state:
+  - `status: QUEUED`
+  - `phase: QUEUED`
+  - `progressPercent: 0`
+- running state:
+  - `status: RUNNING`
+  - `phase: SCRAPING`
+  - `progressPercent: 15`
+- terminal state:
+  - `status: COMPLETED`
+  - `phase: COMPLETED`
+  - `progressPercent: 100`
+  - `imported: 0`
+  - `skipped: 266`
+  - `total: 266`
+
+That proves the new queue/status API is not theoretical; it runs against the real place and transitions across persisted states.
+
+## Tests Added
+
+Regression coverage now includes:
+
+- URL validation and `hl` injection
+- English, Vietnamese, and Japanese date parsing
+- multilingual review-count parsing
+- auto-target vs hard ceiling logic
+- Unicode-safe review normalization
+- multilingual sentiment handling
+- queue dedup behavior
+- import-service metadata honesty
+
+Relevant files:
+
+- [google-browser-review-tool.test.js](/d:/Project%203/backend-sentify/test/google-browser-review-tool.test.js)
+- [review-import.service.test.js](/d:/Project%203/backend-sentify/test/review-import.service.test.js)
+- [review-import-run.service.test.js](/d:/Project%203/backend-sentify/test/review-import-run.service.test.js)
+- [sentiment-analyzer.test.js](/d:/Project%203/backend-sentify/test/sentiment-analyzer.test.js)
 
 ## Known Limits
 
-- This is still browser automation. It is slower and more brittle than a formal API.
-- The importer depends on a browser profile state that can open the full Google Maps place page.
-- A totally clean profile can still receive a limited Maps view.
-- The current implementation is optimized for direct place pages, not arbitrary Google search or region pages.
-- `REVIEW_BROWSER_MAX_REVIEWS` caps how many reviews are read in one import run. The default currently targets `60`.
+- This is still browser automation, not a first-party data API.
+- Progress is coarse-grained phase tracking, not per-review streaming telemetry.
+- The importer can still stop short of every review on very large places because `REVIEW_BROWSER_HARD_MAX_REVIEWS` is a safety ceiling.
+- `advertisedTotalReviews` is still best-effort only.
+- Queue execution is in-process for Sprint 1. It is more reliable than long synchronous requests, but it is not yet a distributed worker system.
 
-## Recommended Operator Checklist
+## Operational Guidance
 
-When the importer stops behaving correctly:
+When diagnosing import behavior:
 
 1. Run:
 
@@ -161,9 +262,26 @@ When the importer stops behaving correctly:
 npm run reviews:tool -- "<saved place url>"
 ```
 
-2. If you get `limited view of Google Maps`:
-   use or refresh the configured browser profile.
-3. If you get zero visible review cards:
-   verify the stored URL is a direct place URL or `maps.app.goo.gl` link.
-4. If the total review count changes unexpectedly between runs:
-   check that the review scroller still resets to top and that the review card selector `div.jftiEf` still exists on the page.
+2. Check:
+
+- `normalizedReviewCount`
+- `reachedEndOfFeed`
+- `advertisedTotalReviews`
+
+3. Then inspect:
+
+- `GET /api/restaurants/:id/import/latest`
+
+4. If the run is stuck in `RUNNING` after a crash/restart, restart the server once so stale run recovery can mark it `FAILED`.
+
+## Honest Status
+
+This importer is now materially stronger than the earlier pass:
+
+- deeper crawl
+- better multilingual fidelity
+- better service throughput
+- persisted queue/status/progress
+- no fake runtime data path
+
+But it is still a bounded browser worker, not a perfect mirror of all Google review history.

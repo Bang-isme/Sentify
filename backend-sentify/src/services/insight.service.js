@@ -35,15 +35,20 @@ function buildInsightSummary(summary) {
 async function buildComplaintKeywordRows(restaurantId, reviews) {
     const negativeReviews = reviews.filter((review) => review.sentiment === 'NEGATIVE')
     const keywordCounts = new Map()
+    const analyzedReviews = await Promise.all(
+        negativeReviews.map(async (review) => ({
+            keywords: review.content
+                ? (
+                      await analyzeReview({
+                          content: review.content,
+                          rating: review.rating,
+                      })
+                  ).keywords
+                : [],
+        })),
+    )
 
-    for (const review of negativeReviews) {
-        const keywords = review.content
-            ? (await analyzeReview({
-                  content: review.content,
-                  rating: review.rating,
-              })).keywords
-            : []
-
+    for (const { keywords } of analyzedReviews) {
         // Count each keyword once per review to avoid long repeated text inflating complaint stats.
         const uniqueKeywords = [...new Set(keywords)]
 

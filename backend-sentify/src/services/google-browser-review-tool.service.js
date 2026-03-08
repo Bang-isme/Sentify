@@ -15,10 +15,20 @@ const REVIEW_TRIGGER_PATTERNS = [
     /more reviews/i,
     /see all reviews/i,
     /^reviews$/i,
+    /^bài đánh giá$/i,
     /^đánh giá$/i,
     /^nhận xét$/i,
-    /^口コミ$/i,
-    /^レビュー$/i,
+    /^口コミ$/iu,
+    /^レビュー$/iu,
+]
+const REVIEW_COUNT_PATTERNS = [
+    /reviews?\b/i,
+    /bài\s+(?:đánh giá|viết)(?=\s|$)/i,
+    /nhận xét(?=\s|$)/i,
+    /件の口コミ/iu,
+    /件のレビュー/iu,
+    /口コミ/iu,
+    /レビュー/iu,
 ]
 const EXPAND_REVIEW_BUTTON_SELECTOR = [
     'button.w8nwRe',
@@ -28,9 +38,31 @@ const EXPAND_REVIEW_BUTTON_SELECTOR = [
     'button[aria-label*="Xem thêm"]',
     'button[aria-label*="続きを読む"]',
 ].join(',')
+const CONSENT_BUTTON_PATTERNS = [
+    /accept all/i,
+    /i agree/i,
+    /^accept$/i,
+    /agree/i,
+    /đồng ý/i,
+    /chấp nhận/i,
+    /すべて受け入れる/iu,
+    /同意/iu,
+]
+const ABSOLUTE_VI_DATE_PATTERN = /^(\d{1,2})\s*thg\s*(\d{1,2}),?\s*(\d{4})$/iu
+const ABSOLUTE_JA_DATE_PATTERN = /^(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日$/u
+const ABSOLUTE_SLASH_DATE_PATTERN = /^(\d{4})[/. -](\d{1,2})[/. -](\d{1,2})$/
+
+function normalizeVisibleText(value) {
+    if (typeof value !== 'string') {
+        return null
+    }
+
+    const normalizedValue = value.normalize('NFC').replace(/\s+/g, ' ').trim()
+    return normalizedValue || null
+}
 
 function trimOrNull(value) {
-    const trimmed = value?.trim()
+    const trimmed = normalizeVisibleText(value)
     return trimmed ? trimmed : null
 }
 
@@ -79,6 +111,33 @@ function normalizeLocale(languageCode) {
     return normalizedCode
 }
 
+function parseIntegerCount(value) {
+    const digits = value?.replace(/[^\d]/g, '')
+
+    if (!digits) {
+        return null
+    }
+
+    const parsedValue = Number.parseInt(digits, 10)
+    return Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : null
+}
+
+function extractReviewCountFromText(value) {
+    const text = normalizeVisibleText(value)
+
+    if (!text) {
+        return null
+    }
+
+    if (!REVIEW_COUNT_PATTERNS.some((pattern) => pattern.test(text))) {
+        return null
+    }
+
+    const numberTokens = text.match(/[0-9][0-9.,]{0,15}/g) || []
+    const parsedCount = parseIntegerCount(numberTokens.at(-1) || '')
+    return parsedCount || null
+}
+
 function extractRatingFromLabel(value) {
     const label = trimOrNull(value)
 
@@ -123,6 +182,57 @@ function shiftDate(now, amount, unit) {
     return nextDate
 }
 
+function buildUtcDate(year, month, day) {
+    const parsedYear = Number(year)
+    const parsedMonth = Number(month)
+    const parsedDay = Number(day)
+
+    if (
+        !Number.isInteger(parsedYear) ||
+        !Number.isInteger(parsedMonth) ||
+        !Number.isInteger(parsedDay)
+    ) {
+        return null
+    }
+
+    const nextDate = new Date(Date.UTC(parsedYear, parsedMonth - 1, parsedDay))
+    return Number.isNaN(nextDate.valueOf()) ? null : nextDate
+}
+
+function parseAbsoluteReviewDate(value) {
+    const label = trimOrNull(value)
+
+    if (!label) {
+        return null
+    }
+
+    const parsedDate = new Date(label)
+
+    if (!Number.isNaN(parsedDate.valueOf())) {
+        return parsedDate
+    }
+
+    let match = label.match(ABSOLUTE_VI_DATE_PATTERN)
+
+    if (match) {
+        return buildUtcDate(match[3], match[2], match[1])
+    }
+
+    match = label.match(ABSOLUTE_JA_DATE_PATTERN)
+
+    if (match) {
+        return buildUtcDate(match[1], match[2], match[3])
+    }
+
+    match = label.match(ABSOLUTE_SLASH_DATE_PATTERN)
+
+    if (match) {
+        return buildUtcDate(match[1], match[2], match[3])
+    }
+
+    return null
+}
+
 function parseReviewDateLabel(value, now = new Date()) {
     const label = trimOrNull(value)
 
@@ -130,11 +240,15 @@ function parseReviewDateLabel(value, now = new Date()) {
         return null
     }
 
-    const normalizedInput = label.replace(/^edited\s+/i, '').replace(/^đã chỉnh sửa\s+/i, '')
-    const parsedDate = new Date(normalizedInput)
+    const normalizedInput = label
+        .replace(/^edited\s+/i, '')
+        .replace(/^đã chỉnh sửa\s+/i, '')
+        .replace(/^編集済み\s*/u, '')
+        .replace(/\s*に編集済み$/u, '')
+    const parsedAbsoluteDate = parseAbsoluteReviewDate(normalizedInput)
 
-    if (!Number.isNaN(parsedDate.valueOf())) {
-        return parsedDate
+    if (parsedAbsoluteDate) {
+        return parsedAbsoluteDate
     }
 
     const normalizedLabel = normalizedInput.toLowerCase()
@@ -147,6 +261,24 @@ function parseReviewDateLabel(value, now = new Date()) {
         { pattern: /^(\d+)\s+months?\s+ago$/, unit: 'month' },
         { pattern: /^a year ago$/, amount: 1, unit: 'year' },
         { pattern: /^(\d+)\s+years?\s+ago$/, unit: 'year' },
+        { pattern: /^1\s+ngày\s+trước$/i, amount: 1, unit: 'day' },
+        { pattern: /^(\d+)\s+ngày\s+trước$/i, unit: 'day' },
+        { pattern: /^1\s+tuần\s+trước$/i, amount: 1, unit: 'week' },
+        { pattern: /^(\d+)\s+tuần\s+trước$/i, unit: 'week' },
+        { pattern: /^1\s+tháng\s+trước$/i, amount: 1, unit: 'month' },
+        { pattern: /^(\d+)\s+tháng\s+trước$/i, unit: 'month' },
+        { pattern: /^1\s+năm\s+trước$/i, amount: 1, unit: 'year' },
+        { pattern: /^(\d+)\s+năm\s+trước$/i, unit: 'year' },
+        { pattern: /^1\s*日\s*前$/u, amount: 1, unit: 'day' },
+        { pattern: /^(\d+)\s*日\s*前$/u, unit: 'day' },
+        { pattern: /^1\s*週間前$/u, amount: 1, unit: 'week' },
+        { pattern: /^(\d+)\s*週間前$/u, unit: 'week' },
+        { pattern: /^1\s*か月前$/u, amount: 1, unit: 'month' },
+        { pattern: /^(\d+)\s*か月前$/u, unit: 'month' },
+        { pattern: /^1\s*ヶ月前$/u, amount: 1, unit: 'month' },
+        { pattern: /^(\d+)\s*ヶ月前$/u, unit: 'month' },
+        { pattern: /^1\s*年前$/u, amount: 1, unit: 'year' },
+        { pattern: /^(\d+)\s*年前$/u, unit: 'year' },
     ]
 
     for (const { pattern, amount, unit } of relativePatterns) {
@@ -210,6 +342,23 @@ function normalizeBrowserReviews(rawReviews) {
     return normalizedReviews
 }
 
+function buildReviewCollectionPlan({ advertisedTotalReviews }) {
+    const explicitTarget =
+        env.REVIEW_BROWSER_MAX_REVIEWS > 0 ? env.REVIEW_BROWSER_MAX_REVIEWS : null
+    const hardMaxReviews = env.REVIEW_BROWSER_HARD_MAX_REVIEWS
+    const targetReviewCount = Math.min(
+        explicitTarget ?? advertisedTotalReviews ?? hardMaxReviews,
+        hardMaxReviews,
+    )
+
+    return {
+        advertisedTotalReviews: advertisedTotalReviews ?? null,
+        explicitTarget,
+        hardMaxReviews,
+        targetReviewCount,
+    }
+}
+
 async function loadPlaywright() {
     try {
         return require('playwright')
@@ -225,18 +374,7 @@ async function loadPlaywright() {
 }
 
 async function maybeAcceptConsent(page) {
-    const labels = [
-        /accept all/i,
-        /i agree/i,
-        /^accept$/i,
-        /agree/i,
-        /đồng ý/i,
-        /chấp nhận/i,
-        /すべて受け入れる/i,
-        /同意/i,
-    ]
-
-    for (const pattern of labels) {
+    for (const pattern of CONSENT_BUTTON_PATTERNS) {
         const button = page.getByRole('button', { name: pattern }).first()
 
         if ((await button.count()) === 0) {
@@ -357,6 +495,10 @@ async function waitForReviewCards(page, minimumCards = 1, timeoutMs = 6000) {
     }
 }
 
+async function getReviewCardCount(page) {
+    return page.locator(REVIEW_CARD_SELECTOR).count()
+}
+
 async function clickReviewTrigger(page) {
     const roles = ['button', 'tab', 'link']
 
@@ -422,20 +564,76 @@ async function markReviewScroller(page) {
     )
 }
 
+async function extractAdvertisedReviewCountCandidates(page) {
+    const selector = 'button, [role="button"], [role="tab"], [aria-label], .F7nice, .jANrlb'
+    const texts = await page
+        .locator(selector)
+        .evaluateAll((nodes) =>
+            nodes
+                .slice(0, 240)
+                .flatMap((node) => [node.textContent, node.getAttribute?.('aria-label')])
+                .filter((value) => typeof value === 'string')
+                .map((value) => value.normalize('NFC').replace(/\s+/g, ' ').trim())
+                .filter((value) => value.length <= 80)
+                .filter(Boolean),
+        )
+        .catch(() => [])
+
+    const counts = texts.map(extractReviewCountFromText).filter((value) => Number.isInteger(value))
+
+    if (counts.length > 0) {
+        return [...new Set(counts)].sort((left, right) => left - right)
+    }
+
+    const bodyLines = await page
+        .locator('body')
+        .evaluate((node) =>
+            (node.innerText || '')
+                .split('\n')
+                .map((line) => line.normalize('NFC').replace(/\s+/g, ' ').trim())
+                .filter(Boolean),
+        )
+        .catch(() => [])
+
+    const fallbackCounts = bodyLines
+        .map(extractReviewCountFromText)
+        .filter((value) => Number.isInteger(value))
+
+    if (fallbackCounts.length === 0) {
+        return []
+    }
+
+    return [...new Set(fallbackCounts)].sort((left, right) => left - right)
+}
+
+function pickAdvertisedReviewCount(countCandidates, collectedReviewCount) {
+    if (!Array.isArray(countCandidates) || countCandidates.length === 0) {
+        return null
+    }
+
+    const eligibleCounts = countCandidates.filter((count) => count >= collectedReviewCount)
+
+    if (eligibleCounts.length > 0) {
+        return eligibleCounts[0]
+    }
+
+    return countCandidates.at(-1) || null
+}
+
 async function openReviewsPanel(page) {
-    const inlineReviewCount = await page.locator(REVIEW_CARD_SELECTOR).count()
+    const inlineReviewCount = await getReviewCardCount(page)
     const clickedTrigger = await clickReviewTrigger(page)
 
     if (clickedTrigger) {
         await waitForReviewCards(page, Math.max(1, inlineReviewCount), 8000)
     }
 
-    let reviewCount = await page.locator(REVIEW_CARD_SELECTOR).count()
+    let reviewCount = await getReviewCardCount(page)
 
     if (reviewCount === 0 && !clickedTrigger) {
         await clickReviewTrigger(page)
         await waitForReviewCards(page, 1, 8000)
-        reviewCount = await page.locator(REVIEW_CARD_SELECTOR).count()
+        reviewCount = await getReviewCardCount(page)
     }
 
     if (reviewCount === 0) {
@@ -462,8 +660,13 @@ async function openReviewsPanel(page) {
         )
     }
 
+    const advertisedReviewCountCandidates = await extractAdvertisedReviewCountCandidates(page)
     const foundScroller = await markReviewScroller(page)
-    return foundScroller ? page.locator(REVIEW_SCROLLER_SELECTOR).first() : null
+
+    return {
+        advertisedReviewCountCandidates,
+        reviewScroller: foundScroller ? page.locator(REVIEW_SCROLLER_SELECTOR).first() : null,
+    }
 }
 
 async function expandVisibleReviewBodies(page) {
@@ -481,61 +684,80 @@ async function expandVisibleReviewBodies(page) {
     }
 }
 
-async function collectRawReviews(page) {
+async function collectRawReviews(page, maxReviews) {
     const cards = page.locator(REVIEW_CARD_SELECTOR)
 
-    return cards.evaluateAll(
-        (nodes, maxReviews) => {
-            const selectedNodes = nodes.slice(0, maxReviews)
+    return cards.evaluateAll((nodes, reviewLimit) => {
+        const selectedNodes = nodes.slice(0, reviewLimit)
 
-            function pickText(root, selectors) {
-                for (const selector of selectors) {
-                    const node = root.querySelector(selector)
-                    const text = node?.textContent?.trim()
-
-                    if (text) {
-                        return text
-                    }
-                }
-
+        function normalizeText(value) {
+            if (typeof value !== 'string') {
                 return null
             }
 
-            return selectedNodes.map((node) => {
-                const ratingNode = node.querySelector(
-                    '.kvMYJc, [role="img"][aria-label*="star"], [role="img"][aria-label*="Star"]',
-                )
+            const normalizedValue = value.normalize('NFC').replace(/\s+/g, ' ').trim()
+            return normalizedValue || null
+        }
 
-                return {
-                    externalId: node.getAttribute('data-review-id') || null,
-                    authorName: pickText(node, [
-                        '.d4r55',
-                        '.TSUbDb',
-                        '[data-review-author]',
-                        'button[aria-label*="review by"]',
-                    ]),
-                    ratingLabel:
-                        ratingNode?.getAttribute('aria-label') ||
-                        node.getAttribute('aria-label') ||
-                        null,
-                    content: pickText(node, [
-                        '.wiI7pd',
-                        '.MyEned',
-                        '[data-review-text]',
-                        '.fontBodyMedium span',
-                    ]),
-                    reviewDateLabel: pickText(node, ['.rsqaWe', '.xRkPPb', 'span[class*="rsqaWe"]']),
+        function pickText(root, selectors) {
+            for (const selector of selectors) {
+                const node = root.querySelector(selector)
+                const text = normalizeText(node?.textContent ?? null)
+
+                if (text) {
+                    return text
                 }
-            })
-        },
-        env.REVIEW_BROWSER_MAX_REVIEWS,
-    )
+            }
+
+            return null
+        }
+
+        return selectedNodes.map((node) => {
+            const ratingNode = node.querySelector(
+                '.kvMYJc, [role="img"][aria-label*="star"], [role="img"][aria-label*="Star"]',
+            )
+
+            return {
+                externalId: normalizeText(node.getAttribute('data-review-id')) || null,
+                authorName: pickText(node, [
+                    '.d4r55',
+                    '.TSUbDb',
+                    '[data-review-author]',
+                    'button[aria-label*="review by"]',
+                ]),
+                ratingLabel:
+                    normalizeText(ratingNode?.getAttribute('aria-label')) ||
+                    normalizeText(node.getAttribute('aria-label')) ||
+                    null,
+                content: pickText(node, [
+                    '.wiI7pd',
+                    '.MyEned',
+                    '[data-review-text]',
+                    '.fontBodyMedium span',
+                ]),
+                reviewDateLabel: pickText(node, ['.rsqaWe', '.xRkPPb', 'span[class*="rsqaWe"]']),
+            }
+        })
+    }, maxReviews)
 }
 
-async function scrollReviewFeed(page, reviewScroller) {
+function computeScrollPassBudget(targetReviewCount) {
+    if (!Number.isInteger(targetReviewCount) || targetReviewCount <= 0) {
+        return Math.max(env.REVIEW_BROWSER_SCROLL_STEPS, 60)
+    }
+
+    return Math.max(env.REVIEW_BROWSER_SCROLL_STEPS, 60, Math.ceil(targetReviewCount / 4) * 2)
+}
+
+async function scrollReviewFeed(page, reviewScroller, collectionPlan) {
     if (!reviewScroller) {
         await expandVisibleReviewBodies(page)
-        return
+        return {
+            collectedCardCount: await getReviewCardCount(page),
+            reachedEndOfFeed: true,
+            scrollPasses: 0,
+            stalledIterations: 0,
+        }
     }
 
     await reviewScroller.evaluate((node) => {
@@ -543,13 +765,18 @@ async function scrollReviewFeed(page, reviewScroller) {
     })
     await page.waitForTimeout(1000)
     await waitForReviewCards(page, 1, 3000)
+
+    const maxScrollPasses = computeScrollPassBudget(collectionPlan.targetReviewCount)
     let stalledIterations = 0
+    let reachedEndOfFeed = false
+    let scrollPasses = 0
 
-    for (let index = 0; index < env.REVIEW_BROWSER_SCROLL_STEPS; index += 1) {
+    for (let index = 0; index < maxScrollPasses; index += 1) {
+        scrollPasses += 1
         await expandVisibleReviewBodies(page)
-        const reviewCountBeforeScroll = await page.locator(REVIEW_CARD_SELECTOR).count()
+        const reviewCountBeforeScroll = await getReviewCardCount(page)
 
-        if (reviewCountBeforeScroll >= env.REVIEW_BROWSER_MAX_REVIEWS) {
+        if (reviewCountBeforeScroll >= collectionPlan.targetReviewCount) {
             break
         }
 
@@ -558,19 +785,27 @@ async function scrollReviewFeed(page, reviewScroller) {
             clientHeight: node.clientHeight,
             scrollHeight: node.scrollHeight,
         }))
+        const isNearTarget =
+            collectionPlan.targetReviewCount > 0 &&
+            reviewCountBeforeScroll >= Math.floor(collectionPlan.targetReviewCount * 0.7)
+        const scrollDelta = isNearTarget
+            ? Math.max(scrollStateBefore.clientHeight * 0.9, 360)
+            : Math.max(scrollStateBefore.clientHeight * 2.25, 960)
 
-        await reviewScroller.evaluate((node) => {
-            node.scrollBy(0, node.clientHeight * 1.5)
-        })
+        await reviewScroller.evaluate((node, delta) => {
+            node.scrollBy(0, delta)
+        }, scrollDelta)
         await page.waitForTimeout(env.REVIEW_BROWSER_SCROLL_DELAY_MS)
 
-        const reviewCountAfterScroll = await page.locator(REVIEW_CARD_SELECTOR).count()
+        const reviewCountAfterScroll = await getReviewCardCount(page)
         const scrollStateAfter = await reviewScroller.evaluate((node) => ({
             top: node.scrollTop,
             clientHeight: node.clientHeight,
             scrollHeight: node.scrollHeight,
         }))
 
+        const atBottom =
+            scrollStateAfter.top + scrollStateAfter.clientHeight >= scrollStateAfter.scrollHeight - 24
         const didMove =
             scrollStateAfter.top > scrollStateBefore.top + 24 ||
             scrollStateAfter.scrollHeight > scrollStateBefore.scrollHeight + 24
@@ -582,15 +817,43 @@ async function scrollReviewFeed(page, reviewScroller) {
             stalledIterations += 1
         }
 
-        if (stalledIterations >= 4) {
+        if (stalledIterations >= env.REVIEW_BROWSER_STALL_LIMIT && atBottom) {
+            await reviewScroller.evaluate((node) => {
+                node.scrollBy(0, -Math.max(node.clientHeight * 0.4, 220))
+            })
+            await page.waitForTimeout(Math.max(env.REVIEW_BROWSER_SCROLL_DELAY_MS / 2, 250))
+            await reviewScroller.evaluate((node) => {
+                node.scrollBy(0, Math.max(node.clientHeight * 0.7, 320))
+            })
+            await page.waitForTimeout(env.REVIEW_BROWSER_SCROLL_DELAY_MS)
+
+            const recoveredCount = await getReviewCardCount(page)
+
+            if (recoveredCount > reviewCountAfterScroll) {
+                stalledIterations = 0
+                continue
+            }
+
+            reachedEndOfFeed = true
             break
         }
     }
 
     await expandVisibleReviewBodies(page)
+
+    return {
+        collectedCardCount: await getReviewCardCount(page),
+        reachedEndOfFeed,
+        scrollPasses,
+        stalledIterations,
+    }
 }
 
-async function scrapeGoogleReviewsWithBrowser({ googleMapUrl, restaurantName, restaurantAddress }) {
+async function scrapeGoogleReviewsWithBrowserDetailed({
+    googleMapUrl,
+    restaurantName,
+    restaurantAddress,
+}) {
     const { chromium } = await loadPlaywright()
     const browserUrl = buildAutomationUrl(googleMapUrl, restaurantName, restaurantAddress)
 
@@ -604,16 +867,30 @@ async function scrapeGoogleReviewsWithBrowser({ googleMapUrl, restaurantName, re
             waitUntil: 'domcontentloaded',
             timeout: env.REVIEW_BROWSER_TIMEOUT_MS,
         })
-        await page.waitForLoadState('networkidle', {
-            timeout: Math.min(env.REVIEW_BROWSER_TIMEOUT_MS, 10000),
-        }).catch(() => {})
+        await page
+            .waitForLoadState('networkidle', {
+                timeout: Math.min(env.REVIEW_BROWSER_TIMEOUT_MS, 10000),
+            })
+            .catch(() => {})
 
         await maybeAcceptConsent(page)
-        const reviewScroller = await openReviewsPanel(page)
-        await scrollReviewFeed(page, reviewScroller)
-
-        const rawReviews = await collectRawReviews(page)
+        const { reviewScroller, advertisedReviewCountCandidates } = await openReviewsPanel(page)
+        const collectionPlan = buildReviewCollectionPlan({
+            advertisedTotalReviews: advertisedReviewCountCandidates?.at(-1) ?? null,
+        })
+        const scrollMetadata = await scrollReviewFeed(page, reviewScroller, collectionPlan)
+        const rawReviews = await collectRawReviews(page, collectionPlan.targetReviewCount)
         const reviews = normalizeBrowserReviews(rawReviews)
+        const advertisedTotalReviewsCandidate = pickAdvertisedReviewCount(
+            advertisedReviewCountCandidates,
+            reviews.length,
+        )
+        const advertisedTotalReviews =
+            scrollMetadata.reachedEndOfFeed &&
+            advertisedTotalReviewsCandidate !== null &&
+            advertisedTotalReviewsCandidate > Math.ceil(reviews.length * 1.5)
+                ? null
+                : advertisedTotalReviewsCandidate
 
         if (reviews.length === 0) {
             throw badGateway(
@@ -624,7 +901,24 @@ async function scrapeGoogleReviewsWithBrowser({ googleMapUrl, restaurantName, re
 
         await session.close()
 
-        return reviews
+        return {
+            reviews,
+            metadata: {
+                source: 'google-maps-browser',
+                advertisedTotalReviews,
+                explicitTarget: collectionPlan.explicitTarget,
+                hardMaxReviews: collectionPlan.hardMaxReviews,
+                targetReviewCount: collectionPlan.targetReviewCount,
+                rawReviewCount: rawReviews.length,
+                normalizedReviewCount: reviews.length,
+                reachedRequestedTarget: reviews.length >= collectionPlan.targetReviewCount,
+                reachedEndOfFeed:
+                    scrollMetadata.reachedEndOfFeed ||
+                    (advertisedTotalReviews !== null && reviews.length >= advertisedTotalReviews),
+                scrollPasses: scrollMetadata.scrollPasses,
+                stalledIterations: scrollMetadata.stalledIterations,
+            },
+        }
     } catch (error) {
         if (session) {
             await session.close().catch(() => {})
@@ -653,12 +947,22 @@ async function scrapeGoogleReviewsWithBrowser({ googleMapUrl, restaurantName, re
     }
 }
 
+async function scrapeGoogleReviewsWithBrowser(params) {
+    const { reviews } = await scrapeGoogleReviewsWithBrowserDetailed(params)
+    return reviews
+}
+
 module.exports = {
     scrapeGoogleReviewsWithBrowser,
+    scrapeGoogleReviewsWithBrowserDetailed,
     __private: {
         buildAutomationUrl,
+        buildReviewCollectionPlan,
         extractRatingFromLabel,
+        extractReviewCountFromText,
+        pickAdvertisedReviewCount,
         normalizeBrowserReviews,
+        normalizeVisibleText,
         parseReviewDateLabel,
     },
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import type {
   ComplaintKeyword,
   CreateRestaurantInput,
+  ImportRunSummary,
   InsightSummary,
   RestaurantDetail,
   RestaurantMembership,
@@ -43,6 +44,10 @@ interface ProductWorkspaceProps {
   importPending: boolean
   savePending: boolean
   createPending: boolean
+  latestImportRun: ImportRunSummary | null
+  importRuns: ImportRunSummary[]
+  importRunsLoading: boolean
+  importRunsError: string | null
   reviews: ReviewListResponse | null
   reviewsLoading: boolean
   reviewsError: string | null
@@ -91,27 +96,202 @@ function formatReviewDate(value: string | null, language: string, fallback: stri
   }).format(new Date(value))
 }
 
+function formatDateTime(value: string | null, language: string, fallback: string) {
+  if (!value) {
+    return fallback
+  }
+
+  return new Intl.DateTimeFormat(language, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function parseCalendarDate(value: string | null | undefined) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null
+  }
+
+  const [year, month, day] = value.split('-').map(Number)
+
+  return new Date(year, month - 1, day)
+}
+
+function formatCalendarDate(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+function formatCalendarDisplay(value: string | null | undefined, language: string, fallback: string) {
+  const date = parseCalendarDate(value)
+
+  if (!date) {
+    return fallback
+  }
+
+  return new Intl.DateTimeFormat(language, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(date)
+}
+
+function getMonthStart(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1)
+}
+
+function addCalendarMonths(date: Date, diff: number) {
+  return new Date(date.getFullYear(), date.getMonth() + diff, 1)
+}
+
+function isSameCalendarDay(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  )
+}
+
+function getCalendarWeekdayLabels(language: string) {
+  const baseSunday = new Date(2024, 5, 2)
+
+  return Array.from({ length: 7 }, (_, index) =>
+    new Intl.DateTimeFormat(language, { weekday: 'short' }).format(
+      new Date(baseSunday.getFullYear(), baseSunday.getMonth(), baseSunday.getDate() + index),
+    ),
+  )
+}
+
+function getCalendarMonthLabels(language: string) {
+  return Array.from({ length: 12 }, (_, index) =>
+    new Intl.DateTimeFormat(language, { month: 'short' }).format(new Date(2024, index, 1)),
+  )
+}
+
+function getCalendarCells(month: Date) {
+  const start = getMonthStart(month)
+  const leadingDays = start.getDay()
+  const gridStart = new Date(start.getFullYear(), start.getMonth(), 1 - leadingDays)
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(
+      gridStart.getFullYear(),
+      gridStart.getMonth(),
+      gridStart.getDate() + index,
+    )
+
+    return {
+      key: formatCalendarDate(date),
+      date,
+      isCurrentMonth: date.getMonth() === month.getMonth(),
+    }
+  })
+}
+
+function formatSourcePreview(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  try {
+    const url = new URL(value)
+    const compactPath = url.pathname.length > 36 ? `${url.pathname.slice(0, 36)}...` : url.pathname
+    return `${url.hostname}${compactPath}`
+  } catch {
+    return value.length > 56 ? `${value.slice(0, 56)}...` : value
+  }
+}
+
+function getReviewToneClasses(sentiment: SentimentBreakdownRow['label'] | null, rating: number) {
+  if (sentiment === 'NEGATIVE' || rating <= 2) {
+    return {
+      badge: 'border-amber-300/30 bg-amber-500/10 text-amber-700 dark:border-amber-400/25 dark:bg-amber-500/12 dark:text-amber-200',
+      rail: 'before:bg-amber-400/75',
+    }
+  }
+
+  if (sentiment === 'POSITIVE' || rating >= 4) {
+    return {
+      badge: 'border-emerald-300/30 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-500/12 dark:text-emerald-200',
+      rail: 'before:bg-emerald-400/75',
+    }
+  }
+
+  return {
+    badge: 'border-border-light/70 bg-bg-light/70 text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white',
+    rail: 'before:bg-primary/70',
+  }
+}
+
 function PageIntro({
+  eyebrow,
   title,
   description,
+  meta,
   actions,
 }: {
+  eyebrow?: string
   title: string
   description: string
+  meta?: Array<{
+    icon: string
+    label: string
+    tone?: 'default' | 'success' | 'warning'
+  }>
   actions?: ReactNode
 }) {
+  const toneClass = (tone: 'default' | 'success' | 'warning' = 'default') =>
+    tone === 'success'
+      ? 'border-emerald-300/35 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-500/12 dark:text-emerald-200'
+      : tone === 'warning'
+        ? 'border-amber-300/35 bg-amber-500/10 text-amber-700 dark:border-amber-400/25 dark:bg-amber-500/12 dark:text-amber-200'
+        : 'border-border-light/70 bg-bg-light/70 text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white'
+
   return (
-    <section className="rounded-[1.8rem] border border-border-light/70 bg-surface-white/88 p-6 shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
+    <section className="rounded-[1.8rem] border border-border-light/70 bg-surface-white/88 p-5 shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 sm:p-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
-          <h1 className="text-[1.9rem] font-black tracking-tight text-text-charcoal dark:text-white">
+          {eyebrow ? (
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+              <span className="size-2 rounded-full bg-primary"></span>
+              {eyebrow}
+            </div>
+          ) : null}
+          <h1
+            className={`text-[1.9rem] font-black tracking-tight text-text-charcoal dark:text-white ${
+              eyebrow ? 'mt-4' : ''
+            }`}
+          >
             {title}
           </h1>
           <p className="mt-3 text-sm leading-7 text-text-silver-light dark:text-text-silver-dark">
             {description}
           </p>
+          {meta?.length ? (
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+              {meta.map((item) => (
+                <div
+                  key={`${item.icon}-${item.label}`}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${toneClass(item.tone)}`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
-        {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+        {actions ? (
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end [&>*]:w-full [&>*]:justify-center sm:[&>*]:w-auto">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </section>
   )
@@ -120,26 +300,448 @@ function PageIntro({
 function SectionCard({
   title,
   description,
+  headerAside,
+  tone = 'default',
+  className,
   children,
 }: {
   title: string
   description?: string
+  headerAside?: ReactNode
+  tone?: 'default' | 'accent'
+  className?: string
   children: ReactNode
 }) {
   return (
-    <section className="rounded-[1.75rem] border border-border-light/70 bg-surface-white/88 p-6 shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
-      <div className="mb-5">
-        <h2 className="text-xl font-bold tracking-tight text-text-charcoal dark:text-white">
-          {title}
-        </h2>
-        {description ? (
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
-            {description}
-          </p>
-        ) : null}
+    <section
+      className={`rounded-[1.75rem] border p-5 shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur sm:p-6 ${
+        tone === 'accent'
+          ? 'border-primary/18 bg-primary/[0.04] dark:border-primary/15 dark:bg-primary/[0.05]'
+          : 'border-border-light/70 bg-surface-white/88 dark:border-border-dark/70 dark:bg-surface-dark/82'
+      } ${className ?? ''}`}
+    >
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-text-charcoal dark:text-white">
+            {title}
+          </h2>
+          {description ? (
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+              {description}
+            </p>
+          ) : null}
+        </div>
+        {headerAside ? <div className="w-full shrink-0 sm:w-auto">{headerAside}</div> : null}
       </div>
       {children}
     </section>
+  )
+}
+
+function NativeFieldShell({
+  icon,
+  children,
+  open = false,
+}: {
+  icon: string
+  children: ReactNode
+  open?: boolean
+}) {
+  return (
+    <div
+      className={`group relative flex h-11 items-center rounded-2xl border bg-surface-white transition dark:bg-surface-dark ${
+        open
+          ? 'border-primary shadow-[0_0_0_3px_rgba(212,175,55,0.12)]'
+          : 'border-border-light focus-within:border-primary dark:border-border-dark'
+      }`}
+    >
+      {children}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 flex size-5 items-center justify-center text-text-silver-light transition-colors group-focus-within:text-primary dark:text-text-silver-dark"
+      >
+        <span className="material-symbols-outlined text-[18px]">{icon}</span>
+      </span>
+    </div>
+  )
+}
+
+function RatingFilterSelect({
+  copy,
+  value,
+  onChange,
+}: {
+  copy: ProductUiCopy['app']
+  value: string | undefined
+  onChange: (value: string | undefined) => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const options = [
+    { value: '', label: copy.allRatings },
+    { value: '5', label: '5 ★' },
+    { value: '4', label: '4 ★' },
+    { value: '3', label: '3 ★' },
+    { value: '2', label: '2 ★' },
+    { value: '1', label: '1 ★' },
+  ]
+  const selectedOption = options.find((option) => option.value === (value ?? '')) ?? options[0]
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <NativeFieldShell icon={isOpen ? 'expand_less' : 'expand_more'} open={isOpen}>
+        <button
+          id="review-filter-rating"
+          type="button"
+          aria-label={copy.filterRating}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          className="flex h-full w-full items-center px-4 pr-11 text-left text-sm font-semibold text-text-charcoal outline-none dark:text-white"
+          onClick={() => setIsOpen((current) => !current)}
+        >
+          <span>{selectedOption.label}</span>
+        </button>
+      </NativeFieldShell>
+
+      <div
+        className={`absolute left-0 top-[calc(100%+0.55rem)] z-30 w-full overflow-hidden rounded-[1.2rem] border border-border-light/80 bg-surface-white/96 p-1 shadow-[0_20px_50px_-22px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all dark:border-border-dark/80 dark:bg-surface-dark/96 ${
+          isOpen ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1 opacity-0'
+        }`}
+        role="listbox"
+        aria-label={copy.filterRating}
+        aria-hidden={!isOpen}
+      >
+        {options.map((option) => {
+          const isActive = option.value === (value ?? '')
+
+          return (
+            <button
+              key={option.value || 'all'}
+              type="button"
+              role="option"
+              aria-selected={isActive}
+              className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                isActive
+                  ? 'bg-primary/10 font-semibold text-primary'
+                  : 'text-text-charcoal hover:bg-primary/6 dark:text-white dark:hover:bg-white/5'
+              }`}
+              onClick={() => {
+                onChange(option.value || undefined)
+                setIsOpen(false)
+              }}
+            >
+              <span>{option.label}</span>
+              {isActive ? (
+                <span className="material-symbols-outlined text-[18px]">check</span>
+              ) : null}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function DateFilterField({
+  label,
+  value,
+  language,
+  previousMonthLabel,
+  nextMonthLabel,
+  onChange,
+}: {
+  label: string
+  value: string | undefined
+  language: string
+  previousMonthLabel: string
+  nextMonthLabel: string
+  onChange: (value: string | undefined) => void
+}) {
+  const [view, setView] = useState<'day' | 'month' | 'year'>('day')
+  const [isOpen, setIsOpen] = useState(false)
+  const [visibleMonth, setVisibleMonth] = useState(() =>
+    getMonthStart(parseCalendarDate(value) ?? new Date()),
+  )
+  const [yearPageStart, setYearPageStart] = useState(() => {
+    const initialYear = (parseCalendarDate(value) ?? new Date()).getFullYear()
+    return initialYear - 5
+  })
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const selectedDate = parseCalendarDate(value)
+  const today = new Date()
+  const weekdayLabels = getCalendarWeekdayLabels(language)
+  const monthLabels = getCalendarMonthLabels(language)
+  const calendarCells = getCalendarCells(visibleMonth)
+  const visibleYear = visibleMonth.getFullYear()
+  const monthLabel = new Intl.DateTimeFormat(language, {
+    month: 'long',
+    year: 'numeric',
+  }).format(visibleMonth)
+  const yearRangeLabel = `${yearPageStart} - ${yearPageStart + 11}`
+  const yearOptions = Array.from({ length: 12 }, (_, index) => yearPageStart + index)
+  const calendarViewKey = `${view}-${visibleYear}-${visibleMonth.getMonth()}-${yearPageStart}`
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
+
+  return (
+    <div className="relative" ref={rootRef}>
+      <NativeFieldShell icon="calendar_month" open={isOpen}>
+        <button
+          type="button"
+          aria-label={label}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          className={`flex h-full w-full items-center px-4 pr-11 text-left text-sm font-semibold outline-none ${
+            value ? 'text-text-charcoal dark:text-white' : 'text-text-silver-light dark:text-text-silver-dark'
+          }`}
+          onClick={() => {
+            const baseDate = selectedDate ?? new Date()
+            setVisibleMonth(getMonthStart(baseDate))
+            setYearPageStart(baseDate.getFullYear() - 5)
+            setView('day')
+            setIsOpen((current) => !current)
+          }}
+        >
+          <span>{formatCalendarDisplay(value, language, 'mm/dd/yyyy')}</span>
+        </button>
+      </NativeFieldShell>
+
+      <div
+        className={`absolute left-0 top-[calc(100%+0.55rem)] z-30 w-[18rem] max-w-[calc(100vw-2rem)] rounded-[1.35rem] border border-border-light/80 bg-surface-white/96 p-3 shadow-[0_20px_50px_-22px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all dark:border-border-dark/80 dark:bg-surface-dark/96 ${
+          isOpen ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1 opacity-0'
+        }`}
+        role="dialog"
+        aria-label={label}
+        aria-hidden={!isOpen}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            aria-label={
+              view === 'day'
+                ? previousMonthLabel
+                : view === 'month'
+                  ? previousMonthLabel
+                  : `${previousMonthLabel} ${yearRangeLabel}`
+            }
+            className="flex size-9 items-center justify-center rounded-full border border-border-light/70 bg-bg-light/70 text-text-charcoal transition hover:border-primary/35 hover:text-primary dark:border-border-dark dark:bg-bg-dark/55 dark:text-white"
+            onClick={() => {
+              if (view === 'day') {
+                setVisibleMonth((current) => addCalendarMonths(current, -1))
+                return
+              }
+
+              if (view === 'month') {
+                setVisibleMonth((current) => new Date(current.getFullYear() - 1, current.getMonth(), 1))
+                return
+              }
+
+              setYearPageStart((current) => current - 12)
+            }}
+          >
+            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+          </button>
+          <button
+            type="button"
+            className="inline-flex min-w-[8.5rem] items-center justify-center gap-1 rounded-full px-3 py-2 text-sm font-bold text-text-charcoal transition hover:bg-primary/8 hover:text-primary dark:text-white dark:hover:bg-primary/10"
+            onClick={() => {
+              if (view === 'day') {
+                setView('month')
+                return
+              }
+
+              if (view === 'month') {
+                setYearPageStart(visibleYear - 5)
+                setView('year')
+                return
+              }
+
+              setView('month')
+            }}
+          >
+            <span>{view === 'year' ? yearRangeLabel : view === 'month' ? String(visibleYear) : monthLabel}</span>
+            <span className="material-symbols-outlined text-[16px]">
+              {view === 'day' ? 'expand_more' : 'unfold_more'}
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label={
+              view === 'day'
+                ? nextMonthLabel
+                : view === 'month'
+                  ? nextMonthLabel
+                  : `${nextMonthLabel} ${yearRangeLabel}`
+            }
+            className="flex size-9 items-center justify-center rounded-full border border-border-light/70 bg-bg-light/70 text-text-charcoal transition hover:border-primary/35 hover:text-primary dark:border-border-dark dark:bg-bg-dark/55 dark:text-white"
+            onClick={() => {
+              if (view === 'day') {
+                setVisibleMonth((current) => addCalendarMonths(current, 1))
+                return
+              }
+
+              if (view === 'month') {
+                setVisibleMonth((current) => new Date(current.getFullYear() + 1, current.getMonth(), 1))
+                return
+              }
+
+              setYearPageStart((current) => current + 12)
+            }}
+          >
+            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+        </div>
+
+        <div key={calendarViewKey} className="app-calendar-panel-enter mt-4">
+          {view === 'day' ? (
+            <div className="grid grid-cols-7 gap-1">
+              {weekdayLabels.map((weekday) => (
+                <div
+                  key={weekday}
+                  className="pb-1 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-text-silver-light dark:text-text-silver-dark"
+                >
+                  {weekday}
+                </div>
+              ))}
+
+              {calendarCells.map((cell) => {
+                const isSelected = selectedDate ? isSameCalendarDay(cell.date, selectedDate) : false
+                const isToday = isSameCalendarDay(cell.date, today)
+
+                return (
+                  <button
+                    key={cell.key}
+                    type="button"
+                    aria-label={new Intl.DateTimeFormat(language, {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    }).format(cell.date)}
+                    className={`flex h-9 items-center justify-center rounded-xl text-sm transition ${
+                      isSelected
+                        ? 'bg-primary text-white dark:text-bg-dark'
+                        : cell.isCurrentMonth
+                          ? 'text-text-charcoal hover:bg-primary/8 hover:text-primary dark:text-white dark:hover:bg-primary/12'
+                          : 'text-text-silver-light hover:bg-primary/6 hover:text-primary dark:text-text-silver-dark dark:hover:bg-primary/10'
+                    } ${isToday && !isSelected ? 'border border-primary/35' : 'border border-transparent'}`}
+                    onClick={() => {
+                      onChange(formatCalendarDate(cell.date))
+                      setVisibleMonth(getMonthStart(cell.date))
+                      setIsOpen(false)
+                      setView('day')
+                    }}
+                  >
+                    {cell.date.getDate()}
+                  </button>
+                )
+              })}
+            </div>
+          ) : view === 'month' ? (
+            <div className="grid grid-cols-3 gap-2">
+              {monthLabels.map((item, index) => {
+                const isActive =
+                  selectedDate &&
+                  selectedDate.getFullYear() === visibleYear &&
+                  selectedDate.getMonth() === index
+
+                return (
+                  <button
+                    key={`${visibleYear}-${item}`}
+                    type="button"
+                    className={`flex h-11 items-center justify-center rounded-2xl px-3 text-sm font-semibold transition ${
+                      isActive
+                        ? 'bg-primary text-white dark:text-bg-dark'
+                        : 'border border-border-light/70 bg-bg-light/70 text-text-charcoal hover:border-primary/35 hover:bg-primary/8 hover:text-primary dark:border-border-dark dark:bg-bg-dark/55 dark:text-white dark:hover:bg-primary/12'
+                    }`}
+                    onClick={() => {
+                      setVisibleMonth(new Date(visibleYear, index, 1))
+                      setView('day')
+                    }}
+                  >
+                    {item}
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {yearOptions.map((year) => {
+                const isActive = selectedDate ? selectedDate.getFullYear() === year : visibleYear === year
+
+                return (
+                  <button
+                    key={year}
+                    type="button"
+                    className={`flex h-11 items-center justify-center rounded-2xl px-3 text-sm font-semibold transition ${
+                      isActive
+                        ? 'bg-primary text-white dark:text-bg-dark'
+                        : 'border border-border-light/70 bg-bg-light/70 text-text-charcoal hover:border-primary/35 hover:bg-primary/8 hover:text-primary dark:border-border-dark dark:bg-bg-dark/55 dark:text-white dark:hover:bg-primary/12'
+                    }`}
+                    onClick={() => {
+                      setVisibleMonth(new Date(year, visibleMonth.getMonth(), 1))
+                      setView('month')
+                    }}
+                  >
+                    {year}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -154,7 +756,7 @@ function MetricCard({
 }) {
   return (
     <div
-      className={`rounded-[1.4rem] border p-5 ${
+      className={`min-h-[9.5rem] rounded-[1.4rem] border p-5 ${
         tone === 'primary'
           ? 'border-primary/25 bg-primary/8'
           : 'border-border-light/70 bg-bg-light/75 dark:border-border-dark dark:bg-bg-dark/55'
@@ -166,6 +768,30 @@ function MetricCard({
       <div className="mt-3 text-3xl font-black tracking-tight text-text-charcoal dark:text-white">
         {value}
       </div>
+    </div>
+  )
+}
+
+function SidebarStatusPill({
+  icon,
+  label,
+  tone = 'neutral',
+}: {
+  icon: string
+  label: string
+  tone?: 'neutral' | 'success' | 'warning'
+}) {
+  const toneClass =
+    tone === 'success'
+      ? 'border-emerald-300/35 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-500/12 dark:text-emerald-200'
+      : tone === 'warning'
+        ? 'border-amber-300/35 bg-amber-500/10 text-amber-700 dark:border-amber-400/25 dark:bg-amber-500/12 dark:text-amber-200'
+        : 'border-border-light/70 bg-surface-white/80 text-text-charcoal dark:border-border-dark dark:bg-surface-dark/70 dark:text-white'
+
+  return (
+    <div className={`flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm ${toneClass}`}>
+      <span className="material-symbols-outlined text-[18px]">{icon}</span>
+      <span className="font-semibold leading-5">{label}</span>
     </div>
   )
 }
@@ -207,12 +833,400 @@ function EmptyPanel({ message }: { message: string }) {
   )
 }
 
+function getImportRunMerchantSummary(copy: ProductUiCopy['app'], run: ImportRunSummary): string {
+  if (run.status === 'FAILED') {
+    return copy.syncStatusFailed
+  }
+
+  if (run.status === 'RUNNING') {
+    return copy.syncStatusRunning
+  }
+
+  if (run.status === 'QUEUED') {
+    return copy.syncStatusQueued
+  }
+
+  return run.imported > 0 ? copy.syncStatusCompletedWithChanges : copy.syncStatusCompletedNoChanges
+}
+
+function ImportStatusSummary({
+  copy,
+  latestRun,
+  loading,
+  error,
+  language,
+  onOpenSettings,
+}: {
+  copy: ProductUiCopy['app']
+  latestRun: ImportRunSummary | null
+  loading: boolean
+  error: string | null
+  language: string
+  onOpenSettings: () => void
+}) {
+  const timingValue =
+    latestRun?.completedAt ??
+    latestRun?.failedAt ??
+    latestRun?.updatedAt ??
+    latestRun?.createdAt ??
+    null
+
+  const toneClass =
+    latestRun?.status === 'FAILED'
+      ? 'border-red-300/35 bg-red-500/8 dark:border-red-400/20 dark:bg-red-500/10'
+      : latestRun?.status === 'RUNNING' || latestRun?.status === 'QUEUED'
+        ? 'border-amber-300/35 bg-amber-500/8 dark:border-amber-400/20 dark:bg-amber-500/10'
+        : 'border-border-light/70 bg-surface-white/88 dark:border-border-dark/70 dark:bg-surface-dark/82'
+
+  return (
+    <SectionCard title={copy.syncStatusTitle} description={copy.syncStatusDescription} tone="accent">
+      {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
+      {loading && !latestRun ? <StatusMessage>{copy.loadingImportHistory}</StatusMessage> : null}
+
+      {!loading && !latestRun ? <EmptyPanel message={copy.syncStatusEmpty} /> : null}
+
+      {latestRun ? (
+        <div className={`rounded-[1.4rem] border p-5 ${toneClass}`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] ${
+                    latestRun.status === 'COMPLETED'
+                      ? 'border-emerald-300/35 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-500/12 dark:text-emerald-200'
+                      : latestRun.status === 'FAILED'
+                        ? 'border-red-300/35 bg-red-500/10 text-red-700 dark:border-red-400/25 dark:bg-red-500/12 dark:text-red-200'
+                        : 'border-amber-300/35 bg-amber-500/10 text-amber-700 dark:border-amber-400/25 dark:bg-amber-500/12 dark:text-amber-200'
+                  }`}
+                >
+                  {copy.importRunStatusLabels[latestRun.status]}
+                </span>
+                <span className="text-xs text-text-silver-light dark:text-text-silver-dark">
+                  {copy.syncStatusLastSync}:{' '}
+                  {formatDateTime(timingValue, language, copy.importHistoryUnavailable)}
+                </span>
+              </div>
+              <p className="mt-3 text-base font-semibold leading-7 text-text-charcoal dark:text-white">
+                {getImportRunMerchantSummary(copy, latestRun)}
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-[minmax(140px,1fr)_auto] lg:min-w-[300px]">
+              <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
+                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                  {copy.syncStatusNewReviews}
+                </div>
+                <div className="mt-1 text-2xl font-black text-text-charcoal dark:text-white">
+                  {formatNumber(latestRun.imported, language)}
+                </div>
+              </div>
+              {latestRun.status === 'FAILED' ? (
+                <button
+                  type="button"
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-primary/35 bg-primary/8 px-5 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary/12"
+                  onClick={onOpenSettings}
+                >
+                  {copy.dashboardSecondaryCta}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </SectionCard>
+  )
+}
+
+function SettingsSourceSummary({
+  copy,
+  detail,
+  latestRun,
+  language,
+}: {
+  copy: ProductUiCopy['app']
+  detail: RestaurantDetail
+  latestRun: ImportRunSummary | null
+  language: string
+}) {
+  const sourcePreview = formatSourcePreview(detail.googleMapUrl)
+  const timingValue =
+    latestRun?.completedAt ??
+    latestRun?.failedAt ??
+    latestRun?.updatedAt ??
+    latestRun?.createdAt ??
+    null
+
+  return (
+    <section className="rounded-[1.55rem] border border-border-light/70 bg-surface-white/88 p-5 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-3xl">
+          <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+            {copy.settingsSourceTitle}
+          </div>
+          <p className="mt-2 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+            {detail.googleMapUrl ? copy.sourceReady : copy.sourceMissing}
+          </p>
+          {sourcePreview ? (
+            <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+              <span className="material-symbols-outlined text-[15px] text-primary">link</span>
+              <span className="truncate">{sourcePreview}</span>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[360px]">
+          <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+              {copy.syncStatusLastSync}
+            </div>
+            <div className="mt-1 text-sm font-semibold text-text-charcoal dark:text-white">
+              {formatDateTime(timingValue, language, copy.importHistoryUnavailable)}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+              {copy.syncStatusNewReviews}
+            </div>
+            <div className="mt-1 text-sm font-semibold text-text-charcoal dark:text-white">
+              {latestRun ? formatNumber(latestRun.imported, language) : copy.importHistoryUnavailable}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ImportRunHistoryPanel({
+  copy,
+  latestRun,
+  runs,
+  loading,
+  error,
+  language,
+}: {
+  copy: ProductUiCopy['app']
+  latestRun: ImportRunSummary | null
+  runs: ImportRunSummary[]
+  loading: boolean
+  error: string | null
+  language: string
+}) {
+  const history = runs.length > 0 ? runs : latestRun ? [latestRun] : []
+  const activeRun =
+    latestRun && (latestRun.status === 'QUEUED' || latestRun.status === 'RUNNING') ? latestRun : null
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
+  const forceExpanded = Boolean(activeRun || latestRun?.status === 'FAILED')
+  const isExpanded = forceExpanded || detailsExpanded
+
+  const statusToneClass = (status: ImportRunSummary['status']) =>
+    status === 'COMPLETED'
+      ? 'border-emerald-300/35 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-500/12 dark:text-emerald-200'
+      : status === 'FAILED'
+        ? 'border-red-300/35 bg-red-500/10 text-red-700 dark:border-red-400/25 dark:bg-red-500/12 dark:text-red-200'
+        : 'border-amber-300/35 bg-amber-500/10 text-amber-700 dark:border-amber-400/25 dark:bg-amber-500/12 dark:text-amber-200'
+
+  return (
+    <SectionCard
+      title={copy.importHistoryTitle}
+      description={copy.importHistoryDescription}
+      tone={activeRun ? 'accent' : 'default'}
+      headerAside={
+        <div className="flex flex-wrap items-center gap-2">
+          {activeRun ? (
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary">
+              <span className="material-symbols-outlined text-[16px]">sync</span>
+              <span>{copy.importHistoryActive}</span>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            aria-expanded={isExpanded}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-sm font-semibold text-text-charcoal transition hover:border-primary/40 hover:text-primary dark:border-border-dark dark:bg-bg-dark/55 dark:text-white"
+            onClick={() => setDetailsExpanded((current) => !current)}
+          >
+            <span>{isExpanded ? copy.importHistoryToggleClose : copy.importHistoryToggleOpen}</span>
+            <span
+              aria-hidden="true"
+              className={`material-symbols-outlined text-[18px] transition-transform ${
+                isExpanded ? 'rotate-180' : ''
+              }`}
+            >
+              expand_more
+            </span>
+          </button>
+        </div>
+      }
+    >
+      {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
+      {loading && history.length === 0 ? <StatusMessage>{copy.loadingImportHistory}</StatusMessage> : null}
+
+      {!loading && history.length === 0 ? <EmptyPanel message={copy.importHistoryEmpty} /> : null}
+
+      {latestRun ? (
+        <div className="rounded-[1.3rem] border border-border-light/70 bg-bg-light/65 p-4 dark:border-border-dark dark:bg-bg-dark/55">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] ${statusToneClass(latestRun.status)}`}
+                >
+                  {copy.importRunStatusLabels[latestRun.status]}
+                </span>
+                <span className="text-xs text-text-silver-light dark:text-text-silver-dark">
+                  {copy.syncStatusLastSync}:{' '}
+                  {formatDateTime(
+                    latestRun.completedAt ??
+                      latestRun.failedAt ??
+                      latestRun.updatedAt ??
+                      latestRun.createdAt,
+                    language,
+                    copy.importHistoryUnavailable,
+                  )}
+                </span>
+              </div>
+              <p className="mt-3 text-sm font-semibold leading-6 text-text-charcoal dark:text-white">
+                {getImportRunMerchantSummary(copy, latestRun)}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <div className="min-w-[126px] rounded-2xl border border-border-light/70 bg-surface-white/80 px-4 py-3 dark:border-border-dark dark:bg-surface-dark/70">
+                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                  {copy.syncStatusNewReviews}
+                </div>
+                <div className="mt-1 text-xl font-black text-text-charcoal dark:text-white">
+                  {formatNumber(latestRun.imported, language)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isExpanded && history.length > 0 ? (
+        <div className="mt-4 grid gap-3">
+          {history.map((run, index) => {
+            const isLatest = latestRun?.id === run.id && index === 0
+            const phaseLabel =
+              (run.phase && copy.importRunPhaseLabels[run.phase as keyof typeof copy.importRunPhaseLabels]) ||
+              run.phase ||
+              copy.importRunPhaseLabels.QUEUED
+            const timingValue =
+              run.completedAt ??
+              run.failedAt ??
+              run.updatedAt ??
+              run.createdAt
+
+            return (
+              <article
+                key={run.id}
+                className="rounded-[1.3rem] border border-border-light/70 bg-bg-light/65 p-4 dark:border-border-dark dark:bg-bg-dark/55"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] ${statusToneClass(run.status)}`}
+                  >
+                    {copy.importRunStatusLabels[run.status]}
+                  </span>
+                  {isLatest ? (
+                    <span className="inline-flex items-center rounded-full border border-border-light/70 bg-surface-white/80 px-3 py-1 text-[11px] font-semibold text-text-charcoal dark:border-border-dark dark:bg-surface-dark/70 dark:text-white">
+                      {copy.importHistoryLatestBadge}
+                    </span>
+                  ) : null}
+                  <span className="text-xs text-text-silver-light dark:text-text-silver-dark">
+                    {copy.importHistoryUpdatedAt}:{' '}
+                    {formatDateTime(timingValue, language, copy.importHistoryUnavailable)}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.85fr)]">
+                  <div>
+                    <div className="text-sm font-semibold text-text-charcoal dark:text-white">
+                      {phaseLabel}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+                      {getImportRunMerchantSummary(copy, run)}
+                    </p>
+                    {run.status === 'FAILED' && run.errorMessage ? (
+                      <p className="mt-2 text-sm leading-6 text-red-600 dark:text-red-300">
+                        {run.errorMessage}
+                      </p>
+                    ) : null}
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-text-silver-light dark:text-text-silver-dark">
+                      <span>
+                        {copy.importHistoryStartedAt}:{' '}
+                        {formatDateTime(run.startedAt ?? run.createdAt, language, copy.importHistoryUnavailable)}
+                      </span>
+                      {run.completedAt ? (
+                        <span>
+                          {copy.importHistoryCompletedAt}:{' '}
+                          {formatDateTime(run.completedAt, language, copy.importHistoryUnavailable)}
+                        </span>
+                      ) : null}
+                      {run.failedAt ? (
+                        <span>
+                          {copy.importHistoryFailedAt}:{' '}
+                          {formatDateTime(run.failedAt, language, copy.importHistoryUnavailable)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-border-light/70 bg-surface-white/80 px-3 py-3 dark:border-border-dark dark:bg-surface-dark/70">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                        {copy.importHistoryImported}
+                      </div>
+                      <div className="mt-1 text-lg font-black text-text-charcoal dark:text-white">
+                        {formatNumber(run.imported, language)}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-border-light/70 bg-surface-white/80 px-3 py-3 dark:border-border-dark dark:bg-surface-dark/70">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                        {copy.importHistorySkipped}
+                      </div>
+                      <div className="mt-1 text-lg font-black text-text-charcoal dark:text-white">
+                        {formatNumber(run.skipped, language)}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-border-light/70 bg-surface-white/80 px-3 py-3 dark:border-border-dark dark:bg-surface-dark/70">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                        {copy.importHistoryCollected}
+                      </div>
+                      <div className="mt-1 text-lg font-black text-text-charcoal dark:text-white">
+                        {formatNumber(run.scrape.collectedReviewCount ?? run.total, language)}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-border-light/70 bg-surface-white/80 px-3 py-3 dark:border-border-dark dark:bg-surface-dark/70">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                        {copy.importHistoryCoverage}
+                      </div>
+                      <div className="mt-1 text-lg font-black text-text-charcoal dark:text-white">
+                        {run.scrape.coveragePercentage === null
+                          ? copy.importHistoryUnavailable
+                          : formatPercentage(run.scrape.coveragePercentage, language)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      ) : null}
+    </SectionCard>
+  )
+}
+
 function RestaurantSetupForm({
   copy,
   pending,
   actionLabel,
   title,
   description,
+  tone = 'default',
+  actionTone = 'primary',
+  embed = false,
   onSubmit,
 }: {
   copy: ProductUiCopy['app']
@@ -220,6 +1234,9 @@ function RestaurantSetupForm({
   actionLabel: string
   title: string
   description: string
+  tone?: 'default' | 'accent'
+  actionTone?: 'primary' | 'secondary'
+  embed?: boolean
   onSubmit: (input: CreateRestaurantInput) => Promise<void>
 }) {
   const [name, setName] = useState('')
@@ -274,9 +1291,8 @@ function RestaurantSetupForm({
     setGoogleMapUrl('')
   }
 
-  return (
-    <SectionCard title={title} description={description}>
-      <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+  const formContent = (
+    <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
         <label
           htmlFor="setup-restaurant-name"
           className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
@@ -339,12 +1355,25 @@ function RestaurantSetupForm({
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
+            className={`inline-flex h-12 w-full items-center justify-center rounded-full px-6 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto ${
+              actionTone === 'secondary'
+                ? 'border border-primary/30 bg-transparent text-primary hover:border-primary hover:bg-primary/8'
+                : 'bg-primary text-white hover:bg-primary-dark dark:text-bg-dark'
+            }`}
           >
             {pending ? `${actionLabel}...` : actionLabel}
           </button>
         </div>
       </form>
+  )
+
+  if (embed) {
+    return formContent
+  }
+
+  return (
+    <SectionCard title={title} description={description} tone={tone}>
+      {formContent}
     </SectionCard>
   )
 }
@@ -354,11 +1383,15 @@ function RestaurantSwitcher({
   restaurants,
   currentRestaurant,
   onSelectRestaurant,
+  showLabel = true,
+  compact = false,
 }: {
   copy: ProductUiCopy['app']
   restaurants: RestaurantMembership[]
   currentRestaurant: RestaurantMembership | null
   onSelectRestaurant: (restaurantId: string) => void
+  showLabel?: boolean
+  compact?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -395,13 +1428,17 @@ function RestaurantSwitcher({
 
   if (restaurants.length <= 1) {
     return (
-      <div className="rounded-[1.3rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
-          {copy.restaurantSwitcherLabel}
-        </div>
-        <div className="mt-3 text-base font-bold text-text-charcoal dark:text-white">
-          {currentRestaurant.name}
-        </div>
+      <div>
+        {showLabel ? (
+          <>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+              {copy.restaurantSwitcherLabel}
+            </div>
+            <div className="mt-3 text-base font-bold text-text-charcoal dark:text-white">
+              {currentRestaurant.name}
+            </div>
+          </>
+        ) : null}
         <div className="mt-2 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
           {copy.restaurantSwitcherReadonly}
         </div>
@@ -411,23 +1448,29 @@ function RestaurantSwitcher({
 
   return (
     <div className="relative" ref={menuRef}>
-      <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
-        {copy.restaurantSwitcherLabel}
-      </div>
+      {showLabel ? (
+        <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+          {copy.restaurantSwitcherLabel}
+        </div>
+      ) : null}
       <button
         type="button"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className="flex w-full items-center justify-between rounded-[1.3rem] border border-border-light/80 bg-bg-light/70 px-4 py-4 text-left transition hover:border-primary/35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:bg-bg-dark/55"
+        className={`flex w-full items-center justify-between rounded-[1.35rem] border border-border-light/80 bg-bg-light/75 px-4 text-left transition hover:border-primary/35 hover:bg-primary/6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:bg-bg-dark/55 ${
+          compact ? 'py-3.5' : 'py-4'
+        }`}
         onClick={() => setIsOpen((current) => !current)}
       >
         <div>
           <div className="text-base font-bold text-text-charcoal dark:text-white">
             {currentRestaurant.name}
           </div>
-          <div className="mt-1 text-sm text-text-silver-light dark:text-text-silver-dark">
-            {copy.restaurantSwitcherHint}
-          </div>
+          {!compact ? (
+            <div className="mt-1 text-sm text-text-silver-light dark:text-text-silver-dark">
+              {copy.restaurantSwitcherHint}
+            </div>
+          ) : null}
         </div>
         <span
           className={`material-symbols-outlined text-base text-text-silver-light transition-transform duration-200 dark:text-text-silver-dark ${
@@ -439,10 +1482,10 @@ function RestaurantSwitcher({
       </button>
 
       <div
-        className={`absolute left-0 right-0 top-[calc(100%+0.75rem)] z-20 rounded-[1.3rem] border border-border-light/80 bg-surface-white/96 p-2 shadow-[0_18px_44px_-24px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-200 dark:border-border-dark dark:bg-surface-dark/96 ${
+        className={`grid overflow-hidden rounded-[1.3rem] border border-border-light/80 bg-surface-white/96 shadow-[0_18px_44px_-24px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-200 dark:border-border-dark dark:bg-surface-dark/96 ${
           isOpen
-            ? 'pointer-events-auto translate-y-0 opacity-100'
-            : 'pointer-events-none -translate-y-1 opacity-0'
+            ? 'mt-3 max-h-80 p-2 opacity-100'
+            : 'pointer-events-none mt-0 max-h-0 p-0 opacity-0'
         }`}
         role="listbox"
         aria-label={copy.restaurantSwitcherLabel}
@@ -487,7 +1530,7 @@ function OnboardingPanel({
 }) {
   return (
     <div className="grid gap-6">
-      <section className="rounded-[2rem] border border-border-light/70 bg-surface-white/88 p-8 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.32)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
+      <section className="rounded-[2rem] border border-border-light/70 bg-surface-white/88 p-6 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.32)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 sm:p-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
           <span className="size-2 rounded-full bg-primary"></span>
           {copy.onboardingEyebrow}
@@ -534,6 +1577,9 @@ function DashboardPanel({
   error,
   trendPeriod,
   importPending,
+  latestImportRun,
+  importRunsLoading,
+  importRunsError,
   language,
   onTrendPeriodChange,
   onImportReviews,
@@ -546,6 +1592,9 @@ function DashboardPanel({
   error: string | null
   trendPeriod: TrendPeriod
   importPending: boolean
+  latestImportRun: ImportRunSummary | null
+  importRunsLoading: boolean
+  importRunsError: string | null
   language: string
   onTrendPeriodChange: (period: TrendPeriod) => void
   onImportReviews: () => Promise<void>
@@ -553,12 +1602,30 @@ function DashboardPanel({
 }) {
   const kpi = dashboard.kpi ?? detail?.insightSummary ?? null
   const hasSource = Boolean(detail?.googleMapUrl)
+  const totalReviews = kpi?.totalReviews ?? 0
+  const hasImportedReviews = totalReviews > 0
 
   return (
     <div className="grid gap-6">
       <PageIntro
+        eyebrow={copy.navDashboard}
         title={copy.dashboardTitle}
         description={copy.dashboardDescription}
+        meta={[
+          {
+            icon: 'storefront',
+            label: detail?.name ?? copy.anonymousGuest,
+          },
+          {
+            icon: hasSource ? 'task_alt' : 'warning',
+            label: hasSource ? copy.sourceStatusConnected : copy.sourceStatusNeedsConfiguration,
+            tone: hasSource ? 'success' : 'warning',
+          },
+          {
+            icon: 'rate_review',
+            label: `${formatNumber(totalReviews, language)} ${copy.navReviews}`,
+          },
+        ]}
         actions={
           hasSource ? (
             <>
@@ -574,10 +1641,16 @@ function DashboardPanel({
               </button>
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center rounded-full border border-border-light px-5 text-sm font-semibold text-text-charcoal transition hover:border-primary/60 hover:text-primary dark:border-border-dark dark:text-white"
+                className="group inline-flex h-11 items-center justify-center gap-2 px-1 text-sm font-semibold text-text-silver-light transition-colors hover:text-primary dark:text-text-silver-dark dark:hover:text-primary"
                 onClick={() => onNavigate('/app/settings')}
               >
-                {copy.dashboardSecondaryCta}
+                <span>{copy.dashboardSecondaryCta}</span>
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined text-base transition-transform group-hover:translate-x-1"
+                >
+                  arrow_forward
+                </span>
               </button>
             </>
           ) : (
@@ -595,26 +1668,58 @@ function DashboardPanel({
       {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
       {loading ? <StatusMessage>{copy.loadingDashboard}</StatusMessage> : null}
 
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label={copy.totalReviews}
-          value={formatNumber(kpi?.totalReviews ?? 0, language)}
-        />
+      <ImportStatusSummary
+        copy={copy}
+        latestRun={latestImportRun}
+        loading={importRunsLoading}
+        error={importRunsError}
+        language={language}
+        onOpenSettings={() => onNavigate('/app/settings')}
+      />
+
+      {!hasImportedReviews ? (
+        <SectionCard
+          title={copy.dashboardPrimaryCta}
+          description={copy.noReviews}
+          tone="accent"
+          headerAside={
+            <div className="rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary">
+              {hasSource ? copy.importReady : copy.importBlocked}
+            </div>
+          }
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <SidebarStatusPill icon="leaderboard" label={copy.sentimentSplit} />
+            <SidebarStatusPill icon="priority_high" label={copy.complaintKeywords} />
+            <SidebarStatusPill icon="timeline" label={copy.ratingTrend} />
+          </div>
+        </SectionCard>
+      ) : null}
+
+      <div
+        className={`grid items-start gap-4 lg:grid-cols-2 ${
+          hasSource ? 'xl:grid-cols-3' : 'xl:grid-cols-4'
+        }`}
+      >
+        <MetricCard label={copy.totalReviews} value={formatNumber(totalReviews, language)} />
         <MetricCard label={copy.averageRating} value={formatRating(kpi?.averageRating ?? 0, language)} />
         <MetricCard
           label={copy.negativeShare}
           value={formatPercentage(kpi?.negativePercentage ?? 0, language)}
+          tone={(kpi?.negativePercentage ?? 0) >= 50 ? 'primary' : 'default'}
         />
-        <SectionCard title={copy.sourceReadiness}>
-          <div className="grid gap-3 text-sm">
-            <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
-              {hasSource ? copy.sourceReady : copy.sourceMissing}
+        {!hasSource ? (
+          <SectionCard title={copy.sourceReadiness} tone="accent">
+            <div className="grid gap-3 text-sm">
+              <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
+                {copy.sourceMissing}
+              </div>
+              <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
+                {copy.importBlocked}
+              </div>
             </div>
-            <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
-              {hasSource ? copy.importReady : copy.importBlocked}
-            </div>
-          </div>
-        </SectionCard>
+          </SectionCard>
+        ) : null}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
@@ -733,6 +1838,7 @@ function DashboardPanel({
 
 function ReviewsPanel({
   copy,
+  detail,
   reviews,
   loading,
   error,
@@ -743,6 +1849,7 @@ function ReviewsPanel({
   onReviewPageChange,
 }: {
   copy: ProductUiCopy['app']
+  detail: RestaurantDetail | null
   reviews: ReviewListResponse | null
   loading: boolean
   error: string | null
@@ -761,117 +1868,180 @@ function ReviewsPanel({
 
   const currentPage = reviews?.pagination.page ?? reviewFilters.page ?? 1
   const totalPages = reviews?.pagination.totalPages ?? 0
+  const activeFilterCount = [reviewFilters.rating, reviewFilters.from, reviewFilters.to].filter(Boolean).length
+  const totalReviewItems = reviews?.pagination.total ?? 0
+  const appliedFilterPills = [
+    reviewFilters.rating
+      ? `${copy.filterRating}: ${reviewFilters.rating}`
+      : null,
+    reviewFilters.from
+      ? `${copy.filterFrom}: ${formatCalendarDisplay(reviewFilters.from, language, reviewFilters.from)}`
+      : null,
+    reviewFilters.to
+      ? `${copy.filterTo}: ${formatCalendarDisplay(reviewFilters.to, language, reviewFilters.to)}`
+      : null,
+  ].filter(Boolean) as string[]
 
   return (
     <div className="grid gap-6">
-      <PageIntro title={copy.reviewsTitle} description={copy.reviewsDescription} />
+      <PageIntro
+        eyebrow={copy.navReviews}
+        title={copy.reviewsTitle}
+        description={copy.reviewsDescription}
+        meta={[
+          {
+            icon: 'storefront',
+            label: detail?.name ?? copy.anonymousGuest,
+          },
+          {
+            icon: activeFilterCount > 0 ? 'filter_alt' : 'filter_alt_off',
+            label:
+              activeFilterCount > 0
+                ? `${formatNumber(activeFilterCount, language)} ${copy.reviewFilters}`
+                : copy.allRatings,
+          },
+          {
+            icon: 'description',
+            label: `${formatNumber(totalReviewItems, language)} ${copy.paginationItems}`,
+          },
+        ]}
+      />
 
-      <SectionCard title={copy.reviewFilters}>
+      <SectionCard
+        title={copy.reviewFilters}
+        className="relative z-20 overflow-visible"
+        headerAside={
+          activeFilterCount > 0 ? (
+            <button
+              type="button"
+              className="rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-silver-light transition hover:border-primary/35 hover:text-primary dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark"
+              onClick={() => {
+                setFilterError(null)
+                setDraftFilters({
+                  page: 1,
+                  limit: 10,
+                })
+                onClearReviewFilters()
+              }}
+            >
+              {copy.clearFilters}
+            </button>
+          ) : (
+            <div className="rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
+              {copy.allRatings}
+            </div>
+          )
+        }
+      >
         {filterError ? <StatusMessage tone="error">{filterError}</StatusMessage> : null}
-        <div className="grid gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))_auto_auto]">
-          <label
-            htmlFor="review-filter-rating"
-            className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
-          >
+        {appliedFilterPills.length ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {appliedFilterPills.map((pill) => (
+              <div
+                key={pill}
+                className="rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary"
+              >
+                {pill}
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <div className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white">
             <span>{copy.filterRating}</span>
-            <select
-              id="review-filter-rating"
-              value={draftFilters.rating ?? ''}
-              onChange={(event) =>
+            <RatingFilterSelect
+              copy={copy}
+              value={draftFilters.rating}
+              onChange={(nextRating) =>
                 setDraftFilters((current) => ({
                   ...current,
-                  rating: event.target.value || undefined,
+                  rating: nextRating,
                 }))
               }
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
-            >
-              <option value="">{copy.allRatings}</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-            </select>
-          </label>
-          <label
-            htmlFor="review-filter-from"
-            className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
-          >
+            />
+          </div>
+          <div className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white">
             <span>{copy.filterFrom}</span>
-            <input
-              id="review-filter-from"
-              value={draftFilters.from ?? ''}
-              onChange={(event) =>
-                {
-                  setFilterError(null)
-                  setDraftFilters((current) => ({
-                    ...current,
-                    from: event.target.value || undefined,
-                  }))
-                }
-              }
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
-              type="date"
+            <DateFilterField
+              label={copy.filterFrom}
+              value={draftFilters.from}
+              language={language}
+              previousMonthLabel={copy.datePickerPreviousMonth}
+              nextMonthLabel={copy.datePickerNextMonth}
+              onChange={(nextDate) => {
+                setFilterError(null)
+                setDraftFilters((current) => ({
+                  ...current,
+                  from: nextDate,
+                }))
+              }}
             />
-          </label>
-          <label
-            htmlFor="review-filter-to"
-            className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
-          >
+          </div>
+          <div className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white">
             <span>{copy.filterTo}</span>
-            <input
-              id="review-filter-to"
-              value={draftFilters.to ?? ''}
-              onChange={(event) =>
-                {
-                  setFilterError(null)
-                  setDraftFilters((current) => ({
-                    ...current,
-                    to: event.target.value || undefined,
-                  }))
-                }
-              }
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
-              type="date"
+            <DateFilterField
+              label={copy.filterTo}
+              value={draftFilters.to}
+              language={language}
+              previousMonthLabel={copy.datePickerPreviousMonth}
+              nextMonthLabel={copy.datePickerNextMonth}
+              onChange={(nextDate) => {
+                setFilterError(null)
+                setDraftFilters((current) => ({
+                  ...current,
+                  to: nextDate,
+                }))
+              }}
             />
-          </label>
-          <button
-            type="button"
-            className="mt-auto inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark dark:text-bg-dark"
-            onClick={() => {
-              if (!isValidDateRange(draftFilters.from, draftFilters.to)) {
-                setFilterError(copy.validation.filterDateRangeInvalid)
-                return
-              }
+          </div>
+          <div className="mt-auto flex flex-wrap items-center gap-3 md:col-span-2 xl:col-span-1 xl:justify-end">
+            <button
+              type="button"
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark sm:flex-none dark:text-bg-dark"
+              onClick={() => {
+                if (!isValidDateRange(draftFilters.from, draftFilters.to)) {
+                  setFilterError(copy.validation.filterDateRangeInvalid)
+                  return
+                }
 
-              setFilterError(null)
-              onApplyReviewFilters({
-                ...draftFilters,
-                page: 1,
-                limit: 10,
-              })
-            }}
-          >
-            {copy.applyFilters}
-          </button>
-          <button
-            type="button"
-            className="mt-auto inline-flex h-11 items-center justify-center rounded-full border border-border-light px-5 text-sm font-semibold text-text-charcoal transition hover:border-primary/60 hover:text-primary dark:border-border-dark dark:text-white"
-            onClick={() => {
-              setFilterError(null)
-              setDraftFilters({
-                page: 1,
-                limit: 10,
-              })
-              onClearReviewFilters()
-            }}
-          >
-            {copy.clearFilters}
-          </button>
+                setFilterError(null)
+                onApplyReviewFilters({
+                  ...draftFilters,
+                  page: 1,
+                  limit: 10,
+                })
+              }}
+            >
+              {copy.applyFilters}
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-border-light px-5 text-sm font-semibold text-text-charcoal transition hover:border-primary/60 hover:text-primary sm:flex-none dark:border-border-dark dark:text-white"
+              onClick={() => {
+                setFilterError(null)
+                setDraftFilters({
+                  page: 1,
+                  limit: 10,
+                })
+                onClearReviewFilters()
+              }}
+            >
+              {copy.clearFilters}
+            </button>
+          </div>
         </div>
       </SectionCard>
 
-      <SectionCard title={copy.reviewEvidence}>
+      <SectionCard
+        title={copy.reviewEvidence}
+        headerAside={
+          <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary">
+            <span>{formatNumber(totalReviewItems, language)} {copy.paginationItems}</span>
+            <span className="text-primary/60">|</span>
+            <span>{currentPage}/{Math.max(totalPages, 1)}</span>
+          </div>
+        }
+      >
         {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
 
         {loading ? (
@@ -881,18 +2051,33 @@ function ReviewsPanel({
             {reviews.data.map((review) => (
               <article
                 key={review.id}
-                className="rounded-[1.4rem] border border-border-light/70 bg-bg-light/75 p-5 dark:border-border-dark dark:bg-bg-dark/55"
+                className={`relative rounded-[1.2rem] border border-border-light/70 bg-bg-light/75 p-4 pl-5 before:absolute before:bottom-4 before:left-0 before:top-4 before:w-1 before:rounded-full dark:border-border-dark dark:bg-bg-dark/55 ${getReviewToneClasses(review.sentiment, review.rating).rail}`}
               >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold text-text-charcoal dark:text-white">
-                      {review.authorName || copy.anonymousGuest}
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <div className="text-sm font-semibold text-text-charcoal dark:text-white">
+                        {review.authorName || copy.anonymousGuest}
+                      </div>
+                      <div className="text-xs text-text-silver-light dark:text-text-silver-dark">
+                        {formatReviewDate(review.reviewDate, language, copy.noSourceDate)}
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-text-silver-light dark:text-text-silver-dark">
-                      {formatReviewDate(review.reviewDate, language, copy.noSourceDate)}
-                    </div>
+                    <p
+                      className="mt-2 max-w-3xl text-sm leading-6 text-text-charcoal dark:text-text-silver-dark"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {review.content || copy.noReviewContent}
+                    </p>
                   </div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-bold text-primary">
+                  <div
+                    className={`inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 text-xs font-bold sm:justify-self-end ${getReviewToneClasses(review.sentiment, review.rating).badge}`}
+                  >
                     <span>{formatRating(review.rating, language)}</span>
                     {review.sentiment ? (
                       <>
@@ -902,21 +2087,18 @@ function ReviewsPanel({
                     ) : null}
                   </div>
                 </div>
-                <p className="mt-4 text-sm leading-7 text-text-charcoal dark:text-text-silver-dark">
-                  {review.content || copy.noReviewContent}
-                </p>
               </article>
             ))}
 
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border-light pt-4 dark:border-border-dark">
+            <div className="flex flex-col gap-4 border-t border-border-light pt-4 dark:border-border-dark sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-text-silver-light dark:text-text-silver-dark">
                 {formatNumber(reviews.pagination.total, language)} {copy.paginationItems}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 self-start sm:self-auto">
                 <button
                   type="button"
                   disabled={currentPage <= 1}
-                  className="inline-flex h-10 items-center justify-center rounded-full border border-border-light px-4 text-sm font-semibold text-text-charcoal transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-border-dark dark:text-white"
+                  className="inline-flex h-10 min-w-[5.5rem] items-center justify-center rounded-full border border-border-light px-4 text-sm font-semibold text-text-charcoal transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-border-dark dark:text-white"
                   onClick={() => onReviewPageChange(currentPage - 1)}
                 >
                   {copy.paginationPrevious}
@@ -927,7 +2109,7 @@ function ReviewsPanel({
                 <button
                   type="button"
                   disabled={currentPage >= totalPages}
-                  className="inline-flex h-10 items-center justify-center rounded-full border border-border-light px-4 text-sm font-semibold text-text-charcoal transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-border-dark dark:text-white"
+                  className="inline-flex h-10 min-w-[5.5rem] items-center justify-center rounded-full border border-border-light px-4 text-sm font-semibold text-text-charcoal transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-border-dark dark:text-white"
                   onClick={() => onReviewPageChange(currentPage + 1)}
                 >
                   {copy.paginationNext}
@@ -1083,7 +2265,11 @@ function SourceSettingsForm({
   }
 
   return (
-    <SectionCard title={copy.settingsSourceTitle} description={copy.settingsSourceDescription}>
+    <SectionCard
+      title={copy.settingsSourceTitle}
+      description={copy.settingsSourceDescription}
+      tone="accent"
+    >
       <form className="grid gap-4" onSubmit={handleSubmit}>
         <label
           htmlFor="settings-restaurant-source"
@@ -1123,6 +2309,11 @@ function SettingsPanel({
   detail,
   pending,
   createPending,
+  latestImportRun,
+  importRuns,
+  importRunsLoading,
+  importRunsError,
+  language,
   onCreateRestaurant,
   onSaveRestaurant,
 }: {
@@ -1130,9 +2321,16 @@ function SettingsPanel({
   detail: RestaurantDetail | null
   pending: boolean
   createPending: boolean
+  latestImportRun: ImportRunSummary | null
+  importRuns: ImportRunSummary[]
+  importRunsLoading: boolean
+  importRunsError: string | null
+  language: string
   onCreateRestaurant: (input: CreateRestaurantInput) => Promise<void>
   onSaveRestaurant: (input: UpdateRestaurantInput) => Promise<void>
 }) {
+  const [isAddRestaurantOpen, setIsAddRestaurantOpen] = useState(false)
+
   if (!detail) {
     return (
       <div className="grid gap-6">
@@ -1144,9 +2342,35 @@ function SettingsPanel({
 
   return (
     <div className="grid gap-6">
-      <PageIntro title={copy.settingsTitle} description={copy.settingsDescription} />
+      <PageIntro
+        eyebrow={copy.navSettings}
+        title={copy.settingsTitle}
+        description={copy.settingsDescription}
+        meta={[
+          {
+            icon: 'storefront',
+            label: detail.name,
+          },
+          {
+            icon: detail.googleMapUrl ? 'task_alt' : 'warning',
+            label: detail.googleMapUrl ? copy.sourceStatusConnected : copy.sourceStatusNeedsConfiguration,
+            tone: detail.googleMapUrl ? 'success' : 'warning',
+          },
+          {
+            icon: 'pin_drop',
+            label: detail.address || copy.restaurantAddressLabel,
+          },
+        ]}
+      />
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <SettingsSourceSummary
+        copy={copy}
+        detail={detail}
+        latestRun={latestImportRun}
+        language={language}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-2">
         <RestaurantProfileForm
           key={`${detail.id}-profile-${detail.name}-${detail.address ?? ''}`}
           copy={copy}
@@ -1163,14 +2387,54 @@ function SettingsPanel({
         />
       </div>
 
-      <RestaurantSetupForm
+      <ImportRunHistoryPanel
         copy={copy}
-        pending={createPending}
-        actionLabel={copy.createAnotherRestaurant}
+        latestRun={latestImportRun}
+        runs={importRuns}
+        loading={importRunsLoading}
+        error={importRunsError}
+        language={language}
+      />
+
+      <SectionCard
         title={copy.addRestaurantTitle}
         description={copy.addRestaurantDescription}
-        onSubmit={onCreateRestaurant}
-      />
+        headerAside={
+          <button
+            type="button"
+            aria-expanded={isAddRestaurantOpen}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-sm font-semibold text-text-charcoal transition hover:border-primary/40 hover:text-primary dark:border-border-dark dark:bg-bg-dark/55 dark:text-white"
+            onClick={() => setIsAddRestaurantOpen((current) => !current)}
+          >
+            <span>{copy.createAnotherRestaurant}</span>
+            <span
+              aria-hidden="true"
+              className={`material-symbols-outlined text-[18px] transition-transform ${
+                isAddRestaurantOpen ? 'rotate-180' : ''
+              }`}
+            >
+              expand_more
+            </span>
+          </button>
+        }
+      >
+        {isAddRestaurantOpen ? (
+          <RestaurantSetupForm
+            copy={copy}
+            pending={createPending}
+            actionLabel={copy.createAnotherRestaurant}
+            title={copy.addRestaurantTitle}
+            description={copy.addRestaurantDescription}
+            actionTone="secondary"
+            embed
+            onSubmit={onCreateRestaurant}
+          />
+        ) : (
+          <div className="rounded-[1.3rem] border border-dashed border-border-light/80 bg-bg-light/60 p-4 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/45 dark:text-text-silver-dark">
+            {copy.addRestaurantDescription}
+          </div>
+        )}
+      </SectionCard>
     </div>
   )
 }
@@ -1191,6 +2455,10 @@ export function ProductWorkspace({
   importPending,
   savePending,
   createPending,
+  latestImportRun,
+  importRuns,
+  importRunsLoading,
+  importRunsError,
   reviews,
   reviewsLoading,
   reviewsError,
@@ -1209,10 +2477,29 @@ export function ProductWorkspace({
   const currentRestaurant =
     restaurants.find((restaurant) => restaurant.id === selectedRestaurantId) ?? restaurants[0] ?? null
   const hasSource = Boolean(selectedRestaurantDetail?.googleMapUrl ?? currentRestaurant?.googleMapUrl)
+  const currentRestaurantAddress = selectedRestaurantDetail?.address?.trim()
+  const hasMultipleRestaurants = restaurants.length > 1
+  const navItems = [
+    {
+      routeId: '/app' as const,
+      label: copy.navDashboard,
+      icon: 'space_dashboard',
+    },
+    {
+      routeId: '/app/reviews' as const,
+      label: copy.navReviews,
+      icon: 'rate_review',
+    },
+    {
+      routeId: '/app/settings' as const,
+      label: copy.navSettings,
+      icon: 'settings',
+    },
+  ]
 
   return (
-    <main id="main-content" className="min-h-screen bg-bg-light pb-16 pt-28 dark:bg-bg-dark">
-      <div className="mx-auto max-w-7xl px-6 xl:px-10">
+    <main id="main-content" className="min-h-screen bg-bg-light pb-16 pt-24 dark:bg-bg-dark sm:pt-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 xl:px-10">
         {!hasRestaurants ? (
           <div className="grid gap-6">
             {restaurantError ? <StatusMessage tone="error">{restaurantError}</StatusMessage> : null}
@@ -1223,72 +2510,17 @@ export function ProductWorkspace({
             />
           </div>
         ) : (
-          <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-            <aside className="grid gap-6 self-start xl:sticky xl:top-28">
-              <section className="rounded-[1.75rem] border border-border-light/70 bg-surface-white/88 p-6 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
+          <div className="grid gap-6 xl:grid-cols-[264px_minmax(0,1fr)]">
+            <aside className="hidden xl:grid xl:gap-4 xl:self-start xl:sticky xl:top-28">
+              <section className="rounded-[1.75rem] border border-border-light/70 bg-surface-white/90 p-4 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/84">
                 <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
                   {copy.operationalPrompt}
                 </div>
-                <h2 className="mt-3 text-2xl font-black tracking-tight text-text-charcoal dark:text-white">
-                  {copy.shellTitle}
-                </h2>
                 <p className="mt-2 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
                   {copy.shellDescription}
                 </p>
-
-                <div className="mt-6 grid gap-4">
-                  <div className="rounded-[1.3rem] border border-border-light/70 bg-bg-light/75 p-4 dark:border-border-dark dark:bg-bg-dark/60">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
-                      {copy.currentRestaurant}
-                    </div>
-                    <div className="mt-3">
-                      <RestaurantSwitcher
-                        copy={copy}
-                        restaurants={restaurants}
-                        currentRestaurant={currentRestaurant}
-                        onSelectRestaurant={onSelectRestaurant}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-[1.3rem] border border-border-light/70 bg-bg-light/75 p-4 dark:border-border-dark dark:bg-bg-dark/60">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
-                      {copy.connectionHealth}
-                    </div>
-                    <div className="mt-3 grid gap-2">
-                      <div className="rounded-2xl border border-border-light/70 bg-surface-white/80 px-3 py-2 text-sm text-text-charcoal dark:border-border-dark dark:bg-surface-dark/70 dark:text-white">
-                        {hasSource ? copy.sourceStatusConnected : copy.sourceStatusNeedsConfiguration}
-                      </div>
-                      <div className="rounded-2xl border border-border-light/70 bg-surface-white/80 px-3 py-2 text-sm text-text-charcoal dark:border-border-dark dark:bg-surface-dark/70 dark:text-white">
-                        {copy.protectedAccess}
-                      </div>
-                      <div className="rounded-2xl border border-border-light/70 bg-surface-white/80 px-3 py-2 text-sm text-text-charcoal dark:border-border-dark dark:bg-surface-dark/70 dark:text-white">
-                        {copy.restaurantScoped}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-[1.75rem] border border-border-light/70 bg-surface-white/88 p-4 dark:border-border-dark/70 dark:bg-surface-dark/82">
-                <div className="grid gap-2">
-                  {[
-                    {
-                      routeId: '/app' as const,
-                      label: copy.navDashboard,
-                      icon: 'space_dashboard',
-                    },
-                    {
-                      routeId: '/app/reviews' as const,
-                      label: copy.navReviews,
-                      icon: 'rate_review',
-                    },
-                    {
-                      routeId: '/app/settings' as const,
-                      label: copy.navSettings,
-                      icon: 'settings',
-                    },
-                  ].map((item) => {
+                <div className="mt-4 grid gap-2">
+                  {navItems.map((item) => {
                     const isActive = route === item.routeId
 
                     return (
@@ -1297,8 +2529,8 @@ export function ProductWorkspace({
                         type="button"
                         className={`flex items-center gap-3 rounded-[1.2rem] border px-4 py-3 text-left transition ${
                           isActive
-                            ? 'border-primary/35 bg-primary/10'
-                            : 'border-border-light/70 hover:border-primary/35 dark:border-border-dark'
+                            ? 'border-primary/35 bg-primary/12 shadow-[0_12px_24px_-18px_rgba(212,175,55,0.7)]'
+                            : 'border-border-light/70 bg-bg-light/70 hover:border-primary/35 hover:bg-primary/6 dark:border-border-dark dark:bg-bg-dark/55'
                         }`}
                         onClick={() => onNavigate(item.routeId)}
                       >
@@ -1313,9 +2545,147 @@ export function ProductWorkspace({
                   })}
                 </div>
               </section>
+
+              <section className="rounded-[1.75rem] border border-border-light/70 bg-surface-white/90 p-5 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/84">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-silver-light dark:text-text-silver-dark">
+                      {copy.currentRestaurant}
+                    </div>
+                    {hasMultipleRestaurants ? (
+                      <div className="mt-4">
+                        <RestaurantSwitcher
+                          copy={copy}
+                          restaurants={restaurants}
+                          currentRestaurant={currentRestaurant}
+                          onSelectRestaurant={onSelectRestaurant}
+                          showLabel={false}
+                          compact
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <h2 className="mt-3 text-[1.45rem] font-black tracking-tight text-text-charcoal dark:text-white">
+                          {currentRestaurant?.name ?? copy.anonymousGuest}
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+                          {currentRestaurantAddress || copy.shellDescription}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                    <span className="material-symbols-outlined text-[20px]">storefront</span>
+                  </span>
+                </div>
+
+                {hasMultipleRestaurants && currentRestaurantAddress ? (
+                  <p className="mt-4 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+                    {currentRestaurantAddress}
+                  </p>
+                ) : null}
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/75 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+                    <span className="material-symbols-outlined text-[16px] text-primary">
+                      {hasSource ? 'task_alt' : 'warning'}
+                    </span>
+                    {hasSource ? copy.sourceStatusConnected : copy.sourceStatusNeedsConfiguration}
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/75 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+                    <span className="material-symbols-outlined text-[16px] text-primary">rate_review</span>
+                    {formatNumber(currentRestaurant?.totalReviews ?? 0, language)} {copy.navReviews}
+                  </span>
+                </div>
+
+                <div className="mt-5 border-t border-border-light/70 pt-5 dark:border-border-dark/80">
+                  <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-text-silver-light dark:text-text-silver-dark">
+                    {copy.connectionHealth}
+                  </div>
+                  <div className="grid gap-2">
+                    <SidebarStatusPill
+                      icon="verified_user"
+                      label={copy.protectedAccess}
+                    />
+                    <SidebarStatusPill
+                      icon="lan"
+                      label={copy.restaurantScoped}
+                    />
+                  </div>
+                </div>
+              </section>
+
             </aside>
 
             <section className="grid gap-6">
+              <div className="grid gap-4 xl:hidden">
+                <section className="rounded-[1.5rem] border border-border-light/70 bg-surface-white/90 p-4 shadow-[0_16px_50px_-36px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/84">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+                        {copy.currentRestaurant}
+                      </div>
+                      {!hasMultipleRestaurants ? (
+                        <div className="mt-2 text-base font-bold text-text-charcoal dark:text-white">
+                          {currentRestaurant?.name ?? copy.anonymousGuest}
+                        </div>
+                      ) : null}
+                    </div>
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                      <span className="material-symbols-outlined text-[18px]">storefront</span>
+                    </span>
+                  </div>
+
+                  {hasMultipleRestaurants ? (
+                    <RestaurantSwitcher
+                      copy={copy}
+                      restaurants={restaurants}
+                      currentRestaurant={currentRestaurant}
+                      onSelectRestaurant={onSelectRestaurant}
+                      showLabel={false}
+                      compact
+                    />
+                  ) : null}
+
+                  {currentRestaurantAddress ? (
+                    <p className="mt-3 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+                      {currentRestaurantAddress}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {navItems.map((item) => {
+                      const isActive = route === item.routeId
+
+                      return (
+                        <button
+                          key={item.routeId}
+                          type="button"
+                          className={`inline-flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition ${
+                            isActive
+                              ? 'border-primary/35 bg-primary/12 text-primary'
+                              : 'border-border-light/70 bg-bg-light/70 text-text-charcoal hover:border-primary/35 hover:bg-primary/6 dark:border-border-dark dark:bg-bg-dark/55 dark:text-white'
+                          }`}
+                          onClick={() => onNavigate(item.routeId)}
+                        >
+                          <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <SidebarStatusPill
+                      icon={hasSource ? 'task_alt' : 'warning'}
+                      label={hasSource ? copy.sourceStatusConnected : copy.sourceStatusNeedsConfiguration}
+                      tone={hasSource ? 'success' : 'warning'}
+                    />
+                    <SidebarStatusPill icon="verified_user" label={copy.protectedAccess} />
+                  </div>
+                </section>
+              </div>
+
               {restaurantError ? <StatusMessage tone="error">{restaurantError}</StatusMessage> : null}
               {restaurantLoading ? <StatusMessage>{copy.loadingRestaurant}</StatusMessage> : null}
 
@@ -1328,6 +2698,9 @@ export function ProductWorkspace({
                   error={dashboardError}
                   trendPeriod={trendPeriod}
                   importPending={importPending}
+                  latestImportRun={latestImportRun}
+                  importRunsLoading={importRunsLoading}
+                  importRunsError={importRunsError}
                   language={language}
                   onTrendPeriodChange={onTrendPeriodChange}
                   onImportReviews={onImportReviews}
@@ -1336,6 +2709,7 @@ export function ProductWorkspace({
               ) : route === '/app/reviews' ? (
                 <ReviewsPanel
                   copy={copy}
+                  detail={selectedRestaurantDetail}
                   reviews={reviews}
                   loading={reviewsLoading}
                   error={reviewsError}
@@ -1351,6 +2725,11 @@ export function ProductWorkspace({
                   detail={selectedRestaurantDetail}
                   pending={savePending}
                   createPending={createPending}
+                  latestImportRun={latestImportRun}
+                  importRuns={importRuns}
+                  importRunsLoading={importRunsLoading}
+                  importRunsError={importRunsError}
+                  language={language}
                   onCreateRestaurant={onCreateRestaurant}
                   onSaveRestaurant={onSaveRestaurant}
                 />

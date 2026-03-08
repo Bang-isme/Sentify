@@ -52,18 +52,25 @@ export function HeroSection({
               {copy.hero.description}
             </p>
 
-            <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
-              {copy.hero.highlights.map((item) => (
-                <span
+            <div className="grid w-full max-w-3xl gap-3 sm:grid-cols-3">
+              {copy.hero.highlights.map((item, index) => (
+                <div
                   key={item}
-                  className="rounded-full border border-border-light bg-surface-white/85 px-4 py-2 text-xs font-medium tracking-wide text-text-charcoal shadow-sm dark:border-border-dark dark:bg-surface-dark/70 dark:text-text-silver-dark dark:shadow-none"
+                  className={`rounded-[1.35rem] border px-4 py-4 text-left shadow-sm transition-colors dark:shadow-none ${
+                    index === 1
+                      ? 'border-primary/30 bg-primary/10 text-text-charcoal dark:text-white'
+                      : 'border-border-light bg-surface-white/85 text-text-charcoal dark:border-border-dark dark:bg-surface-dark/70 dark:text-text-silver-dark'
+                  }`}
                 >
-                  {item}
-                </span>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
+                    {String(index + 1).padStart(2, '0')}
+                  </div>
+                  <p className="mt-3 text-sm font-semibold leading-6">{item}</p>
+                </div>
               ))}
             </div>
 
-            <div className="mt-2 flex flex-wrap justify-center gap-4 lg:justify-start">
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
               <button
                 type="button"
                 className="group relative flex h-14 items-center gap-3 overflow-hidden rounded-full bg-primary px-8 text-base font-bold text-white transition-all hover:pr-6 hover:shadow-[0_10px_30px_rgba(212,175,55,0.4)] dark:text-bg-dark dark:hover:shadow-[0_0_30px_rgba(242,208,13,0.4)]"
@@ -80,13 +87,19 @@ export function HeroSection({
               </button>
               <button
                 type="button"
-                className="flex h-14 items-center gap-3 rounded-full border border-border-light bg-surface-white px-8 text-base font-bold text-text-charcoal shadow-sm transition-all hover:bg-surface-ticker-light dark:border-border-dark dark:bg-surface-dark/50 dark:text-white dark:shadow-none dark:hover:bg-surface-highlight"
+                className="group inline-flex h-12 items-center gap-2 px-1 text-sm font-semibold text-text-charcoal transition-colors hover:text-primary-dark dark:text-white dark:hover:text-primary"
                 onClick={onSecondaryAction}
               >
                 <span aria-hidden="true" className="material-symbols-outlined text-primary">
                   dashboard
                 </span>
-                {secondaryLabel}
+                <span>{secondaryLabel}</span>
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined text-base transition-transform group-hover:translate-x-1"
+                >
+                  arrow_forward
+                </span>
               </button>
             </div>
           </div>

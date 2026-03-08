@@ -13,6 +13,8 @@ import {
   createRestaurant,
   getComplaintKeywords,
   getDashboardKpi,
+  getLatestImportRun,
+  listImportRuns,
   getSession,
   getRestaurantDetail,
   getSentimentBreakdown,
@@ -30,6 +32,7 @@ import {
   type ReviewsQuery,
   type TrendPeriod,
   type AuthUser,
+  type ImportRunSummary,
 } from './lib/api'
 
 type AppRoute = '/' | '/login' | '/signup' | '/app' | '/app/reviews' | '/app/settings'
@@ -169,6 +172,10 @@ function SentifyShell() {
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [reviewsError, setReviewsError] = useState<string | null>(null)
   const [reviewFilters, setReviewFilters] = useState<ReviewsQuery>(DEFAULT_REVIEW_FILTERS)
+  const [latestImportRun, setLatestImportRun] = useState<ImportRunSummary | null>(null)
+  const [importRuns, setImportRuns] = useState<ImportRunSummary[]>([])
+  const [importRunsLoading, setImportRunsLoading] = useState(false)
+  const [importRunsError, setImportRunsError] = useState<string | null>(null)
 
   const restaurants = session?.restaurants ?? []
   const selectedRestaurantId = session?.selectedRestaurantId ?? null
@@ -268,6 +275,37 @@ function SentifyShell() {
     }
 
     return false
+  }
+
+  async function waitForImportRunToFinish(restaurantId: string, runId: string) {
+    const startedAt = Date.now()
+
+    while (Date.now() - startedAt < 8 * 60 * 1000) {
+      const latestRun = await getLatestImportRun(restaurantId)
+
+      if (!latestRun || latestRun.id !== runId) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2500))
+        continue
+      }
+
+      setLatestImportRun(latestRun)
+      setImportRuns((current) => {
+        const remainingRuns = current.filter((run) => run.id !== latestRun.id)
+        return [latestRun, ...remainingRuns].slice(0, 6)
+      })
+
+      if (latestRun.status === 'COMPLETED') {
+        return latestRun
+      }
+
+      if (latestRun.status === 'FAILED') {
+        throw new Error(latestRun.errorMessage || latestRun.message || productCopy.feedback.errors.importReviews)
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 2500))
+    }
+
+    throw new Error(productCopy.feedback.errors.importReviews)
   }
 
   const handleEffectSessionExpiry = useEffectEvent((error: unknown) => handleSessionExpiry(error))
@@ -571,6 +609,104 @@ function SentifyShell() {
     }
   }, [session?.user.id, route, reviewFilters, selectedRestaurantId, sessionSyncKey])
 
+  useEffect(() => {
+    if (!session?.user.id || !selectedRestaurantId || !isAppRoute(route)) {
+      setLatestImportRun(null)
+      setImportRuns([])
+      setImportRunsError(null)
+      setImportRunsLoading(false)
+      return
+    }
+
+    const restaurantId = selectedRestaurantId
+    let cancelled = false
+
+    async function loadImportRuns() {
+      setImportRunsLoading(true)
+      setImportRunsError(null)
+
+      try {
+        const [latestRun, history] = await Promise.all([
+          getLatestImportRun(restaurantId),
+          listImportRuns(restaurantId),
+        ])
+
+        if (!cancelled) {
+          setLatestImportRun(latestRun)
+          setImportRuns(history)
+        }
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+
+        if (!handleEffectSessionExpiry(error)) {
+          setLatestImportRun(null)
+          setImportRuns([])
+          setImportRunsError(getErrorMessage(error, getFeedbackError('loadDashboard')))
+        }
+      } finally {
+        if (!cancelled) {
+          setImportRunsLoading(false)
+        }
+      }
+    }
+
+    void loadImportRuns()
+
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user.id, route, selectedRestaurantId, sessionSyncKey])
+
+  useEffect(() => {
+    if (!session?.user.id || !selectedRestaurantId || !isAppRoute(route)) {
+      return
+    }
+
+    if (!latestImportRun || (latestImportRun.status !== 'QUEUED' && latestImportRun.status !== 'RUNNING')) {
+      return
+    }
+
+    let cancelled = false
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const [latestRun, history] = await Promise.all([
+            getLatestImportRun(selectedRestaurantId),
+            listImportRuns(selectedRestaurantId),
+          ])
+
+          if (!cancelled) {
+            setLatestImportRun(latestRun)
+            setImportRuns(history)
+          }
+        } catch (error) {
+          if (cancelled) {
+            return
+          }
+
+          if (!handleEffectSessionExpiry(error)) {
+            setImportRunsError(getErrorMessage(error, getFeedbackError('loadDashboard')))
+          }
+        }
+      })()
+    }, 2500)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [
+    session?.user.id,
+    route,
+    selectedRestaurantId,
+    latestImportRun,
+    latestImportRun?.id,
+    latestImportRun?.status,
+    latestImportRun?.updatedAt,
+  ])
+
   async function handleLogin(input: { email: string; password: string }) {
     setAuthPending(true)
     setAuthError(null)
@@ -738,10 +874,31 @@ function SentifyShell() {
 
     try {
       const result = await importReviews(selectedRestaurantId)
-      setSessionSyncKey((current) => current + 1)
+
+      if (!result.run) {
+        throw new Error(result.message || productCopy.feedback.errors.importReviews)
+      }
+
+      setLatestImportRun(result.run)
+      setImportRuns((current) => {
+        const remainingRuns = current.filter((run) => run.id !== result.run?.id)
+        return result.run ? [result.run, ...remainingRuns].slice(0, 6) : current
+      })
+
       setNotice({
         tone: 'success',
         message: result.message || productCopy.feedback.imported,
+      })
+
+      const completedRun =
+        result.run.status === 'COMPLETED'
+          ? result.run
+          : await waitForImportRunToFinish(selectedRestaurantId, result.run.id)
+
+      setSessionSyncKey((current) => current + 1)
+      setNotice({
+        tone: 'success',
+        message: completedRun.message || productCopy.feedback.imported,
       })
     } catch (error) {
       if (!handleSessionExpiry(error)) {
@@ -862,6 +1019,10 @@ function SentifyShell() {
           reviews={reviews}
           reviewsLoading={reviewsLoading}
           reviewsError={reviewsError}
+          latestImportRun={latestImportRun}
+          importRuns={importRuns}
+          importRunsLoading={importRunsLoading}
+          importRunsError={importRunsError}
           reviewFilters={reviewFilters}
           onApplyReviewFilters={handleApplyReviewFilters}
           onClearReviewFilters={handleClearReviewFilters}

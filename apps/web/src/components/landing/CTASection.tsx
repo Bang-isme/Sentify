@@ -41,10 +41,16 @@ export function CTASection({
           </button>
           <button
             type="button"
-            className="inline-flex h-14 w-full items-center justify-center rounded-full border border-border-light px-8 font-bold whitespace-nowrap text-text-charcoal transition-colors hover:border-primary/50 hover:text-primary dark:border-border-dark dark:text-white sm:w-auto"
+            className="group inline-flex h-12 w-full items-center justify-center gap-2 px-1 text-sm font-semibold whitespace-nowrap text-text-charcoal transition-colors hover:text-primary dark:text-white sm:h-auto sm:w-auto"
             onClick={onSecondaryAction}
           >
-            {secondaryLabel}
+            <span>{secondaryLabel}</span>
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined text-base transition-transform group-hover:translate-x-1"
+            >
+              arrow_forward
+            </span>
           </button>
         </div>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-xs font-medium text-text-silver-light dark:text-text-silver-dark">

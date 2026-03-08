@@ -45,6 +45,14 @@ export function Header({
   const currentLanguage =
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
   const isAppRoute = route.startsWith('/app')
+  const currentViewLabel =
+    route === '/app'
+      ? productCopy.header.dashboard
+      : route === '/app/reviews'
+        ? productCopy.header.reviews
+        : route === '/app/settings'
+          ? productCopy.header.settings
+          : null
 
   useEffect(() => {
     if (!isLanguageMenuOpen && !isAccountMenuOpen) {
@@ -104,33 +112,19 @@ export function Header({
     ? [
         !isAppRoute
           ? {
-              id: 'go-to-app',
-              label: productCopy.header.goToApp,
-              onClick: () => onNavigate('/app'),
-            }
-          : null,
-        route !== '/app'
-          ? {
               id: 'dashboard',
-              label: productCopy.header.dashboard,
+              label: productCopy.landing.ctaPrimaryAuthenticated,
               onClick: () => onNavigate('/app'),
             }
           : null,
-        route !== '/app/reviews'
+        isAppRoute
           ? {
-              id: 'reviews',
-              label: productCopy.header.reviews,
-              onClick: () => onNavigate('/app/reviews'),
+              id: 'landing',
+              label: productCopy.header.landing,
+              onClick: () => onNavigate('/'),
             }
           : null,
-        route !== '/app/settings'
-          ? {
-              id: 'settings',
-              label: productCopy.header.settings,
-              onClick: () => onNavigate('/app/settings'),
-            }
-          : null,
-        route !== '/'
+        !isAppRoute && route !== '/'
           ? {
               id: 'landing',
               label: productCopy.header.landing,
@@ -165,30 +159,12 @@ export function Header({
 
         <nav className="hidden items-center gap-2 lg:flex">
           {isAppRoute && isAuthenticated ? (
-            <>
-              {[
-                { routeId: '/app' as const, label: productCopy.header.dashboard },
-                { routeId: '/app/reviews' as const, label: productCopy.header.reviews },
-                { routeId: '/app/settings' as const, label: productCopy.header.settings },
-              ].map((item) => {
-                const isActive = route === item.routeId
-
-                return (
-                  <button
-                    key={item.routeId}
-                    type="button"
-                    className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-xs font-bold uppercase tracking-[0.16em] transition ${
-                      isActive
-                        ? 'bg-primary/12 text-primary'
-                        : 'text-text-silver-light hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary'
-                    }`}
-                    onClick={() => onNavigate(item.routeId)}
-                  >
-                    {item.label}
-                  </button>
-                )
-              })}
-            </>
+            currentViewLabel ? (
+              <div className="inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
+                <span className="size-2 rounded-full bg-primary"></span>
+                <span>{currentViewLabel}</span>
+              </div>
+            ) : null
           ) : (
             productCopy.header.marketingLinks.map((item) => (
               <button
@@ -278,16 +254,6 @@ export function Header({
 
           {isAuthenticated ? (
             <>
-              {!isAppRoute ? (
-                <button
-                  type="button"
-                  className="hidden h-9 items-center justify-center rounded-full border border-border-light px-4 text-xs font-bold text-text-charcoal transition hover:border-primary/50 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:inline-flex dark:border-border-dark dark:text-white"
-                  onClick={() => onNavigate('/app')}
-                >
-                  {productCopy.header.goToApp}
-                </button>
-              ) : null}
-
               <div className="relative" ref={accountMenuRef}>
                 <button
                   type="button"

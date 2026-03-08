@@ -4,8 +4,11 @@
   "description": "",
   "main": "src/server.js",
   "scripts": {
+    "pretest": "npm run db:generate",
     "test": "node --test",
+    "predev": "npm run db:generate",
     "dev": "nodemon src/server.js",
+    "prestart": "npm run db:generate",
     "start": "node src/server.js",
     "browser:install": "playwright install chromium",
     "reviews:tool": "node scripts/review-browser-tool.js",

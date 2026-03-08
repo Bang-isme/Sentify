@@ -1,55 +1,110 @@
 const POSITIVE_KEYWORDS = [
     'ngon',
-    'tot',
+    'tốt',
     'nhanh',
-    'sach',
-    'than thien',
-    'hai long',
-    'tuyet voi',
-    'de tim',
+    'sạch',
+    'thân thiện',
+    'hài lòng',
+    'tuyệt vời',
+    'dễ tìm',
+    'delicious',
+    'great',
+    'good',
+    'friendly',
+    'clean',
+    'quick',
+    'fast',
+    'excellent',
+    'amazing',
+    '美味しい',
+    'おいしい',
+    '良い',
+    '最高',
+    '親切',
+    '早い',
+    '清潔',
 ]
 
 const NEGATIVE_KEYWORDS = [
-    'cham',
-    'lau',
-    'te',
-    'thai do',
-    'nguoi',
-    'ban',
-    'gia cao',
-    'on ao',
-    've sinh kem',
-    'khong than thien',
-    'do',
+    'chậm',
+    'lâu',
+    'tệ',
+    'thái độ',
+    'nguội',
+    'bẩn',
+    'giá cao',
+    'ồn ào',
+    'vệ sinh kém',
+    'không thân thiện',
+    'slow',
+    'late',
+    'bad',
+    'rude',
+    'dirty',
+    'noisy',
+    'overpriced',
+    'cold food',
+    'terrible',
+    'awful',
+    'まずい',
+    '遅い',
+    '高い',
+    '汚い',
+    'うるさい',
+    '最悪',
 ]
 
 const STOPWORDS = new Set([
-    'va',
-    'la',
-    'co',
+    'và',
+    'là',
+    'có',
     'cho',
-    'mot',
-    'rat',
-    'kha',
-    'nen',
-    'hoi',
-    'nay',
+    'một',
+    'rất',
+    'khá',
+    'nên',
+    'hơi',
+    'này',
     'kia',
-    'quan',
-    'mon',
-    'nhan',
-    'vien',
-    'khong',
-    'do',
-    'an',
+    'quán',
+    'món',
+    'nhân',
+    'viên',
+    'không',
+    'đồ',
+    'ăn',
+    'the',
+    'and',
+    'for',
+    'with',
+    'this',
+    'that',
+    'very',
+    'really',
+    'just',
+    'have',
+    'had',
+    'was',
+    'were',
+    'food',
+    'place',
+    'restaurant',
+    'service',
 ])
 
 function normalizeText(text) {
     return (text || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
+        .normalize('NFKC')
         .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+}
+
+function foldLatinText(text) {
+    return normalizeText(text)
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
         .replace(/\s+/g, ' ')
         .trim()
 }
@@ -70,14 +125,25 @@ function labelFromRating(rating) {
     return 'NEUTRAL'
 }
 
-function collectPhraseMatches(text, keywords) {
-    return keywords.filter((keyword) => text.includes(keyword))
+function collectPhraseMatches(text, foldedText, keywords) {
+    return keywords.filter((keyword) => {
+        const normalizedKeyword = normalizeText(keyword)
+        const foldedKeyword = foldLatinText(keyword)
+        return text.includes(normalizedKeyword) || foldedText.includes(foldedKeyword)
+    })
+}
+
+function containsCjk(text) {
+    return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(text)
 }
 
 function collectTokenKeywords(text) {
+    if (containsCjk(text)) {
+        return []
+    }
+
     return unique(
-        text
-            .split(' ')
+        (text.match(/[\p{L}\p{N}-]+/gu) || [])
             .map((token) => token.trim())
             .filter((token) => token.length >= 3 && !STOPWORDS.has(token)),
     )
@@ -85,6 +151,7 @@ function collectTokenKeywords(text) {
 
 async function analyzeReview({ content, rating }) {
     const normalizedText = normalizeText(content)
+    const foldedText = foldLatinText(content)
 
     if (!normalizedText) {
         return {
@@ -93,8 +160,8 @@ async function analyzeReview({ content, rating }) {
         }
     }
 
-    const positiveMatches = collectPhraseMatches(normalizedText, POSITIVE_KEYWORDS)
-    const negativeMatches = collectPhraseMatches(normalizedText, NEGATIVE_KEYWORDS)
+    const positiveMatches = collectPhraseMatches(normalizedText, foldedText, POSITIVE_KEYWORDS)
+    const negativeMatches = collectPhraseMatches(normalizedText, foldedText, NEGATIVE_KEYWORDS)
 
     let score = positiveMatches.length - negativeMatches.length
 

@@ -27,11 +27,11 @@ export const landingContent = {
       titleLine1: 'Reviews in.',
       titleLine2: 'Action out.',
       description:
-        'Sentify helps restaurant owners turn scattered review text into a short list of clear actions. Import Google Maps feedback, detect recurring complaints, and open one dashboard that shows what needs attention first.',
+        'Sentify exists to answer one operating question: what should this restaurant fix first? Connect one review source, detect the complaint pattern, and surface one next action the owner can trust.',
       highlights: [
-        'Import reviews from Google Maps',
-        'Spot repeated complaints quickly',
-        'Follow rating and sentiment shifts',
+        'One review source enters the loop',
+        'One triage engine turns noise into a priority',
+        'One next action leaves the dashboard',
       ],
       primaryCta: 'See How It Works',
       secondaryCta: 'View Dashboard',
@@ -68,7 +68,7 @@ export const landingContent = {
       titleLine1: 'One focused loop.',
       titleLine2: 'One useful outcome.',
       description:
-        'Sentify is intentionally narrow in Sprint 1: one review source, one restaurant flow, one dashboard, and one decision question, what should the owner fix first?',
+        'Sprint 1 stays deliberately narrow so the product promise stays sharp: one source enters, one decision engine processes, and one action comes out for the owner to execute next.',
       steps: [
         {
           step: '01',
@@ -239,10 +239,10 @@ export const landingContent = {
       titleLine1: 'A smaller promise.',
       titleLine2: 'A more useful product.',
       description:
-        'Sentify does one job in Sprint 1: help a restaurant owner understand what guests keep praising, what guests keep complaining about, and what deserves action first.',
+        'Sentify should feel singular, not broad: one source of guest feedback, one triage loop, and one decision the team can act on with confidence.',
       primaryCta: 'Review The Flow',
       secondaryCta: 'Back To Top',
-      chips: ['Google Maps review import', 'Complaint-first insight', 'One dashboard per restaurant'],
+      chips: ['One source in', 'One priority out', 'One dashboard per restaurant'],
     },
     footer: {
       description:
@@ -278,7 +278,7 @@ export const landingContent = {
       ],
       bottomLeft:
         'Sentify project landing page. Sprint 1 is about review import, insight extraction, and one clear dashboard.',
-      bottomRight: 'Designed for clarity, not platform theater.',
+      bottomRight: 'Built to answer one operating question well.',
     },
     ticker: [
       'Import Google Maps reviews',

@@ -1,9 +1,26 @@
 const { handleControllerError } = require('../lib/controller-error')
-const reviewImportService = require('../services/review-import.service')
+const reviewImportRunService = require('../services/review-import-run.service')
 
-async function importReviews(req, res) {
+async function queueImportReviews(req, res) {
     try {
-        const result = await reviewImportService.importReviews({
+        const result = await reviewImportRunService.queueImportRun({
+            userId: req.user.userId,
+            restaurantId: req.params.id,
+        })
+
+        const statusCode = result.alreadyActive ? 200 : result.run?.status === 'COMPLETED' ? 200 : 202
+
+        return res.status(statusCode).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
+async function getLatestImportRun(req, res) {
+    try {
+        const result = await reviewImportRunService.getLatestImportRun({
             userId: req.user.userId,
             restaurantId: req.params.id,
         })
@@ -16,6 +33,24 @@ async function importReviews(req, res) {
     }
 }
 
+async function listImportRuns(req, res) {
+    try {
+        const result = await reviewImportRunService.listImportRuns({
+            userId: req.user.userId,
+            restaurantId: req.params.id,
+            limit: req.query.limit,
+        })
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 module.exports = {
-    importReviews,
+    getLatestImportRun,
+    listImportRuns,
+    queueImportReviews,
 }

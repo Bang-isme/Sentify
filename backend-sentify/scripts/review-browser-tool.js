@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-const { scrapeGoogleReviewsWithBrowser } = require('../src/services/google-browser-review-tool.service')
+const {
+    scrapeGoogleReviewsWithBrowserDetailed,
+} = require('../src/services/google-browser-review-tool.service')
 
 function parseArgs(argv) {
     const parsedArgs = {
@@ -47,7 +49,7 @@ async function main() {
         return
     }
 
-    const reviews = await scrapeGoogleReviewsWithBrowser({
+    const { reviews, metadata } = await scrapeGoogleReviewsWithBrowserDetailed({
         googleMapUrl,
         restaurantName: typeof args.name === 'string' ? args.name.trim() : undefined,
         restaurantAddress: typeof args.address === 'string' ? args.address.trim() : undefined,
@@ -57,6 +59,7 @@ async function main() {
         `${JSON.stringify(
             {
                 total: reviews.length,
+                metadata,
                 reviews,
             },
             null,

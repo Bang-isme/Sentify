@@ -50,7 +50,7 @@ test('browser review tool rejects non Google hosts before automation starts', ()
     )
 })
 
-test('browser review tool parses star labels and relative dates consistently', () => {
+test('browser review tool parses star labels and relative dates consistently across locales', () => {
     const { extractRatingFromLabel, parseReviewDateLabel } = loadBrowserReviewTool()
     const now = new Date('2026-03-08T00:00:00Z')
 
@@ -61,42 +61,93 @@ test('browser review tool parses star labels and relative dates consistently', (
         '2026-02-22T00:00:00.000Z',
     )
     assert.equal(
-        parseReviewDateLabel('a month ago', now)?.toISOString(),
-        '2026-02-08T00:00:00.000Z',
+        parseReviewDateLabel('2 tuần trước', now)?.toISOString(),
+        '2026-02-22T00:00:00.000Z',
     )
     assert.equal(
-        parseReviewDateLabel('Edited 2 years ago', now)?.toISOString(),
+        parseReviewDateLabel('2 週間前', now)?.toISOString(),
+        '2026-02-22T00:00:00.000Z',
+    )
+    assert.equal(
+        parseReviewDateLabel('Đã chỉnh sửa 2 năm trước', now)?.toISOString(),
+        '2024-03-08T00:00:00.000Z',
+    )
+    assert.equal(
+        parseReviewDateLabel('編集済み 2 年前', now)?.toISOString(),
         '2024-03-08T00:00:00.000Z',
     )
 })
 
-test('browser review tool normalizes reviews and removes duplicates', () => {
+test('browser review tool parses advertised review counts from english, vietnamese, and japanese labels', () => {
+    const { extractReviewCountFromText } = loadBrowserReviewTool()
+
+    assert.equal(extractReviewCountFromText('286 reviews'), 286)
+    assert.equal(extractReviewCountFromText('286 b\u00e0i vi\u1ebft'), 286)
+    assert.equal(extractReviewCountFromText('286 b\u00e0i \u0111\u00e1nh gi\u00e1'), 286)
+    assert.equal(extractReviewCountFromText('286 \u4ef6\u306e\u53e3\u30b3\u30df'), 286)
+})
+
+test('browser review tool uses auto-target mode when max reviews is zero', () => {
+    process.env.REVIEW_BROWSER_MAX_REVIEWS = '0'
+    process.env.REVIEW_BROWSER_HARD_MAX_REVIEWS = '400'
+    const { buildReviewCollectionPlan } = loadBrowserReviewTool()
+
+    const plan = buildReviewCollectionPlan({
+        advertisedTotalReviews: 286,
+    })
+
+    assert.equal(plan.explicitTarget, null)
+    assert.equal(plan.targetReviewCount, 286)
+    assert.equal(plan.hardMaxReviews, 400)
+})
+
+test('browser review tool still respects a hard safety ceiling in auto-target mode', () => {
+    process.env.REVIEW_BROWSER_MAX_REVIEWS = '0'
+    process.env.REVIEW_BROWSER_HARD_MAX_REVIEWS = '200'
+    const { buildReviewCollectionPlan } = loadBrowserReviewTool()
+
+    const plan = buildReviewCollectionPlan({
+        advertisedTotalReviews: 286,
+    })
+
+    assert.equal(plan.targetReviewCount, 200)
+})
+
+test('browser review tool chooses the most plausible advertised count once reviews are collected', () => {
+    const { pickAdvertisedReviewCount } = loadBrowserReviewTool()
+
+    assert.equal(pickAdvertisedReviewCount([286, 43286], 269), 286)
+    assert.equal(pickAdvertisedReviewCount([120, 180], 190), 180)
+})
+
+test('browser review tool normalizes reviews and removes duplicates without damaging unicode text', () => {
     const { normalizeBrowserReviews } = loadBrowserReviewTool()
     const reviews = normalizeBrowserReviews([
         {
             externalId: 'review-1',
-            authorName: 'Alice',
+            authorName: 'Nguyễn Ánh',
             ratingLabel: '5 stars',
-            content: 'Fast service.',
+            content: 'Phục vụ rất nhanh và sạch sẽ.',
             reviewDateLabel: 'Mar 1, 2026',
         },
         {
             externalId: 'review-1',
-            authorName: 'Alice',
+            authorName: 'Nguyễn Ánh',
             ratingLabel: '5 stars',
-            content: 'Fast service.',
+            content: 'Phục vụ rất nhanh và sạch sẽ.',
             reviewDateLabel: 'Mar 1, 2026',
         },
         {
-            authorName: 'Bob',
+            authorName: '山田 太郎',
             ratingLabel: '2 stars',
-            content: 'Food came late.',
-            reviewDateLabel: '2 weeks ago',
+            content: '接客が遅い。料理がぬるい。',
+            reviewDateLabel: '2 週間前',
         },
     ])
 
     assert.equal(reviews.length, 2)
-    assert.equal(reviews[0].externalId, 'review-1')
+    assert.equal(reviews[0].authorName, 'Nguyễn Ánh')
+    assert.equal(reviews[1].authorName, '山田 太郎')
+    assert.equal(reviews[1].content, '接客が遅い。料理がぬるい。')
     assert.equal(reviews[1].rating, 2)
-    assert.equal(reviews[1].authorName, 'Bob')
 })

@@ -5,7 +5,6 @@ export interface ProductUiCopy {
     marketingLinks: Array<{ label: string; sectionId: string }>
     login: string
     signup: string
-    goToApp: string
     dashboard: string
     reviews: string
     settings: string
@@ -108,6 +107,38 @@ export interface ProductUiCopy {
     importBlocked: string
     sourceStatusConnected: string
     sourceStatusNeedsConfiguration: string
+    syncStatusTitle: string
+    syncStatusDescription: string
+    syncStatusEmpty: string
+    syncStatusLastSync: string
+    syncStatusNewReviews: string
+    syncStatusCompletedWithChanges: string
+    syncStatusCompletedNoChanges: string
+    syncStatusRunning: string
+    syncStatusQueued: string
+    syncStatusFailed: string
+    importHistoryTitle: string
+    importHistoryDescription: string
+    importHistoryToggleOpen: string
+    importHistoryToggleClose: string
+    importHistoryEmpty: string
+    importHistoryActive: string
+    importHistoryLatestBadge: string
+    importHistoryImported: string
+    importHistorySkipped: string
+    importHistoryCollected: string
+    importHistoryCoverage: string
+    importHistoryStartedAt: string
+    importHistoryUpdatedAt: string
+    importHistoryCompletedAt: string
+    importHistoryFailedAt: string
+    importHistoryUnavailable: string
+    loadingImportHistory: string
+    importRunStatusLabels: Record<'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED', string>
+    importRunPhaseLabels: Record<
+      'QUEUED' | 'SCRAPING' | 'ANALYZING' | 'PERSISTING' | 'REBUILDING' | 'COMPLETED' | 'FAILED',
+      string
+    >
     noRestaurants: string
     noReviews: string
     noComplaints: string
@@ -120,6 +151,8 @@ export interface ProductUiCopy {
     applyFilters: string
     clearFilters: string
     allRatings: string
+    datePickerPreviousMonth: string
+    datePickerNextMonth: string
     sentimentLabels: Record<'POSITIVE' | 'NEUTRAL' | 'NEGATIVE', string>
     periodWeek: string
     periodMonth: string
@@ -173,7 +206,6 @@ export const productUiCopy = {
       ],
       login: 'Login',
       signup: 'Start free',
-      goToApp: 'Go to app',
       dashboard: 'Dashboard',
       reviews: 'Reviews',
       settings: 'Settings',
@@ -189,7 +221,7 @@ export const productUiCopy = {
     landing: {
       heroPrimary: 'Create account',
       heroSecondary: 'Login',
-      heroPrimaryAuthenticated: 'Open app',
+      heroPrimaryAuthenticated: 'Go to dashboard',
       heroSecondaryAuthenticated: 'Review workflow',
       ctaPrimary: 'Start free',
       ctaSecondary: 'See how it works',
@@ -229,7 +261,7 @@ export const productUiCopy = {
     },
     app: {
       shellTitle: 'Sentify workspace',
-      shellDescription: 'Turn imported reviews into one clear operating priority.',
+      shellDescription: 'One source in. One priority out.',
       currentRestaurant: 'Current restaurant',
       connectionHealth: 'Connection health',
       restaurantSwitcherLabel: 'Restaurant',
@@ -263,19 +295,19 @@ export const productUiCopy = {
       dashboardSecondaryCta: 'Open settings',
       reviewsTitle: 'Review evidence',
       reviewsDescription:
-        'Use source reviews as evidence, not as a wall of text. Filter by rating and date when a signal needs proof.',
+        'Use reviews only as proof behind the current priority. Filter by rating and date when the signal needs confirmation.',
       settingsTitle: 'Restaurant settings',
       settingsDescription:
-        'Keep the restaurant profile and source URL current so imports stay predictable.',
+        'This screen exists to keep one source trustworthy, so the next triage decision is based on current data.',
       settingsRestaurantTitle: 'Restaurant profile',
       settingsRestaurantDescription:
         'Update the name and address used across the current workspace.',
       settingsSourceTitle: 'Review source',
       settingsSourceDescription:
-        'Keep the Google Maps URL current so imports remain reliable.',
+        'This is the one input that powers the dashboard. Keep the Google Maps URL current so imports remain reliable.',
       addRestaurantTitle: 'Add another restaurant',
       addRestaurantDescription:
-        'Create a second restaurant under the same account without leaving the current workspace.',
+        'Secondary action only. Add another restaurant after the first workspace is stable and trustworthy.',
       importReviews: 'Import reviews',
       importing: 'Importing...',
       saveChanges: 'Save changes',
@@ -294,6 +326,50 @@ export const productUiCopy = {
       importBlocked: 'Add a source URL before running import.',
       sourceStatusConnected: 'Source ready',
       sourceStatusNeedsConfiguration: 'Source missing',
+      syncStatusTitle: 'Sync status',
+      syncStatusDescription:
+        'Keep this short and practical: has Sentify synced recently, did new reviews come in, and do you need to fix the source?',
+      syncStatusEmpty: 'No sync has run yet. Start the first import after saving the source URL.',
+      syncStatusLastSync: 'Last sync',
+      syncStatusNewReviews: 'New reviews',
+      syncStatusCompletedWithChanges: 'Latest sync completed and added new reviews.',
+      syncStatusCompletedNoChanges: 'Latest sync completed. No new reviews were found.',
+      syncStatusRunning: 'Sentify is syncing reviews right now.',
+      syncStatusQueued: 'A sync is queued and will start shortly.',
+      syncStatusFailed: 'The latest sync failed. Check the source settings before retrying.',
+      importHistoryTitle: 'Import history',
+      importHistoryDescription:
+        'Use this only when you need to inspect recent syncs or troubleshoot the review source.',
+      importHistoryToggleOpen: 'View sync details',
+      importHistoryToggleClose: 'Hide sync details',
+      importHistoryEmpty: 'No import runs yet. Start the first sync to build an operational trail.',
+      importHistoryActive: 'Import running',
+      importHistoryLatestBadge: 'Latest run',
+      importHistoryImported: 'Imported',
+      importHistorySkipped: 'Skipped',
+      importHistoryCollected: 'Collected',
+      importHistoryCoverage: 'Coverage',
+      importHistoryStartedAt: 'Started',
+      importHistoryUpdatedAt: 'Updated',
+      importHistoryCompletedAt: 'Completed',
+      importHistoryFailedAt: 'Failed',
+      importHistoryUnavailable: 'N/A',
+      loadingImportHistory: 'Loading import history...',
+      importRunStatusLabels: {
+        QUEUED: 'Queued',
+        RUNNING: 'Running',
+        COMPLETED: 'Completed',
+        FAILED: 'Failed',
+      },
+      importRunPhaseLabels: {
+        QUEUED: 'Queued and waiting for the worker.',
+        SCRAPING: 'Collecting reviews from Google Maps.',
+        ANALYZING: 'Checking duplicates and analyzing sentiment.',
+        PERSISTING: 'Saving new review evidence.',
+        REBUILDING: 'Refreshing dashboard insights.',
+        COMPLETED: 'Import completed.',
+        FAILED: 'Import failed.',
+      },
       noRestaurants: 'No restaurant yet. Create one to enter the product loop.',
       noReviews: 'No reviews imported yet. Save the source URL and run the first import.',
       noComplaints: 'No recurring complaint keywords yet. Import more reviews to build the signal.',
@@ -306,6 +382,8 @@ export const productUiCopy = {
       applyFilters: 'Apply filters',
       clearFilters: 'Clear',
       allRatings: 'All ratings',
+      datePickerPreviousMonth: 'Previous month',
+      datePickerNextMonth: 'Next month',
       sentimentLabels: {
         POSITIVE: 'Positive',
         NEUTRAL: 'Neutral',
@@ -316,7 +394,7 @@ export const productUiCopy = {
       paginationPrevious: 'Previous',
       paginationNext: 'Next',
       paginationItems: 'items',
-      operationalPrompt: 'Restaurant-scoped operating signal',
+      operationalPrompt: 'One source. One decision.',
       protectedAccess: 'Protected account access',
       restaurantScoped: 'One dashboard per restaurant',
       loadingDashboard: 'Loading dashboard...',
@@ -361,7 +439,6 @@ export const productUiCopy = {
       ],
       login: 'Đăng nhập',
       signup: 'Bắt đầu miễn phí',
-      goToApp: 'Vào ứng dụng',
       dashboard: 'Bảng điều hành',
       reviews: 'Đánh giá',
       settings: 'Thiết lập',
@@ -377,7 +454,7 @@ export const productUiCopy = {
     landing: {
       heroPrimary: 'Tạo tài khoản',
       heroSecondary: 'Đăng nhập',
-      heroPrimaryAuthenticated: 'Mở ứng dụng',
+      heroPrimaryAuthenticated: 'Vào bảng điều hành',
       heroSecondaryAuthenticated: 'Xem quy trình',
       ctaPrimary: 'Bắt đầu miễn phí',
       ctaSecondary: 'Xem cách hoạt động',
@@ -482,6 +559,50 @@ export const productUiCopy = {
       importBlocked: 'Hãy thêm URL nguồn trước khi chạy nhập.',
       sourceStatusConnected: 'Nguồn đã sẵn sàng',
       sourceStatusNeedsConfiguration: 'Thiếu URL nguồn',
+      syncStatusTitle: 'Trạng thái đồng bộ',
+      syncStatusDescription:
+        'Chỉ giữ lại điều chủ quán thật sự cần biết: lần đồng bộ gần nhất, có đánh giá mới hay không, và có cần kiểm tra lại nguồn hay không.',
+      syncStatusEmpty: 'Chưa có lần đồng bộ nào. Hãy chạy lần nhập đầu tiên sau khi lưu URL nguồn.',
+      syncStatusLastSync: 'Lần đồng bộ gần nhất',
+      syncStatusNewReviews: 'Đánh giá mới',
+      syncStatusCompletedWithChanges: 'Lần đồng bộ gần nhất đã hoàn tất và có thêm đánh giá mới.',
+      syncStatusCompletedNoChanges: 'Lần đồng bộ gần nhất đã hoàn tất. Không có đánh giá mới.',
+      syncStatusRunning: 'Sentify đang đồng bộ đánh giá.',
+      syncStatusQueued: 'Lần đồng bộ đã vào hàng đợi và sẽ bắt đầu ngay sau đó.',
+      syncStatusFailed: 'Lần đồng bộ gần nhất bị lỗi. Hãy kiểm tra lại nguồn trước khi chạy lại.',
+      importHistoryTitle: 'Lịch sử nhập dữ liệu',
+      importHistoryDescription:
+        'Chỉ mở phần này khi cần kiểm tra các lần đồng bộ gần đây hoặc tìm nguyên nhân lỗi của nguồn đánh giá.',
+      importHistoryToggleOpen: 'Xem chi tiết đồng bộ',
+      importHistoryToggleClose: 'Ẩn chi tiết đồng bộ',
+      importHistoryEmpty: 'Chưa có lần nhập nào. Hãy chạy lần đồng bộ đầu tiên để tạo lịch sử vận hành.',
+      importHistoryActive: 'Đang nhập dữ liệu',
+      importHistoryLatestBadge: 'Lần chạy mới nhất',
+      importHistoryImported: 'Mới nhập',
+      importHistorySkipped: 'Bỏ qua',
+      importHistoryCollected: 'Đã thu thập',
+      importHistoryCoverage: 'Độ phủ',
+      importHistoryStartedAt: 'Bắt đầu',
+      importHistoryUpdatedAt: 'Cập nhật',
+      importHistoryCompletedAt: 'Hoàn tất',
+      importHistoryFailedAt: 'Thất bại',
+      importHistoryUnavailable: 'Chưa có',
+      loadingImportHistory: 'Đang tải lịch sử nhập dữ liệu...',
+      importRunStatusLabels: {
+        QUEUED: 'Đang xếp hàng',
+        RUNNING: 'Đang chạy',
+        COMPLETED: 'Hoàn tất',
+        FAILED: 'Thất bại',
+      },
+      importRunPhaseLabels: {
+        QUEUED: 'Đã vào hàng đợi và chờ worker bắt đầu.',
+        SCRAPING: 'Đang thu thập đánh giá từ Google Maps.',
+        ANALYZING: 'Đang kiểm tra trùng lặp và phân tích cảm xúc.',
+        PERSISTING: 'Đang lưu các đánh giá mới.',
+        REBUILDING: 'Đang làm mới insight trên dashboard.',
+        COMPLETED: 'Đã hoàn tất nhập dữ liệu.',
+        FAILED: 'Lần nhập bị lỗi.',
+      },
       noRestaurants: 'Chưa có nhà hàng nào. Hãy tạo một nhà hàng để đi vào vòng lặp sản phẩm.',
       noReviews: 'Chưa có đánh giá nào được nhập. Hãy lưu URL nguồn và chạy lần nhập đầu tiên.',
       noComplaints: 'Chưa có từ khóa phàn nàn lặp lại. Hãy nhập thêm đánh giá để tạo tín hiệu.',
@@ -494,6 +615,8 @@ export const productUiCopy = {
       applyFilters: 'Áp dụng bộ lọc',
       clearFilters: 'Xóa',
       allRatings: 'Tất cả mức điểm',
+      datePickerPreviousMonth: 'Th?ng tr??c',
+      datePickerNextMonth: 'Th?ng sau',
       sentimentLabels: {
         POSITIVE: 'Tích cực',
         NEUTRAL: 'Trung lập',
@@ -549,7 +672,6 @@ export const productUiCopy = {
       ],
       login: 'ログイン',
       signup: '無料で始める',
-      goToApp: 'アプリへ',
       dashboard: 'ダッシュボード',
       reviews: 'レビュー',
       settings: '設定',
@@ -565,7 +687,7 @@ export const productUiCopy = {
     landing: {
       heroPrimary: 'アカウントを作成',
       heroSecondary: 'ログイン',
-      heroPrimaryAuthenticated: 'アプリを開く',
+      heroPrimaryAuthenticated: 'ダッシュボードへ',
       heroSecondaryAuthenticated: 'ワークフローを見る',
       ctaPrimary: '無料で始める',
       ctaSecondary: '仕組みを見る',
@@ -670,6 +792,50 @@ export const productUiCopy = {
       importBlocked: '取込前にソース URL を追加してください。',
       sourceStatusConnected: 'ソース準備完了',
       sourceStatusNeedsConfiguration: 'ソース未設定',
+      syncStatusTitle: '同期ステータス',
+      syncStatusDescription:
+        '店舗側が本当に知りたいことだけを短く示します。最後の同期、増えたレビュー数、そしてソース確認が必要かどうかです。',
+      syncStatusEmpty: 'まだ同期がありません。ソース URL を保存して最初の取込を実行してください。',
+      syncStatusLastSync: '最終同期',
+      syncStatusNewReviews: '新規レビュー',
+      syncStatusCompletedWithChanges: '最新の同期が完了し、新しいレビューが追加されました。',
+      syncStatusCompletedNoChanges: '最新の同期は完了しました。新しいレビューはありませんでした。',
+      syncStatusRunning: 'Sentify がレビューを同期中です。',
+      syncStatusQueued: '同期はキューに入り、まもなく開始されます。',
+      syncStatusFailed: '最新の同期に失敗しました。再実行前にソース設定を確認してください。',
+      importHistoryTitle: '取込履歴',
+      importHistoryDescription:
+        '最近の同期結果やソースエラーの確認が必要なときだけ、この詳細を開いてください。',
+      importHistoryToggleOpen: '同期詳細を表示',
+      importHistoryToggleClose: '同期詳細を隠す',
+      importHistoryEmpty: 'まだ取込履歴がありません。最初の同期を実行して運用ログを作成してください。',
+      importHistoryActive: '取込実行中',
+      importHistoryLatestBadge: '最新実行',
+      importHistoryImported: '新規取込',
+      importHistorySkipped: 'スキップ',
+      importHistoryCollected: '収集済み',
+      importHistoryCoverage: 'カバレッジ',
+      importHistoryStartedAt: '開始',
+      importHistoryUpdatedAt: '更新',
+      importHistoryCompletedAt: '完了',
+      importHistoryFailedAt: '失敗',
+      importHistoryUnavailable: '未取得',
+      loadingImportHistory: '取込履歴を読み込み中...',
+      importRunStatusLabels: {
+        QUEUED: '待機中',
+        RUNNING: '実行中',
+        COMPLETED: '完了',
+        FAILED: '失敗',
+      },
+      importRunPhaseLabels: {
+        QUEUED: 'キューに入り、worker の開始を待っています。',
+        SCRAPING: 'Google Maps からレビューを収集中です。',
+        ANALYZING: '重複確認と感情分析を実行中です。',
+        PERSISTING: '新しいレビュー根拠を保存中です。',
+        REBUILDING: 'ダッシュボード指標を再構築中です。',
+        COMPLETED: '取込が完了しました。',
+        FAILED: '取込に失敗しました。',
+      },
       noRestaurants: 'まだ店舗がありません。最初の店舗を作成して製品ループに入ってください。',
       noReviews: 'まだレビューが取り込まれていません。URL を保存して最初の取込を実行してください。',
       noComplaints: '繰り返し現れる不満キーワードはまだありません。レビューを増やしてシグナルを作ってください。',
@@ -682,6 +848,8 @@ export const productUiCopy = {
       applyFilters: '適用',
       clearFilters: 'クリア',
       allRatings: 'すべての評価',
+      datePickerPreviousMonth: '???',
+      datePickerNextMonth: '???',
       sentimentLabels: {
         POSITIVE: 'ポジティブ',
         NEUTRAL: 'ニュートラル',

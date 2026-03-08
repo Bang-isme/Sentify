@@ -124,6 +124,47 @@ export interface ImportResult {
   message: string
 }
 
+export type ImportRunStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED'
+
+export interface ImportRunSummary {
+  id: string
+  restaurantId: string
+  status: ImportRunStatus
+  phase: string | null
+  progressPercent: number
+  imported: number
+  skipped: number
+  total: number
+  scrape: {
+    source: string | null
+    advertisedTotalReviews: number | null
+    collectedReviewCount: number | null
+    targetReviewCount: number | null
+    explicitTarget: number | null
+    hardMaxReviews: number | null
+    reachedRequestedTarget: boolean | null
+    reachedEndOfFeed: boolean | null
+    coveragePercentage: number | null
+    isCompleteSync: boolean | null
+  }
+  message: string | null
+  errorCode: string | null
+  errorMessage: string | null
+  errorDetails: unknown
+  startedAt: string | null
+  completedAt: string | null
+  failedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface QueueImportResult {
+  queued: boolean
+  alreadyActive: boolean
+  run: ImportRunSummary | null
+  message: string
+}
+
 export interface ApiErrorPayload {
   code: string
   message: string
@@ -277,9 +318,17 @@ export function updateRestaurant(restaurantId: string, input: UpdateRestaurantIn
 }
 
 export function importReviews(restaurantId: string) {
-  return request<ImportResult>(`/restaurants/${restaurantId}/import`, {
+  return request<QueueImportResult>(`/restaurants/${restaurantId}/import`, {
     method: 'POST',
   })
+}
+
+export function getLatestImportRun(restaurantId: string) {
+  return request<ImportRunSummary | null>(`/restaurants/${restaurantId}/import/latest`)
+}
+
+export function listImportRuns(restaurantId: string, limit = 6) {
+  return request<ImportRunSummary[]>(`/restaurants/${restaurantId}/import/runs?limit=${limit}`)
 }
 
 export function getDashboardKpi(restaurantId: string) {
