@@ -2,7 +2,7 @@ const prisma = require('../lib/prisma')
 const { badRequest } = require('../lib/app-error')
 const { recalculateRestaurantInsights } = require('./insight.service')
 const { getRestaurantAccess } = require('./restaurant-access.service')
-const { scrapeGoogleReviews } = require('./google-scraper.service')
+const { scrapeGoogleReviewsWithBrowser } = require('./google-browser-review-tool.service')
 const { analyzeReview } = require('./sentiment-analyzer.service')
 
 async function importReviews({ userId, restaurantId }) {
@@ -20,8 +20,10 @@ async function importReviews({ userId, restaurantId }) {
         )
     }
 
-    const scrapedReviews = await scrapeGoogleReviews({
+    const scrapedReviews = await scrapeGoogleReviewsWithBrowser({
         googleMapUrl: access.restaurant.googleMapUrl,
+        restaurantName: access.restaurant.name,
+        restaurantAddress: access.restaurant.address,
     })
 
     const existingReviews = await prisma.review.findMany({

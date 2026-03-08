@@ -7,6 +7,8 @@
     "test": "node --test",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "browser:install": "playwright install chromium",
+    "reviews:tool": "node scripts/review-browser-tool.js",
     "db:format": "prisma format",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
@@ -28,6 +30,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
+    "playwright": "^1.58.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {

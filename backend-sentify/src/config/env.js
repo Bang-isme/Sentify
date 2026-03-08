@@ -35,6 +35,17 @@ function parseBoolean(value, fallback) {
     return fallback
 }
 
+function optionalTrimmedString(schema) {
+    return z.preprocess((value) => {
+        if (typeof value !== 'string') {
+            return value
+        }
+
+        const trimmed = value.trim()
+        return trimmed === '' ? undefined : trimmed
+    }, schema.optional())
+}
+
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     LOG_FORMAT: z.enum(['auto', 'json', 'pretty']).default('auto'),
@@ -50,6 +61,15 @@ const envSchema = z.object({
     AUTH_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
     AUTH_COOKIE_SECURE: z.string().optional(),
     TRUST_PROXY: z.string().optional(),
+    REVIEW_BROWSER_HEADLESS: z.string().optional(),
+    REVIEW_BROWSER_LANGUAGE_CODE: z.string().trim().min(2).default('en'),
+    REVIEW_BROWSER_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+    REVIEW_BROWSER_SCROLL_STEPS: z.coerce.number().int().positive().default(12),
+    REVIEW_BROWSER_SCROLL_DELAY_MS: z.coerce.number().int().positive().default(750),
+    REVIEW_BROWSER_MAX_REVIEWS: z.coerce.number().int().positive().default(60),
+    REVIEW_BROWSER_CHANNEL: optionalTrimmedString(z.string().min(2)),
+    REVIEW_BROWSER_EXECUTABLE_PATH: optionalTrimmedString(z.string().min(1)),
+    REVIEW_BROWSER_USER_DATA_DIR: optionalTrimmedString(z.string().min(1)),
     API_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
     API_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(500),
     AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60 * 1000),
@@ -70,6 +90,7 @@ module.exports = {
         parsedEnv.AUTH_COOKIE_SECURE,
         parsedEnv.NODE_ENV === 'production',
     ),
+    REVIEW_BROWSER_HEADLESS_VALUE: parseBoolean(parsedEnv.REVIEW_BROWSER_HEADLESS, true),
     TRUST_PROXY_VALUE: parseTrustProxy(parsedEnv.TRUST_PROXY),
     CORS_ORIGINS: parsedEnv.CORS_ORIGIN.split(',')
         .map((origin) => origin.trim())

@@ -36,6 +36,10 @@ function badGateway(code, message, details) {
     return new AppError(502, code, message, details)
 }
 
+function serviceUnavailable(code, message, details) {
+    return new AppError(503, code, message, details)
+}
+
 module.exports = {
     AppError,
     badRequest,
@@ -45,4 +49,5 @@ module.exports = {
     conflict,
     tooManyRequests,
     badGateway,
+    serviceUnavailable,
 }
