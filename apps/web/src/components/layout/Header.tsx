@@ -39,8 +39,12 @@ export function Header({
   const productCopy = getProductUiCopy(language)
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+  const [isCompact, setIsCompact] = useState(false)
+  const [isHidden, setIsHidden] = useState(false)
   const languageMenuRef = useRef<HTMLDivElement | null>(null)
   const accountMenuRef = useRef<HTMLDivElement | null>(null)
+  const lastScrollY = useRef(0)
+  const scrollTicking = useRef(false)
 
   const currentLanguage =
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
@@ -91,6 +95,44 @@ export function Header({
     }
   }, [isAccountMenuOpen, isLanguageMenuOpen])
 
+  useEffect(() => {
+    const shouldAutoHide = route === '/'
+
+    if (!shouldAutoHide) {
+      setIsHidden(false)
+      setIsCompact(false)
+      return undefined
+    }
+
+    lastScrollY.current = window.scrollY
+
+    function onScroll() {
+      if (scrollTicking.current) {
+        return
+      }
+
+      scrollTicking.current = true
+
+      window.requestAnimationFrame(() => {
+        const currentY = window.scrollY
+        const delta = currentY - lastScrollY.current
+        const shouldHide = currentY > 140 && delta > 6
+        const shouldShow = delta < -6 || currentY < 90
+
+        setIsCompact(currentY > 12)
+        setIsHidden((prev) => (shouldHide ? true : shouldShow ? false : prev))
+        lastScrollY.current = currentY
+        scrollTicking.current = false
+      })
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+    }
+  }, [route])
+
   const restaurantLabel = useMemo(() => {
     if (!user) {
       return null
@@ -135,8 +177,16 @@ export function Header({
     : []
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-2 z-50 flex justify-center md:top-3">
-      <div className="pointer-events-auto mx-4 flex min-h-16 w-full max-w-[1260px] items-center gap-3 rounded-full border border-border-light/70 bg-surface-white/86 px-4 shadow-[0_8px_34px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 dark:border-border-dark/70 dark:bg-surface-dark/90 dark:shadow-[0_8px_34px_rgba(0,0,0,0.5)] md:px-6">
+    <header
+      className={`pointer-events-none fixed inset-x-0 z-50 flex justify-center transition-transform duration-300 ease-out ${
+        isHidden ? '-translate-y-24' : 'translate-y-0'
+      } ${isCompact ? 'top-2 md:top-3' : 'top-4 md:top-5'}`}
+    >
+      <div
+        className={`pointer-events-auto mx-4 flex w-full max-w-[1260px] items-center gap-3 rounded-full border border-border-light/70 bg-surface-white/90 px-4 shadow-[0_10px_34px_rgba(0,0,0,0.1)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 dark:border-border-dark/70 dark:bg-surface-dark/92 dark:shadow-[0_10px_34px_rgba(0,0,0,0.5)] md:px-6 ${
+          isCompact ? 'min-h-14 md:min-h-16' : 'min-h-16 md:min-h-[4.5rem]'
+        }`}
+      >
         <button
           type="button"
           className="group mr-2 flex shrink-0 items-center gap-3"

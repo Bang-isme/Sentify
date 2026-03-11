@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useLanguage } from '../../contexts/languageContext'
 
-const BASE_SCROLL_SPEED = 84
-const COMPACT_SCROLL_SPEED = 92
+const BASE_SCROLL_SPEED = 76
+const COMPACT_SCROLL_SPEED = 84
 
 export function MarqueeTicker({ compact = false }: { compact?: boolean }) {
   const { copy } = useLanguage()
+  const tickerRef = useRef<HTMLDivElement | null>(null)
   const trackRef = useRef<HTMLDivElement | null>(null)
   const [trackWidth, setTrackWidth] = useState(0)
+  const [isActive, setIsActive] = useState(true)
 
   const tickerItems = useMemo(() => copy.ticker, [copy.ticker])
 
@@ -18,22 +20,53 @@ export function MarqueeTicker({ compact = false }: { compact?: boolean }) {
       return undefined
     }
 
+    let frameId = 0
+
     const updateWidth = () => {
       const nextWidth = Math.ceil(element.scrollWidth)
       setTrackWidth((current) => (current === nextWidth ? current : nextWidth))
     }
 
-    updateWidth()
+    const scheduleWidth = () => {
+      if (frameId) return
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0
+        updateWidth()
+      })
+    }
 
-    const resizeObserver = new ResizeObserver(updateWidth)
+    scheduleWidth()
+
+    const resizeObserver = new ResizeObserver(scheduleWidth)
     resizeObserver.observe(element)
-    window.addEventListener('resize', updateWidth)
+    window.addEventListener('resize', scheduleWidth)
 
     return () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId)
+      }
       resizeObserver.disconnect()
-      window.removeEventListener('resize', updateWidth)
+      window.removeEventListener('resize', scheduleWidth)
     }
   }, [tickerItems])
+
+  useEffect(() => {
+    const node = tickerRef.current
+    if (!node || !('IntersectionObserver' in window)) {
+      return undefined
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsActive(entry.isIntersecting && entry.intersectionRatio > 0.1)
+      },
+      { threshold: [0, 0.1, 0.4] },
+    )
+
+    observer.observe(node)
+
+    return () => observer.disconnect()
+  }, [])
 
   const durationSeconds = useMemo(() => {
     if (!trackWidth) {
@@ -51,9 +84,10 @@ export function MarqueeTicker({ compact = false }: { compact?: boolean }) {
 
   return (
     <div
+      ref={tickerRef}
       className={`marquee-ticker overflow-hidden border-y border-border-light/70 bg-surface-ticker-light/90 dark:border-border-dark dark:bg-surface-ticker-dark/90 ${
         compact ? 'py-4' : 'py-5'
-      }`}
+      } ${isActive ? '' : 'marquee-paused'}`}
     >
       <div className="marquee-viewport">
         <div className="marquee-lane" style={marqueeStyle}>

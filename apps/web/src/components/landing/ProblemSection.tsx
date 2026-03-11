@@ -6,7 +6,7 @@ export function ProblemSection() {
   return (
     <section
       id="problem"
-      className="relative border-t border-border-light/70 bg-surface-ticker-light/70 px-6 py-24 dark:border-border-dark dark:bg-surface-ticker-dark/70 md:px-12"
+      className="content-visibility-auto relative border-t border-border-light/70 bg-surface-ticker-light/70 px-6 py-24 dark:border-border-dark dark:bg-surface-ticker-dark/70 md:px-12"
     >
       <div className="mx-auto grid max-w-[1440px] gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
         <div className="max-w-xl">

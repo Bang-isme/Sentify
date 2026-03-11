@@ -6,7 +6,10 @@ export function BentoFeatures() {
   const { copy } = useLanguage()
 
   return (
-    <section id="dashboard" className="relative bg-bg-light px-6 py-24 dark:bg-bg-dark md:px-12">
+    <section
+      id="dashboard"
+      className="content-visibility-auto relative bg-bg-light px-6 py-24 dark:bg-bg-dark md:px-12"
+    >
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-16 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-xl">

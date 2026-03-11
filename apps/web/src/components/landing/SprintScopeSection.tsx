@@ -6,7 +6,7 @@ export function SprintScopeSection() {
   return (
     <section
       id="sprint-1"
-      className="relative border-y border-border-light/70 bg-surface-ticker-light/70 px-6 py-24 dark:border-border-dark dark:bg-surface-ticker-dark/70 md:px-12"
+      className="content-visibility-auto relative border-y border-border-light/70 bg-surface-ticker-light/70 px-6 py-24 dark:border-border-dark dark:bg-surface-ticker-dark/70 md:px-12"
     >
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-14 max-w-3xl">

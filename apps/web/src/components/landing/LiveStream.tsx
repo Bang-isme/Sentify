@@ -19,7 +19,10 @@ export function LiveStream() {
   const { copy } = useLanguage()
 
   return (
-    <section id="signals" className="bg-surface-ticker-light py-20 dark:bg-surface-ticker-dark">
+    <section
+      id="signals"
+      className="content-visibility-auto bg-surface-ticker-light py-20 dark:bg-surface-ticker-dark"
+    >
       <div className="mx-auto max-w-[1440px] px-6">
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.1em] text-text-silver-light dark:text-text-silver-dark">

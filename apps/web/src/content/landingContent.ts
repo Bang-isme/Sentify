@@ -23,7 +23,7 @@ export const landingContent = {
       themeLabel: 'Toggle theme',
     },
     hero: {
-      badge: 'Sprint 1 MVP',
+      badge: '',
       titleLine1: 'Reviews in.',
       titleLine2: 'Action out.',
       description:
@@ -360,7 +360,7 @@ export const landingContent = {
       themeLabel: 'Đổi giao diện',
     },
     hero: {
-      badge: 'Sprint 1 MVP',
+      badge: '',
       titleLine1: 'Review đổ về.',
       titleLine2: 'Việc cần làm hiện ra.',
       description:
@@ -698,7 +698,7 @@ export const landingContent = {
       themeLabel: 'テーマを切り替える',
     },
     hero: {
-      badge: 'Sprint 1 MVP',
+      badge: '',
       titleLine1: 'レビューが集まる。',
       titleLine2: '次の一手が見える。',
       description:

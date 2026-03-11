@@ -6,7 +6,7 @@ export function SecuritySection() {
   return (
     <section
       id="trust"
-      className="relative overflow-hidden bg-bg-light px-6 py-24 dark:bg-bg-dark md:px-12"
+      className="content-visibility-auto relative overflow-hidden bg-bg-light px-6 py-24 dark:bg-bg-dark md:px-12"
     >
       <div className="absolute inset-0 opacity-80 dark:opacity-100">
         <div className="absolute left-1/2 top-0 h-full w-[45rem] -translate-x-1/2 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.08),transparent_68%)] dark:bg-[radial-gradient(circle_at_center,rgba(242,208,13,0.12),transparent_68%)]"></div>

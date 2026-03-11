@@ -16,6 +16,7 @@ export function HeroSection({
   onSecondaryAction,
 }: HeroSectionProps) {
   const { copy } = useLanguage()
+  const badge = copy.hero.badge.trim()
 
   return (
     <section
@@ -32,15 +33,17 @@ export function HeroSection({
       </div>
       <div className="hero-split-divider hidden lg:block" aria-hidden></div>
 
-      <div className="relative z-10 mx-auto w-full max-w-[1540px] px-6 pb-[4.6rem] pt-[3.2rem] md:px-10 md:pb-[5.4rem] md:pt-[3.45rem] lg:px-14 lg:pt-[3.7rem]">
+      <div className="relative z-10 mx-auto w-full max-w-[1540px] px-6 pb-[4.6rem] pt-[6.5rem] md:px-10 md:pb-[5.4rem] md:pt-[7rem] lg:px-14 lg:pt-[7.5rem]">
         <div className="hero-split-layout hero-split-canvas">
-          <div className="hero-copy-pane flex flex-col items-center gap-8 text-center lg:items-start lg:text-left">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-dark shadow-sm animate-fade-in-up dark:bg-primary/5 dark:text-primary dark:shadow-none">
-              <span className="size-2 rounded-full bg-primary animate-pulse"></span>
-              {copy.hero.badge}
-            </div>
+          <div className="hero-copy-pane flex flex-col items-center gap-9 text-center lg:items-start lg:text-left md:gap-10">
+            {badge ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-dark shadow-sm animate-fade-in-up dark:bg-primary/5 dark:text-primary dark:shadow-none">
+                <span className="size-2 rounded-full bg-primary animate-pulse"></span>
+                {badge}
+              </div>
+            ) : null}
 
-            <h1 className="text-5xl font-black leading-[1.02] tracking-tighter text-text-charcoal dark:text-transparent dark:bg-gradient-to-b dark:from-white dark:to-text-silver-dark dark:bg-clip-text md:text-7xl lg:text-8xl">
+            <h1 className="text-5xl font-black leading-[1.1] tracking-tighter text-text-charcoal dark:text-transparent dark:bg-gradient-to-b dark:from-white dark:to-text-silver-dark dark:bg-clip-text md:text-7xl lg:text-8xl">
               {copy.hero.titleLine1}
               <br />
               <span className="animate-text-glow bg-gradient-to-r from-primary to-primary-dark bg-clip-text pr-4 font-serif text-transparent italic font-normal dark:from-primary dark:to-primary">

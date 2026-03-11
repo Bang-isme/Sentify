@@ -53,6 +53,24 @@
   --font-serif: "Playfair Display", serif;
 }
 
+:root {
+  scroll-padding-top: 6.5rem;
+}
+
+section[id] {
+  scroll-margin-top: 6.5rem;
+}
+
+@media (min-width: 768px) {
+  :root {
+    scroll-padding-top: 7rem;
+  }
+
+  section[id] {
+    scroll-margin-top: 7rem;
+  }
+}
+
 .material-symbols-outlined {
   font-family: "Material Symbols Outlined";
   font-weight: normal;

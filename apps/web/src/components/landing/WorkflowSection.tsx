@@ -6,7 +6,7 @@ export function WorkflowSection() {
   return (
     <section
       id="workflow"
-      className="relative overflow-hidden bg-bg-light px-6 py-24 dark:bg-bg-dark md:px-12"
+      className="content-visibility-auto relative overflow-hidden bg-bg-light px-6 py-24 dark:bg-bg-dark md:px-12"
     >
       <div className="absolute inset-0 opacity-70 dark:opacity-100">
         <div className="absolute inset-x-[12%] top-12 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>

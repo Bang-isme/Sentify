@@ -16,7 +16,7 @@ export function CTASection({
   const { copy } = useLanguage()
 
   return (
-    <section className="relative overflow-hidden bg-bg-light py-24 dark:bg-bg-dark">
+    <section className="content-visibility-auto relative overflow-hidden bg-bg-light py-24 dark:bg-bg-dark">
       <div className="absolute inset-0 dark:bg-bg-dark">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_center,rgba(242,208,13,0.15)_0%,rgba(0,0,0,0)_60%)]"></div>
       </div>
