@@ -1,0 +1,2 @@
+ALTER TABLE "Review"
+ADD COLUMN "keywords" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

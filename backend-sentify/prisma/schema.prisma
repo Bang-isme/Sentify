@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RestaurantPermission {
+  OWNER
+  MANAGER
+}
+
+enum ReviewSentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum ImportRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  fullName         String
+  passwordHash     String
+  tokenVersion     Int       @default(0)
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  restaurants RestaurantUser[]
+  importRuns  ImportRun[]
+}
+
+model Restaurant {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  address      String?
+  googleMapUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users      RestaurantUser[]
+  reviews    Review[]
+  insight    InsightSummary?
+  keywords   ComplaintKeyword[]
+  importRuns ImportRun[]
+}
+
+model RestaurantUser {
+  id           String               @id @default(uuid())
+  userId       String
+  restaurantId String
+  permission   RestaurantPermission @default(OWNER)
+  createdAt    DateTime             @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId])
+  @@index([restaurantId])
+  @@index([userId])
+}
+
+model Review {
+  id           String           @id @default(uuid())
+  restaurantId String
+  externalId   String
+  authorName   String?
+  rating       Int
+  content      String?
+  sentiment    ReviewSentiment?
+  keywords     String[]         @default([])
+  reviewDate   DateTime?
+  createdAt    DateTime         @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, externalId])
+  @@index([restaurantId, rating])
+  @@index([restaurantId, reviewDate])
+  @@index([restaurantId, sentiment])
+}
+
+model InsightSummary {
+  id                 String   @id @default(uuid())
+  restaurantId       String   @unique
+  averageRating      Float    @default(0)
+  totalReviews       Int      @default(0)
+  positivePercentage Float    @default(0)
+  neutralPercentage  Float    @default(0)
+  negativePercentage Float    @default(0)
+  lastCalculatedAt   DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+}
+
+model ComplaintKeyword {
+  id            String   @id @default(uuid())
+  restaurantId  String
+  keyword       String
+  count         Int
+  percentage    Float    @default(0)
+  lastUpdatedAt DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, keyword])
+  @@index([restaurantId, count])
+}
+
+model ImportRun {
+  id                     String          @id @default(uuid())
+  restaurantId           String
+  requestedByUserId      String
+  status                 ImportRunStatus @default(QUEUED)
+  phase                  String?
+  progressPercent        Int             @default(0)
+  imported               Int             @default(0)
+  skipped                Int             @default(0)
+  total                  Int             @default(0)
+  scrapeSource           String?
+  advertisedTotalReviews Int?
+  collectedReviewCount   Int?
+  targetReviewCount      Int?
+  explicitTarget         Int?
+  hardMaxReviews         Int?
+  reachedRequestedTarget Boolean?
+  reachedEndOfFeed       Boolean?
+  coveragePercentage     Float?
+  isCompleteSync         Boolean?
+  message                String?
+  errorCode              String?
+  errorMessage           String?
+  errorDetails           Json?
+  startedAt              DateTime?
+  completedAt            DateTime?
+  failedAt               DateTime?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  restaurant  Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  requestedBy User       @relation(fields: [requestedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId, status, createdAt])
+  @@index([requestedByUserId, createdAt])
+}
