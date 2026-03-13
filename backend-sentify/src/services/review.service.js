@@ -23,6 +23,9 @@ async function listReviews({ userId, restaurantId, rating, from, to, page = 1, l
 
     const where = {
         restaurantId,
+        content: {
+            not: null,
+        },
     }
 
     if (typeof rating === 'number') {

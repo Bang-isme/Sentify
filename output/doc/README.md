@@ -1,9 +1,11 @@
 ﻿# Sentify - Design Pack (Sprint 1)
 
-Updated: 2026-03-07
+Updated: 2026-03-12
 
 This folder contains the implementation-ready documentation set for Sentify Sprint 1.
 The current baseline is intentionally small, synchronous, and restaurant-scoped so the team can learn and ship without carrying Sprint 2 complexity.
+
+> Status (2026-03-12): Import automation has been removed. Treat `10-manual-first-admin-architecture.md` as the primary source of truth; earlier import-focused docs remain for historical context.
 
 ## Documents
 
@@ -34,6 +36,9 @@ The current baseline is intentionally small, synchronous, and restaurant-scoped 
 9. `09-ai-pipeline-design.md`  
    Sentiment + complaint keyword pipeline for Sprint 1, with future upgrade path.
 
+10. `10-manual-first-admin-architecture.md`
+   Refactor direction that shifts Sentify toward admin-curated data intake and cleaner FE/BE module boundaries.
+
 ## Diagram Sources
 
 - `diagrams/flow.mmd`
@@ -44,7 +49,7 @@ The current baseline is intentionally small, synchronous, and restaurant-scoped 
 
 - Auth: Register, Login, Logout (JWT access token)
 - Restaurant: Create restaurant, select restaurant, save `google_map_url`
-- Review Import: Google Maps URL -> scrape reviews -> JSON -> DB -> dedup by `external_id`
+- Review Intake: Admin-curated batches -> approve -> publish -> canonical reviews
 - Dashboard: Review list + filter by rating and date
 - Insights: Top complaint keywords, sentiment percentages, rating trend
 
@@ -75,3 +80,4 @@ The current baseline is intentionally small, synchronous, and restaurant-scoped 
 4. `04-database-design.md`
 5. `07-api-specification.md`
 6. `08-environment-setup.md`
+7. `10-manual-first-admin-architecture.md`

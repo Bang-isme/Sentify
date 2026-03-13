@@ -17,11 +17,25 @@ enum ReviewSentiment {
   NEGATIVE
 }
 
-enum ImportRunStatus {
-  QUEUED
-  RUNNING
-  COMPLETED
-  FAILED
+
+enum ReviewIntakeBatchSourceType {
+  MANUAL
+  BULK_PASTE
+  CSV
+}
+
+enum ReviewIntakeBatchStatus {
+  DRAFT
+  IN_REVIEW
+  READY_TO_PUBLISH
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ReviewIntakeItemApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model User {
@@ -37,7 +51,7 @@ model User {
   updatedAt        DateTime  @updatedAt
 
   restaurants RestaurantUser[]
-  importRuns  ImportRun[]
+  intakeBatches ReviewIntakeBatch[]
 }
 
 model Restaurant {
@@ -53,7 +67,8 @@ model Restaurant {
   reviews    Review[]
   insight    InsightSummary?
   keywords   ComplaintKeyword[]
-  importRuns ImportRun[]
+  intakeBatches ReviewIntakeBatch[]
+  intakeItems ReviewIntakeItem[]
 }
 
 model RestaurantUser {
@@ -84,6 +99,7 @@ model Review {
   createdAt    DateTime         @default(now())
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  intakeItems ReviewIntakeItem[]
 
   @@unique([restaurantId, externalId])
   @@index([restaurantId, rating])
@@ -118,39 +134,49 @@ model ComplaintKeyword {
   @@index([restaurantId, count])
 }
 
-model ImportRun {
-  id                     String          @id @default(uuid())
-  restaurantId           String
-  requestedByUserId      String
-  status                 ImportRunStatus @default(QUEUED)
-  phase                  String?
-  progressPercent        Int             @default(0)
-  imported               Int             @default(0)
-  skipped                Int             @default(0)
-  total                  Int             @default(0)
-  scrapeSource           String?
-  advertisedTotalReviews Int?
-  collectedReviewCount   Int?
-  targetReviewCount      Int?
-  explicitTarget         Int?
-  hardMaxReviews         Int?
-  reachedRequestedTarget Boolean?
-  reachedEndOfFeed       Boolean?
-  coveragePercentage     Float?
-  isCompleteSync         Boolean?
-  message                String?
-  errorCode              String?
-  errorMessage           String?
-  errorDetails           Json?
-  startedAt              DateTime?
-  completedAt            DateTime?
-  failedAt               DateTime?
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+model ReviewIntakeBatch {
+  id              String                      @id @default(uuid())
+  restaurantId    String
+  createdByUserId String
+  title           String?
+  sourceType      ReviewIntakeBatchSourceType @default(MANUAL)
+  status          ReviewIntakeBatchStatus    @default(DRAFT)
+  publishedAt     DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
 
-  restaurant  Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  requestedBy User       @relation(fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdBy  User            @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  items      ReviewIntakeItem[]
 
   @@index([restaurantId, status, createdAt])
-  @@index([requestedByUserId, createdAt])
+  @@index([restaurantId, updatedAt, createdAt])
+  @@index([createdByUserId, createdAt])
+}
+
+model ReviewIntakeItem {
+  id                    String                        @id @default(uuid())
+  batchId               String
+  restaurantId          String
+  rawAuthorName         String?
+  rawRating             Int?
+  rawContent            String?
+  rawReviewDate         DateTime?
+  normalizedAuthorName  String?
+  normalizedRating      Int?
+  normalizedContent     String?
+  normalizedReviewDate  DateTime?
+  approvalStatus        ReviewIntakeItemApprovalStatus @default(PENDING)
+  reviewerNote          String?
+  canonicalReviewId     String?                       @unique
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+
+  batch          ReviewIntakeBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  restaurant     Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  canonicalReview Review?          @relation(fields: [canonicalReviewId], references: [id], onDelete: SetNull)
+
+  @@index([batchId, approvalStatus])
+  @@index([batchId, createdAt])
+  @@index([restaurantId, approvalStatus])
 }

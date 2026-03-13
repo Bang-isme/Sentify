@@ -55,7 +55,7 @@ async function getRestaurantKpi({ userId, restaurantId }) {
         },
     })
 
-    // KPI reads the cached summary so the dashboard stays cheap after each import recalculation.
+    // KPI reads the cached summary so the dashboard stays cheap after each intake publish recalculation.
     return buildInsightSummary(access.restaurantWithRelations.insight)
 }
 
@@ -108,7 +108,7 @@ async function getTrend({ userId, restaurantId, period = 'week' }) {
     const grouped = new Map()
 
     for (const review of reviews) {
-        // Some imported reviews may miss source dates, so trend falls back to createdAt.
+        // Some reviews may miss source dates, so trend falls back to createdAt.
         const sourceDate = review.reviewDate || review.createdAt
         const bucket = buildBucket(period, sourceDate)
         const current = grouped.get(bucket.label) || {

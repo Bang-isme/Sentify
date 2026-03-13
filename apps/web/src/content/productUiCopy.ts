@@ -89,8 +89,6 @@ export interface ProductUiCopy {
     settingsSourceDescription: string
     addRestaurantTitle: string
     addRestaurantDescription: string
-    importReviews: string
-    importing: string
     saveChanges: string
     saving: string
     totalReviews: string
@@ -103,42 +101,10 @@ export interface ProductUiCopy {
     sourceReadiness: string
     sourceReady: string
     sourceMissing: string
-    importReady: string
-    importBlocked: string
+    intakeReady: string
+    intakeBlocked: string
     sourceStatusConnected: string
     sourceStatusNeedsConfiguration: string
-    syncStatusTitle: string
-    syncStatusDescription: string
-    syncStatusEmpty: string
-    syncStatusLastSync: string
-    syncStatusNewReviews: string
-    syncStatusCompletedWithChanges: string
-    syncStatusCompletedNoChanges: string
-    syncStatusRunning: string
-    syncStatusQueued: string
-    syncStatusFailed: string
-    importHistoryTitle: string
-    importHistoryDescription: string
-    importHistoryToggleOpen: string
-    importHistoryToggleClose: string
-    importHistoryEmpty: string
-    importHistoryActive: string
-    importHistoryLatestBadge: string
-    importHistoryImported: string
-    importHistorySkipped: string
-    importHistoryCollected: string
-    importHistoryCoverage: string
-    importHistoryStartedAt: string
-    importHistoryUpdatedAt: string
-    importHistoryCompletedAt: string
-    importHistoryFailedAt: string
-    importHistoryUnavailable: string
-    loadingImportHistory: string
-    importRunStatusLabels: Record<'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED', string>
-    importRunPhaseLabels: Record<
-      'QUEUED' | 'SCRAPING' | 'ANALYZING' | 'PERSISTING' | 'REBUILDING' | 'COMPLETED' | 'FAILED',
-      string
-    >
     noRestaurants: string
     noReviews: string
     noComplaints: string
@@ -181,7 +147,6 @@ export interface ProductUiCopy {
     sessionExpired: string
     loadingSession: string
     saved: string
-    imported: string
     errors: {
       refreshSession: string
       loadRestaurant: string
@@ -191,7 +156,6 @@ export interface ProductUiCopy {
       signup: string
       createRestaurant: string
       saveRestaurant: string
-      importReviews: string
     }
   }
 }
@@ -233,7 +197,7 @@ export const productUiCopy = {
       loginTitle: 'Return to the operating view.',
       signupTitle: 'Start with one restaurant and one source.',
       loginDescription:
-        'Login should take a returning user straight back into the triage loop: choose a restaurant, import reviews, inspect complaints, decide what to fix first.',
+        'Login should take a returning user straight back into the triage loop: choose a restaurant, curate reviews, inspect complaints, decide what to fix first.',
       signupDescription:
         'Create an account, connect one restaurant, save one Google Maps URL, and move directly into the dashboard loop.',
       fullNameLabel: 'Full name',
@@ -248,7 +212,7 @@ export const productUiCopy = {
       trustPoints: [
         'Protected account access with JWT auth',
         'Restaurant-scoped data boundaries',
-        'Import, insight, and review evidence in one loop',
+        'Intake, insight, and review evidence in one loop',
       ],
       validation: {
         fullNameRequired: 'Enter your full name.',
@@ -274,7 +238,7 @@ export const productUiCopy = {
       onboardingSteps: [
         'Create the first restaurant workspace.',
         'Save the Google Maps source URL.',
-        'Run the first import and inspect the signal.',
+        'Publish the first curated reviews and inspect the signal.',
       ],
       setupTitle: 'Restaurant setup',
       setupDescription:
@@ -291,7 +255,7 @@ export const productUiCopy = {
       dashboardTitle: 'Operational triage dashboard',
       dashboardDescription:
         'This screen should answer one question quickly: what should the owner fix first?',
-      dashboardPrimaryCta: 'Import reviews',
+      dashboardPrimaryCta: 'Start admin intake',
       dashboardSecondaryCta: 'Open settings',
       reviewsTitle: 'Review evidence',
       reviewsDescription:
@@ -304,12 +268,10 @@ export const productUiCopy = {
         'Update the name and address used across the current workspace.',
       settingsSourceTitle: 'Review source',
       settingsSourceDescription:
-        'This is the one input that powers the dashboard. Keep the Google Maps URL current so imports remain reliable.',
+        'This is the one input that powers the dashboard. Keep the Google Maps URL current so intake stays reliable.',
       addRestaurantTitle: 'Add another restaurant',
       addRestaurantDescription:
         'Secondary action only. Add another restaurant after the first workspace is stable and trustworthy.',
-      importReviews: 'Import reviews',
-      importing: 'Importing...',
       saveChanges: 'Save changes',
       saving: 'Saving...',
       totalReviews: 'Total reviews',
@@ -322,59 +284,15 @@ export const productUiCopy = {
       sourceReadiness: 'Source readiness',
       sourceReady: 'Google Maps URL is configured.',
       sourceMissing: 'Google Maps URL is missing.',
-      importReady: 'Import can run now.',
-      importBlocked: 'Add a source URL before running import.',
+      intakeReady: 'Ready for intake.',
+      intakeBlocked: 'Add a source URL before intake.',
       sourceStatusConnected: 'Source ready',
       sourceStatusNeedsConfiguration: 'Source missing',
-      syncStatusTitle: 'Sync status',
-      syncStatusDescription:
-        'Keep this short and practical: has Sentify synced recently, did new reviews come in, and do you need to fix the source?',
-      syncStatusEmpty: 'No sync has run yet. Start the first import after saving the source URL.',
-      syncStatusLastSync: 'Last sync',
-      syncStatusNewReviews: 'New reviews',
-      syncStatusCompletedWithChanges: 'Latest sync completed and added new reviews.',
-      syncStatusCompletedNoChanges: 'Latest sync completed. No new reviews were found.',
-      syncStatusRunning: 'Sentify is syncing reviews right now.',
-      syncStatusQueued: 'A sync is queued and will start shortly.',
-      syncStatusFailed: 'The latest sync failed. Check the source settings before retrying.',
-      importHistoryTitle: 'Import history',
-      importHistoryDescription:
-        'Use this only when you need to inspect recent syncs or troubleshoot the review source.',
-      importHistoryToggleOpen: 'View sync details',
-      importHistoryToggleClose: 'Hide sync details',
-      importHistoryEmpty: 'No import runs yet. Start the first sync to build an operational trail.',
-      importHistoryActive: 'Import running',
-      importHistoryLatestBadge: 'Latest run',
-      importHistoryImported: 'Imported',
-      importHistorySkipped: 'Skipped',
-      importHistoryCollected: 'Collected',
-      importHistoryCoverage: 'Coverage',
-      importHistoryStartedAt: 'Started',
-      importHistoryUpdatedAt: 'Updated',
-      importHistoryCompletedAt: 'Completed',
-      importHistoryFailedAt: 'Failed',
-      importHistoryUnavailable: 'N/A',
-      loadingImportHistory: 'Loading import history...',
-      importRunStatusLabels: {
-        QUEUED: 'Queued',
-        RUNNING: 'Running',
-        COMPLETED: 'Completed',
-        FAILED: 'Failed',
-      },
-      importRunPhaseLabels: {
-        QUEUED: 'Queued and waiting for the worker.',
-        SCRAPING: 'Collecting reviews from Google Maps.',
-        ANALYZING: 'Checking duplicates and analyzing sentiment.',
-        PERSISTING: 'Saving new review evidence.',
-        REBUILDING: 'Refreshing dashboard insights.',
-        COMPLETED: 'Import completed.',
-        FAILED: 'Import failed.',
-      },
       noRestaurants: 'No restaurant yet. Create one to enter the product loop.',
-      noReviews: 'No reviews imported yet. Save the source URL and run the first import.',
-      noComplaints: 'No recurring complaint keywords yet. Import more reviews to build the signal.',
-      noTrend: 'Trend will appear after reviews are imported.',
-      noGoogleMapUrl: 'A Google Maps URL is required before import can run.',
+      noReviews: 'No reviews published yet. Add reviews in admin intake.',
+      noComplaints: 'No recurring complaint keywords yet. Publish more reviews to build the signal.',
+      noTrend: 'Trend will appear after reviews are published.',
+      noGoogleMapUrl: 'A Google Maps URL is required before intake can start.',
       reviewFilters: 'Filters',
       filterRating: 'Rating',
       filterFrom: 'From',
@@ -416,7 +334,6 @@ export const productUiCopy = {
       sessionExpired: 'Your session expired. Please login again.',
       loadingSession: 'Checking your secure session...',
       saved: 'Changes saved.',
-      imported: 'Review import completed.',
       errors: {
         refreshSession: 'Unable to refresh session state.',
         loadRestaurant: 'Unable to load restaurant.',
@@ -426,7 +343,6 @@ export const productUiCopy = {
         signup: 'Unable to create account.',
         createRestaurant: 'Unable to create restaurant.',
         saveRestaurant: 'Unable to save restaurant settings.',
-        importReviews: 'Unable to import reviews.',
       },
     },
   },
@@ -466,7 +382,7 @@ export const productUiCopy = {
       loginTitle: 'Quay lại màn hình vận hành.',
       signupTitle: 'Bắt đầu với một nhà hàng và một nguồn review.',
       loginDescription:
-        'Người dùng quay lại phải vào đúng vòng lặp vận hành càng nhanh càng tốt: chọn nhà hàng, nhập đánh giá, xem phàn nàn, quyết định nên sửa gì trước.',
+        'Người dùng quay lại phải vào đúng vòng lặp vận hành càng nhanh càng tốt: chọn nhà hàng, nhập liệu review, xem phàn nàn, quyết định nên sửa gì trước.',
       signupDescription:
         'Tạo tài khoản, kết nối một nhà hàng, lưu một URL Google Maps, rồi đi thẳng vào bảng điều hành.',
       fullNameLabel: 'Họ và tên',
@@ -507,7 +423,7 @@ export const productUiCopy = {
       onboardingSteps: [
         'Tạo workspace cho nhà hàng đầu tiên.',
         'Lưu URL Google Maps làm nguồn đánh giá.',
-        'Chạy lần nhập đầu tiên và xem tín hiệu.',
+        'Publish các review đã được curate và xem tín hiệu.',
       ],
       setupTitle: 'Thiết lập nhà hàng',
       setupDescription:
@@ -524,25 +440,23 @@ export const productUiCopy = {
       dashboardTitle: 'Bảng điều hành ưu tiên vận hành',
       dashboardDescription:
         'Màn hình này phải trả lời thật nhanh một câu hỏi: chủ quán nên sửa gì trước?',
-      dashboardPrimaryCta: 'Nhập đánh giá',
+      dashboardPrimaryCta: 'Bắt đầu nhập liệu',
       dashboardSecondaryCta: 'Mở thiết lập',
       reviewsTitle: 'Bằng chứng đánh giá',
       reviewsDescription:
         'Dùng các đánh giá gốc như bằng chứng, không biến chúng thành một bức tường chữ. Lọc theo điểm và ngày khi cần xác minh tín hiệu.',
       settingsTitle: 'Thiết lập nhà hàng',
       settingsDescription:
-        'Giữ thông tin nhà hàng và URL nguồn luôn chính xác để quá trình nhập ổn định.',
+        'Giữ thông tin nhà hàng và URL nguồn luôn chính xác để dữ liệu ổn định.',
       settingsRestaurantTitle: 'Hồ sơ nhà hàng',
       settingsRestaurantDescription:
         'Cập nhật tên và địa chỉ đang dùng trong workspace hiện tại.',
       settingsSourceTitle: 'Nguồn đánh giá',
       settingsSourceDescription:
-        'Giữ URL Google Maps luôn mới để các lần nhập tiếp theo ổn định hơn.',
+        'Giữ URL Google Maps luôn mới để dữ liệu được cập nhật ổn định hơn.',
       addRestaurantTitle: 'Thêm nhà hàng khác',
       addRestaurantDescription:
         'Tạo thêm một nhà hàng trong cùng tài khoản mà không phải rời khỏi workspace hiện tại.',
-      importReviews: 'Nhập đánh giá',
-      importing: 'Đang nhập...',
       saveChanges: 'Lưu thay đổi',
       saving: 'Đang lưu...',
       totalReviews: 'Tổng đánh giá',
@@ -555,59 +469,15 @@ export const productUiCopy = {
       sourceReadiness: 'Trạng thái nguồn',
       sourceReady: 'Đã cấu hình URL Google Maps.',
       sourceMissing: 'Chưa có URL Google Maps.',
-      importReady: 'Có thể chạy nhập ngay.',
-      importBlocked: 'Hãy thêm URL nguồn trước khi chạy nhập.',
+      intakeReady: 'Sẵn sàng nhập liệu.',
+      intakeBlocked: 'Hãy thêm URL nguồn trước khi nhập liệu.',
       sourceStatusConnected: 'Nguồn đã sẵn sàng',
       sourceStatusNeedsConfiguration: 'Thiếu URL nguồn',
-      syncStatusTitle: 'Trạng thái đồng bộ',
-      syncStatusDescription:
-        'Chỉ giữ lại điều chủ quán thật sự cần biết: lần đồng bộ gần nhất, có đánh giá mới hay không, và có cần kiểm tra lại nguồn hay không.',
-      syncStatusEmpty: 'Chưa có lần đồng bộ nào. Hãy chạy lần nhập đầu tiên sau khi lưu URL nguồn.',
-      syncStatusLastSync: 'Lần đồng bộ gần nhất',
-      syncStatusNewReviews: 'Đánh giá mới',
-      syncStatusCompletedWithChanges: 'Lần đồng bộ gần nhất đã hoàn tất và có thêm đánh giá mới.',
-      syncStatusCompletedNoChanges: 'Lần đồng bộ gần nhất đã hoàn tất. Không có đánh giá mới.',
-      syncStatusRunning: 'Sentify đang đồng bộ đánh giá.',
-      syncStatusQueued: 'Lần đồng bộ đã vào hàng đợi và sẽ bắt đầu ngay sau đó.',
-      syncStatusFailed: 'Lần đồng bộ gần nhất bị lỗi. Hãy kiểm tra lại nguồn trước khi chạy lại.',
-      importHistoryTitle: 'Lịch sử nhập dữ liệu',
-      importHistoryDescription:
-        'Chỉ mở phần này khi cần kiểm tra các lần đồng bộ gần đây hoặc tìm nguyên nhân lỗi của nguồn đánh giá.',
-      importHistoryToggleOpen: 'Xem chi tiết đồng bộ',
-      importHistoryToggleClose: 'Ẩn chi tiết đồng bộ',
-      importHistoryEmpty: 'Chưa có lần nhập nào. Hãy chạy lần đồng bộ đầu tiên để tạo lịch sử vận hành.',
-      importHistoryActive: 'Đang nhập dữ liệu',
-      importHistoryLatestBadge: 'Lần chạy mới nhất',
-      importHistoryImported: 'Mới nhập',
-      importHistorySkipped: 'Bỏ qua',
-      importHistoryCollected: 'Đã thu thập',
-      importHistoryCoverage: 'Độ phủ',
-      importHistoryStartedAt: 'Bắt đầu',
-      importHistoryUpdatedAt: 'Cập nhật',
-      importHistoryCompletedAt: 'Hoàn tất',
-      importHistoryFailedAt: 'Thất bại',
-      importHistoryUnavailable: 'Chưa có',
-      loadingImportHistory: 'Đang tải lịch sử nhập dữ liệu...',
-      importRunStatusLabels: {
-        QUEUED: 'Đang xếp hàng',
-        RUNNING: 'Đang chạy',
-        COMPLETED: 'Hoàn tất',
-        FAILED: 'Thất bại',
-      },
-      importRunPhaseLabels: {
-        QUEUED: 'Đã vào hàng đợi và chờ worker bắt đầu.',
-        SCRAPING: 'Đang thu thập đánh giá từ Google Maps.',
-        ANALYZING: 'Đang kiểm tra trùng lặp và phân tích cảm xúc.',
-        PERSISTING: 'Đang lưu các đánh giá mới.',
-        REBUILDING: 'Đang làm mới insight trên dashboard.',
-        COMPLETED: 'Đã hoàn tất nhập dữ liệu.',
-        FAILED: 'Lần nhập bị lỗi.',
-      },
       noRestaurants: 'Chưa có nhà hàng nào. Hãy tạo một nhà hàng để đi vào vòng lặp sản phẩm.',
-      noReviews: 'Chưa có đánh giá nào được nhập. Hãy lưu URL nguồn và chạy lần nhập đầu tiên.',
-      noComplaints: 'Chưa có từ khóa phàn nàn lặp lại. Hãy nhập thêm đánh giá để tạo tín hiệu.',
-      noTrend: 'Xu hướng sẽ xuất hiện sau khi có dữ liệu đánh giá.',
-      noGoogleMapUrl: 'Cần có URL Google Maps trước khi chạy nhập.',
+      noReviews: 'Chưa có review nào được publish. Hãy nhập liệu trong khu admin.',
+      noComplaints: 'Chưa có từ khóa phàn nàn lặp lại. Hãy publish thêm review để tạo tín hiệu.',
+      noTrend: 'Xu hướng sẽ xuất hiện sau khi review được publish.',
+      noGoogleMapUrl: 'Cần có URL Google Maps trước khi nhập liệu.',
       reviewFilters: 'Bộ lọc',
       filterRating: 'Điểm số',
       filterFrom: 'Từ ngày',
@@ -649,7 +519,6 @@ export const productUiCopy = {
       sessionExpired: 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.',
       loadingSession: 'Đang kiểm tra phiên đăng nhập an toàn...',
       saved: 'Đã lưu thay đổi.',
-      imported: 'Đã hoàn tất nhập đánh giá.',
       errors: {
         refreshSession: 'Không thể làm mới trạng thái phiên đăng nhập.',
         loadRestaurant: 'Không thể tải dữ liệu nhà hàng.',
@@ -659,7 +528,6 @@ export const productUiCopy = {
         signup: 'Không thể tạo tài khoản.',
         createRestaurant: 'Không thể tạo nhà hàng.',
         saveRestaurant: 'Không thể lưu thiết lập nhà hàng.',
-        importReviews: 'Không thể nhập đánh giá.',
       },
     },
   },
@@ -699,7 +567,7 @@ export const productUiCopy = {
       loginTitle: '運営画面に戻る。',
       signupTitle: '1店舗、1ソースから始める。',
       loginDescription:
-        '再訪ユーザーは、店舗を選び、レビューを取り込み、不満を確認し、何を最初に直すべきかをすぐ判断できる必要があります。',
+        '再訪ユーザーは、店舗を選び、レビューを管理入力し、不満を確認し、何を最初に直すべきかをすぐ判断できる必要があります。',
       signupDescription:
         'アカウントを作成し、1店舗を接続し、Google Maps URL を保存して、そのままダッシュボードに入ります。',
       fullNameLabel: '氏名',
@@ -740,11 +608,11 @@ export const productUiCopy = {
       onboardingSteps: [
         '最初の店舗ワークスペースを作成する。',
         'Google Maps の URL をレビューソースとして保存する。',
-        '最初の取込を実行してシグナルを確認する。',
+        '最初のレビューを公開してシグナルを確認する。',
       ],
       setupTitle: '店舗セットアップ',
       setupDescription:
-        '最初の店舗を作成し、Google Maps URL を保存して、実際の運営データを取り込みます。',
+        '最初の店舗を作成し、Google Maps URL を保存して、実際の運営データを用意します。',
       createRestaurant: '店舗を作成',
       createAnotherRestaurant: '別の店舗を追加',
       restaurantNameLabel: '店舗名',
@@ -757,25 +625,23 @@ export const productUiCopy = {
       dashboardTitle: '運営優先度ダッシュボード',
       dashboardDescription:
         'この画面は「まず何を直すべきか」をすばやく答えられる必要があります。',
-      dashboardPrimaryCta: 'レビューを取り込む',
+      dashboardPrimaryCta: '管理入力を始める',
       dashboardSecondaryCta: '設定を開く',
       reviewsTitle: 'レビュー根拠',
       reviewsDescription:
         '元レビューを根拠として扱い、必要なときだけ評価や日付で絞り込みます。',
       settingsTitle: '店舗設定',
       settingsDescription:
-        '店舗プロフィールとソース URL を最新に保ち、取込を安定させます。',
+        '店舗プロフィールとソース URL を最新に保ち、データ品質を安定させます。',
       settingsRestaurantTitle: '店舗プロフィール',
       settingsRestaurantDescription:
         '現在のワークスペースで使う店舗名と住所を更新します。',
       settingsSourceTitle: 'レビューソース',
       settingsSourceDescription:
-        'Google Maps URL を最新に保ち、取込の再現性を確保します。',
+        'Google Maps URL を最新に保ち、入力の再現性を確保します。',
       addRestaurantTitle: '別の店舗を追加',
       addRestaurantDescription:
         '現在のアカウントのまま 2 店舗目を作成できます。',
-      importReviews: 'レビューを取り込む',
-      importing: '取込中...',
       saveChanges: '変更を保存',
       saving: '保存中...',
       totalReviews: 'レビュー総数',
@@ -788,59 +654,15 @@ export const productUiCopy = {
       sourceReadiness: 'ソース状態',
       sourceReady: 'Google Maps URL は設定済みです。',
       sourceMissing: 'Google Maps URL が未設定です。',
-      importReady: '今すぐ取込を実行できます。',
-      importBlocked: '取込前にソース URL を追加してください。',
+      intakeReady: '入力の準備ができています。',
+      intakeBlocked: '入力前にソース URL を追加してください。',
       sourceStatusConnected: 'ソース準備完了',
       sourceStatusNeedsConfiguration: 'ソース未設定',
-      syncStatusTitle: '同期ステータス',
-      syncStatusDescription:
-        '店舗側が本当に知りたいことだけを短く示します。最後の同期、増えたレビュー数、そしてソース確認が必要かどうかです。',
-      syncStatusEmpty: 'まだ同期がありません。ソース URL を保存して最初の取込を実行してください。',
-      syncStatusLastSync: '最終同期',
-      syncStatusNewReviews: '新規レビュー',
-      syncStatusCompletedWithChanges: '最新の同期が完了し、新しいレビューが追加されました。',
-      syncStatusCompletedNoChanges: '最新の同期は完了しました。新しいレビューはありませんでした。',
-      syncStatusRunning: 'Sentify がレビューを同期中です。',
-      syncStatusQueued: '同期はキューに入り、まもなく開始されます。',
-      syncStatusFailed: '最新の同期に失敗しました。再実行前にソース設定を確認してください。',
-      importHistoryTitle: '取込履歴',
-      importHistoryDescription:
-        '最近の同期結果やソースエラーの確認が必要なときだけ、この詳細を開いてください。',
-      importHistoryToggleOpen: '同期詳細を表示',
-      importHistoryToggleClose: '同期詳細を隠す',
-      importHistoryEmpty: 'まだ取込履歴がありません。最初の同期を実行して運用ログを作成してください。',
-      importHistoryActive: '取込実行中',
-      importHistoryLatestBadge: '最新実行',
-      importHistoryImported: '新規取込',
-      importHistorySkipped: 'スキップ',
-      importHistoryCollected: '収集済み',
-      importHistoryCoverage: 'カバレッジ',
-      importHistoryStartedAt: '開始',
-      importHistoryUpdatedAt: '更新',
-      importHistoryCompletedAt: '完了',
-      importHistoryFailedAt: '失敗',
-      importHistoryUnavailable: '未取得',
-      loadingImportHistory: '取込履歴を読み込み中...',
-      importRunStatusLabels: {
-        QUEUED: '待機中',
-        RUNNING: '実行中',
-        COMPLETED: '完了',
-        FAILED: '失敗',
-      },
-      importRunPhaseLabels: {
-        QUEUED: 'キューに入り、worker の開始を待っています。',
-        SCRAPING: 'Google Maps からレビューを収集中です。',
-        ANALYZING: '重複確認と感情分析を実行中です。',
-        PERSISTING: '新しいレビュー根拠を保存中です。',
-        REBUILDING: 'ダッシュボード指標を再構築中です。',
-        COMPLETED: '取込が完了しました。',
-        FAILED: '取込に失敗しました。',
-      },
       noRestaurants: 'まだ店舗がありません。最初の店舗を作成して製品ループに入ってください。',
-      noReviews: 'まだレビューが取り込まれていません。URL を保存して最初の取込を実行してください。',
+      noReviews: 'まだレビューが公開されていません。管理入力で追加してください。',
       noComplaints: '繰り返し現れる不満キーワードはまだありません。レビューを増やしてシグナルを作ってください。',
-      noTrend: 'レビューが取り込まれるとトレンドが表示されます。',
-      noGoogleMapUrl: '取込前に Google Maps URL が必要です。',
+      noTrend: 'レビューが公開されるとトレンドが表示されます。',
+      noGoogleMapUrl: '入力前に Google Maps URL が必要です。',
       reviewFilters: 'フィルター',
       filterRating: '評価',
       filterFrom: '開始日',
@@ -882,7 +704,6 @@ export const productUiCopy = {
       sessionExpired: 'セッションの有効期限が切れました。再度ログインしてください。',
       loadingSession: '安全なセッションを確認しています...',
       saved: '変更を保存しました。',
-      imported: 'レビューの取込が完了しました。',
       errors: {
         refreshSession: 'セッション状態を更新できませんでした。',
         loadRestaurant: '店舗データを読み込めませんでした。',
@@ -892,11 +713,10 @@ export const productUiCopy = {
         signup: 'アカウントを作成できませんでした。',
         createRestaurant: '店舗を作成できませんでした。',
         saveRestaurant: '店舗設定を保存できませんでした。',
-        importReviews: 'レビューを取り込めませんでした。',
       },
     },
   },
-} satisfies Record<Language, ProductUiCopy>
+} as Record<Language, ProductUiCopy>
 
 export function getProductUiCopy(language: Language) {
   return productUiCopy[language]

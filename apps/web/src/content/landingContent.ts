@@ -80,7 +80,7 @@ export const landingContent = {
           step: '02',
           title: 'Bring recent feedback into one place',
           description:
-            'Sentify pulls reviews from that source, keeps the dataset tidy, and avoids importing the same review twice.',
+            'Admins curate reviews from that source, keeping the dataset tidy and easy to audit.',
         },
         {
           step: '03',
@@ -200,7 +200,7 @@ export const landingContent = {
         'Give owners one practical view of what to fix first',
       ],
       outOfScopeItems: [
-        'No multi-platform import beyond Google Maps in this first cut',
+        'No multi-platform sources beyond Google Maps in this first cut',
         'No invite flow, billing layer, or expanded team management in this version',
         'No report export, PDF generation, or oversized admin surface',
         'No attempt to solve every analytics problem at once',
@@ -277,7 +277,7 @@ export const landingContent = {
         },
       ],
       bottomLeft:
-        'Sentify project landing page. Sprint 1 is about review import, insight extraction, and one clear dashboard.',
+        'Sentify project landing page. Sprint 1 is about manual review intake, insight extraction, and one clear dashboard.',
       bottomRight: 'Built to answer one operating question well.',
     },
     ticker: [
@@ -614,7 +614,7 @@ export const landingContent = {
         },
       ],
       bottomLeft:
-        'Trang giới thiệu Sentify. Sprint 1 tập trung vào import review, rút insight và một dashboard để ra quyết định nhanh hơn.',
+        'Trang giới thiệu Sentify. Sprint 1 tập trung vào nhập review thủ công, rút insight và một dashboard để ra quyết định nhanh hơn.',
       bottomRight: 'Ưu tiên sự rõ ràng, không dựng một nền tảng quá đà.',
     },
     ticker: [

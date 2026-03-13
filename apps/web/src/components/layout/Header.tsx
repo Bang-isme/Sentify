@@ -3,7 +3,7 @@ import { getProductUiCopy } from '../../content/productUiCopy'
 import { LANGUAGE_OPTIONS, useLanguage } from '../../contexts/languageContext'
 import { useTheme } from '../../contexts/useTheme'
 
-type HeaderRoute = '/' | '/login' | '/signup' | '/app' | '/app/reviews' | '/app/settings'
+type HeaderRoute = '/' | '/login' | '/signup' | '/app' | '/app/reviews' | '/app/settings' | '/app/admin'
 
 interface HeaderAccountIdentity {
   displayName: string
@@ -52,6 +52,8 @@ export function Header({
         ? productCopy.header.reviews
         : route === '/app/settings'
           ? productCopy.header.settings
+          : route === '/app/admin'
+            ? 'Admin intake'
           : null
 
   useEffect(() => {

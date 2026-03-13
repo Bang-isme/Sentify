@@ -3,6 +3,8 @@
 Date: 2026-03-02
 Updated: 2026-03-05
 
+> Status (2026-03-12): Archived. This Sprint 1 document reflects the legacy import/scraper direction and is kept for historical context. Current source of truth: `manual-first-admin.md` and `output/doc/10-manual-first-admin-architecture.md`.
+
 Scope: **Sprint 1 MVP only** — Authentication, Restaurant Management, Google Review Import, Dashboard, Insights.
 
 ---

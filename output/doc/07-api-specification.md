@@ -6,6 +6,8 @@ Base URL: `http://localhost:3000/api`
 Backend: Node.js + Express  
 Content-Type: `application/json`
 
+> Status (2026-03-12): Archived. This Sprint 1 document reflects the legacy import/scraper direction and is kept for historical context. Current source of truth: `manual-first-admin.md` and `output/doc/10-manual-first-admin-architecture.md`.
+
 ## 7.1 Common Conventions
 
 ### Auth header

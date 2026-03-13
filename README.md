@@ -6,7 +6,7 @@ Sentify is a Sprint 1 implementation of an AI-assisted customer insight tool for
 
 - Auth: register, login, logout
 - Restaurant: create restaurant, save Google Maps URL
-- Review import: scrape Google reviews, deduplicate by `externalId`
+- Review intake: admin-curated manual intake (batch, approve, publish) to canonical reviews
 - Dashboard: review list, rating filter, date filter
 - Insights: sentiment breakdown, complaint keywords, rating trend
 
@@ -27,3 +27,7 @@ output/doc/         Sprint 1 design documentation
 ## Local Setup
 
 Backend setup details live in [output/doc/08-environment-setup.md](output/doc/08-environment-setup.md).
+
+## Runtime Docs
+
+Manual intake and admin workflows are captured in the `manual-first-admin.md` plan and related Sprint 1 docs.

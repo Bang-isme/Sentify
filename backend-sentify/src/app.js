@@ -4,9 +4,11 @@ const helmet = require('helmet')
 
 const env = require('./config/env')
 const authRoutes = require('./routes/auth')
+const adminIntakeRoutes = require('./modules/admin-intake/admin-intake.routes')
 const { sendError } = require('./lib/controller-error')
 const errorHandler = require('./middleware/error-handler')
 const { apiLimiter } = require('./middleware/rate-limit')
+const authMiddleware = require('./middleware/auth')
 const requestIdMiddleware = require('./middleware/request-id')
 const requestLogger = require('./middleware/request-logger')
 const restaurantRoutes = require('./routes/restaurants')
@@ -47,6 +49,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/restaurants', restaurantRoutes)
+app.use('/api/admin', authMiddleware, adminIntakeRoutes)
 
 app.use((req, res) => {
     return sendError(req, res, 404, 'NOT_FOUND', 'Resource not found')

@@ -2,6 +2,49 @@ const { getRestaurantAccess } = require('./restaurant-access.service')
 const { buildInsightSummary } = require('./insight.service')
 const prisma = require('../lib/prisma')
 
+function buildDatasetStatus({ latestPublishedBatch, openBatches }) {
+    const sourcePolicy = latestPublishedBatch ? 'ADMIN_CURATED' : 'UNCONFIGURED'
+    const openBatchSummary = (openBatches || []).reduce(
+        (summary, batch) => {
+            summary.pendingBatchCount += 1
+
+            for (const item of batch.items || []) {
+                if (item.approvalStatus === 'APPROVED') {
+                    summary.approvedItemCount += 1
+                } else if (item.approvalStatus === 'REJECTED') {
+                    summary.rejectedItemCount += 1
+                } else {
+                    summary.pendingItemCount += 1
+                }
+            }
+
+            if (batch.status === 'READY_TO_PUBLISH') {
+                summary.readyBatchCount += 1
+            }
+
+            return summary
+        },
+        {
+            pendingBatchCount: 0,
+            readyBatchCount: 0,
+            pendingItemCount: 0,
+            approvedItemCount: 0,
+            rejectedItemCount: 0,
+        },
+    )
+
+    return {
+        sourcePolicy,
+        lastPublishedAt: latestPublishedBatch?.publishedAt ?? null,
+        lastPublishedSourceType: latestPublishedBatch?.sourceType ?? null,
+        pendingBatchCount: openBatchSummary.pendingBatchCount,
+        readyBatchCount: openBatchSummary.readyBatchCount,
+        pendingItemCount: openBatchSummary.pendingItemCount,
+        approvedItemCount: openBatchSummary.approvedItemCount,
+        rejectedItemCount: openBatchSummary.rejectedItemCount,
+    }
+}
+
 function slugifyName(name) {
     return name
         .normalize('NFD')
@@ -113,6 +156,35 @@ async function getRestaurantDetail({ userId, restaurantId }) {
             insight: true,
         },
     })
+    const [latestPublishedBatch, openBatches] = await Promise.all([
+        prisma.reviewIntakeBatch.findFirst({
+            where: {
+                restaurantId,
+                status: 'PUBLISHED',
+            },
+            orderBy: [{ publishedAt: 'desc' }, { updatedAt: 'desc' }],
+            select: {
+                sourceType: true,
+                publishedAt: true,
+            },
+        }),
+        prisma.reviewIntakeBatch.findMany({
+            where: {
+                restaurantId,
+                status: {
+                    in: ['DRAFT', 'IN_REVIEW', 'READY_TO_PUBLISH'],
+                },
+            },
+            select: {
+                status: true,
+                items: {
+                    select: {
+                        approvalStatus: true,
+                    },
+                },
+            },
+        }),
+    ])
 
     return {
         id: access.restaurant.id,
@@ -120,6 +192,7 @@ async function getRestaurantDetail({ userId, restaurantId }) {
         slug: access.restaurant.slug,
         address: access.restaurant.address,
         googleMapUrl: access.restaurant.googleMapUrl,
+        datasetStatus: buildDatasetStatus({ latestPublishedBatch, openBatches }),
         permission: access.permission,
         insightSummary: buildInsightSummary(access.restaurantWithRelations.insight),
     }

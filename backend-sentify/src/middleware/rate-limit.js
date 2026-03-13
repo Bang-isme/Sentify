@@ -44,17 +44,8 @@ const registerLimiter = createJsonLimiter({
     message: 'Too many registration attempts. Please try again later.',
 })
 
-const importLimiter = createJsonLimiter({
-    windowMs: env.IMPORT_RATE_LIMIT_WINDOW_MS,
-    max: env.IMPORT_RATE_LIMIT_MAX,
-    code: 'IMPORT_RATE_LIMITED',
-    message: 'Too many import requests. Please try again later.',
-    keyGenerator: (req) => req.user?.userId || rateLimit.ipKeyGenerator(req.ip),
-})
-
 module.exports = {
     apiLimiter,
     loginLimiter,
     registerLimiter,
-    importLimiter,
 }

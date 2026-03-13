@@ -3,6 +3,8 @@
 Date: 2026-03-03  
 Updated: 2026-03-07 (Sprint 1 scope sync)
 
+> Status (2026-03-12): Archived. This Sprint 1 document reflects the legacy import/scraper direction and is kept for historical context. Current source of truth: `manual-first-admin.md` and `output/doc/10-manual-first-admin-architecture.md`.
+
 This document describes the practical project layout for the current repo, not an idealized future monorepo.
 
 ## 6.1 Current Repo Shape

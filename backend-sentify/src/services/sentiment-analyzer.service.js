@@ -90,7 +90,28 @@ const STOPWORDS = new Set([
     'place',
     'restaurant',
     'service',
+    'translated',
+    'translate',
+    'translation',
+    'original',
+    'google',
+    'hours',
+    'hour',
+    'days',
+    'day',
+    'weeks',
+    'week',
+    'months',
+    'month',
+    'ago',
 ])
+
+const INTERNAL_KEYWORD_PATTERNS = [
+    /^0x[0-9a-f]+$/i,
+    /^0ahuke/i,
+    /^[a-z0-9]+(?:_[a-z0-9]+){2,}$/i,
+    /^[a-z0-9]{24,}$/i,
+]
 
 function normalizeText(text) {
     return (text || '')
@@ -113,6 +134,10 @@ function unique(values) {
     return [...new Set(values)]
 }
 
+function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function labelFromRating(rating) {
     if (rating >= 4) {
         return 'POSITIVE'
@@ -129,7 +154,23 @@ function collectPhraseMatches(text, foldedText, keywords) {
     return keywords.filter((keyword) => {
         const normalizedKeyword = normalizeText(keyword)
         const foldedKeyword = foldLatinText(keyword)
-        return text.includes(normalizedKeyword) || foldedText.includes(foldedKeyword)
+
+        const buildPattern = (value) =>
+            new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegex(value).replace(/\s+/g, '\\s+')}($|[^\\p{L}\\p{N}])`, 'u')
+
+        const matchesKeyword = (sourceText, keywordValue) => {
+            if (!keywordValue) {
+                return false
+            }
+
+            if (/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(keywordValue)) {
+                return sourceText.includes(keywordValue)
+            }
+
+            return buildPattern(keywordValue).test(sourceText)
+        }
+
+        return matchesKeyword(text, normalizedKeyword) || matchesKeyword(foldedText, foldedKeyword)
     })
 }
 
@@ -145,7 +186,12 @@ function collectTokenKeywords(text) {
     return unique(
         (text.match(/[\p{L}\p{N}-]+/gu) || [])
             .map((token) => token.trim())
-            .filter((token) => token.length >= 3 && !STOPWORDS.has(token)),
+            .filter(
+                (token) =>
+                    token.length >= 3 &&
+                    !STOPWORDS.has(token) &&
+                    !INTERNAL_KEYWORD_PATTERNS.some((pattern) => pattern.test(token)),
+            ),
     )
 }
 

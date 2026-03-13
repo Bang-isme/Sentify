@@ -5,6 +5,8 @@ Updated: 2026-03-07
 This file summarizes the user-flow thinking behind the Sprint 1 scope.
 It is a companion note to `02-flow-diagram.md`, not a separate source of truth.
 
+> Status (2026-03-12): Archived. This Sprint 1 document reflects the legacy import/scraper direction and is kept for historical context. Current source of truth: `manual-first-admin.md` and `output/doc/10-manual-first-admin-architecture.md`.
+
 ## 1. Core Product Loop
 
 ```text
