@@ -1,12 +1,14 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const { randomBytes } = require('crypto')
 
 process.env.NODE_ENV = 'development'
 process.env.LOG_FORMAT = 'json'
 process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://sentify:sentify@localhost:5432/sentify'
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-with-at-least-32-chars'
+process.env.JWT_SECRET = process.env.JWT_SECRET || randomBytes(32).toString('hex')
 
 const app = require('../src/app')
+const prisma = require('../src/lib/prisma')
 
 function listen(serverApp) {
     return new Promise((resolve) => {
@@ -34,10 +36,14 @@ test('request logger emits a structured access log without query strings', async
         infoLogs.push(message)
     }
 
+    const originalQueryRaw = prisma.$queryRaw
+    prisma.$queryRaw = async () => 1
+
     const server = await listen(app)
 
     t.after(async () => {
         console.info = originalInfo
+        prisma.$queryRaw = originalQueryRaw
         await new Promise((resolve, reject) => {
             server.close((error) => {
                 if (error) {
@@ -50,7 +56,7 @@ test('request logger emits a structured access log without query strings', async
         })
     })
 
-    const { response } = await makeRequest(server, '/api/health?token=secret')
+    const { response } = await makeRequest(server, '/api/health?q=secret')
 
     assert.equal(response.status, 200)
     assert.equal(infoLogs.length, 1)

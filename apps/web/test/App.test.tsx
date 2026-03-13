@@ -320,6 +320,40 @@ describe('Sentify app shell', () => {
     expect(screen.queryByText('Import history')).not.toBeInTheDocument()
   })
 
+  it('summarizes the top issue and next action on the dashboard', async () => {
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
+    window.location.hash = '#/app'
+
+    render(<App />)
+
+    expect(await screen.findByText('Top issue and next action')).toBeInTheDocument()
+    expect(screen.getAllByText('Wait time').length).toBeGreaterThan(0)
+    expect(
+      screen.getByText(/Review 5 reviews mentioning/i),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open review evidence' })).toBeInTheDocument()
+  })
+
+  it('shows the empty top-issue state when no complaints exist', async () => {
+    mockAuthenticatedSession({ restaurants: [createMembership()] })
+    getDashboardKpiMock.mockResolvedValue({
+      totalReviews: 0,
+      averageRating: 0,
+      positivePercentage: 0,
+      neutralPercentage: 0,
+      negativePercentage: 0,
+    })
+    getComplaintKeywordsMock.mockResolvedValue([])
+    window.location.hash = '#/app'
+
+    render(<App />)
+
+    expect(await screen.findByText('Top issue and next action')).toBeInTheDocument()
+    expect(
+      screen.getByText('No dominant complaint signal yet. Publish more reviews to surface the top issue.'),
+    ).toBeInTheDocument()
+  })
+
   it('shows the localized empty state for review evidence', async () => {
     mockAuthenticatedSession({ restaurants: [createMembership()] })
     listReviewEvidenceMock.mockResolvedValue(

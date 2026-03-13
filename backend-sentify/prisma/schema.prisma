@@ -97,6 +97,7 @@ model Review {
   keywords     String[]         @default([])
   reviewDate   DateTime?
   createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @default(now()) @updatedAt
 
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   intakeItems ReviewIntakeItem[]
@@ -149,6 +150,7 @@ model ReviewIntakeBatch {
   createdBy  User            @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
   items      ReviewIntakeItem[]
 
+  @@index([restaurantId])
   @@index([restaurantId, status, createdAt])
   @@index([restaurantId, updatedAt, createdAt])
   @@index([createdByUserId, createdAt])
@@ -168,6 +170,8 @@ model ReviewIntakeItem {
   normalizedReviewDate  DateTime?
   approvalStatus        ReviewIntakeItemApprovalStatus @default(PENDING)
   reviewerNote          String?
+  /// Links intake items to the canonical Review created or updated at publish time.
+  /// TODO(2026-04): Revisit @unique if we allow bulk imports that re-link multiple items.
   canonicalReviewId     String?                       @unique
   createdAt             DateTime                      @default(now())
   updatedAt             DateTime                      @updatedAt

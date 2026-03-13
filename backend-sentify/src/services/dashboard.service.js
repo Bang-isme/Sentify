@@ -1,10 +1,7 @@
 const prisma = require('../lib/prisma')
-const { buildInsightSummary, toPercentage } = require('./insight.service')
+const { roundNumber, toPercentage } = require('../lib/math')
+const { buildInsightSummary } = require('./insight.service')
 const { getRestaurantAccess } = require('./restaurant-access.service')
-
-function roundNumber(value, digits = 1) {
-    return Number(Number(value || 0).toFixed(digits))
-}
 
 function buildIsoWeekLabel(date) {
     const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
@@ -150,9 +147,55 @@ async function getComplaintKeywords({ userId, restaurantId }) {
     return keywords
 }
 
+function buildTopIssueAction(keyword, count) {
+    if (!keyword) {
+        return null
+    }
+
+    const countLabel = typeof count === 'number' ? count : 0
+    const plural = countLabel === 1 ? '' : 's'
+    return `Prioritize improving ${keyword} — review ${countLabel} related complaint${plural}.`
+}
+
+async function getTopIssue({ userId, restaurantId }) {
+    await ensureRestaurantAccess(userId, restaurantId)
+
+    const topKeyword = await prisma.complaintKeyword.findFirst({
+        where: {
+            restaurantId,
+        },
+        orderBy: [{ count: 'desc' }, { keyword: 'asc' }],
+        select: {
+            keyword: true,
+            count: true,
+            percentage: true,
+            lastUpdatedAt: true,
+        },
+    })
+
+    if (!topKeyword) {
+        return {
+            keyword: null,
+            count: 0,
+            percentage: 0,
+            action: null,
+            lastUpdatedAt: null,
+        }
+    }
+
+    return {
+        keyword: topKeyword.keyword,
+        count: topKeyword.count,
+        percentage: topKeyword.percentage,
+        action: buildTopIssueAction(topKeyword.keyword, topKeyword.count),
+        lastUpdatedAt: topKeyword.lastUpdatedAt,
+    }
+}
+
 module.exports = {
     getRestaurantKpi,
     getSentimentBreakdown,
     getTrend,
     getComplaintKeywords,
+    getTopIssue,
 }

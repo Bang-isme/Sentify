@@ -78,6 +78,24 @@ export function DashboardPanel({
   const hasSource = Boolean(detail?.googleMapUrl)
   const totalReviews = kpi?.totalReviews ?? 0
   const hasPublishedReviews = totalReviews > 0
+  const topComplaint =
+    dashboard.complaints.length > 0
+      ? dashboard.complaints.reduce((leader, item) =>
+          item.count > leader.count ? item : leader,
+        )
+      : null
+  const topIssueActionText = topComplaint
+    ? copy.topIssueActionTemplate
+        .replace('{count}', formatNumber(topComplaint.count, language))
+        .replace('{keyword}', topComplaint.keyword)
+    : copy.topIssueActionFallback
+  const topIssueMeta =
+    topComplaint
+      ? `${formatPercentage(topComplaint.percentage, language)} | ${formatNumber(
+          topComplaint.count,
+          language,
+        )} ${copy.navReviews}`
+      : null
 
   return (
     <div className="grid gap-6">
@@ -145,6 +163,49 @@ export function DashboardPanel({
         language={language}
         onOpenAdmin={() => onNavigate('/app/admin')}
       />
+
+      <SectionCard
+        title={copy.topIssueTitle}
+        description={copy.topIssueDescription}
+        headerAside={
+          <button
+            type="button"
+            disabled={!hasPublishedReviews}
+            className="inline-flex h-10 items-center justify-center rounded-full border border-primary/35 px-4 text-sm font-semibold text-primary transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-55 dark:border-primary/35"
+            onClick={() => onNavigate('/app/reviews')}
+          >
+            {copy.topIssueCta}
+          </button>
+        }
+      >
+        {!hasPublishedReviews || !topComplaint ? (
+          <EmptyPanel message={copy.topIssueEmpty} />
+        ) : (
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+            <div className="rounded-2xl border border-border-light/70 bg-bg-light/75 px-4 py-4 dark:border-border-dark dark:bg-bg-dark/55">
+              <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-silver-light dark:text-text-silver-dark">
+                {copy.topIssueLabel}
+              </div>
+              <div className="mt-2 text-lg font-black text-text-charcoal dark:text-white">
+                {topComplaint.keyword}
+              </div>
+              {topIssueMeta ? (
+                <div className="mt-2 text-xs text-text-silver-light dark:text-text-silver-dark">
+                  {topIssueMeta}
+                </div>
+              ) : null}
+            </div>
+            <div className="rounded-2xl border border-border-light/70 bg-bg-light/75 px-4 py-4 dark:border-border-dark dark:bg-bg-dark/55">
+              <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-silver-light dark:text-text-silver-dark">
+                {copy.topIssueActionLabel}
+              </div>
+              <p className="mt-2 text-sm leading-6 text-text-charcoal dark:text-white">
+                {topIssueActionText}
+              </p>
+            </div>
+          </div>
+        )}
+      </SectionCard>
 
       {!hasPublishedReviews ? (
         <SectionCard

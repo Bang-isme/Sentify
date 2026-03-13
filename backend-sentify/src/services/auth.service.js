@@ -3,7 +3,7 @@ const { randomUUID } = require('crypto')
 const jwt = require('jsonwebtoken')
 
 const env = require('../config/env')
-const { conflict, tooManyRequests, unauthorized } = require('../lib/app-error')
+const { badRequest, conflict, tooManyRequests, unauthorized } = require('../lib/app-error')
 const prisma = require('../lib/prisma')
 const { logSecurityEvent } = require('../lib/security-event')
 
@@ -251,10 +251,79 @@ async function getSession({ userId }) {
     }
 }
 
+async function changePassword({ userId, currentPassword, newPassword, context = {} }) {
+    if (currentPassword === newPassword) {
+        throw badRequest('AUTH_PASSWORD_REUSE', 'New password must be different')
+    }
+
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+    })
+
+    if (!user) {
+        throw unauthorized('AUTH_INVALID_TOKEN', 'Access token is invalid or expired')
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash)
+
+    if (!isPasswordValid) {
+        logSecurityEvent('auth.password.change.failed', {
+            requestId: context.requestId,
+            ip: context.ip,
+            userAgent: context.userAgent,
+            userId,
+            reason: 'invalid_password',
+        })
+        throw unauthorized('AUTH_INVALID_CREDENTIALS', 'Invalid current password')
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS)
+    const updatedUser = await prisma.user.update({
+        where: {
+            id: user.id,
+        },
+        data: {
+            passwordHash,
+            tokenVersion: {
+                increment: 1,
+            },
+            failedLoginCount: 0,
+            lockedUntil: null,
+        },
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            tokenVersion: true,
+        },
+    })
+
+    logSecurityEvent('auth.password.changed', {
+        requestId: context.requestId,
+        ip: context.ip,
+        userAgent: context.userAgent,
+        userId: updatedUser.id,
+        email: updatedUser.email,
+    })
+
+    return {
+        accessToken: buildAccessToken(updatedUser),
+        expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+        user: {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            fullName: updatedUser.fullName,
+        },
+    }
+}
+
 module.exports = {
     ACCESS_TOKEN_EXPIRES_IN_SECONDS,
     getSession,
     register,
     login,
     logout,
+    changePassword,
 }

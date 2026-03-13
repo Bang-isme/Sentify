@@ -449,3 +449,230 @@ test('admin intake review payload rejects invalid ratings', async () => {
 
     restoreModules()
 })
+
+test('admin intake service bulk adds unique items and skips duplicates', async () => {
+    restoreModules()
+
+    let accessChecked = false
+    let createItemsPayload = null
+    let updateStatus = null
+    let findCalls = 0
+
+    const baseBatch = {
+        id: 'batch-1',
+        restaurantId: 'restaurant-1',
+        createdByUserId: 'user-1',
+        title: null,
+        sourceType: 'MANUAL',
+        status: 'DRAFT',
+        publishedAt: null,
+        createdAt: new Date('2026-03-10T00:00:00Z'),
+        updatedAt: new Date('2026-03-10T00:00:00Z'),
+    }
+
+    const existingItem = {
+        id: 'item-1',
+        batchId: 'batch-1',
+        restaurantId: 'restaurant-1',
+        rawAuthorName: 'Ana',
+        rawRating: 5,
+        rawContent: 'Great food',
+        rawReviewDate: new Date('2026-03-01T00:00:00Z'),
+        normalizedAuthorName: 'Ana',
+        normalizedRating: 5,
+        normalizedContent: 'Great food',
+        normalizedReviewDate: new Date('2026-03-01T00:00:00Z'),
+        approvalStatus: 'APPROVED',
+        reviewerNote: null,
+        canonicalReviewId: null,
+        createdAt: new Date('2026-03-10T00:00:00Z'),
+        updatedAt: new Date('2026-03-10T00:00:00Z'),
+    }
+
+    const newItem = {
+        id: 'item-2',
+        batchId: 'batch-1',
+        restaurantId: 'restaurant-1',
+        rawAuthorName: 'Bo',
+        rawRating: 4,
+        rawContent: 'Nice place',
+        rawReviewDate: new Date('2026-03-02T00:00:00Z'),
+        normalizedAuthorName: 'Bo',
+        normalizedRating: 4,
+        normalizedContent: 'Nice place',
+        normalizedReviewDate: new Date('2026-03-02T00:00:00Z'),
+        approvalStatus: 'APPROVED',
+        reviewerNote: null,
+        canonicalReviewId: null,
+        createdAt: new Date('2026-03-10T00:00:00Z'),
+        updatedAt: new Date('2026-03-10T00:00:00Z'),
+    }
+
+    withMock('../src/services/restaurant-access.service', {
+        getRestaurantAccess: async () => {
+            accessChecked = true
+            return { restaurant: { id: 'restaurant-1' } }
+        },
+    })
+    withMock('../src/modules/admin-intake/admin-intake.repository', {
+        findBatchById: async () => {
+            findCalls += 1
+            if (findCalls === 1) {
+                return { ...baseBatch, items: [existingItem] }
+            }
+            return { ...baseBatch, status: 'DRAFT', items: [existingItem, newItem] }
+        },
+        createItems: async (batchId, restaurantId, items) => {
+            createItemsPayload = { batchId, restaurantId, items }
+            return items
+        },
+        updateBatch: async (batchId, data) => {
+            updateStatus = data.status
+            return { ...baseBatch, status: data.status, items: [existingItem, newItem] }
+        },
+    })
+
+    const { addReviewItemsBulk } = require('../src/modules/admin-intake/admin-intake.service')
+    const result = await addReviewItemsBulk({
+        userId: 'user-1',
+        batchId: 'batch-1',
+        items: [
+            {
+                rawAuthorName: 'Ana',
+                rawRating: 5,
+                rawContent: 'Great food',
+                rawReviewDate: new Date('2026-03-01T00:00:00Z'),
+            },
+            {
+                rawAuthorName: 'Bo',
+                rawRating: 4,
+                rawContent: 'Nice place',
+                rawReviewDate: new Date('2026-03-02T00:00:00Z'),
+            },
+            {
+                rawAuthorName: 'Bo',
+                rawRating: 4,
+                rawContent: 'Nice place',
+                rawReviewDate: new Date('2026-03-02T00:00:00Z'),
+            },
+        ],
+    })
+
+    assert.equal(accessChecked, true)
+    assert.equal(createItemsPayload.batchId, 'batch-1')
+    assert.equal(createItemsPayload.items.length, 1)
+    assert.equal(createItemsPayload.items[0].rawAuthorName, 'Bo')
+    assert.equal(updateStatus, 'READY_TO_PUBLISH')
+    assert.equal(result.items.length, 2)
+
+    restoreModules()
+})
+
+test('admin intake service deletes a review item and refreshes batch status', async () => {
+    restoreModules()
+
+    let accessChecked = false
+    let deletedItemId = null
+    let updateStatus = null
+
+    const baseBatch = {
+        id: 'batch-1',
+        restaurantId: 'restaurant-1',
+        createdByUserId: 'user-1',
+        title: null,
+        sourceType: 'MANUAL',
+        status: 'IN_REVIEW',
+        publishedAt: null,
+        createdAt: new Date('2026-03-10T00:00:00Z'),
+        updatedAt: new Date('2026-03-10T00:00:00Z'),
+    }
+
+    withMock('../src/services/restaurant-access.service', {
+        getRestaurantAccess: async () => {
+            accessChecked = true
+            return { restaurant: { id: 'restaurant-1' } }
+        },
+    })
+    withMock('../src/modules/admin-intake/admin-intake.repository', {
+        findItemById: async () => ({
+            id: 'item-1',
+            batchId: 'batch-1',
+            restaurantId: 'restaurant-1',
+            approvalStatus: 'REJECTED',
+            batch: {
+                ...baseBatch,
+                items: [
+                    {
+                        id: 'item-1',
+                        approvalStatus: 'REJECTED',
+                        canonicalReviewId: null,
+                    },
+                ],
+            },
+        }),
+        deleteItem: async (itemId) => {
+            deletedItemId = itemId
+            return { id: itemId }
+        },
+        findBatchById: async () => ({
+            ...baseBatch,
+            status: 'IN_REVIEW',
+            items: [],
+        }),
+        updateBatch: async (batchId, data) => {
+            updateStatus = data.status
+            return { ...baseBatch, status: data.status, items: [] }
+        },
+    })
+
+    const { deleteReviewItem } = require('../src/modules/admin-intake/admin-intake.service')
+    const result = await deleteReviewItem({
+        userId: 'user-1',
+        itemId: 'item-1',
+    })
+
+    assert.equal(accessChecked, true)
+    assert.equal(deletedItemId, 'item-1')
+    assert.equal(updateStatus, 'DRAFT')
+    assert.equal(result.status, 'DRAFT')
+    assert.equal(result.counts.totalItems, 0)
+
+    restoreModules()
+})
+
+test('admin intake service deletes a draft batch', async () => {
+    restoreModules()
+
+    let accessChecked = false
+    let deletedBatchId = null
+
+    const batch = {
+        id: 'batch-1',
+        restaurantId: 'restaurant-1',
+        status: 'DRAFT',
+    }
+
+    withMock('../src/services/restaurant-access.service', {
+        getRestaurantAccess: async () => {
+            accessChecked = true
+            return { restaurant: { id: 'restaurant-1' } }
+        },
+    })
+    withMock('../src/modules/admin-intake/admin-intake.repository', {
+        findBatchById: async () => batch,
+        deleteBatch: async (batchId) => {
+            deletedBatchId = batchId
+            return batch
+        },
+    })
+
+    const { deleteReviewBatch } = require('../src/modules/admin-intake/admin-intake.service')
+    const result = await deleteReviewBatch({ userId: 'user-1', batchId: 'batch-1' })
+
+    assert.equal(accessChecked, true)
+    assert.equal(deletedBatchId, 'batch-1')
+    assert.equal(result.deleted, true)
+    assert.equal(result.status, 'DRAFT')
+
+    restoreModules()
+})

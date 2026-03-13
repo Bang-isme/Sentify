@@ -6,6 +6,7 @@ const env = require('./config/env')
 const authRoutes = require('./routes/auth')
 const adminIntakeRoutes = require('./modules/admin-intake/admin-intake.routes')
 const { sendError } = require('./lib/controller-error')
+const prisma = require('./lib/prisma')
 const errorHandler = require('./middleware/error-handler')
 const { apiLimiter } = require('./middleware/rate-limit')
 const authMiddleware = require('./middleware/auth')
@@ -23,7 +24,8 @@ app.use(
     cors({
         origin: env.CORS_ORIGINS,
         credentials: true,
-        methods: ['GET', 'POST', 'PATCH'],
+        // Keep methods intentionally narrow for MVP. Add DELETE only when an endpoint requires it.
+        methods: ['GET', 'POST', 'PATCH', 'DELETE'],
         allowedHeaders: ['Authorization', 'Content-Type'],
     }),
 )
@@ -43,8 +45,17 @@ app.get('/health', (req, res) => {
     return res.status(200).json({ status: 'ok' })
 })
 
-app.get('/api/health', (req, res) => {
-    return res.status(200).json({ status: 'ok' })
+app.get('/api/health', async (req, res) => {
+    if (env.NODE_ENV === 'test') {
+        return res.status(200).json({ status: 'ok', db: 'skipped' })
+    }
+
+    try {
+        await prisma.$queryRaw`SELECT 1`
+        return res.status(200).json({ status: 'ok', db: 'up' })
+    } catch (error) {
+        return res.status(503).json({ status: 'unavailable', db: 'down' })
+    }
 })
 
 app.use('/api/auth', authRoutes)

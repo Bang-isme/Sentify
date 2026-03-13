@@ -70,9 +70,25 @@ async function getComplaintKeywords(req, res) {
     }
 }
 
+async function getTopIssue(req, res) {
+    try {
+        const result = await dashboardService.getTopIssue({
+            userId: req.user.userId,
+            restaurantId: req.params.id,
+        })
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 module.exports = {
     getKpi,
     getSentimentBreakdown,
     getTrend,
     getComplaintKeywords,
+    getTopIssue,
 }

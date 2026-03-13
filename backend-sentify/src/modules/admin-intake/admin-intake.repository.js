@@ -65,6 +65,14 @@ async function updateItem(itemId, data) {
     })
 }
 
+async function deleteItem(itemId) {
+    return prisma.reviewIntakeItem.delete({
+        where: {
+            id: itemId,
+        },
+    })
+}
+
 async function findItemById(itemId) {
     return prisma.reviewIntakeItem.findUnique({
         where: {
@@ -85,6 +93,14 @@ async function updateBatch(batchId, data) {
         },
         data,
         include: buildBatchInclude(true),
+    })
+}
+
+async function deleteBatch(batchId) {
+    return prisma.reviewIntakeBatch.delete({
+        where: {
+            id: batchId,
+        },
     })
 }
 
@@ -181,6 +197,8 @@ async function publishApprovedItems({
 module.exports = {
     createBatch,
     createItems,
+    deleteBatch,
+    deleteItem,
     findBatchById,
     findItemById,
     listBatchesByRestaurant,

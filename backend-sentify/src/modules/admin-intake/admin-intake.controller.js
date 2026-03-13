@@ -3,6 +3,7 @@ const service = require('./admin-intake.service')
 const {
     createReviewBatchSchema,
     createReviewItemsSchema,
+    createReviewItemsBulkSchema,
     listReviewBatchesQuerySchema,
     updateReviewItemSchema,
 } = require('./admin-intake.validation')
@@ -71,6 +72,23 @@ async function addReviewItems(req, res) {
     }
 }
 
+async function addReviewItemsBulk(req, res) {
+    try {
+        const input = createReviewItemsBulkSchema.parse(req.body)
+        const result = await service.addReviewItemsBulk({
+            userId: req.user.userId,
+            batchId: req.params.id,
+            items: input.items,
+        })
+
+        return res.status(201).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 async function updateReviewItem(req, res) {
     try {
         const input = updateReviewItemSchema.parse(req.body)
@@ -78,6 +96,36 @@ async function updateReviewItem(req, res) {
             userId: req.user.userId,
             itemId: req.params.id,
             input,
+        })
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
+async function deleteReviewItem(req, res) {
+    try {
+        const result = await service.deleteReviewItem({
+            userId: req.user.userId,
+            itemId: req.params.id,
+        })
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
+async function deleteReviewBatch(req, res) {
+    try {
+        const result = await service.deleteReviewBatch({
+            userId: req.user.userId,
+            batchId: req.params.id,
         })
 
         return res.status(200).json({
@@ -105,7 +153,10 @@ async function publishReviewBatch(req, res) {
 
 module.exports = {
     addReviewItems,
+    addReviewItemsBulk,
     createReviewBatch,
+    deleteReviewBatch,
+    deleteReviewItem,
     getReviewBatch,
     listReviewBatches,
     publishReviewBatch,

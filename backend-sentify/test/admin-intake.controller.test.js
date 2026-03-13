@@ -161,6 +161,54 @@ test('admin intake controller adds items with 201', async () => {
     restoreModules()
 })
 
+test('admin intake controller bulk adds items with 201', async () => {
+    restoreModules()
+
+    const handledErrors = []
+    let receivedPayload = null
+
+    withMock('../src/lib/controller-error', {
+        handleControllerError: (req, res, error) => {
+            handledErrors.push(error)
+            return res.status(500).json({ error: { code: 'UNEXPECTED' } })
+        },
+    })
+    withMock('../src/modules/admin-intake/admin-intake.service', {
+        addReviewItemsBulk: async (payload) => {
+            receivedPayload = payload
+            return { id: 'batch-1' }
+        },
+    })
+
+    const controller = require('../src/modules/admin-intake/admin-intake.controller')
+    const req = {
+        params: { id: 'batch-1' },
+        body: {
+            items: [
+                {
+                    rawAuthorName: 'Ana',
+                    rawRating: 5,
+                    rawContent: 'Great food',
+                    rawReviewDate: new Date('2026-03-01T00:00:00Z'),
+                },
+            ],
+        },
+        user: { userId: 'user-1' },
+    }
+    const res = createRes()
+
+    await controller.addReviewItemsBulk(req, res)
+
+    assert.equal(res.statusCode, 201)
+    assert.deepEqual(res.body, { data: { id: 'batch-1' } })
+    assert.equal(receivedPayload.userId, 'user-1')
+    assert.equal(receivedPayload.batchId, 'batch-1')
+    assert.equal(receivedPayload.items.length, 1)
+    assert.equal(handledErrors.length, 0)
+
+    restoreModules()
+})
+
 test('admin intake controller updates an item with 200', async () => {
     restoreModules()
 
@@ -233,6 +281,43 @@ test('admin intake controller publishes a batch with 200', async () => {
 
     assert.equal(res.statusCode, 200)
     assert.deepEqual(res.body, { data: { batch: { id: 'batch-1' }, publishedCount: 1 } })
+    assert.equal(receivedPayload.userId, 'user-1')
+    assert.equal(receivedPayload.batchId, 'batch-1')
+    assert.equal(handledErrors.length, 0)
+
+    restoreModules()
+})
+
+test('admin intake controller deletes a batch with 200', async () => {
+    restoreModules()
+
+    const handledErrors = []
+    let receivedPayload = null
+
+    withMock('../src/lib/controller-error', {
+        handleControllerError: (req, res, error) => {
+            handledErrors.push(error)
+            return res.status(500).json({ error: { code: 'UNEXPECTED' } })
+        },
+    })
+    withMock('../src/modules/admin-intake/admin-intake.service', {
+        deleteReviewBatch: async (payload) => {
+            receivedPayload = payload
+            return { id: 'batch-1', deleted: true }
+        },
+    })
+
+    const controller = require('../src/modules/admin-intake/admin-intake.controller')
+    const req = {
+        params: { id: 'batch-1' },
+        user: { userId: 'user-1' },
+    }
+    const res = createRes()
+
+    await controller.deleteReviewBatch(req, res)
+
+    assert.equal(res.statusCode, 200)
+    assert.deepEqual(res.body, { data: { id: 'batch-1', deleted: true } })
     assert.equal(receivedPayload.userId, 'user-1')
     assert.equal(receivedPayload.batchId, 'batch-1')
     assert.equal(handledErrors.length, 0)

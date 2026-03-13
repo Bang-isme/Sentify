@@ -1,17 +1,6 @@
 const prisma = require('../lib/prisma')
+const { roundNumber, toPercentage } = require('../lib/math')
 const { extractComplaintKeywords } = require('./sentiment-analyzer.service')
-
-function roundNumber(value, digits = 1) {
-    return Number(Number(value || 0).toFixed(digits))
-}
-
-function toPercentage(count, total) {
-    if (!total) {
-        return 0
-    }
-
-    return roundNumber((count / total) * 100, 1)
-}
 
 function buildInsightSummary(summary) {
     // Expose only dashboard fields here so API responses do not leak DB-specific metadata.
@@ -165,5 +154,4 @@ async function recalculateRestaurantInsights({ restaurantId }) {
 module.exports = {
     buildInsightSummary,
     recalculateRestaurantInsights,
-    toPercentage,
 }

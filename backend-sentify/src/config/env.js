@@ -50,6 +50,8 @@ const envSchema = z.object({
     AUTH_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
     AUTH_COOKIE_SECURE: z.string().optional(),
     TRUST_PROXY: z.string().optional(),
+    // Prisma adapter currently only honors connection_limit (max); minimum pool size is not configurable.
+    DB_POOL_MAX: z.coerce.number().int().positive().default(10),
     API_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
     API_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(500),
     AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60 * 1000),

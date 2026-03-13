@@ -15,6 +15,11 @@ const loginSchema = z.object({
     password: z.string().min(1, 'Password is required'),
 })
 
+const changePasswordSchema = z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters long'),
+})
+
 function buildRequestContext(req) {
     return {
         ip: req.ip,
@@ -95,9 +100,37 @@ async function logout(req, res) {
     }
 }
 
+async function changePassword(req, res) {
+    try {
+        const input = changePasswordSchema.parse(req.body)
+        const result = await authService.changePassword({
+            userId: req.user.userId,
+            currentPassword: input.currentPassword,
+            newPassword: input.newPassword,
+            context: buildRequestContext(req),
+        })
+
+        setAuthCookie(
+            res,
+            result.accessToken,
+            authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1000,
+        )
+
+        return res.status(200).json({
+            data: {
+                user: result.user,
+                expiresIn: result.expiresIn,
+            },
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 module.exports = {
     getSession,
     register,
     login,
     logout,
+    changePassword,
 }

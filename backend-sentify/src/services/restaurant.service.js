@@ -74,6 +74,64 @@ async function generateUniqueSlug(name) {
     throw new Error('Unable to generate a unique restaurant slug')
 }
 
+function isMissingIntakeTableError(error) {
+    if (!error || typeof error !== 'object') {
+        return false
+    }
+
+    if (error.code === 'P2021') {
+        return true
+    }
+
+    if (typeof error.message === 'string') {
+        return error.message.includes('ReviewIntakeBatch') && error.message.includes('does not exist')
+    }
+
+    return false
+}
+
+async function fetchIntakeSummary(restaurantId) {
+    try {
+        const [latestPublishedBatch, openBatches] = await Promise.all([
+            prisma.reviewIntakeBatch.findFirst({
+                where: {
+                    restaurantId,
+                    status: 'PUBLISHED',
+                },
+                orderBy: [{ publishedAt: 'desc' }, { updatedAt: 'desc' }],
+                select: {
+                    sourceType: true,
+                    publishedAt: true,
+                },
+            }),
+            prisma.reviewIntakeBatch.findMany({
+                where: {
+                    restaurantId,
+                    status: {
+                        in: ['DRAFT', 'IN_REVIEW', 'READY_TO_PUBLISH'],
+                    },
+                },
+                select: {
+                    status: true,
+                    items: {
+                        select: {
+                            approvalStatus: true,
+                        },
+                    },
+                },
+            }),
+        ])
+
+        return { latestPublishedBatch, openBatches }
+    } catch (error) {
+        if (isMissingIntakeTableError(error)) {
+            return { latestPublishedBatch: null, openBatches: [] }
+        }
+
+        throw error
+    }
+}
+
 async function createRestaurant(input) {
     const name = input.name.trim()
     const address = input.address?.trim() || null
@@ -156,35 +214,7 @@ async function getRestaurantDetail({ userId, restaurantId }) {
             insight: true,
         },
     })
-    const [latestPublishedBatch, openBatches] = await Promise.all([
-        prisma.reviewIntakeBatch.findFirst({
-            where: {
-                restaurantId,
-                status: 'PUBLISHED',
-            },
-            orderBy: [{ publishedAt: 'desc' }, { updatedAt: 'desc' }],
-            select: {
-                sourceType: true,
-                publishedAt: true,
-            },
-        }),
-        prisma.reviewIntakeBatch.findMany({
-            where: {
-                restaurantId,
-                status: {
-                    in: ['DRAFT', 'IN_REVIEW', 'READY_TO_PUBLISH'],
-                },
-            },
-            select: {
-                status: true,
-                items: {
-                    select: {
-                        approvalStatus: true,
-                    },
-                },
-            },
-        }),
-    ])
+    const { latestPublishedBatch, openBatches } = await fetchIntakeSummary(restaurantId)
 
     return {
         id: access.restaurant.id,

@@ -72,6 +72,8 @@ const createReviewItemsSchema = z.object({
     items: z.array(reviewItemInputSchema).min(1, 'At least one review item is required').max(200),
 })
 
+const createReviewItemsBulkSchema = createReviewItemsSchema
+
 const updateReviewItemSchema = z
     .object({
         normalizedAuthorName: nullableTrimmedString(z.string().max(120)),
@@ -88,6 +90,7 @@ const updateReviewItemSchema = z
 module.exports = {
     createReviewBatchSchema,
     createReviewItemsSchema,
+    createReviewItemsBulkSchema,
     listReviewBatchesQuerySchema,
     updateReviewItemSchema,
 }

@@ -16,6 +16,7 @@ router.get('/:id/dashboard/kpi', dashboardController.getKpi)
 router.get('/:id/dashboard/sentiment', dashboardController.getSentimentBreakdown)
 router.get('/:id/dashboard/trend', dashboardController.getTrend)
 router.get('/:id/dashboard/complaints', dashboardController.getComplaintKeywords)
+router.get('/:id/dashboard/top-issue', dashboardController.getTopIssue)
 router.get('/:id', restaurantController.getRestaurantDetail)
 router.patch('/:id', restaurantController.updateRestaurant)
 

@@ -98,6 +98,14 @@ export interface ProductUiCopy {
     complaintKeywords: string
     ratingTrend: string
     reviewEvidence: string
+    topIssueTitle: string
+    topIssueDescription: string
+    topIssueEmpty: string
+    topIssueLabel: string
+    topIssueActionLabel: string
+    topIssueActionTemplate: string
+    topIssueActionFallback: string
+    topIssueCta: string
     sourceReadiness: string
     sourceReady: string
     sourceMissing: string
@@ -281,6 +289,17 @@ export const productUiCopy = {
       complaintKeywords: 'Complaint keywords',
       ratingTrend: 'Rating trend',
       reviewEvidence: 'Review evidence',
+      topIssueTitle: 'Top issue and next action',
+      topIssueDescription:
+        'This highlights the most frequent complaint in the curated dataset and the next move to confirm it.',
+      topIssueEmpty:
+        'No dominant complaint signal yet. Publish more reviews to surface the top issue.',
+      topIssueLabel: 'Top issue',
+      topIssueActionLabel: 'Next action',
+      topIssueActionTemplate:
+        'Review {count} reviews mentioning “{keyword}” and decide the first fix.',
+      topIssueActionFallback: 'Review the latest evidence and decide the first fix.',
+      topIssueCta: 'Open review evidence',
       sourceReadiness: 'Source readiness',
       sourceReady: 'Google Maps URL is configured.',
       sourceMissing: 'Google Maps URL is missing.',
@@ -466,6 +485,17 @@ export const productUiCopy = {
       complaintKeywords: 'Từ khóa phàn nàn',
       ratingTrend: 'Xu hướng điểm đánh giá',
       reviewEvidence: 'Bằng chứng đánh giá',
+      topIssueTitle: 'Vấn đề nổi bật và bước tiếp theo',
+      topIssueDescription:
+        'Tập trung vào từ khóa phàn nàn xuất hiện nhiều nhất trong dataset đã được duyệt.',
+      topIssueEmpty:
+        'Chưa có tín hiệu phàn nàn nổi bật. Hãy publish thêm review để lộ ra vấn đề chính.',
+      topIssueLabel: 'Vấn đề nổi bật',
+      topIssueActionLabel: 'Bước tiếp theo',
+      topIssueActionTemplate:
+        'Xem {count} review nhắc đến “{keyword}” rồi quyết định việc cần sửa trước.',
+      topIssueActionFallback: 'Xem bằng chứng gần nhất rồi quyết định việc cần sửa trước.',
+      topIssueCta: 'Mở bằng chứng đánh giá',
       sourceReadiness: 'Trạng thái nguồn',
       sourceReady: 'Đã cấu hình URL Google Maps.',
       sourceMissing: 'Chưa có URL Google Maps.',
@@ -651,6 +681,17 @@ export const productUiCopy = {
       complaintKeywords: '不満キーワード',
       ratingTrend: '評価トレンド',
       reviewEvidence: 'レビュー根拠',
+      topIssueTitle: '最重要課題と次の行動',
+      topIssueDescription:
+        '承認済みデータの中で最も多い不満キーワードと、確認すべき次の一手を示します。',
+      topIssueEmpty:
+        'まだ主要な不満シグナルがありません。レビューを増やして課題を可視化してください。',
+      topIssueLabel: '最重要課題',
+      topIssueActionLabel: '次の行動',
+      topIssueActionTemplate:
+        '「{keyword}」に言及するレビュー{count}件を確認し、最初の改善点を決めましょう。',
+      topIssueActionFallback: '直近の証拠を確認し、最初の改善点を決めましょう。',
+      topIssueCta: 'レビュー根拠を開く',
       sourceReadiness: 'ソース状態',
       sourceReady: 'Google Maps URL は設定済みです。',
       sourceMissing: 'Google Maps URL が未設定です。',

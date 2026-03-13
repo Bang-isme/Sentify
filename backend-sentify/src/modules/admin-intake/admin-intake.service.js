@@ -121,12 +121,50 @@ function normalizeIncomingItem(item) {
     }
 }
 
+function buildRawItemKey(item) {
+    const dateValue =
+        item.rawReviewDate instanceof Date
+            ? item.rawReviewDate.toISOString()
+            : item.rawReviewDate || ''
+
+    return [
+        item.rawAuthorName ?? '',
+        item.rawRating ?? '',
+        item.rawContent ?? '',
+        dateValue,
+    ].join('|')
+}
+
+function resolveDeletableBatch(batch) {
+    if (!batch) {
+        throw notFound('NOT_FOUND', 'Review batch not found')
+    }
+
+    if (!['DRAFT', 'IN_REVIEW'].includes(batch.status)) {
+        throw conflict(
+            'INTAKE_BATCH_NOT_DELETABLE',
+            'Only draft or in-review batches can be deleted',
+        )
+    }
+}
+
 function resolvePublishedField(preferredValue, fallbackValue = null) {
     if (preferredValue === undefined || preferredValue === null) {
         return fallbackValue
     }
 
     return preferredValue
+}
+
+function pickDefined(input, fieldMap) {
+    return Object.entries(fieldMap).reduce((accumulator, [field, mapper]) => {
+        if (Object.prototype.hasOwnProperty.call(input, field)) {
+            const value = input[field]
+            accumulator[field] = typeof mapper === 'function' ? mapper(value, input) : value
+        }
+
+        return accumulator
+    }, {})
 }
 
 function buildReviewPayload(restaurantId, item) {
@@ -229,6 +267,59 @@ async function addReviewItems({ userId, batchId, items }) {
     return mapBatch(persistedBatch, { includeItems: true })
 }
 
+async function addReviewItemsBulk({ userId, batchId, items }) {
+    const batch = await repository.findBatchById(batchId, {
+        includeItems: true,
+    })
+
+    resolveEditableBatch(batch)
+    await ensureRestaurantEditorAccess(userId, batch.restaurantId)
+
+    const existingKeys = new Set(
+        (batch.items || []).map((item) =>
+            buildRawItemKey({
+                rawAuthorName: item.rawAuthorName,
+                rawRating: item.rawRating,
+                rawContent: item.rawContent,
+                rawReviewDate: item.rawReviewDate,
+            }),
+        ),
+    )
+
+    const uniqueItems = []
+    for (const item of items) {
+        const key = buildRawItemKey(item)
+        if (existingKeys.has(key)) {
+            continue
+        }
+
+        existingKeys.add(key)
+        uniqueItems.push(item)
+    }
+
+    if (uniqueItems.length > 0) {
+        await repository.createItems(
+            batch.id,
+            batch.restaurantId,
+            uniqueItems.map(normalizeIncomingItem),
+        )
+    }
+
+    const updatedBatch = await repository.findBatchById(batchId, {
+        includeItems: true,
+    })
+    const nextStatus = deriveBatchStatus(updatedBatch, updatedBatch.items)
+
+    const persistedBatch =
+        nextStatus === updatedBatch.status
+            ? updatedBatch
+            : await repository.updateBatch(batchId, {
+                  status: nextStatus,
+              })
+
+    return mapBatch(persistedBatch, { includeItems: true })
+}
+
 async function updateReviewItem({ userId, itemId, input }) {
     const item = await repository.findItemById(itemId)
 
@@ -239,26 +330,16 @@ async function updateReviewItem({ userId, itemId, input }) {
     resolveEditableBatch(item.batch)
     await ensureRestaurantEditorAccess(userId, item.restaurantId)
 
-    await repository.updateItem(itemId, {
-        ...(Object.prototype.hasOwnProperty.call(input, 'normalizedAuthorName')
-            ? { normalizedAuthorName: input.normalizedAuthorName ?? null }
-            : {}),
-        ...(Object.prototype.hasOwnProperty.call(input, 'normalizedRating')
-            ? { normalizedRating: input.normalizedRating ?? null }
-            : {}),
-        ...(Object.prototype.hasOwnProperty.call(input, 'normalizedContent')
-            ? { normalizedContent: input.normalizedContent ?? null }
-            : {}),
-        ...(Object.prototype.hasOwnProperty.call(input, 'normalizedReviewDate')
-            ? { normalizedReviewDate: input.normalizedReviewDate ?? null }
-            : {}),
-        ...(Object.prototype.hasOwnProperty.call(input, 'approvalStatus')
-            ? { approvalStatus: input.approvalStatus }
-            : {}),
-        ...(Object.prototype.hasOwnProperty.call(input, 'reviewerNote')
-            ? { reviewerNote: input.reviewerNote ?? null }
-            : {}),
+    const updates = pickDefined(input, {
+        normalizedAuthorName: (value) => value ?? null,
+        normalizedRating: (value) => value ?? null,
+        normalizedContent: (value) => value ?? null,
+        normalizedReviewDate: (value) => value ?? null,
+        approvalStatus: (value) => value,
+        reviewerNote: (value) => value ?? null,
     })
+
+    await repository.updateItem(itemId, updates)
 
     const updatedBatch = await repository.findBatchById(item.batchId, {
         includeItems: true,
@@ -273,6 +354,49 @@ async function updateReviewItem({ userId, itemId, input }) {
               })
 
     return mapBatch(persistedBatch, { includeItems: true })
+}
+
+async function deleteReviewItem({ userId, itemId }) {
+    const item = await repository.findItemById(itemId)
+
+    if (!item) {
+        throw notFound('NOT_FOUND', 'Review item not found')
+    }
+
+    resolveEditableBatch(item.batch)
+    await ensureRestaurantEditorAccess(userId, item.restaurantId)
+
+    await repository.deleteItem(itemId)
+
+    const updatedBatch = await repository.findBatchById(item.batchId, {
+        includeItems: true,
+    })
+    const nextStatus = deriveBatchStatus(updatedBatch, updatedBatch.items)
+
+    const persistedBatch =
+        nextStatus === updatedBatch.status
+            ? updatedBatch
+            : await repository.updateBatch(updatedBatch.id, {
+                  status: nextStatus,
+              })
+
+    return mapBatch(persistedBatch, { includeItems: true })
+}
+
+async function deleteReviewBatch({ userId, batchId }) {
+    const batch = await repository.findBatchById(batchId)
+
+    resolveDeletableBatch(batch)
+    await ensureRestaurantEditorAccess(userId, batch.restaurantId)
+
+    await repository.deleteBatch(batchId)
+
+    return {
+        id: batch.id,
+        restaurantId: batch.restaurantId,
+        status: batch.status,
+        deleted: true,
+    }
 }
 
 async function publishReviewBatch({ userId, batchId }) {
@@ -315,13 +439,17 @@ async function publishReviewBatch({ userId, batchId }) {
 
 module.exports = {
     addReviewItems,
+    addReviewItemsBulk,
     createReviewBatch,
+    deleteReviewBatch,
+    deleteReviewItem,
     getReviewBatch,
     listReviewBatches,
     publishReviewBatch,
     updateReviewItem,
     __private: {
         buildReviewPayload,
+        buildRawItemKey,
         deriveBatchStatus,
         mapBatch,
         normalizeIncomingItem,

@@ -1,11 +1,11 @@
 ﻿# Sentify - Design Pack (Sprint 1)
 
-Updated: 2026-03-12
+Updated: 2026-03-13
 
 This folder contains the implementation-ready documentation set for Sentify Sprint 1.
 The current baseline is intentionally small, synchronous, and restaurant-scoped so the team can learn and ship without carrying Sprint 2 complexity.
 
-> Status (2026-03-12): Import automation has been removed. Treat `10-manual-first-admin-architecture.md` as the primary source of truth; earlier import-focused docs remain for historical context.
+> Status (2026-03-13): Import automation has been removed. `10-manual-first-admin-architecture.md` and `11-merchant-first-plan.md` are the primary sources of truth; earlier import-focused docs remain for historical context.
 
 ## Documents
 
@@ -38,6 +38,12 @@ The current baseline is intentionally small, synchronous, and restaurant-scoped 
 
 10. `10-manual-first-admin-architecture.md`
    Refactor direction that shifts Sentify toward admin-curated data intake and cleaner FE/BE module boundaries.
+
+11. `11-merchant-first-plan.md`
+   Merchant-first product vision, workflows, IA, ops outline, and 90-day roadmap.
+
+12. `12-minimal-ops-runbook.md`
+   Minimal deployment and operations checklist for the MVP.
 
 ## Diagram Sources
 
@@ -81,3 +87,5 @@ The current baseline is intentionally small, synchronous, and restaurant-scoped 
 5. `07-api-specification.md`
 6. `08-environment-setup.md`
 7. `10-manual-first-admin-architecture.md`
+8. `11-merchant-first-plan.md`
+9. `12-minimal-ops-runbook.md`
