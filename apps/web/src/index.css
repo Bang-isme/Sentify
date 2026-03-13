@@ -1,6 +1,6 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
-/* â”€â”€ View Transition: Radial Theme Reveal â”€â”€ */
+/* ── View Transition: Radial Theme Reveal ── */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
@@ -16,7 +16,7 @@
 }
 
 /* ==========================================
-   Sentify Design System â€” Dual Theme
+   Sentify Design System — Dual Theme
    Light mode: Stitch screen 036627c4
    Dark mode:  Stitch screen eedcb9d0
    ========================================== */
@@ -531,7 +531,7 @@
   border-bottom: 0;
 }
 
-/* ── Futuristic Depth Elements ── */
+/* -- Futuristic Depth Elements -- */
 
 .globe-depth-halo {
   position: absolute;
@@ -883,7 +883,7 @@
   margin: 0;
   width: max-content;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: clamp(5.4px, 0.5vw, 8.3px);
+  font-size: clamp(7.2px, 0.66vw, 11px);
   line-height: 0.82;
   letter-spacing: -0.02em;
   white-space: pre;
@@ -952,7 +952,7 @@
   opacity: 1;
 }
 
-/* ── Globe Insight Cards ── */
+/* -- Globe Insight Cards -- */
 .globe-insight-layer {
   position: absolute;
   inset: 0;
@@ -971,7 +971,7 @@
   visibility: hidden;
 }
 
-/* ── Pulsing dot ── */
+/* -- Pulsing dot -- */
 .globe-insight-dot {
   position: absolute;
   width: var(--insight-dot-size, 10px);
@@ -1023,7 +1023,7 @@
   }
 }
 
-/* ── SVG line ── */
+/* -- SVG line -- */
 .globe-insight-svg {
   position: absolute;
   inset: 0;
@@ -1052,7 +1052,7 @@
   stroke: rgba(230, 200, 80, 0.55);
 }
 
-/* ── Review Card ── */
+/* -- Review Card -- */
 .globe-insight-card {
   position: absolute;
   z-index: 43;
@@ -1090,7 +1090,7 @@
     0 0 24px -6px rgba(230, 184, 20, 0.08);
 }
 
-/* ── Card internals ── */
+/* -- Card internals -- */
 .globe-insight-card-header {
   display: flex;
   align-items: center;

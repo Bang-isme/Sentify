@@ -50,8 +50,8 @@ export const AsciiGlobe = memo(function AsciiGlobe() {
   const wireRef = useRef<HTMLPreElement>(null)
   const rimRef = useRef<HTMLPreElement>(null)
 
-  // Phase exposed to GlobeInsightCards (updated via setState at a slower rate)
-  const [cardPhase, setCardPhase] = useState(0)
+  // Phase state removed to prevent 25 FPS VDOM diffs.
+  // Instead, phase updates are decoupled via CustomEvent 'globe:updatePhase'.
 
   // Store initial render layers so React can do the first paint
   const [initialLayers] = useState<SphereLayers | null>(() => {
@@ -119,8 +119,10 @@ export const AsciiGlobe = memo(function AsciiGlobe() {
           // silently skip broken frames
         }
 
-        // Update card phase every computation frame for smooth dot/card tracking
-        setCardPhase(phase)
+        // Emit phase update for insight cards without triggering a full tree re-render
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('globe:updatePhase', { detail: phase }))
+        }
       }
 
       rafId = requestAnimationFrame(frame)
@@ -286,7 +288,7 @@ export const AsciiGlobe = memo(function AsciiGlobe() {
                   </pre>
                 </div>
 
-                <GlobeInsightCards layout={layoutMetrics} phase={cardPhase} />
+                <GlobeInsightCards layout={layoutMetrics} />
               </div>
             </div>
           </div>
