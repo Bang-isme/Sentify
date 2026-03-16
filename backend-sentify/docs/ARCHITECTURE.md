@@ -1,7 +1,20 @@
 # 🏗️ Sentify Backend Architecture
 
 > Project structure, request lifecycle, module boundaries, and design patterns.
-> Last updated: 2026-03-16
+> Last updated: 2026-03-17
+>
+> **Xem thêm**: [MVP-FLOW.md](./MVP-FLOW.md) — luồng sử dụng từ góc nhìn người dùng.
+
+---
+
+## Mô hình vận hành
+
+Sentify là **managed platform**, không phải self-service tool.
+
+- **User (OWNER/MANAGER)**: Chủ nhà hàng — chỉ xem dashboard, insights, quản lý team. **Không import data.**
+- **Operator (SYSTEM_ADMIN)**: Đội vận hành Sentify — thu thập, xác minh, import, publish reviews cho nhà hàng.
+
+> Endpoints `/api/admin/*` dành cho Operator. Endpoints `/api/restaurants/*` dành cho User.
 
 ---
 
@@ -146,7 +159,7 @@ routes/restaurants.js  →  controllers/restaurants.controller.js  →  services
 - Service: business logic + access control
 - Access control qua `restaurant-access.service.js` (shared)
 
-### Feature module (hiện tại: admin-intake)
+### Feature module (hiện tại: admin-intake — **Operator-facing**)
 
 ```
 modules/admin-intake/
@@ -158,6 +171,7 @@ modules/admin-intake/
 ```
 - Repository pattern: tách Prisma queries khỏi business logic
 - Self-contained: tất cả trong 1 folder
+- **Đây là module dùng bởi Operator** (đội vận hành), không phải User (chủ nhà hàng)
 - **Recommended pattern cho Sprint 3+**: Mọi feature mới nên follow pattern này
 
 ---
@@ -176,7 +190,9 @@ modules/admin-intake/
 │  6. On success:                                          │
 │     - Reset failedLoginCount                             │
 │     - Build JWT (userId, tokenVersion, 15min)           │
-│     - Set HttpOnly cookie                                │
+│     - Create refresh token (7 days, token rotation)     │
+│     - Set HttpOnly access cookie + refresh cookie       │
+│     - Set CSRF cookie (non-HttpOnly, for frontend)      │
 │     - Return { user, restaurants, expiresIn }           │
 │  7. On failure:                                          │
 │     - Increment failedLoginCount                         │
@@ -188,15 +204,27 @@ modules/admin-intake/
 │                  AUTH MIDDLEWARE                          │
 │                                                          │
 │  1. Extract token (Bearer header → Cookie fallback)     │
-│  2. jwt.verify(token, JWT_SECRET, {issuer, audience})   │
+│  2. jwt.verify(token, JWT_SECRET)                        │
+│     → on fail: try JWT_SECRET_PREVIOUS (rotation)       │
 │  3. DB lookup: user.findUnique({ id, tokenVersion })    │
 │     (with 2s timeout safeguard)                          │
 │  4. Compare payload.tokenVersion === user.tokenVersion  │
 │  5. Set req.user = { userId, tokenVersion, jti }        │
 └─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                  REFRESH TOKEN FLOW                       │
+│                                                          │
+│  1. POST /api/auth/refresh (cookie or body)             │
+│  2. Hash token → lookup in DB                            │
+│  3. If already revoked → REUSE DETECTED                 │
+│     → Revoke entire token family (stolen token defense) │
+│  4. If valid → revoke old token + create new pair       │
+│  5. Set new access + refresh cookies                     │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Token Revocation**: `logout()` và `changePassword()` increment `tokenVersion` → tất cả token cũ bị reject vì `tokenVersion` mismatch.
+**Token Revocation**: `logout()` và `changePassword()` increment `tokenVersion` + revoke tất cả refresh tokens.
 
 ---
 
