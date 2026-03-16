@@ -3,7 +3,11 @@
 > Tài liệu này liệt kê đầy đủ các sprint và chức năng cần hoàn thiện ở backend.
 > Mỗi sprint có mục tiêu rõ ràng, danh sách task, file cần tạo/sửa, và tiêu chí hoàn thành.
 >
-> **Last updated**: 2026-03-16 (Sprint 1 ✅, Sprint 2 ✅)
+> **Last updated**: 2026-03-17 (Sprint 1 ✅, Sprint 2 ✅)
+>
+> **Mô hình vận hành**: Xem [MVP-FLOW.md](./MVP-FLOW.md) — Sentify là **managed platform**:
+> - 🧑‍💼 **User** (chủ nhà hàng): chỉ xem dashboard/insights, quản lý profile/team
+> - 🛠️ **Operator** (đội vận hành): thu thập, QC, import, publish data
 
 ---
 
@@ -13,28 +17,30 @@
 
 | Module | Endpoints | Trạng thái |
 |---|---|---|
-| Auth | register, login, logout, session, change-password | ✅ Production-ready |
+| Auth | register, login, logout, session, change-password, refresh, forgot/reset | ✅ Production-ready |
 | Restaurant | create, list, get detail, update | ✅ Functional |
 | Dashboard | KPI, sentiment, trend, complaints, top-issue | ✅ Production-ready (optimized) |
 | Reviews | list (pagination + filters) | ✅ Functional |
 | Admin Intake | batch CRUD, item CRUD, bulk add, publish | ✅ Functional |
 | Sentiment Analysis | keyword-based, đa ngôn ngữ (VI/EN/JP) | ✅ Functional |
 | Insight Recalculation | auto-recalc sau publish | ✅ Functional |
+| Security | CSRF, refresh token rotation, JWT rotation | ✅ Production-ready |
 
 ### ❌ Chưa có
 
-| Chức năng | Quan trọng |
-|---|---|
-| Forgot password / Reset password | 🔴 Bắt buộc |
-| Refresh token (token rotation) | 🔴 Bắt buộc |
-| User profile management | 🟡 Cần |
-| Team management (invite/remove members) | 🟡 Cần |
-| Restaurant delete | 🟡 Cần |
-| Review search by keyword/sentiment | 🟡 Cần |
-| Export reviews (CSV) | 🟢 Nice-to-have |
-| Delete account | 🟢 Nice-to-have |
-| Notification / Webhook | 🟢 V2 |
-| Audit log | 🟢 V2 |
+| Chức năng | Dùng bởi | Quan trọng |
+|---|---|---|
+| User profile management | User | 🔴 Bắt buộc |
+| Team management (invite/remove) | User | 🔴 Bắt buộc |
+| Aggregate dashboard endpoint | User | 🔴 Bắt buộc |
+| Review search + detail | User | 🔴 Bắt buộc |
+| Dashboard date range filter | User | 🟡 Cần |
+| Delete restaurant / account | User | 🟡 Cần |
+| Operator role (SYSTEM_ADMIN) | Operator | 🟡 Cần |
+| Data source tracking | Operator | 🟡 Cần |
+| Audit trail | Operator | 🟡 Cần |
+| Export reviews (CSV) | User | 🟡 Cần |
+| Notification system | User | 🟢 Nice-to-have |
 
 ---
 
@@ -65,71 +71,32 @@
 
 ### S1-T03. Database indexes
 
-**Giải pháp**: Thêm indexes cho query patterns phổ biến.
-
 - **File**: `prisma/schema.prisma`
-- **Indexes**:
-  - `Review: @@index([restaurantId])`
-  - `Review: @@index([restaurantId, createdAt])`
+- **Indexes**: `Review: @@index([restaurantId])`, `Review: @@index([restaurantId, createdAt])`
 - **Verify**: `npx prisma validate`, `npx prisma migrate dev`
 
 ### S1-T04. fetchIntakeSummary optimization
 
-**Vấn đề**: Load tất cả intake items chỉ để đếm.
-**Giải pháp**: Dùng `_count` + `groupBy`.
-
 - **File**: `src/services/restaurant.service.js`
-- **Verify**: `npm test`
+- Dùng `_count` + `groupBy` thay vì load tất cả items
 
 ### S1-T05. publishApprovedItems batching
 
-**Vấn đề**: N lần update riêng lẻ trong transaction.
-**Giải pháp**: `Promise.all` cho concurrent updates.
-
 - **File**: `src/modules/admin-intake/admin-intake.repository.js`
-- **Verify**: `npm test` — `admin-intake.service.test.js` pass
+- `Promise.all` cho concurrent updates
 
-### S1-T06. Config & gitignore cleanup
+### S1-T06 → S1-T12. Config cleanup, rate limit, sanitize, validate, constants
 
-- **File sửa**: `.env.example` (thêm `DB_POOL_MAX`, `TRUST_PROXY`, `NODE_ENV`, `AUTH_COOKIE_DOMAIN`)
-- **File sửa**: `.gitignore` (thêm `src/generated/`)
-
-### S1-T07. Rate limit cho password change *(từ gap analysis SEC-02)*
-
-- **File sửa**: `src/middleware/rate-limit.js`, `src/routes/auth.js`
-- **Chi tiết**: Thêm `passwordChangeLimiter` (5 req/min) cho `PATCH /api/auth/password`
-
-### S1-T08. Sanitize review content *(từ gap analysis SEC-04)*
-
-- **File sửa**: `src/modules/admin-intake/admin-intake.service.js`
-- **Chi tiết**: Strip HTML tags khỏi content trước khi lưu. Tránh XSS nếu frontend render raw.
-
-### S1-T09. Validate reviewDate không nằm trong tương lai *(DAT-07)*
-
-- **File sửa**: `src/modules/admin-intake/admin-intake.validation.js`
-
-### S1-T10. Thêm timestamp vào error responses *(API-06)*
-
-- **File sửa**: `src/lib/controller-error.js`
-
-### S1-T11. Gom hardcoded constants vào 1 file *(CQ-05)*
-
-- **File mới**: `src/config/constants.js`
-- **File sửa**: `src/services/auth.service.js`, `src/middleware/auth.js`, `src/services/insight.service.js`, `src/services/sentiment-analyzer.service.js`, `src/modules/admin-intake/admin-intake.validation.js`
-
-### S1-T12. Remove `isMissingIntakeTableError` workaround *(CQ-04)*
-
-- **File sửa**: `src/services/restaurant.service.js`
-- **Chi tiết**: Workaround cho migration timing — không còn cần thiết.
+*(Chi tiết xem CHANGELOG Sprint 1)*
 
 ### S1 — Tiêu chí hoàn thành
 
-- [x] `npm test` — tất cả test files pass (34/34)
+- [x] `npm test` — 34/34 pass
 - [x] `npx prisma validate` — no errors
-- [x] Dashboard endpoints không load full dataset vào memory
-- [x] Invalid UUID request trả 400, không trả 500
-- [x] Password change endpoint có rate limit riêng
-- [x] Review content được sanitize trước khi lưu
+- [x] Dashboard không load full dataset vào memory
+- [x] Invalid UUID → 400
+- [x] Password change có rate limit
+- [x] Review content sanitized
 - [x] Error response có timestamp
 
 > ✅ **Sprint 1 hoàn thành**: 2026-03-16
@@ -138,159 +105,91 @@
 
 ## Sprint 2 — Auth Hoàn Thiện 🔐
 
-> **Mục tiêu**: Auth flow đầy đủ cho production — refresh token, forgot password, email verification.
+> **Mục tiêu**: Auth flow đầy đủ cho production — refresh token, forgot password, CSRF, JWT rotation.
 > **Thời gian ước tính**: 3-4 ngày
 
 ### S2-T01. Refresh token (Token rotation)
 
-**Hiện tại**: Chỉ có access token (15 phút), hết hạn → phải login lại.
-**Giải pháp**: Thêm refresh token flow.
+- Schema: `RefreshToken` model (familyId, hash, revoked, expires)
+- Endpoint: `POST /api/auth/refresh`
+- Reuse detection: revoke toàn bộ family nếu phát hiện token đã revoke
 
-- **Schema change**:
-  ```prisma
-  model RefreshToken {
-    id          String   @id @default(uuid())
-    userId      String
-    token       String   @unique
-    familyId    String
-    expiresAt   DateTime
-    revokedAt   DateTime?
-    createdAt   DateTime @default(now())
-    
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-    
-    @@index([userId])
-    @@index([familyId])
-    @@index([expiresAt])
-  }
-  ```
-- **Endpoints mới**:
-  - `POST /api/auth/refresh` — nhận refresh token, trả access + refresh token mới
-- **File mới**:
-  - `src/services/refresh-token.service.js`
-- **File sửa**:
-  - `prisma/schema.prisma`
-  - `src/services/auth.service.js` (login trả thêm refresh token)
-  - `src/controllers/auth.controller.js`
-  - `src/routes/auth.js`
-  - `src/lib/auth-cookie.js` (thêm refresh token cookie)
-- **Security**: Token rotation — mỗi lần refresh tạo token mới, revoke token cũ. Nếu phát hiện reuse → revoke toàn bộ family.
+### S2-T02. Forgot / Reset password
 
-### S2-T02. Forgot password / Reset password
-
-**Hiện tại**: Không có cách khôi phục mật khẩu.
-**Giải pháp**: OTP hoặc reset link qua email.
-
-- **Schema change**:
-  ```prisma
-  model PasswordResetToken {
-    id        String   @id @default(uuid())
-    userId    String
-    token     String   @unique
-    expiresAt DateTime
-    usedAt    DateTime?
-    createdAt DateTime @default(now())
-    
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-    
-    @@index([userId])
-    @@index([token])
-  }
-  ```
-- **Endpoints mới**:
-  - `POST /api/auth/forgot-password` — gửi email reset link
-  - `POST /api/auth/reset-password` — verify token + đặt mật khẩu mới
-- **File mới**:
-  - `src/services/password-reset.service.js`
-  - `src/services/email.service.js` (email abstraction — giai đoạn đầu dùng console.log, sau gắn Resend/SendGrid)
-- **File sửa**:
-  - `prisma/schema.prisma`
-  - `src/controllers/auth.controller.js`
-  - `src/routes/auth.js`
-  - `src/config/env.js` (thêm `RESET_TOKEN_EXPIRES_MINUTES`, `APP_URL`, `SMTP_*`)
+- Schema: `PasswordResetToken` model (hash, single-use, expires)
+- Endpoints: `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`
+- Anti-enumeration: luôn trả success bất kể email có tồn tại không
 
 ### S2-T03. Email service abstraction
 
-**Mục tiêu**: Tạo email service layer để gửi email transactional.
+- `src/services/email.service.js` — console (dev) / Resend (prod)
 
-- **File mới**: `src/services/email.service.js`
-- **Strategy**: Interface-based — development dùng console log, production gắn Resend hoặc SendGrid
-- **Config**: `EMAIL_PROVIDER` env var (`console` | `resend` | `sendgrid`)
-- **Templates**: Reset password, welcome email (dùng template string, không cần template engine)
+### S2-T04. CSRF protection
 
-### S2-T04. CSRF protection cho cookie auth *(từ gap analysis SEC-01)*
+- Double Submit Cookie pattern
+- Middleware: `src/middleware/csrf.js`
 
-**Hiện tại**: Cookie auth vulnerable to CSRF.
-**Giải pháp**: Implement Double Submit Cookie pattern:
-- Login set thêm non-HttpOnly CSRF token
-- Client gửi CSRF token trong `X-CSRF-Token` header
-- Server reject nếu header khác cookie
+### S2-T05. JWT secret rotation
 
-- **File mới**: `src/middleware/csrf.js`
-- **File sửa**: `src/lib/auth-cookie.js`, `src/app.js`
-
-### S2-T05. JWT secret rotation support *(SEC-03)*
-
-- **File sửa**: `src/config/env.js` (thêm `JWT_SECRET_PREVIOUS`)
-- **File sửa**: `src/middleware/auth.js` (try primary → fallback to previous)
+- `JWT_SECRET_PREVIOUS` fallback trong auth middleware
 
 ### S2 — Tiêu chí hoàn thành
 
-- [x] User có thể refresh token mà không cần re-login
-- [x] Token rotation hoạt động — reuse detection revoke cả family
-- [x] Forgot password gửi được email (ít nhất console log trong dev)
-- [x] Reset password flow hoạt động end-to-end
-- [x] CSRF protection hoạt động cho cookie-based auth
-- [x] JWT secret rotation có thể thực hiện zero-downtime
-- [x] Tất cả test pass (34/34)
+- [x] Refresh token rotation + reuse detection
+- [x] Forgot/reset password flow end-to-end
+- [x] CSRF cho cookie-based auth
+- [x] JWT secret rotation zero-downtime
+- [x] 34/34 tests pass
 
 > ✅ **Sprint 2 hoàn thành**: 2026-03-16
 
 ---
 
-## Sprint 3 — User & Team Management 👥
+## Sprint 3 — User Experience Hoàn Thiện 👤
 
-> **Mục tiêu**: Quản lý profile, mời thành viên vào restaurant, phân quyền.
+> **Mục tiêu**: Hoàn thiện mọi tính năng mà chủ nhà hàng (User) cần — profile, team, dashboard nâng cao. Sau sprint này, **FE User App có đủ endpoints để dựng UI end-to-end**.
 > **Thời gian ước tính**: 3-4 ngày
+> **Phục vụ**: 🧑‍💼 User
 
 ### S3-T01. User profile management
 
 **Hiện tại**: Không có endpoint cập nhật profile.
+**FE cần**: Trang Settings với form sửa tên, deactivate account.
 
 - **Endpoints mới**:
-  - `GET /api/users/me` — lấy profile chi tiết
-  - `PATCH /api/users/me` — cập nhật fullName (và avatar nếu có)
-  - `DELETE /api/users/me` — soft delete / deactivate account
+  - `GET /api/users/me` — profile chi tiết (email, fullName, createdAt, restaurants count)
+  - `PATCH /api/users/me` — cập nhật fullName
+  - `DELETE /api/users/me` — soft delete (deactivate account)
 - **File mới**:
   - `src/modules/users/users.controller.js`
   - `src/modules/users/users.service.js`
   - `src/modules/users/users.validation.js`
   - `src/modules/users/users.routes.js`
-- **File sửa**:
-  - `src/app.js` (mount user routes)
-  - `prisma/schema.prisma` (thêm `isActive` boolean nếu support soft delete)
+- **Schema**: Thêm `deletedAt DateTime?` cho `User`
+- **FE UI**: Settings page → Profile tab → form + danger zone (deactivate)
 
-### S3-T02. Team invitation system
+### S3-T02. Team management (invite / remove members)
 
 **Hiện tại**: `RestaurantUser` tồn tại nhưng không có flow invite.
+**FE cần**: Tab "Team" trong restaurant settings.
 
 - **Schema change**:
   ```prisma
   model Invitation {
-    id             String               @id @default(uuid())
-    restaurantId   String
-    invitedEmail   String
-    permission     RestaurantPermission @default(MANAGER)
+    id              String               @id @default(uuid())
+    restaurantId    String
+    invitedEmail    String
+    permission      RestaurantPermission @default(MANAGER)
     invitedByUserId String
-    token          String               @unique
-    status         InvitationStatus     @default(PENDING)
-    expiresAt      DateTime
-    acceptedAt     DateTime?
-    createdAt      DateTime             @default(now())
+    token           String               @unique
+    status          InvitationStatus     @default(PENDING)
+    expiresAt       DateTime
+    acceptedAt      DateTime?
+    createdAt       DateTime             @default(now())
 
     restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
     invitedBy  User       @relation(fields: [invitedByUserId], references: [id], onDelete: Cascade)
-    
+
     @@unique([restaurantId, invitedEmail])
     @@index([token])
     @@index([invitedEmail])
@@ -303,272 +202,132 @@
     CANCELLED
   }
   ```
-- **Endpoints mới**:
+- **Endpoints mới (User-facing)**:
   - `POST /api/restaurants/:id/invitations` — OWNER mời member (gửi email)
   - `GET /api/restaurants/:id/invitations` — list pending invitations
   - `DELETE /api/restaurants/:id/invitations/:inviteId` — cancel invitation
   - `POST /api/invitations/:token/accept` — accept invitation (public, no auth)
   - `GET /api/restaurants/:id/members` — list team members
-  - `PATCH /api/restaurants/:id/members/:memberId` — thay đổi permission
-  - `DELETE /api/restaurants/:id/members/:memberId` — remove member
-
+  - `PATCH /api/restaurants/:id/members/:memberId` — đổi permission (OWNER only)
+  - `DELETE /api/restaurants/:id/members/:memberId` — remove member (OWNER only)
 - **File mới**:
   - `src/modules/team/team.controller.js`
   - `src/modules/team/team.service.js`
   - `src/modules/team/team.validation.js`
   - `src/modules/team/team.routes.js`
 - **Business rules**:
-  - Chỉ OWNER mời được member
-  - Chỉ OWNER đổi được permission
-  - OWNER không thể remove chính mình (phải transfer trước)
+  - Chỉ OWNER mời / đổi quyền / remove
+  - OWNER không thể remove chính mình
   - Invitation expire sau 7 ngày
+- **FE UI**: Restaurant → Settings → Team tab → member list + invite form
 
 ### S3-T03. Transfer restaurant ownership
 
-- **Endpoint mới**:
-  - `POST /api/restaurants/:id/transfer` — OWNER chuyển quyền cho member khác
-- **Business rules**:
-  - Chỉ OWNER gọi được
-  - Target phải là member hiện tại của restaurant
-  - OWNER cũ chuyển thành MANAGER
+- **Endpoint**: `POST /api/restaurants/:id/transfer`
+- **Rules**: OWNER only, target phải là member, OWNER cũ → MANAGER
+- **FE UI**: Team tab → dropdown trên member → "Transfer ownership"
 
-### S3-T04. Delete restaurant
+### S3-T04. Delete restaurant (soft delete)
 
-**Hiện tại**: Không có endpoint xóa restaurant.
+- **Endpoint**: `DELETE /api/restaurants/:id`
+- **Rules**: OWNER only, set `deletedAt`
+- **Schema**: Thêm `deletedAt DateTime?` cho `Restaurant`
+- **FE UI**: Restaurant Settings → Danger zone → Delete
 
-- **Endpoint mới**: `DELETE /api/restaurants/:id`
-- **Business rules**: Chỉ OWNER, cascade delete reviews + insights + intake batches
-- **File sửa**: `src/controllers/restaurants.controller.js`, `src/routes/restaurants.js`
+### S3-T05. Aggregate dashboard endpoint
 
-### S3-T05. Soft delete pattern *(từ gap analysis DAT-04)*
+**FE cần**: 1 call thay vì 5.
 
-- **File sửa**: `prisma/schema.prisma` (thêm `deletedAt DateTime?` cho User, Restaurant)
-- **File mới**: `src/middleware/soft-delete.js` (Prisma middleware filter active records)
-- **Áp dụng**: Tất cả delete operations trong Sprint 3 dùng soft delete thay vì hard delete
+- **Endpoint**: `GET /api/restaurants/:id/dashboard`
+- **Response**: `{ kpi, sentiment, trend, complaints, topIssue }`
+- **FE UI**: Dashboard load 1 lần → render 5 sections
 
-### S3-T06. Pagination cho `listRestaurants()` *(DAT-01)*
+### S3-T06. Review detail + search + filters
 
-- **File sửa**: `src/services/restaurant.service.js`, `src/controllers/restaurants.controller.js`
-- **Query params**: `page`, `limit` (default 20, max 50)
+**FE cần**: Search bar, filter chips, xem chi tiết 1 review.
+
+- **Sửa**: `GET /api/restaurants/:id/reviews` → thêm `sentiment`, `search`, `sort`
+- **Mới**: `GET /api/restaurants/:id/reviews/:reviewId`
+- **FE UI**: Reviews page → search + filter + sortable table + click → detail modal
+
+### S3-T07. Dashboard date range filter
+
+- Tất cả dashboard endpoints → `from`, `to` (YYYY-MM-DD)
+- **FE UI**: Date range picker trên dashboard
+
+### S3-T08. Pagination restaurants + standardize delete
+
+- `GET /api/restaurants` → `page`, `limit`
+- Delete endpoints trả `{ data: { id, deleted: true } }`
 
 ### S3 — Tiêu chí hoàn thành
 
-- [ ] User cập nhật được profile
-- [ ] OWNER mời được thành viên vào restaurant
-- [ ] Invitation flow hoạt động (gửi → accept → thành member)
-- [ ] OWNER quản lý được team (đổi quyền, remove)
-- [ ] Ownership transfer hoạt động
-- [ ] Delete restaurant / account dùng soft delete
+- [ ] User xem + sửa được profile
+- [ ] OWNER mời member qua email → accept → thành member
+- [ ] Team: đổi quyền, remove, transfer ownership
+- [ ] Delete restaurant (soft delete)
+- [ ] Aggregate dashboard (`/dashboard`) hoạt động
+- [ ] Reviews: search + filter + detail
+- [ ] Dashboard: date range filter
 - [ ] Restaurant list có pagination
+- [ ] **FE User App có đủ endpoints cho mọi trang**
 
 ---
 
-## Sprint 4 — Review Management Nâng Cao 📊
+## Sprint 4 — Operator Tools & Data Quality 🛠️
 
-> **Mục tiêu**: Search, filter nâng cao, export, và cải thiện review insights.
+> **Mục tiêu**: Nâng cấp công cụ cho đội vận hành — operator role, data source tracking, audit, batch management, export. Sau sprint này, **FE Operator Panel có đủ endpoints để dựng UI vận hành**.
 > **Thời gian ước tính**: 3-4 ngày
+> **Phục vụ**: 🛠️ Operator + 🧑‍💼 User (export, data transparency)
 
-### S4-T01. Review search & advanced filters
+### S4-T01. Operator role (SYSTEM_ADMIN)
 
-**Hiện tại**: Chỉ filter `rating`, `from`, `to`. Không search được content.
-
-- **Endpoint sửa**: `GET /api/restaurants/:id/reviews`
-- **Query params mới**:
-  - `sentiment` — filter theo `POSITIVE`, `NEUTRAL`, `NEGATIVE`
-  - `search` — full-text search content + authorName
-  - `sort` — `reviewDate`, `rating`, `createdAt` (asc/desc)
-- **File sửa**:
-  - `src/controllers/reviews.controller.js` (mở rộng validation schema)
-  - `src/services/review.service.js` (thêm search + sort logic)
-- **Cân nhắc**: PostgreSQL `ILIKE` cho search đơn giản. Nếu cần full-text search performance → dùng `pg_trgm` extension + GIN index.
-
-### S4-T02. Export reviews (CSV)
-
-- **Endpoint mới**: `GET /api/restaurants/:id/reviews/export?format=csv`
-- **File mới**:
-  - `src/services/export.service.js`
-- **File sửa**:
-  - `src/controllers/reviews.controller.js`
-  - `src/routes/restaurants.js`
-- **Headers**: `Content-Type: text/csv`, `Content-Disposition: attachment`
-- **Columns**: authorName, rating, content, sentiment, keywords, reviewDate
-
-### S4-T03. Batch archive & management
-
-**Hiện tại**: Batch chỉ delete được khi DRAFT/IN_REVIEW. Không archive được.
-
-- **Endpoint mới**: `POST /api/admin/review-batches/:id/archive`
-- **Business rule**: PUBLISHED batch có thể archive, ARCHIVED batch ẩn khỏi list mặc định
-- **File sửa**: `src/modules/admin-intake/admin-intake.service.js`
-
-### S4-T04. Dashboard date range filter
-
-**Hiện tại**: Dashboard endpoints trả data cho tất cả thời gian.
-
-- **Query params mới** cho tất cả dashboard endpoints:
-  - `from` — YYYY-MM-DD
-  - `to` — YYYY-MM-DD
-- **File sửa**: `src/services/dashboard.service.js`, `src/controllers/dashboard.controller.js`
-
-### S4-T05. Single review detail
-
-**Hiện tại**: Chỉ có list, không xem chi tiết 1 review.
-
-- **Endpoint mới**: `GET /api/restaurants/:id/reviews/:reviewId`
-- **File sửa**: `src/services/review.service.js`, `src/controllers/reviews.controller.js`, `src/routes/restaurants.js`
-
-### S4-T06. Aggregate dashboard endpoint *(API-03)*
-
-- **Endpoint mới**: `GET /api/restaurants/:id/dashboard`
-- **Response**: `{ kpi, sentiment, trend, complaints, topIssue }` — gộp 5 endpoints
-- **Lý do**: Giảm frontend từ 5 API calls xuống 1
-
-### S4-T07. Pagination cho `listReviewBatches()` *(DAT-02)*
-
-- **File sửa**: `src/modules/admin-intake/admin-intake.repository.js`
-- **Query params**: `page`, `limit`, `status` filter
-
-### S4-T08. Standardize delete response envelope *(API-04)*
-
-- **Chi tiết**: Tất cả delete endpoints trả `{ data: { id, deleted: true } }`
-
-### S4 — Tiêu chí hoàn thành
-
-- [ ] Search reviews bằng keyword hoạt động
-- [ ] Filter theo sentiment hoạt động
-- [ ] Export CSV download thành công
-- [ ] Dashboard endpoints hỗ trợ date range filter
-- [ ] Aggregate dashboard endpoint hoạt động
-- [ ] Batch list có pagination + status filter
-- [ ] View chi tiết 1 review
-
----
-
-## Sprint 5 — Production Readiness 🚀
-
-> **Mục tiêu**: Đảm bảo backend sẵn sàng cho production deployment.
-> **Thời gian ước tính**: 2-3 ngày
-
-### S5-T01. Request compression
-
-- **Thêm**: `compression` middleware cho responses
-- **File sửa**: `src/app.js`, `package.json`
-- **Lý do**: Giảm bandwidth, đặc biệt cho dashboard JSON responses lớn
-
-### S5-T02. Request timeout
-
-- **Thêm**: Timeout middleware cho các request chạy quá lâu
-- **File mới**: `src/middleware/request-timeout.js`
-- **Default**: 30s cho API, 60s cho export endpoints
-- **File sửa**: `src/app.js`
-
-### S5-T03. Database health monitoring
-
-- **Endpoint sửa**: `GET /api/health`
-- **Thêm chi tiết**:
-  - DB connection pool status
-  - DB response time
-  - Uptime
-  - Memory usage
-- **File sửa**: `src/app.js`
-
-### S5-T04. CORS hardening
-
-- **File sửa**: `src/app.js`, `src/config/env.js`
-- **Thêm**: `CORS_METHODS`, `CORS_MAX_AGE` env vars
-- **Preflight caching**: `Access-Control-Max-Age: 86400`
-
-### S5-T05. API versioning strategy
-
-- **Quyết định**: URL-based versioning (`/api/v1/...`)
-- **File sửa**: `src/app.js`
-- **Strategy**: Mount current routes dưới `/api/v1/`, giữ `/api/` redirect tới `/api/v1/` cho backward compat
-- **Lý do**: Khi cần breaking change, mount `/api/v2/` song song
-
-### S5-T06. Cron job: cleanup expired tokens
-
-- **File mới**: `src/jobs/cleanup-tokens.job.js`
-- **Logic**: Xóa expired refresh tokens và password reset tokens
-- **Schedule**: Chạy hàng ngày (dùng `node-cron` hoặc external scheduler)
-
-### S5-T07. Security headers audit
-
-- **Review**: Helmet config hiện tại
-- **Thêm**: `Permissions-Policy`, `Referrer-Policy`, CSP nếu serve HTML
-- **File sửa**: `src/app.js`
-
-### S5-T08. Real database integration tests *(TST-01)*
-
-- **File mới**: `test/integration/setup.js`, `docker-compose.test.yml`
-- **Chi tiết**: Tests chạy trên PostgreSQL thật (Docker) thay vì mock Prisma
-
-### S5-T09. Race condition tests *(TST-02)*
-
-- **Chi tiết**: Test concurrent publish, concurrent register, concurrent slug generation
-
-### S5-T10. Redis rate limit store *(SEC-05)*
-
-- **File sửa**: `src/middleware/rate-limit.js`
-- **Chi tiết**: Chuyển từ in-memory sang Redis store khi deploy multi-instance
-- **Conditional**: Chỉ cần khi chạy 2+ instances
-
-### S5-T11. Database backup strategy *(OPS-01)*
-
-- **File mới**: `docs/BACKUP-STRATEGY.md`
-- **Chi tiết**: Document pg_dump schedule, retention policy, restore procedure
-
-### S5-T12. Background publish job *(SCL-01)*
-
-- **Thêm enum**: `PUBLISHING` vào `ReviewIntakeBatchStatus`
-- **File mới**: `src/jobs/publish-batch.job.js`
-- **Chi tiết**: Publish → mark PUBLISHING → return → background worker → PUBLISHED
-- **Conditional**: Chỉ cần khi batch > 50 items thường xuyên
-
-### S5 — Tiêu chí hoàn thành
-
-- [ ] Response compression hoạt động (check Content-Encoding header)
-- [ ] Request timeout ngắt các request chạy quá lâu
-- [ ] Health endpoint trả DB latency, memory, uptime
-- [ ] API versioning setup xong
-- [ ] Expired tokens được dọn dẹp tự động
-- [ ] Security headers đầy đủ
-- [ ] Integration tests chạy trên real DB
-- [ ] Backup strategy được document
-
----
-
-## Sprint 6 — Advanced Features (V2) 🌟
-
-> **Mục tiêu**: Features nâng cao cho phiên bản tiếp theo.
-> **Thời gian ước tính**: Tuỳ scope
-
-### S6-T01. Notification system
+**Hiện tại**: Admin routes check OWNER/MANAGER — nhưng Operator không phải member của nhà hàng.
 
 - **Schema**:
   ```prisma
-  model Notification {
-    id        String   @id @default(uuid())
-    userId    String
-    type      String
-    title     String
-    body      String?
-    data      Json?
-    readAt    DateTime?
-    createdAt DateTime @default(now())
-    
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-    
-    @@index([userId, readAt])
-    @@index([userId, createdAt])
+  // Thêm vào User model
+  role  UserRole  @default(USER)
+
+  enum UserRole {
+    USER           // Chủ nhà hàng
+    SYSTEM_ADMIN   // Đội vận hành Sentify
   }
   ```
-- **Endpoints**:
-  - `GET /api/notifications` — list notifications (pagination)
-  - `PATCH /api/notifications/:id/read` — mark as read
-  - `POST /api/notifications/read-all` — mark all as read
-- **Trigger points**: Batch published, member invited, ownership transferred
+- **File mới**: `src/middleware/require-system-admin.js`
+- **File sửa**: Admin routes dùng `requireSystemAdmin` thay vì check restaurant permission
+- **FE UI**: Operator login → detect `SYSTEM_ADMIN` → render Operator Panel
 
-### S6-T02. Audit log
+### S4-T02. Data source tracking
+
+**Operator cần**: Ghi rõ nguồn gốc data trên mỗi batch.
+
+- **Schema** (thêm vào `ReviewIntakeBatch`):
+  ```prisma
+  sourceUrl     String?    // Google Maps listing URL
+  sourceNotes   String?    // "crawl Google Maps ngày 15/03"
+  ```
+- **Sửa**: `POST /api/admin/review-batches` thêm `sourceUrl`, `sourceNotes`
+- **FE UI**: Batch create form → Source URL + Notes fields
+
+### S4-T03. Batch archive + pagination + filter
+
+- **Mới**: `POST /api/admin/review-batches/:id/archive`
+- **Sửa**: `GET /api/admin/review-batches` → `page`, `limit`, `status`, `restaurantId`
+- ARCHIVED ẩn khỏi list mặc định
+- **FE UI**: Batch list → filter + pagination + archive button
+
+### S4-T04. Operator multi-restaurant overview
+
+**Operator cần**: Xem tất cả restaurants + thống kê nhanh.
+
+- **Mới** (Operator-only): `GET /api/admin/restaurants`
+- **Response**: `{ id, name, slug, totalReviews, lastBatchAt, pendingBatchCount }`
+- **FE UI**: Operator Panel → sidebar restaurant list
+
+### S4-T05. Audit trail
+
+**Mọi action của Operator phải được log** — đảm bảo minh bạch.
 
 - **Schema**:
   ```prisma
@@ -576,113 +335,260 @@
     id           String   @id @default(uuid())
     userId       String?
     restaurantId String?
-    action       String
-    resource     String
+    action       String   // batch.created, batch.published, item.approved, item.rejected
+    resource     String   // ReviewIntakeBatch, ReviewIntakeItem
     resourceId   String?
     metadata     Json?
     ip           String?
     userAgent    String?
     createdAt    DateTime @default(now())
-    
+
     @@index([restaurantId, createdAt])
     @@index([userId, createdAt])
     @@index([action, createdAt])
   }
   ```
+- **Mới**: `GET /api/admin/audit-logs` (pagination, filter by restaurant/action/date)
+- **Auto-log**: batch create, item approve/reject, batch publish, batch archive
+- **FE UI**: Operator Panel → Audit Log tab → filterable table
+
+### S4-T06. Data transparency cho User
+
+**User cần biết**: data từ đâu, bao nhiêu reviews, cập nhật khi nào.
+
+- **Mới**: `GET /api/restaurants/:id/data-summary`
+- **Response**:
+  ```json
+  {
+    "totalReviews": 523,
+    "totalBatches": 12,
+    "lastUpdatedAt": "2026-03-15T...",
+    "sources": [
+      { "type": "MANUAL", "count": 23 },
+      { "type": "BULK_PASTE", "count": 400 },
+      { "type": "CSV", "count": 100 }
+    ]
+  }
+  ```
+- **FE UI**: Dashboard footer → "523 reviews từ 12 đợt • Cập nhật: 15/03/2026"
+
+### S4-T07. Export reviews (CSV)
+
+- **Mới**: `GET /api/restaurants/:id/reviews/export?format=csv`
+- **Headers**: `Content-Type: text/csv`, `Content-Disposition: attachment`
+- **Columns**: authorName, rating, content, sentiment, keywords, reviewDate
+- **FE UI**: Reviews page → "Export CSV" button
+
+### S4 — Tiêu chí hoàn thành
+
+- [ ] SYSTEM_ADMIN role — access admin endpoints không cần restaurant membership
+- [ ] Source tracking trên batches
+- [ ] Batch list: pagination + status filter + archive
+- [ ] Operator xem tất cả restaurants + thống kê
+- [ ] Audit trail auto-log mọi action
+- [ ] User xem data transparency trên dashboard
+- [ ] Export CSV hoạt động
+- [ ] **FE Operator Panel có đủ endpoints cho mọi trang**
+
+---
+
+## Sprint 5 — Production Readiness 🚀
+
+> **Mục tiêu**: Backend sẵn sàng deploy production — performance, notifications, security, seed data.
+> **Thời gian ước tính**: 2-3 ngày
+> **Phục vụ**: 🏗️ Infrastructure + 🧑‍💼 User (notifications)
+
+### S5-T01. Notification system (User-facing)
+
+**User cần biết** khi có data mới được Operator publish.
+
+- **Schema**:
+  ```prisma
+  model Notification {
+    id        String   @id @default(uuid())
+    userId    String
+    type      String   // batch.published, member.invited, member.joined
+    title     String
+    body      String?
+    data      Json?    // { restaurantId, batchId, ... }
+    readAt    DateTime?
+    createdAt DateTime @default(now())
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId, readAt])
+    @@index([userId, createdAt])
+  }
+  ```
 - **Endpoints**:
-  - `GET /api/restaurants/:id/audit-log` — OWNER only
-- **Tracked actions**: member.invited, member.removed, batch.published, restaurant.updated, settings.changed
+  - `GET /api/notifications` — list + unread count (pagination)
+  - `PATCH /api/notifications/:id/read` — mark read
+  - `POST /api/notifications/read-all` — mark all read
+- **Trigger**: Operator publish batch → notify OWNER + MANAGERs
+- **FE UI**: Navbar → bell icon → dropdown → unread badge
 
-### S6-T03. Webhook system
+### S5-T02. Request compression + timeout
 
-- **Schema**: `WebhookEndpoint` (url, events, secret, active)
-- **Endpoints**: CRUD cho webhook endpoints
-- **Events**: `batch.published`, `insight.updated`, `member.joined`
-- **Delivery**: Queue-based (Bull/BullMQ) với retry
+- `compression` middleware → giảm bandwidth
+- `request-timeout.js` → 30s default, 60s export
+- **File sửa**: `src/app.js`, `package.json`
 
-### S6-T04. Multi-language sentiment analysis
+### S5-T03. Enhanced health endpoint
 
-**Hiện tại**: Keyword-based (VI/EN/JP). Hạn chế accuracy.
-**Nâng cấp**: Tích hợp LLM API cho sentiment analysis.
+- `GET /api/health` → `{ status, db: { latencyMs }, uptime, memory }`
+- **FE UI**: Operator Panel → System Status
 
-- **Strategy**: Hybrid — dùng keyword-based cho real-time, LLM cho batch analysis
-- **Config**: `SENTIMENT_PROVIDER` env var (`keyword` | `openai` | `gemini`)
-- **File sửa**: `src/services/sentiment-analyzer.service.js`
+### S5-T04. CORS hardening + security headers
+
+- `CORS_METHODS`, `CORS_MAX_AGE` env vars
+- Helmet audit: `Permissions-Policy`, `Referrer-Policy`
+
+### S5-T05. API versioning
+
+- Mount dưới `/api/v1/`, `/api/` redirect → `/api/v1/`
+
+### S5-T06. Cron: cleanup expired tokens
+
+- `src/jobs/cleanup-tokens.job.js` — xóa expired refresh + reset tokens hàng ngày
+
+### S5-T07. Soft delete middleware
+
+- `src/middleware/soft-delete.js` — auto-filter `deletedAt IS NULL`
+- Áp dụng cho User + Restaurant
+
+### S5-T08. Seed script
+
+- `prisma/seed.js` — tạo 1 SYSTEM_ADMIN, 2 demo restaurants, sample data
+- FE dev có data sẵn khi phát triển
+
+### S5 — Tiêu chí hoàn thành
+
+- [ ] Notifications: User nhận thông báo khi batch published
+- [ ] Compression + timeout hoạt động
+- [ ] Health endpoint trả DB latency, memory, uptime
+- [ ] API versioning `/api/v1/`
+- [ ] Token cleanup tự động
+- [ ] Security headers đầy đủ
+- [ ] Soft delete middleware
+- [ ] Seed script chạy được
+
+---
+
+## Sprint 6 — Advanced Features (V2) 🌟
+
+> **Mục tiêu**: Features nâng cao. Triển khai tuỳ nhu cầu.
+
+### S6-T01. LLM-powered sentiment analysis
+- Gemini/OpenAI tích hợp, aspect-based: "đồ ăn ngon nhưng phục vụ chậm"
+- Config: `SENTIMENT_PROVIDER=keyword|gemini`
+
+### S6-T02. Review dispute (User-facing)
+- User báo review không chính xác → Operator xem xét
+- Schema: `ReviewDispute`
+
+### S6-T03. Scheduled reports
+- PDF/email weekly report cho OWNER (background job)
+
+### S6-T04. Webhook system
+- OWNER cấu hình webhook + events (`batch.published`, `insight.updated`)
+
+### S6-T05. Redis rate limit store
+- In-memory → Redis khi multi-instance
 
 ---
 
 ## Tổng kết Sprint Map
 
 ```
-Sprint 1 ─── Foundation Hardening ──── 2-3 ngày ─── 🔴 Critical
+Sprint 1 ─── Foundation Hardening ──── 2-3 ngày ── ✅ Done
    │
-Sprint 2 ─── Auth Hoàn Thiện ───────── 3-4 ngày ─── 🔴 Critical
+Sprint 2 ─── Auth Hoàn Thiện ───────── 3-4 ngày ── ✅ Done
    │
-Sprint 3 ─── User & Team ─────────── 3-4 ngày ─── 🟡 Important
+Sprint 3 ─── User Experience ────────── 3-4 ngày ── 🟡 Next     → FE User App sẵn sàng
    │
-Sprint 4 ─── Review Nâng Cao ──────── 3-4 ngày ─── 🟡 Important
+Sprint 4 ─── Operator Tools ─────────── 3-4 ngày ── 🟡 After S3 → FE Operator Panel sẵn sàng
    │
-Sprint 5 ─── Production Ready ─────── 2-3 ngày ─── 🟡 Important
+Sprint 5 ─── Production Ready ──────── 2-3 ngày ── 🟡 After S4 → Deploy production
    │
-Sprint 6 ─── Advanced (V2) ─────────── TBD ──────── 🟢 Future
+Sprint 6 ─── Advanced (V2) ─────────── TBD ─────── 🟢 Future
 ```
 
 **Tổng cộng Sprint 1-5**: ~15-18 ngày dev
 
+### Sau Sprint 5, FE có đủ endpoints cho:
+
+| FE App | Trang | Sẵn sàng từ |
+|---|---|---|
+| **User App** | Login / Register / Forgot PW | S2 ✅ |
+| | Restaurant picker | S1 + S3 |
+| | Dashboard (KPI, charts, complaints) | S1 + S3 (aggregate + date range) |
+| | Reviews (search, filter, detail, export) | S1 + S3 + S4 |
+| | Settings (profile, change PW) | S2 + S3 |
+| | Team management | S3 |
+| | Notifications | S5 |
+| **Operator Panel** | Login (detect SYSTEM_ADMIN) | S4 |
+| | All restaurants overview | S4 |
+| | Batch management (create, QC, publish) | S1 + S4 |
+| | Audit trail | S4 |
+| | System health | S5 |
+
 ---
 
-## Endpoint Inventory (Current + Planned)
+## Endpoint Inventory
 
-### Hiện tại: 21 endpoints
+### ✅ Done: 24 endpoints (Sprint 1-2)
 
-| Group | Method | Path | Auth |
+| Group | Method | Path | Dùng bởi |
 |---|---|---|---|
-| Auth | POST | `/api/auth/register` | No |
-| Auth | POST | `/api/auth/login` | No |
-| Auth | GET | `/api/auth/session` | Yes |
-| Auth | POST | `/api/auth/logout` | Yes |
-| Auth | PATCH | `/api/auth/password` | Yes |
-| Restaurant | POST | `/api/restaurants` | Yes |
-| Restaurant | GET | `/api/restaurants` | Yes |
-| Restaurant | GET | `/api/restaurants/:id` | Yes |
-| Restaurant | PATCH | `/api/restaurants/:id` | Yes |
-| Reviews | GET | `/api/restaurants/:id/reviews` | Yes |
-| Dashboard | GET | `/api/restaurants/:id/dashboard/kpi` | Yes |
-| Dashboard | GET | `/api/restaurants/:id/dashboard/sentiment` | Yes |
-| Dashboard | GET | `/api/restaurants/:id/dashboard/trend` | Yes |
-| Dashboard | GET | `/api/restaurants/:id/dashboard/complaints` | Yes |
-| Dashboard | GET | `/api/restaurants/:id/dashboard/top-issue` | Yes |
-| Admin | POST | `/api/admin/review-batches` | Yes+Perm |
-| Admin | GET | `/api/admin/review-batches` | Yes+Perm |
-| Admin | GET | `/api/admin/review-batches/:id` | Yes+Perm |
-| Admin | DELETE | `/api/admin/review-batches/:id` | Yes+Perm |
-| Admin | POST | `/api/admin/review-batches/:id/items` | Yes+Perm |
-| Admin | POST | `/api/admin/review-batches/:id/items/bulk` | Yes+Perm |
-| Admin | PATCH | `/api/admin/review-items/:id` | Yes+Perm |
-| Admin | DELETE | `/api/admin/review-items/:id` | Yes+Perm |
-| Admin | POST | `/api/admin/review-batches/:id/publish` | Yes+Perm |
+| Auth | POST | `/api/auth/register` | User |
+| Auth | POST | `/api/auth/login` | User / Operator |
+| Auth | GET | `/api/auth/session` | User / Operator |
+| Auth | POST | `/api/auth/logout` | User / Operator |
+| Auth | PATCH | `/api/auth/password` | User |
+| Auth | POST | `/api/auth/refresh` | User / Operator |
+| Auth | POST | `/api/auth/forgot-password` | User |
+| Auth | POST | `/api/auth/reset-password` | User |
+| Restaurant | POST | `/api/restaurants` | User |
+| Restaurant | GET | `/api/restaurants` | User |
+| Restaurant | GET | `/api/restaurants/:id` | User |
+| Restaurant | PATCH | `/api/restaurants/:id` | User |
+| Reviews | GET | `/api/restaurants/:id/reviews` | User |
+| Dashboard | GET | `.../dashboard/kpi` | User |
+| Dashboard | GET | `.../dashboard/sentiment` | User |
+| Dashboard | GET | `.../dashboard/trend` | User |
+| Dashboard | GET | `.../dashboard/complaints` | User |
+| Dashboard | GET | `.../dashboard/top-issue` | User |
+| Operator | POST | `/api/admin/review-batches` | Operator |
+| Operator | GET | `/api/admin/review-batches` | Operator |
+| Operator | GET | `/api/admin/review-batches/:id` | Operator |
+| Operator | DELETE | `/api/admin/review-batches/:id` | Operator |
+| Operator | POST | `.../items` or `.../items/bulk` | Operator |
+| Operator | PATCH/DELETE | `/api/admin/review-items/:id` | Operator |
+| Operator | POST | `.../publish` | Operator |
 
-### Planned: +20 endpoints (Sprint 2-6)
+### ⏳ Planned: +22 endpoints (Sprint 3-5)
 
-| Sprint | Method | Path | Description |
-|---|---|---|---|
-| S2 | POST | `/api/auth/refresh` | Refresh token |
-| S2 | POST | `/api/auth/forgot-password` | Request reset |
-| S2 | POST | `/api/auth/reset-password` | Reset password |
-| S3 | GET | `/api/users/me` | Get profile |
-| S3 | PATCH | `/api/users/me` | Update profile |
-| S3 | DELETE | `/api/users/me` | Deactivate account |
-| S3 | POST | `/api/restaurants/:id/invitations` | Invite member |
-| S3 | GET | `/api/restaurants/:id/invitations` | List invitations |
-| S3 | DELETE | `/api/restaurants/:id/invitations/:inviteId` | Cancel invite |
-| S3 | POST | `/api/invitations/:token/accept` | Accept invite |
-| S3 | GET | `/api/restaurants/:id/members` | List members |
-| S3 | PATCH | `/api/restaurants/:id/members/:memberId` | Change permission |
-| S3 | DELETE | `/api/restaurants/:id/members/:memberId` | Remove member |
-| S3 | POST | `/api/restaurants/:id/transfer` | Transfer ownership |
-| S3 | DELETE | `/api/restaurants/:id` | Delete restaurant |
-| S4 | GET | `/api/restaurants/:id/reviews/export` | Export CSV |
-| S4 | GET | `/api/restaurants/:id/reviews/:reviewId` | Review detail |
-| S4 | POST | `/api/admin/review-batches/:id/archive` | Archive batch |
-| S6 | GET | `/api/notifications` | List notifications |
-| S6 | PATCH | `/api/notifications/:id/read` | Mark read |
+| Sprint | Method | Path | Dùng bởi | Chức năng |
+|---|---|---|---|---|
+| S3 | GET | `/api/users/me` | User | Profile |
+| S3 | PATCH | `/api/users/me` | User | Update profile |
+| S3 | DELETE | `/api/users/me` | User | Deactivate |
+| S3 | POST | `.../invitations` | OWNER | Invite member |
+| S3 | GET | `.../invitations` | OWNER | List invitations |
+| S3 | DELETE | `.../invitations/:inviteId` | OWNER | Cancel invite |
+| S3 | POST | `/api/invitations/:token/accept` | Public | Accept invite |
+| S3 | GET | `.../members` | User | List team |
+| S3 | PATCH | `.../members/:memberId` | OWNER | Change perm |
+| S3 | DELETE | `.../members/:memberId` | OWNER | Remove member |
+| S3 | POST | `.../transfer` | OWNER | Transfer ownership |
+| S3 | DELETE | `/api/restaurants/:id` | OWNER | Delete restaurant |
+| S3 | GET | `.../dashboard` | User | Aggregate dashboard |
+| S3 | GET | `.../reviews/:reviewId` | User | Review detail |
+| S4 | GET | `/api/admin/restaurants` | Operator | All restaurants |
+| S4 | POST | `.../archive` | Operator | Archive batch |
+| S4 | GET | `/api/admin/audit-logs` | Operator | Audit trail |
+| S4 | GET | `.../data-summary` | User | Data transparency |
+| S4 | GET | `.../reviews/export` | User | Export CSV |
+| S5 | GET | `/api/notifications` | User | List notifications |
+| S5 | PATCH | `/api/notifications/:id/read` | User | Mark read |
+| S5 | POST | `/api/notifications/read-all` | User | Mark all read |
