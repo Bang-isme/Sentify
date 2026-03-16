@@ -108,15 +108,25 @@ function resolveEditableBatch(batch) {
     }
 }
 
+function stripHtmlTags(value) {
+    if (typeof value !== 'string') {
+        return value
+    }
+
+    return value.replace(/<[^>]*>/g, '')
+}
+
 function normalizeIncomingItem(item) {
+    const rawContent = stripHtmlTags(item.rawContent ?? null)
+
     return {
         rawAuthorName: item.rawAuthorName ?? null,
         rawRating: item.rawRating,
-        rawContent: item.rawContent ?? null,
+        rawContent,
         rawReviewDate: item.rawReviewDate ?? null,
         normalizedAuthorName: item.rawAuthorName ?? null,
         normalizedRating: item.rawRating,
-        normalizedContent: item.rawContent ?? null,
+        normalizedContent: rawContent,
         normalizedReviewDate: item.rawReviewDate ?? null,
     }
 }

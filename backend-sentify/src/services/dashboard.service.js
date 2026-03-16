@@ -59,25 +59,22 @@ async function getRestaurantKpi({ userId, restaurantId }) {
 async function getSentimentBreakdown({ userId, restaurantId }) {
     await ensureRestaurantAccess(userId, restaurantId)
 
-    const reviews = await prisma.review.findMany({
+    const groups = await prisma.review.groupBy({
+        by: ['sentiment'],
         where: {
             restaurantId,
+            sentiment: { not: null },
         },
-        select: {
-            sentiment: true,
-        },
+        _count: { _all: true },
     })
 
-    const total = reviews.length
-    const counts = {
-        POSITIVE: 0,
-        NEUTRAL: 0,
-        NEGATIVE: 0,
-    }
+    const counts = { POSITIVE: 0, NEUTRAL: 0, NEGATIVE: 0 }
+    let total = 0
 
-    for (const review of reviews) {
-        if (review.sentiment && counts[review.sentiment] !== undefined) {
-            counts[review.sentiment] += 1
+    for (const group of groups) {
+        if (group.sentiment && counts[group.sentiment] !== undefined) {
+            counts[group.sentiment] = group._count._all
+            total += group._count._all
         }
     }
 
@@ -91,42 +88,29 @@ async function getSentimentBreakdown({ userId, restaurantId }) {
 async function getTrend({ userId, restaurantId, period = 'week' }) {
     await ensureRestaurantAccess(userId, restaurantId)
 
-    const reviews = await prisma.review.findMany({
-        where: {
-            restaurantId,
-        },
-        select: {
-            rating: true,
-            reviewDate: true,
-            createdAt: true,
-        },
-    })
+    const truncUnit = period === 'month' ? 'month' : 'week'
 
-    const grouped = new Map()
+    const rows = await prisma.$queryRaw`
+        SELECT
+            date_trunc(${truncUnit}, COALESCE("reviewDate", "createdAt")) AS bucket,
+            AVG(rating)::float AS "averageRating",
+            COUNT(*)::int AS "reviewCount"
+        FROM "Review"
+        WHERE "restaurantId" = ${restaurantId}
+        GROUP BY bucket
+        ORDER BY bucket ASC
+    `
 
-    for (const review of reviews) {
-        // Some reviews may miss source dates, so trend falls back to createdAt.
-        const sourceDate = review.reviewDate || review.createdAt
-        const bucket = buildBucket(period, sourceDate)
-        const current = grouped.get(bucket.label) || {
-            label: bucket.label,
-            sortKey: bucket.sortKey,
-            ratingSum: 0,
-            reviewCount: 0,
+    return rows.map((row) => {
+        const date = new Date(row.bucket)
+        const label = period === 'month' ? buildMonthLabel(date) : buildIsoWeekLabel(date)
+
+        return {
+            label,
+            averageRating: roundNumber(row.averageRating, 1),
+            reviewCount: row.reviewCount,
         }
-
-        current.ratingSum += review.rating
-        current.reviewCount += 1
-        grouped.set(bucket.label, current)
-    }
-
-    return [...grouped.values()]
-        .sort((left, right) => left.sortKey - right.sortKey)
-        .map((bucket) => ({
-            label: bucket.label,
-            averageRating: roundNumber(bucket.ratingSum / bucket.reviewCount, 1),
-            reviewCount: bucket.reviewCount,
-        }))
+    })
 }
 
 async function getComplaintKeywords({ userId, restaurantId }) {
