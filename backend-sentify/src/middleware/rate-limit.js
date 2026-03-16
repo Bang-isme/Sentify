@@ -44,8 +44,17 @@ const registerLimiter = createJsonLimiter({
     message: 'Too many registration attempts. Please try again later.',
 })
 
+const passwordChangeLimiter = createJsonLimiter({
+    windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
+    max: env.AUTH_RATE_LIMIT_MAX,
+    code: 'AUTH_RATE_LIMITED',
+    message: 'Too many password change attempts. Please try again later.',
+    skipSuccessfulRequests: true,
+})
+
 module.exports = {
     apiLimiter,
     loginLimiter,
+    passwordChangeLimiter,
     registerLimiter,
 }

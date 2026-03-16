@@ -3,6 +3,10 @@ const assert = require('node:assert/strict')
 
 const { createTestToken, request, startApp, stopApp } = require('./test-helpers')
 
+const RESTAURANT_A = '00000000-0000-0000-0000-00000000000a'
+const RESTAURANT_B = '00000000-0000-0000-0000-00000000000b'
+const BATCH_ID = '00000000-0000-0000-0000-0000000000b1'
+
 test('data isolation blocks cross-restaurant access', async (t) => {
     const prismaOverrides = {
         user: {
@@ -15,11 +19,11 @@ test('data isolation blocks cross-restaurant access', async (t) => {
         },
         restaurantUser: {
             findFirst: async ({ where }) => {
-                if (where.userId === 'user-1' && where.restaurantId === 'restaurant-a') {
+                if (where.userId === 'user-1' && where.restaurantId === RESTAURANT_A) {
                     return {
                         permission: 'OWNER',
                         restaurant: {
-                            id: 'restaurant-a',
+                            id: RESTAURANT_A,
                             name: 'Alpha',
                             slug: 'alpha',
                             address: null,
@@ -44,8 +48,9 @@ test('data isolation blocks cross-restaurant access', async (t) => {
             findFirst: async () => null,
         },
         review: {
-            findMany: async () => [],
+            groupBy: async () => [],
         },
+        $queryRaw: async () => [],
     }
 
     const { server } = await startApp(prismaOverrides)
@@ -59,7 +64,7 @@ test('data isolation blocks cross-restaurant access', async (t) => {
     const allowed = await request(
         server,
         'GET',
-        '/api/restaurants/restaurant-a/dashboard/kpi',
+        `/api/restaurants/${RESTAURANT_A}/dashboard/kpi`,
         { token: auth },
     )
     assert.equal(allowed.status, 200)
@@ -67,7 +72,7 @@ test('data isolation blocks cross-restaurant access', async (t) => {
     const forbidden = await request(
         server,
         'GET',
-        '/api/restaurants/restaurant-b/dashboard/kpi',
+        `/api/restaurants/${RESTAURANT_B}/dashboard/kpi`,
         { token: auth },
     )
     assert.equal(forbidden.status, 404)
@@ -88,8 +93,8 @@ test('data isolation blocks admin routes for non-members', async (t) => {
         },
         reviewIntakeBatch: {
             findUnique: async () => ({
-                id: 'batch-1',
-                restaurantId: 'restaurant-b',
+                id: BATCH_ID,
+                restaurantId: RESTAURANT_B,
                 status: 'DRAFT',
                 items: [],
             }),
@@ -107,7 +112,7 @@ test('data isolation blocks admin routes for non-members', async (t) => {
     const listBatches = await request(
         server,
         'GET',
-        '/api/admin/review-batches?restaurantId=restaurant-b',
+        `/api/admin/review-batches?restaurantId=${RESTAURANT_B}`,
         { token: auth },
     )
     assert.equal(listBatches.status, 404)
@@ -115,7 +120,7 @@ test('data isolation blocks admin routes for non-members', async (t) => {
     const deleteBatch = await request(
         server,
         'DELETE',
-        '/api/admin/review-batches/batch-1',
+        `/api/admin/review-batches/${BATCH_ID}`,
         { token: auth },
     )
     assert.equal(deleteBatch.status, 404)

@@ -103,6 +103,8 @@ model Review {
   intakeItems ReviewIntakeItem[]
 
   @@unique([restaurantId, externalId])
+  @@index([restaurantId])
+  @@index([restaurantId, createdAt])
   @@index([restaurantId, rating])
   @@index([restaurantId, reviewDate])
   @@index([restaurantId, sentiment])

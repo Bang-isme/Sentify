@@ -135,6 +135,7 @@ async function startApp(prismaOverrides = {}) {
     clearModule('../src/lib/prisma')
     clearModule('../src/middleware/rate-limit')
     clearModule('../src/middleware/request-logger')
+    clearModule('../src/middleware/validate-uuid')
     clearModule('../src/lib/security-event')
 
     const defaultPrisma = {
@@ -153,6 +154,7 @@ async function startApp(prismaOverrides = {}) {
         apiLimiter: (req, res, next) => next(),
         authLimiter: (req, res, next) => next(),
         loginLimiter: (req, res, next) => next(),
+        passwordChangeLimiter: (req, res, next) => next(),
         registerLimiter: (req, res, next) => next(),
     })
     withMock('../src/lib/security-event', {

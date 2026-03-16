@@ -55,7 +55,10 @@ const reviewItemInputSchema = z.object({
     rawAuthorName: optionalTrimmedString(z.string().max(120)),
     rawRating: z.number().int().min(1).max(5),
     rawContent: nullableTrimmedString(z.string().max(4000)),
-    rawReviewDate: nullableDate(),
+    rawReviewDate: nullableDate().refine(
+        (value) => !value || value <= new Date(),
+        { message: 'Review date cannot be in the future' },
+    ),
 })
 
 const createReviewBatchSchema = z.object({

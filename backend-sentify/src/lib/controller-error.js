@@ -25,6 +25,7 @@ function sendError(req, res, status, code, message, details) {
         error: {
             code,
             message,
+            timestamp: new Date().toISOString(),
             ...(req?.requestId ? { requestId: req.requestId } : {}),
             ...(details ? { details } : {}),
         },

@@ -3,6 +3,8 @@ const assert = require('node:assert/strict')
 
 const { createTestToken, request, startApp, stopApp } = require('./test-helpers')
 
+const RESTAURANT_ID = '00000000-0000-0000-0000-000000000001'
+
 test('dashboard endpoints return data with valid access', async (t) => {
     const prismaOverrides = {
         user: {
@@ -15,11 +17,11 @@ test('dashboard endpoints return data with valid access', async (t) => {
         },
         restaurantUser: {
             findFirst: async ({ where }) => {
-                if (where.userId === 'user-1' && where.restaurantId === 'restaurant-1') {
+                if (where.userId === 'user-1' && where.restaurantId === RESTAURANT_ID) {
                     return {
                         permission: 'OWNER',
                         restaurant: {
-                            id: 'restaurant-1',
+                            id: RESTAURANT_ID,
                             name: 'Cafe One',
                             slug: 'cafe-one',
                             address: null,
@@ -41,24 +43,18 @@ test('dashboard endpoints return data with valid access', async (t) => {
             },
         },
         review: {
-            findMany: async ({ select }) => {
-                if (select?.sentiment) {
-                    return [
-                        { sentiment: 'POSITIVE' },
-                        { sentiment: 'NEGATIVE' },
-                        { sentiment: 'POSITIVE' },
-                    ]
-                }
-
-                return [
-                    {
-                        rating: 4,
-                        reviewDate: new Date('2026-03-01T00:00:00Z'),
-                        createdAt: new Date('2026-03-01T00:00:00Z'),
-                    },
-                ]
-            },
+            groupBy: async () => [
+                { sentiment: 'POSITIVE', _count: { _all: 2 } },
+                { sentiment: 'NEGATIVE', _count: { _all: 1 } },
+            ],
         },
+        $queryRaw: async () => [
+            {
+                bucket: new Date('2026-03-01T00:00:00Z'),
+                averageRating: 4.0,
+                reviewCount: 1,
+            },
+        ],
         complaintKeyword: {
             findMany: async () => [
                 { keyword: 'slow service', count: 3, percentage: 60 },
@@ -80,7 +76,7 @@ test('dashboard endpoints return data with valid access', async (t) => {
 
     const auth = createTestToken({ userId: 'user-1', tokenVersion: 0 })
 
-    const kpi = await request(server, 'GET', '/api/restaurants/restaurant-1/dashboard/kpi', {
+    const kpi = await request(server, 'GET', `/api/restaurants/${RESTAURANT_ID}/dashboard/kpi`, {
         token: auth,
     })
     assert.equal(kpi.status, 200)
@@ -89,7 +85,7 @@ test('dashboard endpoints return data with valid access', async (t) => {
     const sentiment = await request(
         server,
         'GET',
-        '/api/restaurants/restaurant-1/dashboard/sentiment',
+        `/api/restaurants/${RESTAURANT_ID}/dashboard/sentiment`,
         { token: auth },
     )
     assert.equal(sentiment.status, 200)
@@ -97,7 +93,7 @@ test('dashboard endpoints return data with valid access', async (t) => {
     const trend = await request(
         server,
         'GET',
-        '/api/restaurants/restaurant-1/dashboard/trend',
+        `/api/restaurants/${RESTAURANT_ID}/dashboard/trend`,
         { token: auth },
     )
     assert.equal(trend.status, 200)
@@ -105,7 +101,7 @@ test('dashboard endpoints return data with valid access', async (t) => {
     const complaints = await request(
         server,
         'GET',
-        '/api/restaurants/restaurant-1/dashboard/complaints',
+        `/api/restaurants/${RESTAURANT_ID}/dashboard/complaints`,
         { token: auth },
     )
     assert.equal(complaints.status, 200)
@@ -113,7 +109,7 @@ test('dashboard endpoints return data with valid access', async (t) => {
     const topIssue = await request(
         server,
         'GET',
-        '/api/restaurants/restaurant-1/dashboard/top-issue',
+        `/api/restaurants/${RESTAURANT_ID}/dashboard/top-issue`,
         { token: auth },
     )
     assert.equal(topIssue.status, 200)
@@ -144,7 +140,7 @@ test('dashboard endpoints reject missing auth and unauthorized access', async (t
     const missingAuth = await request(
         server,
         'GET',
-        '/api/restaurants/restaurant-1/dashboard/kpi',
+        `/api/restaurants/${RESTAURANT_ID}/dashboard/kpi`,
     )
     assert.equal(missingAuth.status, 401)
 
@@ -152,7 +148,7 @@ test('dashboard endpoints reject missing auth and unauthorized access', async (t
     const forbidden = await request(
         server,
         'GET',
-        '/api/restaurants/restaurant-1/dashboard/kpi',
+        `/api/restaurants/${RESTAURANT_ID}/dashboard/kpi`,
         { token: auth },
     )
     assert.equal(forbidden.status, 404)

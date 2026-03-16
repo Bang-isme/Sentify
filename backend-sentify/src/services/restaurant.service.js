@@ -74,62 +74,69 @@ async function generateUniqueSlug(name) {
     throw new Error('Unable to generate a unique restaurant slug')
 }
 
-function isMissingIntakeTableError(error) {
-    if (!error || typeof error !== 'object') {
-        return false
-    }
-
-    if (error.code === 'P2021') {
-        return true
-    }
-
-    if (typeof error.message === 'string') {
-        return error.message.includes('ReviewIntakeBatch') && error.message.includes('does not exist')
-    }
-
-    return false
-}
-
 async function fetchIntakeSummary(restaurantId) {
-    try {
-        const [latestPublishedBatch, openBatches] = await Promise.all([
-            prisma.reviewIntakeBatch.findFirst({
-                where: {
-                    restaurantId,
-                    status: 'PUBLISHED',
+    const openStatuses = ['DRAFT', 'IN_REVIEW', 'READY_TO_PUBLISH']
+
+    const [latestPublishedBatch, openBatches, approvalCounts] = await Promise.all([
+        prisma.reviewIntakeBatch.findFirst({
+            where: {
+                restaurantId,
+                status: 'PUBLISHED',
+            },
+            orderBy: [{ publishedAt: 'desc' }, { updatedAt: 'desc' }],
+            select: {
+                sourceType: true,
+                publishedAt: true,
+            },
+        }),
+        prisma.reviewIntakeBatch.findMany({
+            where: {
+                restaurantId,
+                status: {
+                    in: openStatuses,
                 },
-                orderBy: [{ publishedAt: 'desc' }, { updatedAt: 'desc' }],
-                select: {
-                    sourceType: true,
-                    publishedAt: true,
+            },
+            select: {
+                status: true,
+                _count: {
+                    select: { items: true },
                 },
-            }),
-            prisma.reviewIntakeBatch.findMany({
-                where: {
-                    restaurantId,
+            },
+        }),
+        prisma.reviewIntakeItem.groupBy({
+            by: ['approvalStatus'],
+            where: {
+                restaurantId,
+                batch: {
                     status: {
-                        in: ['DRAFT', 'IN_REVIEW', 'READY_TO_PUBLISH'],
+                        in: openStatuses,
                     },
                 },
-                select: {
-                    status: true,
-                    items: {
-                        select: {
-                            approvalStatus: true,
-                        },
-                    },
-                },
-            }),
-        ])
+            },
+            _count: { _all: true },
+        }),
+    ])
 
-        return { latestPublishedBatch, openBatches }
-    } catch (error) {
-        if (isMissingIntakeTableError(error)) {
-            return { latestPublishedBatch: null, openBatches: [] }
+    // Merge the batch status counts and approval counts into the expected format
+    const mergedBatches = openBatches.map((batch) => ({
+        status: batch.status,
+        items: [],
+    }))
+
+    // Build a mock items array from approvalCounts for buildDatasetStatus compatibility
+    const mockItems = []
+    for (const group of approvalCounts) {
+        for (let i = 0; i < group._count._all; i++) {
+            mockItems.push({ approvalStatus: group.approvalStatus })
         }
-
-        throw error
     }
+
+    // Attach items to the first batch for counting (buildDatasetStatus iterates all batch items)
+    if (mergedBatches.length > 0) {
+        mergedBatches[0].items = mockItems
+    }
+
+    return { latestPublishedBatch, openBatches: mergedBatches }
 }
 
 async function createRestaurant(input) {

@@ -156,24 +156,22 @@ async function publishApprovedItems({
                 createdReviews.map((review) => [review.externalId, review.id]),
             )
 
-            for (const item of newItems) {
+            const updatePromises = newItems.map((item) => {
                 const reviewId = reviewIdByExternalId.get(item.reviewPayload.externalId)
 
                 if (!reviewId) {
                     throw new Error('Failed to resolve published review id for intake item')
                 }
 
-                await tx.reviewIntakeItem.update({
-                    where: {
-                        id: item.id,
-                    },
-                    data: {
-                        canonicalReviewId: reviewId,
-                    },
-                })
-
                 publishedReviewIds.push(reviewId)
-            }
+
+                return tx.reviewIntakeItem.update({
+                    where: { id: item.id },
+                    data: { canonicalReviewId: reviewId },
+                })
+            })
+
+            await Promise.all(updatePromises)
         }
 
         const updatedBatch = await tx.reviewIntakeBatch.update({

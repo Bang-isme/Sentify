@@ -3,4 +3,5 @@
 .env.*.local
 .tmp/
 node_modules/
+src/generated/
 *.log
