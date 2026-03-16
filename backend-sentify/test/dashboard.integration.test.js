@@ -47,6 +47,7 @@ test('dashboard endpoints return data with valid access', async (t) => {
                 { sentiment: 'POSITIVE', _count: { _all: 2 } },
                 { sentiment: 'NEGATIVE', _count: { _all: 1 } },
             ],
+            count: async () => 5,
         },
         $queryRaw: async () => [
             {

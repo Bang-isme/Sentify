@@ -59,22 +59,28 @@ async function getRestaurantKpi({ userId, restaurantId }) {
 async function getSentimentBreakdown({ userId, restaurantId }) {
     await ensureRestaurantAccess(userId, restaurantId)
 
-    const groups = await prisma.review.groupBy({
-        by: ['sentiment'],
-        where: {
-            restaurantId,
-            sentiment: { not: null },
-        },
-        _count: { _all: true },
-    })
+    // Run groupBy + total count in parallel.
+    // Total includes null-sentiment reviews so percentages stay consistent with KPI.
+    const [groups, totalResult] = await Promise.all([
+        prisma.review.groupBy({
+            by: ['sentiment'],
+            where: {
+                restaurantId,
+                sentiment: { not: null },
+            },
+            _count: { _all: true },
+        }),
+        prisma.review.count({
+            where: { restaurantId },
+        }),
+    ])
 
+    const total = totalResult
     const counts = { POSITIVE: 0, NEUTRAL: 0, NEGATIVE: 0 }
-    let total = 0
 
     for (const group of groups) {
         if (group.sentiment && counts[group.sentiment] !== undefined) {
             counts[group.sentiment] = group._count._all
-            total += group._count._all
         }
     }
 
@@ -92,7 +98,7 @@ async function getTrend({ userId, restaurantId, period = 'week' }) {
 
     const rows = await prisma.$queryRaw`
         SELECT
-            date_trunc(${truncUnit}, COALESCE("reviewDate", "createdAt")) AS bucket,
+            date_trunc(${truncUnit}, COALESCE("reviewDate", "createdAt") AT TIME ZONE 'UTC') AS bucket,
             AVG(rating)::float AS "averageRating",
             COUNT(*)::int AS "reviewCount"
         FROM "Review"
