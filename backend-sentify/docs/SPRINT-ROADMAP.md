@@ -260,12 +260,77 @@
 - `GET /api/restaurants` → `page`, `limit`
 - Delete endpoints trả `{ data: { id, deleted: true } }`
 
+### S3-T09. Restaurant status lifecycle *(GAP-02, GAP-03)*
+
+**Vấn đề**: Restaurant chỉ có name/address. Sau khi tạo, dashboard rỗng — User không biết chuyện gì xảy ra.
+
+- **Schema** (thêm vào Restaurant):
+  ```prisma
+  phone       String?
+  category    String?          // "Quán ăn", "Cafe", "Nhà hàng"
+  description String?
+  status      RestaurantStatus @default(PENDING_DATA)
+
+  enum RestaurantStatus {
+    PENDING_DATA   // Mới tạo, chờ operator import
+    ACTIVE         // Có data, dashboard hiển thị
+    PAUSED         // Tạm ngừng
+    ARCHIVED       // Đã đóng
+  }
+  ```
+- **Sửa**: `POST /api/restaurants` → accept thêm `phone`, `category`, `description`
+- **Sửa**: `GET /api/restaurants/:id` → trả `status`, `dataStatus` message:
+  - `PENDING_DATA` → `"Đội ngũ đang thu thập dữ liệu cho nhà hàng của bạn"`
+  - `ACTIVE` → null (dashboard bình thường)
+- **FE UI**: Dashboard empty state → hiện message + illustration thay vì trang trống
+
+### S3-T10. KPI comparison vs tháng trước *(GAP-05)*
+
+**Vấn đề**: KPI chỉ trả con số tĩnh, user không biết tốt hơn hay xấu hơn.
+
+- **Sửa** `GET .../dashboard/kpi` response thêm:
+  ```json
+  {
+    "totalReviews": 523,
+    "averageRating": 4.2,
+    "changes": {
+      "reviewsThisMonth": 45,
+      "reviewsLastMonth": 38,
+      "reviewsDelta": +7,
+      "ratingChange": +0.3,
+      "sentimentTrend": "IMPROVING"
+    }
+  }
+  ```
+- **FE UI**: KPI card → green/red arrow + "+7 reviews so với tháng trước"
+
+### S3-T11. Onboarding progress indicator *(GAP-06)*
+
+**Vấn đề**: User mới không biết làm gì tiếp.
+
+- **Sửa** `GET /api/auth/session` hoặc `GET /api/users/me` response thêm:
+  ```json
+  {
+    "onboarding": {
+      "hasRestaurant": true,
+      "hasData": false,
+      "hasTeam": false,
+      "completionPercent": 33
+    }
+  }
+  ```
+- **FE UI**: Sidebar / dashboard → onboarding checklist widget
+
 ### S3 — Tiêu chí hoàn thành
 
 - [ ] User xem + sửa được profile
 - [ ] OWNER mời member qua email → accept → thành member
 - [ ] Team: đổi quyền, remove, transfer ownership
 - [ ] Delete restaurant (soft delete)
+- [ ] Restaurant có status lifecycle (PENDING_DATA → ACTIVE)
+- [ ] Dashboard empty state hiện message thay vì trang trống
+- [ ] KPI endpoint trả comparison vs tháng trước
+- [ ] Session/profile trả onboarding progress
 - [ ] Aggregate dashboard (`/dashboard`) hoạt động
 - [ ] Reviews: search + filter + detail
 - [ ] Dashboard: date range filter
@@ -379,12 +444,72 @@
 - **Columns**: authorName, rating, content, sentiment, keywords, reviewDate
 - **FE UI**: Reviews page → "Export CSV" button
 
+### S4-T08. Operator workload dashboard *(GAP-07)*
+
+**Operator cần**: Biết việc gì cần làm, không phải tự nhớ.
+
+- **Mới**: `GET /api/admin/dashboard`
+- **Response**:
+  ```json
+  {
+    "pendingRestaurants": 3,
+    "pendingBatches": 5,
+    "readyToPublish": 2,
+    "totalRestaurants": 15,
+    "recentActivity": [
+      { "action": "batch.published", "restaurant": "Phở Hà Nội", "at": "..." }
+    ]
+  }
+  ```
+- **FE UI**: Operator Panel → Home page → workload cards
+
+### S4-T09. Notify Operator khi restaurant mới *(GAP-01)*
+
+**Vấn đề**: User tạo restaurant → Operator không biết.
+
+- **Logic**: Khi `createRestaurant()` → tạo Notification cho tất cả SYSTEM_ADMIN:
+  `"Restaurant mới: {name} — cần import data"`
+- **Hoặc**: Operator workload dashboard tự query `status = PENDING_DATA`
+- **FE UI**: Operator Panel → notification bell hoặc workload card "3 restaurants chờ data"
+
+### S4-T10. Enforce reviewerNote khi reject *(GAP-09)*
+
+**Vấn đề**: Reject item nhưng không ghi lý do → thiếu minh bạch.
+
+- **Sửa**: `PATCH /api/admin/review-items/:id` → khi `approvalStatus = REJECTED`:
+  - Bắt buộc `reviewerNote` (Zod validation)
+  - Ví dụ: "Spam", "Trùng review cũ", "Nhầm nhà hàng"
+- **FE UI**: Reject button → mở modal yêu cầu nhập lý do
+
+### S4-T11. Review source tracking *(GAP-13)*
+
+**Vấn đề**: Review sau publish mất liên kết nguồn gốc.
+
+- **Schema** (thêm vào Review):
+  ```prisma
+  sourceBatchId  String?    // link ngược về batch đã tạo review này
+  sourceType     String?    // MANUAL, BULK_PASTE, CSV
+  ```
+- **Sửa**: `publishApprovedItems()` → set `sourceBatchId` + `sourceType` khi tạo Review
+- **FE UI**: Review detail → "Nguồn: Batch #12 (CSV) — 15/03/2026"
+
+### S4-T12. Restaurant update freshness *(GAP-08)*
+
+- **Sửa**: `GET /api/admin/restaurants` response thêm:
+  - `daysSinceLastBatch`: tính từ lastBatchAt
+  - `needsUpdate`: true nếu > 30 ngày
+- **FE UI**: Operator restaurant list → tag "⚠️ Cần update" nếu needsUpdate = true
+
 ### S4 — Tiêu chí hoàn thành
 
 - [ ] SYSTEM_ADMIN role — access admin endpoints không cần restaurant membership
 - [ ] Source tracking trên batches
 - [ ] Batch list: pagination + status filter + archive
-- [ ] Operator xem tất cả restaurants + thống kê
+- [ ] Operator workload dashboard hoạt động
+- [ ] Operator xem tất cả restaurants + freshness indicator
+- [ ] Operator nhận thông báo khi restaurant mới được tạo
+- [ ] Reject item bắt buộc ghi lý do
+- [ ] Review có source tracking (sourceBatchId, sourceType)
 - [ ] Audit trail auto-log mọi action
 - [ ] User xem data transparency trên dashboard
 - [ ] Export CSV hoạt động
