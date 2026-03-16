@@ -22,6 +22,7 @@ function withMock(modulePath, exports) {
 
 function restoreModules() {
     clearModule('../src/services/auth.service')
+    clearModule('../src/services/refresh-token.service')
     clearModule('../src/lib/prisma')
     clearModule('../src/lib/security-event')
     clearModule('bcryptjs')
@@ -57,6 +58,10 @@ test('auth service changes password and returns new access token', async () => {
                     tokenVersion: 1,
                 }
             },
+        },
+        refreshToken: {
+            updateMany: async () => ({ count: 0 }),
+            create: async () => ({ id: 'rt-1', tokenHash: 'hash', familyId: 'fam-1' }),
         },
     })
 

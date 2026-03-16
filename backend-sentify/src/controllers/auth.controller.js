@@ -1,8 +1,10 @@
 const { z } = require('zod')
 
-const { clearAuthCookie, setAuthCookie } = require('../lib/auth-cookie')
+const { clearAuthCookie, clearRefreshCookie, readRefreshCookie, setAuthCookie, setRefreshCookie } = require('../lib/auth-cookie')
 const { handleControllerError } = require('../lib/controller-error')
 const authService = require('../services/auth.service')
+const passwordResetService = require('../services/password-reset.service')
+const refreshTokenService = require('../services/refresh-token.service')
 
 const registerSchema = z.object({
     email: z.email().trim().toLowerCase(),
@@ -20,6 +22,15 @@ const changePasswordSchema = z.object({
     newPassword: z.string().min(8, 'Password must be at least 8 characters long'),
 })
 
+const forgotPasswordSchema = z.object({
+    email: z.email().trim().toLowerCase(),
+})
+
+const resetPasswordSchema = z.object({
+    token: z.string().min(1, 'Reset token is required'),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters long'),
+})
+
 function buildRequestContext(req) {
     return {
         ip: req.ip,
@@ -28,15 +39,19 @@ function buildRequestContext(req) {
     }
 }
 
+function setTokenCookies(res, result) {
+    setAuthCookie(res, result.accessToken, authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1000)
+
+    if (result.refreshToken) {
+        setRefreshCookie(res, result.refreshToken)
+    }
+}
+
 async function register(req, res) {
     try {
         const input = registerSchema.parse(req.body)
         const result = await authService.register(input, buildRequestContext(req))
-        setAuthCookie(
-            res,
-            result.accessToken,
-            authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1000,
-        )
+        setTokenCookies(res, result)
 
         return res.status(201).json({
             data: {
@@ -53,11 +68,7 @@ async function login(req, res) {
     try {
         const input = loginSchema.parse(req.body)
         const result = await authService.login(input, buildRequestContext(req))
-        setAuthCookie(
-            res,
-            result.accessToken,
-            authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1000,
-        )
+        setTokenCookies(res, result)
 
         return res.status(200).json({
             data: {
@@ -91,6 +102,7 @@ async function logout(req, res) {
             context: buildRequestContext(req),
         })
         clearAuthCookie(res)
+        clearRefreshCookie(res)
 
         return res.status(200).json({
             data: result,
@@ -110,11 +122,7 @@ async function changePassword(req, res) {
             context: buildRequestContext(req),
         })
 
-        setAuthCookie(
-            res,
-            result.accessToken,
-            authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1000,
-        )
+        setTokenCookies(res, result)
 
         return res.status(200).json({
             data: {
@@ -127,10 +135,76 @@ async function changePassword(req, res) {
     }
 }
 
+async function refresh(req, res) {
+    try {
+        // Read refresh token from cookie or body
+        const rawToken = readRefreshCookie(req) || req.body?.refreshToken
+
+        if (!rawToken) {
+            return res.status(401).json({
+                error: {
+                    code: 'AUTH_MISSING_REFRESH_TOKEN',
+                    message: 'Refresh token is required',
+                    timestamp: new Date().toISOString(),
+                },
+            })
+        }
+
+        const { newRawToken, user } = await refreshTokenService.rotateRefreshToken(rawToken)
+        const accessToken = authService.buildAccessToken(user)
+
+        setAuthCookie(res, accessToken, authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1000)
+        setRefreshCookie(res, newRawToken)
+
+        return res.status(200).json({
+            data: {
+                expiresIn: authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+            },
+        })
+    } catch (error) {
+        // On any refresh error, clear cookies so the user is forced to re-login
+        clearAuthCookie(res)
+        clearRefreshCookie(res)
+        return handleControllerError(req, res, error)
+    }
+}
+
+async function forgotPassword(req, res) {
+    try {
+        const input = forgotPasswordSchema.parse(req.body)
+        const result = await passwordResetService.requestPasswordReset(input.email)
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
+async function resetPassword(req, res) {
+    try {
+        const input = resetPasswordSchema.parse(req.body)
+        const result = await passwordResetService.resetPassword(input.token, input.newPassword)
+
+        clearAuthCookie(res)
+        clearRefreshCookie(res)
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 module.exports = {
     getSession,
     register,
     login,
     logout,
     changePassword,
+    refresh,
+    forgotPassword,
+    resetPassword,
 }

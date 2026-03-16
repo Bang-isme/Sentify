@@ -61,10 +61,25 @@ async function authMiddleware(req, res, next) {
     }
 
     try {
-        const payload = jwt.verify(token, env.JWT_SECRET, {
-            issuer: env.JWT_ISSUER,
-            audience: env.JWT_AUDIENCE,
-        })
+        let payload
+
+        try {
+            payload = jwt.verify(token, env.JWT_SECRET, {
+                issuer: env.JWT_ISSUER,
+                audience: env.JWT_AUDIENCE,
+            })
+        } catch (primaryError) {
+            // Fallback to previous secret for zero-downtime rotation
+            if (env.JWT_SECRET_PREVIOUS) {
+                payload = jwt.verify(token, env.JWT_SECRET_PREVIOUS, {
+                    issuer: env.JWT_ISSUER,
+                    audience: env.JWT_AUDIENCE,
+                })
+            } else {
+                throw primaryError
+            }
+        }
+
         const userId = payload.userId || payload.sub
 
         if (!userId) {

@@ -4,6 +4,27 @@
 
 ---
 
+## [Sprint 2] — Auth Hoàn Thiện (2026-03-16)
+
+### Added
+- `RefreshToken` model + `PasswordResetToken` model in `schema.prisma`
+- `src/services/refresh-token.service.js` — token rotation with family-based reuse detection
+- `src/services/password-reset.service.js` — hashed token, expiry, single-use
+- `src/services/email.service.js` — console/Resend abstraction layer
+- `src/middleware/csrf.js` — Double Submit Cookie CSRF protection
+- 3 new auth endpoints: `POST /refresh`, `POST /forgot-password`, `POST /reset-password`
+- Refresh token cookie (`sentify_refresh_token`, 7-day TTL, scoped to `/api/auth`)
+- `JWT_SECRET_PREVIOUS` support for zero-downtime secret rotation
+- New env vars: `APP_URL`, `EMAIL_PROVIDER`, `RESEND_API_KEY`, `EMAIL_FROM`, `JWT_SECRET_PREVIOUS`
+
+### Changed
+- `login()` / `register()` now return refresh token alongside access token
+- `logout()` revokes all refresh tokens + clears both cookies
+- `changePassword()` rotates refresh tokens (revoke old → issue new)
+- CORS `allowedHeaders` updated to include `X-CSRF-Token`
+
+---
+
 ## [Sprint 1] — Foundation Hardening (2026-03-16)
 
 ### Added
