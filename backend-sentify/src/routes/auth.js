@@ -11,5 +11,8 @@ router.post('/login', loginLimiter, authController.login)
 router.get('/session', authMiddleware, authController.getSession)
 router.post('/logout', authMiddleware, authController.logout)
 router.patch('/password', authMiddleware, passwordChangeLimiter, authController.changePassword)
+router.post('/refresh', loginLimiter, authController.refresh)
+router.post('/forgot-password', loginLimiter, authController.forgotPassword)
+router.post('/reset-password', loginLimiter, authController.resetPassword)
 
 module.exports = router

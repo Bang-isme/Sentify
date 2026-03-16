@@ -3,7 +3,7 @@
 > Tài liệu này liệt kê đầy đủ các sprint và chức năng cần hoàn thiện ở backend.
 > Mỗi sprint có mục tiêu rõ ràng, danh sách task, file cần tạo/sửa, và tiêu chí hoàn thành.
 >
-> **Last updated**: 2026-03-16
+> **Last updated**: 2026-03-16 (Sprint 1 ✅, Sprint 2 ✅)
 
 ---
 
@@ -15,7 +15,7 @@
 |---|---|---|
 | Auth | register, login, logout, session, change-password | ✅ Production-ready |
 | Restaurant | create, list, get detail, update | ✅ Functional |
-| Dashboard | KPI, sentiment, trend, complaints, top-issue | ⚠️ Cần tối ưu performance |
+| Dashboard | KPI, sentiment, trend, complaints, top-issue | ✅ Production-ready (optimized) |
 | Reviews | list (pagination + filters) | ✅ Functional |
 | Admin Intake | batch CRUD, item CRUD, bulk add, publish | ✅ Functional |
 | Sentiment Analysis | keyword-based, đa ngôn ngữ (VI/EN/JP) | ✅ Functional |
@@ -124,13 +124,15 @@
 
 ### S1 — Tiêu chí hoàn thành
 
-- [ ] `npm test` — tất cả 10 test files pass
-- [ ] `npx prisma validate` — no errors
-- [ ] Dashboard endpoints không load full dataset vào memory
-- [ ] Invalid UUID request trả 400, không trả 500
-- [ ] Password change endpoint có rate limit riêng
-- [ ] Review content được sanitize trước khi lưu
-- [ ] Error response có timestamp
+- [x] `npm test` — tất cả test files pass (34/34)
+- [x] `npx prisma validate` — no errors
+- [x] Dashboard endpoints không load full dataset vào memory
+- [x] Invalid UUID request trả 400, không trả 500
+- [x] Password change endpoint có rate limit riêng
+- [x] Review content được sanitize trước khi lưu
+- [x] Error response có timestamp
+
+> ✅ **Sprint 1 hoàn thành**: 2026-03-16
 
 ---
 
@@ -234,13 +236,15 @@
 
 ### S2 — Tiêu chí hoàn thành
 
-- [ ] User có thể refresh token mà không cần re-login
-- [ ] Token rotation hoạt động — reuse detection revoke cả family
-- [ ] Forgot password gửi được email (ít nhất console log trong dev)
-- [ ] Reset password flow hoạt động end-to-end
-- [ ] CSRF protection hoạt động cho cookie-based auth
-- [ ] JWT secret rotation có thể thực hiện zero-downtime
-- [ ] Tất cả test pass
+- [x] User có thể refresh token mà không cần re-login
+- [x] Token rotation hoạt động — reuse detection revoke cả family
+- [x] Forgot password gửi được email (ít nhất console log trong dev)
+- [x] Reset password flow hoạt động end-to-end
+- [x] CSRF protection hoạt động cho cookie-based auth
+- [x] JWT secret rotation có thể thực hiện zero-downtime
+- [x] Tất cả test pass (34/34)
+
+> ✅ **Sprint 2 hoàn thành**: 2026-03-16
 
 ---
 

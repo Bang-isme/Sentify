@@ -6,6 +6,7 @@ const env = require('../config/env')
 const { badRequest, conflict, tooManyRequests, unauthorized } = require('../lib/app-error')
 const prisma = require('../lib/prisma')
 const { logSecurityEvent } = require('../lib/security-event')
+const { createRefreshToken, revokeAllUserTokens } = require('./refresh-token.service')
 
 const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 15 * 60
 const PASSWORD_SALT_ROUNDS = 12
@@ -77,6 +78,8 @@ async function register(input, context = {}) {
         email: user.email,
     })
 
+    const refreshToken = await createRefreshToken(user.id)
+
     return {
         user: {
             id: user.id,
@@ -84,6 +87,7 @@ async function register(input, context = {}) {
             fullName: user.fullName,
         },
         accessToken: buildAccessToken(user),
+        refreshToken: refreshToken.raw,
         expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
     }
 }
@@ -187,8 +191,11 @@ async function login(input, context = {}) {
         email,
     })
 
+    const refreshToken = await createRefreshToken(user.id)
+
     return {
         accessToken: buildAccessToken(user),
+        refreshToken: refreshToken.raw,
         expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
         user: {
             id: user.id,
@@ -210,6 +217,8 @@ async function logout({ userId, context = {} }) {
             },
         },
     })
+
+    await revokeAllUserTokens(userId)
 
     logSecurityEvent('auth.logout', {
         requestId: context.requestId,
@@ -308,8 +317,13 @@ async function changePassword({ userId, currentPassword, newPassword, context = 
         email: updatedUser.email,
     })
 
+    // Revoke all existing refresh tokens — user gets a fresh set
+    await revokeAllUserTokens(updatedUser.id)
+    const refreshToken = await createRefreshToken(updatedUser.id)
+
     return {
         accessToken: buildAccessToken(updatedUser),
+        refreshToken: refreshToken.raw,
         expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
         user: {
             id: updatedUser.id,
@@ -321,6 +335,7 @@ async function changePassword({ userId, currentPassword, newPassword, context = 
 
 module.exports = {
     ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+    buildAccessToken,
     getSession,
     register,
     login,

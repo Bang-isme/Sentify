@@ -49,6 +49,7 @@ test('data isolation blocks cross-restaurant access', async (t) => {
         },
         review: {
             groupBy: async () => [],
+            count: async () => 0,
         },
         $queryRaw: async () => [],
     }

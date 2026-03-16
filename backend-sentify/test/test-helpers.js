@@ -136,7 +136,11 @@ async function startApp(prismaOverrides = {}) {
     clearModule('../src/middleware/rate-limit')
     clearModule('../src/middleware/request-logger')
     clearModule('../src/middleware/validate-uuid')
+    clearModule('../src/middleware/csrf')
     clearModule('../src/lib/security-event')
+    clearModule('../src/services/refresh-token.service')
+    clearModule('../src/services/password-reset.service')
+    clearModule('../src/services/email.service')
 
     const defaultPrisma = {
         user: {},
@@ -144,6 +148,8 @@ async function startApp(prismaOverrides = {}) {
         complaintKeyword: {},
         review: {},
         reviewIntakeBatch: {},
+        refreshToken: {},
+        passwordResetToken: {},
     }
 
     withMock('../src/lib/prisma', {
@@ -157,8 +163,27 @@ async function startApp(prismaOverrides = {}) {
         passwordChangeLimiter: (req, res, next) => next(),
         registerLimiter: (req, res, next) => next(),
     })
+    withMock('../src/middleware/csrf', {
+        csrfProtection: (req, res, next) => next(),
+        setCsrfCookie: () => 'mock-csrf-token',
+        clearCsrfCookie: () => {},
+    })
     withMock('../src/lib/security-event', {
         logSecurityEvent: () => {},
+    })
+    withMock('../src/services/refresh-token.service', {
+        REFRESH_TOKEN_TTL_DAYS: 7,
+        createRefreshToken: async () => ({ raw: 'mock-refresh-token', familyId: 'mock-family' }),
+        rotateRefreshToken: async () => ({ newRawToken: 'mock-new-refresh', userId: 'user-1', user: { id: 'user-1', tokenVersion: 0 } }),
+        revokeAllUserTokens: async () => {},
+    })
+    withMock('../src/services/password-reset.service', {
+        requestPasswordReset: async () => ({ message: 'If the email is registered, a reset link has been sent.' }),
+        resetPassword: async () => ({ message: 'Password has been reset successfully' }),
+    })
+    withMock('../src/services/email.service', {
+        sendEmail: async () => ({ success: true, provider: 'mock' }),
+        sendPasswordResetEmail: async () => ({ success: true, provider: 'mock' }),
     })
 
     const app = require('../src/app')

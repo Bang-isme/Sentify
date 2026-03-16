@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth')
 const adminIntakeRoutes = require('./modules/admin-intake/admin-intake.routes')
 const { sendError } = require('./lib/controller-error')
 const prisma = require('./lib/prisma')
+const { csrfProtection } = require('./middleware/csrf')
 const errorHandler = require('./middleware/error-handler')
 const { apiLimiter } = require('./middleware/rate-limit')
 const authMiddleware = require('./middleware/auth')
@@ -26,13 +27,14 @@ app.use(
         credentials: true,
         // Keep methods intentionally narrow for MVP. Add DELETE only when an endpoint requires it.
         methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-        allowedHeaders: ['Authorization', 'Content-Type'],
+        allowedHeaders: ['Authorization', 'Content-Type', 'X-CSRF-Token'],
     }),
 )
 app.use(helmet())
 app.use(express.json({ limit: env.BODY_LIMIT }))
 app.use(express.urlencoded({ extended: false, limit: env.BODY_LIMIT }))
 app.use('/api', apiLimiter)
+app.use(csrfProtection)
 
 app.get('/', (req, res) => {
     return res.status(200).json({

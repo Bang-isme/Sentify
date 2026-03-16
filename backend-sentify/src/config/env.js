@@ -41,6 +41,7 @@ const envSchema = z.object({
     PORT: z.coerce.number().int().positive().default(3000),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+    JWT_SECRET_PREVIOUS: z.string().min(32).optional(),
     JWT_ISSUER: z.string().min(1).default('sentify-api'),
     JWT_AUDIENCE: z.string().min(1).default('sentify-web'),
     CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
@@ -60,6 +61,10 @@ const envSchema = z.object({
     REGISTER_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
     LOGIN_LOCK_THRESHOLD: z.coerce.number().int().positive().default(5),
     LOGIN_LOCK_MINUTES: z.coerce.number().int().positive().default(15),
+    APP_URL: z.string().min(1).default('http://localhost:5173'),
+    EMAIL_PROVIDER: z.enum(['console', 'resend']).default('console'),
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().optional(),
 })
 
 const parsedEnv = envSchema.parse(process.env)
