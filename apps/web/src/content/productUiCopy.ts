@@ -202,7 +202,6 @@ export const productUiCopy = {
       marketingLinks: [
         { label: 'How it works', sectionId: 'workflow' },
         { label: 'Security', sectionId: 'trust' },
-        { label: 'Sprint 1', sectionId: 'sprint-1' },
       ],
       login: 'Login',
       signup: 'Start free',
@@ -270,7 +269,7 @@ export const productUiCopy = {
       onboardingEyebrow: 'Get into the loop',
       onboardingTitle: 'Connect your first restaurant',
       onboardingDescription:
-        'Sprint 1 stays intentionally narrow: one restaurant, one Google Maps source, one dashboard, and one decision question.',
+        'This release stays intentionally narrow: one restaurant, one Google Maps source, one dashboard, and one decision question.',
       onboardingSteps: [
         'Create the first restaurant workspace.',
         'Save the Google Maps source URL.',
@@ -435,7 +434,6 @@ export const productUiCopy = {
       marketingLinks: [
         { label: 'Cách hoạt động', sectionId: 'workflow' },
         { label: 'Bảo mật', sectionId: 'trust' },
-        { label: 'Sprint 1', sectionId: 'sprint-1' },
       ],
       login: 'Đăng nhập',
       signup: 'Bắt đầu miễn phí',
@@ -503,7 +501,7 @@ export const productUiCopy = {
       onboardingEyebrow: 'Vào vòng lặp sản phẩm',
       onboardingTitle: 'Kết nối nhà hàng đầu tiên',
       onboardingDescription:
-        'Sprint 1 cố tình giữ phạm vi hẹp: một nhà hàng, một nguồn Google Maps, một dashboard và một câu hỏi hành động.',
+        'Phi?n b?n n?y cố tình giữ phạm vi hẹp: một nhà hàng, một nguồn Google Maps, một dashboard và một câu hỏi hành động.',
       onboardingSteps: [
         'Tạo workspace cho nhà hàng đầu tiên.',
         'Lưu URL Google Maps làm nguồn đánh giá.',
@@ -668,7 +666,6 @@ export const productUiCopy = {
       marketingLinks: [
         { label: '仕組み', sectionId: 'workflow' },
         { label: 'セキュリティ', sectionId: 'trust' },
-        { label: 'Sprint 1', sectionId: 'sprint-1' },
       ],
       login: 'ログイン',
       signup: '無料で始める',
@@ -736,7 +733,7 @@ export const productUiCopy = {
       onboardingEyebrow: '最初のループに入る',
       onboardingTitle: '最初の店舗を接続する',
       onboardingDescription:
-        'Sprint 1 は意図的に絞っています。1店舗、1つの Google Maps ソース、1つのダッシュボード、そして 1 つの判断軸です。',
+        '??????? は意図的に絞っています。1店舗、1つの Google Maps ソース、1つのダッシュボード、そして 1 つの判断軸です。',
       onboardingSteps: [
         '最初の店舗ワークスペースを作成する。',
         'Google Maps の URL をレビューソースとして保存する。',

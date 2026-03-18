@@ -1,10 +1,38 @@
+<<<<<<< HEAD
 # Logs
 logs
+=======
+.DS_Store
+Thumbs.db
+
+# Workspace metadata
+.codex/
+.vscode/
+
+# Dependencies
+node_modules/
+apps/web/node_modules/
+backend-sentify/node_modules/
+
+# Build output
+dist/
+apps/web/dist/
+coverage/
+
+# Local environment
+.env
+.env.local
+.env.*.local
+backend-sentify/.env
+
+# Runtime files
+>>>>>>> b572ff861ef9254fe23a8add020521d7b0e30974
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+<<<<<<< HEAD
 lerna-debug.log*
 
 node_modules
@@ -22,3 +50,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+=======
+
+# Generated screenshots and scratch outputs
+stitch_landing_screenshot.png
+backend-sentify/src/generated/
+>>>>>>> b572ff861ef9254fe23a8add020521d7b0e30974

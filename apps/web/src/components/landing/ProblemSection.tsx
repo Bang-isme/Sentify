@@ -1,15 +1,17 @@
 import { useLanguage } from '../../contexts/languageContext'
+import { useScrollReveal } from '../../hooks/useScrollReveal'
 
 export function ProblemSection() {
   const { copy } = useLanguage()
+  const { ref, revealClass, revealStyle } = useScrollReveal()
 
   return (
     <section
       id="problem"
-      className="content-visibility-auto relative border-t border-border-light/70 bg-surface-ticker-light/70 px-6 py-24 dark:border-border-dark dark:bg-surface-ticker-dark/70 md:px-12"
+      className="content-visibility-auto relative bg-surface-ticker-light/70 px-6 py-24 dark:bg-surface-ticker-dark/70 md:px-12"
     >
       <div className="mx-auto grid max-w-[1440px] gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-        <div className="max-w-xl">
+        <div className={`max-w-xl ${revealClass()}`} style={revealStyle(0)}>
           <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-primary">
             {copy.problem.eyebrow}
           </p>
@@ -23,11 +25,12 @@ export function ProblemSection() {
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-3 lg:grid-cols-1">
-          {copy.problem.points.map((point) => (
+        <div ref={ref} className="grid gap-5 md:grid-cols-3 lg:grid-cols-1">
+          {copy.problem.points.map((point, index) => (
             <article
               key={point.title}
-              className="rounded-[28px] border border-border-light bg-surface-white/90 p-6 shadow-sm transition-colors dark:border-border-dark dark:bg-surface-dark/80"
+              className={`rounded-[28px] border border-border-light bg-surface-white/90 p-6 shadow-sm transition-colors dark:border-border-dark dark:bg-surface-dark/80 ${revealClass()}`}
+              style={revealStyle(index * 150)}
             >
               <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <span className="material-symbols-outlined text-[26px]">{point.icon}</span>

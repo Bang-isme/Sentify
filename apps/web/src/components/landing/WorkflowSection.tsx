@@ -1,7 +1,27 @@
 import { useLanguage } from '../../contexts/languageContext'
+import { useScrollReveal } from '../../hooks/useScrollReveal'
 
 export function WorkflowSection() {
   const { copy } = useLanguage()
+  const { ref, revealClass, revealStyle } = useScrollReveal()
+  const photos = [
+    {
+      src: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=900&q=60',
+      alt: 'Không gian ăn uống sáng sủa với nhiều ánh sáng tự nhiên',
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=900&q=60',
+      alt: 'Không gian nhà hàng ấm cúng vào buổi tối',
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=60',
+      alt: 'Món ăn được bày trí tinh tế trên bàn',
+    },
+    {
+      src: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=900&q=60',
+      alt: 'Đầu bếp chuẩn bị món ăn trong bếp',
+    },
+  ]
 
   return (
     <section
@@ -13,7 +33,7 @@ export function WorkflowSection() {
       </div>
 
       <div className="relative mx-auto max-w-[1440px]">
-        <div className="mb-14 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className={`mb-10 flex flex-col gap-6 ${revealClass()}`} style={revealStyle(0)}>
           <div className="max-w-3xl">
             <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-primary">
               {copy.workflow.eyebrow}
@@ -26,16 +46,31 @@ export function WorkflowSection() {
               </span>
             </h2>
           </div>
-          <p className="max-w-lg text-base leading-8 text-text-silver-light dark:text-text-silver-dark">
-            {copy.workflow.description}
-          </p>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-4">
-          {copy.workflow.steps.map((step) => (
+        <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {photos.map((photo) => (
+            <figure
+              key={photo.src}
+              className="overflow-hidden rounded-2xl border border-border-light bg-surface-white/80 shadow-sm dark:border-border-dark dark:bg-surface-dark/70"
+            >
+              <img
+                src={photo.src}
+                alt={photo.alt}
+                loading="lazy"
+                decoding="async"
+                className="h-36 w-full object-cover sm:h-40"
+              />
+            </figure>
+          ))}
+        </div>
+
+        <div ref={ref} className="grid gap-5 lg:grid-cols-4">
+          {copy.workflow.steps.map((step, index) => (
             <article
               key={step.step}
-              className="relative rounded-[28px] border border-border-light bg-surface-white/90 p-6 shadow-sm transition-colors dark:border-border-dark dark:bg-surface-dark/80"
+              className={`relative rounded-[28px] border border-border-light bg-surface-white/90 p-6 shadow-sm transition-colors dark:border-border-dark dark:bg-surface-dark/80 ${revealClass()}`}
+              style={revealStyle(index * 120)}
             >
               <div className="mb-8 flex items-center justify-between">
                 <span className="text-sm font-bold uppercase tracking-[0.3em] text-primary">

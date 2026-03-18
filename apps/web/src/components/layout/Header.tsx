@@ -39,16 +39,13 @@ export function Header({
   const productCopy = getProductUiCopy(language)
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
-  const [isCompact, setIsCompact] = useState(false)
-  const [isHidden, setIsHidden] = useState(false)
   const languageMenuRef = useRef<HTMLDivElement | null>(null)
   const accountMenuRef = useRef<HTMLDivElement | null>(null)
-  const lastScrollY = useRef(0)
-  const scrollTicking = useRef(false)
 
   const currentLanguage =
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
   const isAppRoute = route.startsWith('/app')
+  const isLandingRoute = route === '/'
   const currentViewLabel =
     route === '/app'
       ? productCopy.header.dashboard
@@ -95,44 +92,6 @@ export function Header({
     }
   }, [isAccountMenuOpen, isLanguageMenuOpen])
 
-  useEffect(() => {
-    const shouldAutoHide = route === '/'
-
-    if (!shouldAutoHide) {
-      setIsHidden(false)
-      setIsCompact(false)
-      return undefined
-    }
-
-    lastScrollY.current = window.scrollY
-
-    function onScroll() {
-      if (scrollTicking.current) {
-        return
-      }
-
-      scrollTicking.current = true
-
-      window.requestAnimationFrame(() => {
-        const currentY = window.scrollY
-        const delta = currentY - lastScrollY.current
-        const shouldHide = currentY > 140 && delta > 6
-        const shouldShow = delta < -6 || currentY < 90
-
-        setIsCompact(currentY > 12)
-        setIsHidden((prev) => (shouldHide ? true : shouldShow ? false : prev))
-        lastScrollY.current = currentY
-        scrollTicking.current = false
-      })
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true })
-
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-    }
-  }, [route])
-
   const restaurantLabel = useMemo(() => {
     if (!user) {
       return null
@@ -176,17 +135,19 @@ export function Header({
       ].flatMap((action) => (action ? [action] : []))
     : []
 
+  const shellClassName = isLandingRoute
+    ? 'pointer-events-auto flex min-h-[4.75rem] w-full max-w-[1600px] items-center gap-4 px-4 text-[#1a1a1a] md:px-6 lg:px-8'
+    : `pointer-events-auto mx-4 flex w-full max-w-[1260px] items-center gap-3 rounded-full border border-border-light/70 bg-surface-white/90 px-4 shadow-[0_10px_34px_rgba(0,0,0,0.1)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 dark:border-border-dark/70 dark:bg-surface-dark/92 dark:shadow-[0_10px_34px_rgba(0,0,0,0.5)] md:px-6 ${
+        'min-h-16 md:min-h-[4.5rem]'
+      }`
+
+  const headerClassName = isLandingRoute
+    ? 'pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center border-b border-[#f3e4d3] bg-white/98 shadow-[0_2px_15px_rgba(0,0,0,0.03)] backdrop-blur-sm'
+    : 'pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center transition-transform duration-300 ease-out md:top-5'
+
   return (
-    <header
-      className={`pointer-events-none fixed inset-x-0 z-50 flex justify-center transition-transform duration-300 ease-out ${
-        isHidden ? '-translate-y-24' : 'translate-y-0'
-      } ${isCompact ? 'top-2 md:top-3' : 'top-4 md:top-5'}`}
-    >
-      <div
-        className={`pointer-events-auto mx-4 flex w-full max-w-[1260px] items-center gap-3 rounded-full border border-border-light/70 bg-surface-white/90 px-4 shadow-[0_10px_34px_rgba(0,0,0,0.1)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 dark:border-border-dark/70 dark:bg-surface-dark/92 dark:shadow-[0_10px_34px_rgba(0,0,0,0.5)] md:px-6 ${
-          isCompact ? 'min-h-14 md:min-h-16' : 'min-h-16 md:min-h-[4.5rem]'
-        }`}
-      >
+    <header className={headerClassName}>
+      <div className={shellClassName}>
         <button
           type="button"
           className="group mr-2 flex shrink-0 items-center gap-3"
@@ -199,15 +160,32 @@ export function Header({
             onScrollToSection('overview')
           }}
         >
-          <div className="flex size-9 items-center justify-center rounded-full border border-primary/25 bg-primary/8 text-primary transition-transform duration-500 group-hover:rotate-180">
-            <span className="material-symbols-outlined text-[20px]">token</span>
+          <div
+            className={`flex size-9 items-center justify-center rounded-full transition-transform duration-500 ${
+              isLandingRoute
+                ? 'rounded-xl bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.65)] group-hover:scale-105'
+                : 'border border-primary/25 bg-primary/8 text-primary group-hover:rotate-180'
+            }`}
+          >
+            {isLandingRoute ? (
+              <span className="material-symbols-outlined text-[20px] font-bold">bolt</span>
+            ) : (
+              <span className="material-symbols-outlined text-[20px]">token</span>
+            )}
           </div>
-          <span className="hidden text-lg font-bold tracking-tight text-text-charcoal dark:text-white sm:block">
+          <span
+            className={`hidden tracking-tight sm:block ${
+              isLandingRoute
+                ? 'text-xl font-bold text-[#1a1a1a]'
+                : 'text-lg font-bold text-text-charcoal dark:text-white'
+            }`}
+            style={isLandingRoute ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
+          >
             {copy.header.brand}
           </span>
         </button>
 
-        <nav className="hidden items-center gap-2 lg:flex">
+        <nav className={isLandingRoute ? 'hidden items-center gap-10 md:flex' : 'hidden items-center gap-2 lg:flex'}>
           {isAppRoute && isAuthenticated ? (
             currentViewLabel ? (
               <div className="inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
@@ -220,7 +198,11 @@ export function Header({
               <button
                 key={item.sectionId}
                 type="button"
-                className="inline-flex h-10 items-center justify-center rounded-full px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary"
+                className={`inline-flex items-center justify-center ${
+                  isLandingRoute
+                    ? 'text-[13px] font-bold uppercase tracking-[0.12em] text-[#1a1a1a] transition-colors hover:text-[#ff8c00]'
+                    : 'h-10 rounded-full px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary'
+                }`}
                 onClick={() => onScrollToSection(item.sectionId)}
               >
                 {item.label}
@@ -230,16 +212,18 @@ export function Header({
         </nav>
 
         <div className="ml-auto flex items-center gap-2 md:gap-3">
-          <button
-            type="button"
-            onClick={(event) => toggleTheme(event)}
-            aria-label={copy.header.themeLabel}
-            className="flex size-9 items-center justify-center rounded-full text-text-silver-light transition-all duration-200 hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 dark:text-text-silver-dark dark:hover:bg-white/5"
-          >
-            <span className="material-symbols-outlined text-lg">
-              {theme === 'dark' ? 'dark_mode' : 'light_mode'}
-            </span>
-          </button>
+          {isLandingRoute ? null : (
+            <button
+              type="button"
+              onClick={(event) => toggleTheme(event)}
+              aria-label={copy.header.themeLabel}
+              className="flex size-9 items-center justify-center rounded-full text-text-silver-light transition-all duration-200 hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 dark:text-text-silver-dark dark:hover:bg-white/5"
+            >
+              <span className="material-symbols-outlined text-lg">
+                {theme === 'dark' ? 'dark_mode' : 'light_mode'}
+              </span>
+            </button>
+          )}
 
           <div className="relative" ref={languageMenuRef}>
             <button
@@ -251,8 +235,15 @@ export function Header({
               aria-label={copy.header.languageLabel}
               aria-haspopup="menu"
               aria-expanded={isLanguageMenuOpen}
-              className="flex h-9 items-center gap-2 rounded-full border border-border-light px-3 text-xs font-bold text-text-charcoal transition-all duration-200 hover:border-primary/40 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:text-white"
+              className={`flex h-9 items-center gap-2 rounded-full px-3 text-xs font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                isLandingRoute
+                  ? 'rounded-none border-0 bg-transparent px-0 text-sm font-semibold text-[#1a1a1a] hover:text-[#ff8c00]'
+                  : 'border border-border-light text-text-charcoal hover:border-primary/40 hover:text-primary dark:border-border-dark dark:text-white'
+              }`}
             >
+              {isLandingRoute ? (
+                <span className="material-symbols-outlined text-[18px]">language</span>
+              ) : null}
               <span className="hidden sm:block">{currentLanguage.label}</span>
               <span className="sm:hidden">{currentLanguage.code.toUpperCase()}</span>
               <span
@@ -306,30 +297,44 @@ export function Header({
             <>
               <div className="relative" ref={accountMenuRef}>
                 <button
-                  type="button"
-                  aria-label={productCopy.header.accountMenuLabel}
-                  aria-haspopup="menu"
-                  aria-expanded={isAccountMenuOpen}
+                type="button"
+                aria-label={productCopy.header.accountMenuLabel}
+                aria-haspopup="menu"
+                aria-expanded={isAccountMenuOpen}
                   onClick={() => {
                     setIsAccountMenuOpen((current) => !current)
                     setIsLanguageMenuOpen(false)
                   }}
-                  className="group flex h-10 items-center gap-2 rounded-full border border-border-light/80 bg-surface-white/70 pl-2 pr-3 text-left transition hover:border-primary/35 hover:bg-primary/6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:bg-surface-dark/78"
+                  className={`group flex h-10 items-center gap-2 rounded-full pl-2 pr-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    isLandingRoute
+                      ? 'border border-[#eadbc8] bg-white/78 hover:border-[#eb7a1c]/40 hover:bg-white'
+                      : 'border border-border-light/80 bg-surface-white/70 hover:border-primary/35 hover:bg-primary/6 dark:border-border-dark dark:bg-surface-dark/78'
+                  }`}
                 >
                   <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-black text-bg-dark">
                     {user?.initials ?? 'S'}
                   </span>
                   <span className="hidden min-w-0 md:block">
-                    <span className="block truncate text-sm font-semibold text-text-charcoal dark:text-white">
+                    <span
+                      className={`block truncate text-sm font-semibold ${
+                        isLandingRoute ? 'text-[#201611]' : 'text-text-charcoal dark:text-white'
+                      }`}
+                    >
                       {user?.displayName ?? productCopy.header.accountFallback}
                     </span>
-                    <span className="block truncate text-[11px] text-text-silver-light dark:text-text-silver-dark">
+                    <span
+                      className={`block truncate text-[11px] ${
+                        isLandingRoute ? 'text-[#7a6958]' : 'text-text-silver-light dark:text-text-silver-dark'
+                      }`}
+                    >
                       {restaurantLabel ?? productCopy.header.protectedAccess}
                     </span>
                   </span>
                   <span
-                    className={`material-symbols-outlined text-base text-text-silver-light transition-transform duration-200 group-hover:text-primary dark:text-text-silver-dark ${
-                      isAccountMenuOpen ? 'rotate-180' : ''
+                    className={`material-symbols-outlined text-base transition-transform duration-200 ${
+                      isLandingRoute
+                        ? `text-[#7a6958] group-hover:text-[#c95b14] ${isAccountMenuOpen ? 'rotate-180' : ''}`
+                        : `text-text-silver-light group-hover:text-primary dark:text-text-silver-dark ${isAccountMenuOpen ? 'rotate-180' : ''}`
                     }`}
                   >
                     expand_more
@@ -413,14 +418,22 @@ export function Header({
             <>
               <button
                 type="button"
-                className="hidden h-9 items-center justify-center rounded-full px-2 text-xs font-bold text-text-charcoal transition-colors hover:text-primary-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex dark:text-white dark:hover:text-primary"
+                className={`hidden h-9 items-center justify-center rounded-full px-2 text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex ${
+                  isLandingRoute
+                    ? 'rounded-none px-0 text-sm font-semibold text-[#1a1a1a] hover:text-[#ff8c00]'
+                    : 'text-text-charcoal hover:text-primary-dark dark:text-white dark:hover:text-primary'
+                }`}
                 onClick={() => onNavigate('/login')}
               >
                 {productCopy.header.login}
               </button>
               <button
                 type="button"
-                className="flex h-9 items-center justify-center rounded-full bg-primary px-4 text-xs font-bold text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] transition-colors hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-bg-dark dark:hover:bg-yellow-400"
+                className={`flex h-9 items-center justify-center rounded-full px-4 text-xs font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  isLandingRoute
+                    ? 'h-11 bg-[#ff8c00] px-6 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(255,140,0,0.5)] hover:bg-[#e67e00]'
+                    : 'bg-primary text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] dark:text-bg-dark dark:hover:bg-yellow-400'
+                }`}
                 onClick={() => onNavigate('/signup')}
               >
                 {productCopy.header.signup}

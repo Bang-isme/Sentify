@@ -952,9 +952,12 @@ function SentifyShell() {
   const ctaSecondaryLabel = isAuthenticated
     ? productCopy.landing.ctaSecondaryAuthenticated
     : productCopy.landing.ctaSecondary
+  const appShellClassName = `${
+    route === '/' ? 'landing-theme ' : ''
+  }bg-bg-light font-display text-text-charcoal transition-colors duration-300 dark:bg-bg-dark dark:text-white`
 
   return (
-    <div className="bg-bg-light font-display text-text-charcoal transition-colors duration-300 dark:bg-bg-dark dark:text-white">
+    <div className={appShellClassName}>
       <Header
         route={route}
         isAuthenticated={isAuthenticated}

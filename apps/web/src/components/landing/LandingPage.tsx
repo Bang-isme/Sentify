@@ -3,7 +3,6 @@ import { ProblemSection } from './ProblemSection'
 import { WorkflowSection } from './WorkflowSection'
 import { BentoFeatures } from './BentoFeatures'
 import { LiveStream } from './LiveStream'
-import { SprintScopeSection } from './SprintScopeSection'
 import { SecuritySection } from './SecuritySection'
 import { CTASection } from './CTASection'
 import { Footer } from '../layout/Footer'
@@ -42,7 +41,6 @@ export function LandingPage({
         <WorkflowSection />
         <BentoFeatures />
         <LiveStream />
-        <SprintScopeSection />
         <SecuritySection />
         <CTASection
           primaryLabel={ctaPrimaryLabel}
