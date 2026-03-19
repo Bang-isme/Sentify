@@ -73,13 +73,13 @@
 :where(.dark) .landing-theme {
   --color-primary: #f29a40;
   --color-primary-dark: #f4c57a;
-  --color-bg-dark: #1a110b;
-  --color-surface-dark: #22150f;
-  --color-surface-highlight: #2d1d14;
-  --color-surface-footer-dark: #120d09;
-  --color-surface-ticker-dark: #1c120d;
-  --color-text-silver-dark: #ceb496;
-  --color-border-dark: #3d291b;
+  --color-bg-dark: #120d09;
+  --color-surface-dark: #1b130f;
+  --color-surface-highlight: #2a1d15;
+  --color-surface-footer-dark: #0f0a07;
+  --color-surface-ticker-dark: #17100c;
+  --color-text-silver-dark: #d9c2a6;
+  --color-border-dark: #4a3526;
 }
 
 body {
@@ -1747,6 +1747,119 @@ section[id] {
   }
 }
 
+@keyframes problem-image-pan {
+  0% {
+    transform: scale(1.04) translate3d(0, 0.8%, 0);
+  }
+  50% {
+    transform: scale(1.095) translate3d(-1.2%, -1.4%, 0);
+  }
+  100% {
+    transform: scale(1.04) translate3d(0.9%, -0.35%, 0);
+  }
+}
+
+@keyframes problem-section-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 42px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes problem-image-lift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 52px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes problem-badge-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+@keyframes problem-overlay-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes problem-panel-breathe {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+  50% {
+    box-shadow: inset 0 0 0 1px rgba(239, 134, 50, 0.12);
+  }
+}
+
+.problem-section-shell {
+  isolation: isolate;
+}
+
+.animate-problem-section-rise {
+  animation: problem-section-rise 1.42s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.problem-panel-ambient {
+  animation: problem-panel-breathe 9.2s ease-in-out infinite;
+}
+
+.animate-problem-image-lift {
+  animation: problem-image-lift 1.56s cubic-bezier(0.18, 0.82, 0.2, 1) forwards;
+}
+
+.problem-image-motion {
+  transform-origin: center center;
+  animation: problem-image-pan 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.problem-badge-float {
+  animation: problem-badge-drift 6.8s ease-in-out infinite;
+}
+
+.problem-overlay-card {
+  animation: problem-overlay-float 8.1s ease-in-out infinite;
+  will-change: transform;
+}
+
+.problem-mini-card {
+  transition: transform 0.35s ease, border-color 0.35s ease, background-color 0.35s ease;
+}
+
+.problem-mini-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(239, 134, 50, 0.24);
+}
+
+.problem-row-card {
+  transition: transform 0.35s ease, border-color 0.35s ease, background-color 0.35s ease;
+}
+
+.problem-row-card:hover {
+  transform: translateX(4px);
+  border-color: rgba(239, 134, 50, 0.2);
+}
+
 @media (prefers-reduced-motion: reduce) {
 
   .animate-text-glow,
@@ -1779,7 +1892,13 @@ section[id] {
   .globe-glow,
   .globe-stage,
   .globe-back-halo,
-  .globe-light-sweep {
+  .globe-light-sweep,
+  .animate-problem-section-rise,
+  .animate-problem-image-lift,
+  .problem-panel-ambient,
+  .problem-image-motion,
+  .problem-badge-float,
+  .problem-overlay-card {
     animation: none !important;
   }
 }
@@ -1793,6 +1912,11 @@ section[id] {
 section.content-visibility-auto {
   padding-top: clamp(3.5rem, 4vw, 4.75rem);
   padding-bottom: clamp(3.5rem, 4vw, 4.75rem);
+}
+
+section#problem.content-visibility-auto {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* Marquee perf */

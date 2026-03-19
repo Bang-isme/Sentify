@@ -174,14 +174,14 @@ function HeroStatCard({
 }) {
   return (
     <div
-      className="rounded-[1.65rem] border border-[#f2e5d6] bg-white/92 p-5 shadow-[0_16px_30px_-22px_rgba(49,28,11,0.14)] backdrop-blur"
+      className="rounded-[1.65rem] border border-[#f2e5d6] bg-white/92 p-5 shadow-[0_16px_30px_-22px_rgba(49,28,11,0.14)] backdrop-blur dark:border-[#493424] dark:bg-[#1a130f]/92 dark:shadow-[0_20px_40px_-24px_rgba(0,0,0,0.55)]"
       style={{
         animation: `fade-in-up 0.8s ease-out ${delayMs}ms forwards, dashboard-stat-drift 5.2s ease-in-out ${960 + delayMs}ms infinite`,
         opacity: 0,
       }}
     >
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#b7a08a]">{label}</p>
-      <p className="mt-2 text-[2.6rem] font-black leading-none text-[#201611] md:text-[2.95rem]">{value}</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#b7a08a] dark:text-[#af9273]">{label}</p>
+      <p className="mt-2 text-[2.6rem] font-black leading-none text-[#201611] dark:text-[#fff7ef] md:text-[2.95rem]">{value}</p>
     </div>
   )
 }
@@ -246,7 +246,7 @@ function HeroDashboardMockup({
 
       <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start">
         <section className="space-y-4">
-          <div className="animate-dashboard-panel relative overflow-hidden rounded-[2.8rem] border border-white/80 bg-[rgba(255,252,247,0.88)] p-6 shadow-[0_42px_96px_-46px_rgba(53,30,11,0.3)] backdrop-blur-xl md:p-7">
+          <div className="animate-dashboard-panel relative overflow-hidden rounded-[2.8rem] border border-white/80 bg-[rgba(255,252,247,0.88)] p-6 shadow-[0_42px_96px_-46px_rgba(53,30,11,0.3)] backdrop-blur-xl dark:border-[#463224] dark:bg-[rgba(22,15,11,0.9)] dark:shadow-[0_46px_100px_-44px_rgba(0,0,0,0.72)] md:p-7">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <span
@@ -262,7 +262,7 @@ function HeroDashboardMockup({
                   style={{ animationDelay: '360ms' }}
                 />
               </div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#c4ae96]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#c4ae96] dark:text-[#b39576]">
                 {ui.dashboardLabel}
               </p>
             </div>
@@ -273,7 +273,7 @@ function HeroDashboardMockup({
             </div>
 
             <div
-              className="animate-fade-in-up relative mt-7 overflow-hidden rounded-[2.25rem] border border-[#f4e7d8] bg-white/82 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)]"
+              className="animate-fade-in-up relative mt-7 overflow-hidden rounded-[2.25rem] border border-[#f4e7d8] bg-white/82 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)] dark:border-[#3f2d20] dark:bg-[#16100c]/82 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
               style={{ animationDelay: '300ms', opacity: 0 }}
             >
               <span
@@ -281,13 +281,13 @@ function HeroDashboardMockup({
                 className="animate-dashboard-sheen pointer-events-none absolute inset-y-10 left-[-34%] w-[34%] rotate-[12deg] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.42),transparent)] blur-xl"
               />
               <div className="mb-6 flex items-center justify-between gap-4">
-                <p className="text-lg font-bold text-[#3e3024]">Sentiment Over Time</p>
-                <span className="animate-dashboard-pill rounded-xl bg-[#fff1df] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#d96f1d]">
+                <p className="text-lg font-bold text-[#3e3024] dark:text-[#fff3e4]">Sentiment Over Time</p>
+                <span className="animate-dashboard-pill rounded-xl bg-[#fff1df] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167]">
                   +12 %
                 </span>
               </div>
 
-              <div className="animate-dashboard-chart flex h-[15rem] items-end gap-2 rounded-[1.8rem] bg-[#fff8f1] px-4 pb-5 pt-6 md:h-[16rem]">
+              <div className="animate-dashboard-chart flex h-[15rem] items-end gap-2 rounded-[1.8rem] bg-[#fff8f1] px-4 pb-5 pt-6 dark:bg-[#21160f] md:h-[16rem]">
                 {HERO_CHART_HEIGHTS.map((height, index) => (
                   <div key={`${height}-${index}`} className="flex-1 self-end" style={{ height: `${height}%` }}>
                     <div
@@ -311,7 +311,7 @@ function HeroDashboardMockup({
                 {HERO_SOURCE_PILLS.map((pill, index) => (
                   <span
                     key={pill}
-                    className="rounded-full border border-[#f0dcc4] bg-white px-4 py-2 text-[11px] font-semibold text-[#8b7259] shadow-[0_10px_18px_-16px_rgba(53,30,11,0.18)]"
+                    className="rounded-full border border-[#f0dcc4] bg-white px-4 py-2 text-[11px] font-semibold text-[#8b7259] shadow-[0_10px_18px_-16px_rgba(53,30,11,0.18)] dark:border-[#493525] dark:bg-[#20160f] dark:text-[#dec8af] dark:shadow-[0_14px_28px_-18px_rgba(0,0,0,0.45)]"
                     style={{
                       animation: `fade-in-up 0.8s ease-out ${780 + index * 80}ms forwards, dashboard-chip-drift 4.8s ease-in-out ${1460 + index * 180}ms infinite`,
                       opacity: 0,
@@ -325,8 +325,8 @@ function HeroDashboardMockup({
           </div>
 
           <div className="pt-1">
-            <div className="animate-hero-card-b w-full rounded-[1.9rem] border border-[#f1e2d2] bg-white/96 p-5 shadow-[0_28px_60px_-32px_rgba(53,30,11,0.22)] backdrop-blur md:p-6">
-              <p className="max-w-[34rem] text-[14px] italic leading-7 text-[#8e7761] md:text-[15px]">
+            <div className="animate-hero-card-b w-full rounded-[1.9rem] border border-[#f1e2d2] bg-white/96 p-5 shadow-[0_28px_60px_-32px_rgba(53,30,11,0.22)] backdrop-blur dark:border-[#483425] dark:bg-[#1a130f]/95 dark:shadow-[0_28px_60px_-28px_rgba(0,0,0,0.58)] md:p-6">
+              <p className="max-w-[34rem] text-[14px] italic leading-7 text-[#8e7761] dark:text-[#d1b79a] md:text-[15px]">
                 "{ui.reviewCardQuote}"
               </p>
               <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-[#eb7a1c]">
@@ -338,8 +338,8 @@ function HeroDashboardMockup({
         </section>
 
         <aside className="grid gap-4">
-          <div className="animate-hero-card-a rounded-[2rem] border border-white/85 bg-white/95 p-4 shadow-[0_28px_62px_-34px_rgba(53,30,11,0.24)] backdrop-blur">
-            <div className="relative overflow-hidden rounded-[1.5rem] border border-[#f6e8d7] bg-[radial-gradient(circle_at_24%_18%,#fffaf0_0%,#f8ecde_60%,#f0e2cf_100%)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+          <div className="animate-hero-card-a rounded-[2rem] border border-white/85 bg-white/95 p-4 shadow-[0_28px_62px_-34px_rgba(53,30,11,0.24)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_30px_64px_-30px_rgba(0,0,0,0.62)]">
+            <div className="relative overflow-hidden rounded-[1.5rem] border border-[#f6e8d7] bg-[radial-gradient(circle_at_24%_18%,#fffaf0_0%,#f8ecde_60%,#f0e2cf_100%)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-[#413023] dark:bg-[radial-gradient(circle_at_24%_18%,#322117_0%,#21150f_62%,#170f0b_100%)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="pointer-events-none absolute inset-x-6 top-1 h-16 rounded-full bg-[rgba(255,255,255,0.34)] blur-2xl" />
               <img
                 src={HERO_REVIEW_IMAGE}
@@ -358,26 +358,26 @@ function HeroDashboardMockup({
                   </span>
                 ))}
               </div>
-              <span className="rounded-lg bg-[#f7f3ed] px-2.5 py-1 text-[11px] font-bold text-[#a18668]">4.8</span>
+              <span className="rounded-lg bg-[#f7f3ed] px-2.5 py-1 text-[11px] font-bold text-[#a18668] dark:bg-[#2a1c13] dark:text-[#e5cdb2]">4.8</span>
             </div>
           </div>
 
-          <div className="animate-hero-card-c rounded-[2rem] border border-white/85 bg-white/94 p-5 shadow-[0_26px_58px_-30px_rgba(53,30,11,0.2)] backdrop-blur">
+          <div className="animate-hero-card-c rounded-[2rem] border border-white/85 bg-white/94 p-5 shadow-[0_26px_58px_-30px_rgba(53,30,11,0.2)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_26px_58px_-28px_rgba(0,0,0,0.58)]">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#b08b67]">Signal</span>
-              <span className="rounded-full bg-[#fff1df] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#d96f1d]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#b08b67] dark:text-[#b99d7f]">Signal</span>
+              <span className="rounded-full bg-[#fff1df] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167]">
                 {compactReviewCardTime}
               </span>
             </div>
 
-            <p className="mt-5 text-lg font-bold leading-7 text-[#201611]">{compactReviewCardTitle}</p>
+            <p className="mt-5 text-lg font-bold leading-7 text-[#201611] dark:text-[#fff6ec]">{compactReviewCardTitle}</p>
 
             <div className="mt-6 space-y-4">
               <div>
                 <div className="mb-1.5 flex justify-end">
                   <span className="text-[10px] font-bold text-[#d96f1d]">86%</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#fde8cf]">
+                <div className="h-2 overflow-hidden rounded-full bg-[#fde8cf] dark:bg-[#352419]">
                   <div className="animate-dashboard-meter h-full w-[86%] rounded-full bg-[#f28d2b]" />
                 </div>
               </div>
@@ -385,7 +385,7 @@ function HeroDashboardMockup({
                 <div className="mb-1.5 flex justify-end">
                   <span className="text-[10px] font-bold text-[#34c97a]">96%</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#dff4e6]">
+                <div className="h-2 overflow-hidden rounded-full bg-[#dff4e6] dark:bg-[#16251b]">
                   <div
                     className="animate-dashboard-meter h-full w-[96%] rounded-full bg-[#34c97a]"
                     style={{ animationDelay: '180ms' }}
@@ -395,27 +395,27 @@ function HeroDashboardMockup({
             </div>
           </div>
 
-          <div className="animate-hero-card-d rounded-[2rem] border border-white/85 bg-white/94 p-5 shadow-[0_26px_58px_-30px_rgba(53,30,11,0.2)] backdrop-blur">
+          <div className="animate-hero-card-d rounded-[2rem] border border-white/85 bg-white/94 p-5 shadow-[0_26px_58px_-30px_rgba(53,30,11,0.2)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_26px_58px_-28px_rgba(0,0,0,0.58)]">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="animate-dashboard-live-dot size-2 rounded-full bg-[#34c97a]" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#b08b67]">{pulseTitle}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#b08b67] dark:text-[#b99d7f]">{pulseTitle}</p>
               </div>
-              <span className="rounded-md bg-[#fff3e6] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#d96f1d]">
+              <span className="rounded-md bg-[#fff3e6] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167]">
                 Live
               </span>
             </div>
 
-            <p className="mt-5 text-[15px] font-bold leading-6 text-[#201611]">{pulseSubtitle}</p>
+            <p className="mt-5 text-[15px] font-bold leading-6 text-[#201611] dark:text-[#fff6ec]">{pulseSubtitle}</p>
 
             <div className="mt-6 space-y-5">
               {pulseItems.map((item) => (
                 <div key={item.label} className="animate-dashboard-mini-row" style={{ animationDelay: item.delay }}>
                   <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-bold">
-                    <span className="text-[#6e5640]">{item.label}</span>
+                    <span className="text-[#6e5640] dark:text-[#d5bfa4]">{item.label}</span>
                     <span className="text-[#d96f1d]">{item.value}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[#f8ebdc]">
+                  <div className="h-2 overflow-hidden rounded-full bg-[#f8ebdc] dark:bg-[#312218]">
                     <div
                       className="animate-dashboard-meter h-full rounded-full bg-[linear-gradient(90deg,#f2b24d_0%,#eb7a1c_100%)]"
                       style={{ width: item.width, animationDelay: item.delay }}
@@ -425,10 +425,10 @@ function HeroDashboardMockup({
               ))}
             </div>
 
-            <div className="mt-7 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#a88d71]">
-              <span className="h-px w-5 bg-[#e6d3bf]" />
+            <div className="mt-7 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#a88d71] dark:text-[#bfa587]">
+              <span className="h-px w-5 bg-[#e6d3bf] dark:bg-[#4c3727]" />
               <span>{pulseFooter}</span>
-              <span className="h-px w-5 bg-[#e6d3bf]" />
+              <span className="h-px w-5 bg-[#e6d3bf] dark:bg-[#4c3727]" />
             </div>
           </div>
         </aside>
@@ -458,7 +458,10 @@ export function HeroSection({
     : copy.hero.titleLine2
 
   return (
-    <section id="overview" className="relative min-h-[100svh] overflow-hidden bg-bg-light selection:bg-primary/20 dark:bg-bg-dark">
+    <section
+      id="overview"
+      className="relative min-h-[100svh] overflow-hidden bg-bg-light selection:bg-primary/20 dark:bg-bg-dark"
+    >
       <div className="absolute inset-0 overflow-hidden">
         <HeroAmbientLines />
         <div className="absolute inset-0 bg-[linear-gradient(135deg,#fff8ef_0%,#fdf0df_48%,#f8e4ca_100%)] dark:bg-[linear-gradient(135deg,#1b120b_0%,#160f09_52%,#0f0906_100%)]" />
@@ -490,7 +493,7 @@ export function HeroSection({
         />
       </div>
 
-      <div className="relative mx-auto flex min-h-[100svh] max-w-[1680px] items-center px-3 pb-24 pt-28 md:px-6 md:pb-24 lg:px-6 lg:pt-36">
+      <div className="relative mx-auto flex min-h-[100svh] max-w-[1680px] items-center px-3 pb-0 pt-28 md:px-6 lg:px-6 lg:pt-36">
         <div className="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] xl:gap-10">
           <div className="relative z-10 max-w-[40rem] lg:pr-1">
             <div>

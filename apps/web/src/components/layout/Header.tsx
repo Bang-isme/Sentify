@@ -39,6 +39,7 @@ export function Header({
   const productCopy = getProductUiCopy(language)
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+  const [isLandingScrolled, setIsLandingScrolled] = useState(false)
   const languageMenuRef = useRef<HTMLDivElement | null>(null)
   const accountMenuRef = useRef<HTMLDivElement | null>(null)
 
@@ -92,6 +93,23 @@ export function Header({
     }
   }, [isAccountMenuOpen, isLanguageMenuOpen])
 
+  useEffect(() => {
+    if (!isLandingRoute) {
+      return undefined
+    }
+
+    function handleScroll() {
+      setIsLandingScrolled(window.scrollY > 20)
+    }
+
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [isLandingRoute])
+
   const restaurantLabel = useMemo(() => {
     if (!user) {
       return null
@@ -136,13 +154,19 @@ export function Header({
     : []
 
   const shellClassName = isLandingRoute
-    ? 'pointer-events-auto flex min-h-[4.75rem] w-full max-w-[1600px] items-center gap-4 px-4 text-[#1a1a1a] md:px-6 lg:px-8'
+    ? `pointer-events-auto flex min-h-[4.75rem] w-full max-w-[1600px] items-center gap-4 px-4 text-[#1a1a1a] transition-[transform,opacity] duration-300 dark:text-[#fff7ef] md:px-6 lg:px-8 ${
+        isLandingScrolled ? 'animate-landing-header-shell' : ''
+      }`
     : `pointer-events-auto mx-4 flex w-full max-w-[1260px] items-center gap-3 rounded-full border border-border-light/70 bg-surface-white/90 px-4 shadow-[0_10px_34px_rgba(0,0,0,0.1)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 dark:border-border-dark/70 dark:bg-surface-dark/92 dark:shadow-[0_10px_34px_rgba(0,0,0,0.5)] md:px-6 ${
         'min-h-16 md:min-h-[4.5rem]'
       }`
 
   const headerClassName = isLandingRoute
-    ? 'pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center border-b border-[#f3e4d3] bg-white/98 shadow-[0_2px_15px_rgba(0,0,0,0.03)] backdrop-blur-sm'
+    ? `pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${
+        isLandingScrolled
+          ? 'border-b border-[#f3e4d3] bg-white/98 shadow-[0_2px_15px_rgba(0,0,0,0.03)] backdrop-blur-sm dark:border-[#3f2c1f] dark:bg-[#17100c]/96 dark:shadow-[0_12px_30px_-22px_rgba(0,0,0,0.65)]'
+          : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0'
+      }`
     : 'pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center transition-transform duration-300 ease-out md:top-5'
 
   return (
@@ -163,7 +187,7 @@ export function Header({
           <div
             className={`flex size-9 items-center justify-center rounded-full transition-transform duration-500 ${
               isLandingRoute
-                ? 'rounded-xl bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.65)] group-hover:scale-105'
+                ? 'rounded-xl bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.65)] group-hover:scale-105 dark:bg-gradient-to-br dark:from-[#f29a40] dark:to-[#d96f1d] dark:text-[#1b120c]'
                 : 'border border-primary/25 bg-primary/8 text-primary group-hover:rotate-180'
             }`}
           >
@@ -176,7 +200,7 @@ export function Header({
           <span
             className={`hidden tracking-tight sm:block ${
               isLandingRoute
-                ? 'text-xl font-bold text-[#1a1a1a]'
+                ? 'text-xl font-bold text-[#1a1a1a] dark:text-[#fff7ef]'
                 : 'text-lg font-bold text-text-charcoal dark:text-white'
             }`}
             style={isLandingRoute ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
@@ -200,7 +224,7 @@ export function Header({
                 type="button"
                 className={`inline-flex items-center justify-center ${
                   isLandingRoute
-                    ? 'text-[13px] font-bold uppercase tracking-[0.12em] text-[#1a1a1a] transition-colors hover:text-[#ff8c00]'
+                    ? 'text-[13px] font-bold uppercase tracking-[0.12em] text-[#1a1a1a] transition-colors hover:text-[#ff8c00] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]'
                     : 'h-10 rounded-full px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary'
                 }`}
                 onClick={() => onScrollToSection(item.sectionId)}
@@ -212,18 +236,20 @@ export function Header({
         </nav>
 
         <div className="ml-auto flex items-center gap-2 md:gap-3">
-          {isLandingRoute ? null : (
-            <button
-              type="button"
-              onClick={(event) => toggleTheme(event)}
-              aria-label={copy.header.themeLabel}
-              className="flex size-9 items-center justify-center rounded-full text-text-silver-light transition-all duration-200 hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 dark:text-text-silver-dark dark:hover:bg-white/5"
-            >
-              <span className="material-symbols-outlined text-lg">
-                {theme === 'dark' ? 'dark_mode' : 'light_mode'}
-              </span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={(event) => toggleTheme(event)}
+            aria-label={copy.header.themeLabel}
+            className={`flex size-9 items-center justify-center rounded-full transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 ${
+              isLandingRoute
+                ? 'text-[#1a1a1a] hover:bg-[#fff4e8] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:bg-[#211710] dark:hover:text-[#f29a40]'
+                : 'text-text-silver-light hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] dark:text-text-silver-dark dark:hover:bg-white/5'
+            }`}
+          >
+            <span className="material-symbols-outlined text-lg">
+              {theme === 'dark' ? 'dark_mode' : 'light_mode'}
+            </span>
+          </button>
 
           <div className="relative" ref={languageMenuRef}>
             <button
@@ -237,7 +263,7 @@ export function Header({
               aria-expanded={isLanguageMenuOpen}
               className={`flex h-9 items-center gap-2 rounded-full px-3 text-xs font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 isLandingRoute
-                  ? 'rounded-none border-0 bg-transparent px-0 text-sm font-semibold text-[#1a1a1a] hover:text-[#ff8c00]'
+                  ? 'rounded-none border-0 bg-transparent px-0 text-sm font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]'
                   : 'border border-border-light text-text-charcoal hover:border-primary/40 hover:text-primary dark:border-border-dark dark:text-white'
               }`}
             >
@@ -307,7 +333,7 @@ export function Header({
                   }}
                   className={`group flex h-10 items-center gap-2 rounded-full pl-2 pr-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     isLandingRoute
-                      ? 'border border-[#eadbc8] bg-white/78 hover:border-[#eb7a1c]/40 hover:bg-white'
+                      ? 'border border-[#eadbc8] bg-white/78 hover:border-[#eb7a1c]/40 hover:bg-white dark:border-[#3d2c1f] dark:bg-[#1c140f]/88 dark:hover:border-[#f29a40]/45 dark:hover:bg-[#241912]'
                       : 'border border-border-light/80 bg-surface-white/70 hover:border-primary/35 hover:bg-primary/6 dark:border-border-dark dark:bg-surface-dark/78'
                   }`}
                 >
@@ -317,14 +343,14 @@ export function Header({
                   <span className="hidden min-w-0 md:block">
                     <span
                       className={`block truncate text-sm font-semibold ${
-                        isLandingRoute ? 'text-[#201611]' : 'text-text-charcoal dark:text-white'
+                        isLandingRoute ? 'text-[#201611] dark:text-[#fff7ef]' : 'text-text-charcoal dark:text-white'
                       }`}
                     >
                       {user?.displayName ?? productCopy.header.accountFallback}
                     </span>
                     <span
                       className={`block truncate text-[11px] ${
-                        isLandingRoute ? 'text-[#7a6958]' : 'text-text-silver-light dark:text-text-silver-dark'
+                        isLandingRoute ? 'text-[#7a6958] dark:text-[#cdb69c]' : 'text-text-silver-light dark:text-text-silver-dark'
                       }`}
                     >
                       {restaurantLabel ?? productCopy.header.protectedAccess}
@@ -333,7 +359,7 @@ export function Header({
                   <span
                     className={`material-symbols-outlined text-base transition-transform duration-200 ${
                       isLandingRoute
-                        ? `text-[#7a6958] group-hover:text-[#c95b14] ${isAccountMenuOpen ? 'rotate-180' : ''}`
+                        ? `text-[#7a6958] group-hover:text-[#c95b14] dark:text-[#cdb69c] dark:group-hover:text-[#f29a40] ${isAccountMenuOpen ? 'rotate-180' : ''}`
                         : `text-text-silver-light group-hover:text-primary dark:text-text-silver-dark ${isAccountMenuOpen ? 'rotate-180' : ''}`
                     }`}
                   >
@@ -420,7 +446,7 @@ export function Header({
                 type="button"
                 className={`hidden h-9 items-center justify-center rounded-full px-2 text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex ${
                   isLandingRoute
-                    ? 'rounded-none px-0 text-sm font-semibold text-[#1a1a1a] hover:text-[#ff8c00]'
+                    ? 'rounded-none px-0 text-sm font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]'
                     : 'text-text-charcoal hover:text-primary-dark dark:text-white dark:hover:text-primary'
                 }`}
                 onClick={() => onNavigate('/login')}
@@ -431,7 +457,7 @@ export function Header({
                 type="button"
                 className={`flex h-9 items-center justify-center rounded-full px-4 text-xs font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   isLandingRoute
-                    ? 'h-11 bg-[#ff8c00] px-6 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(255,140,0,0.5)] hover:bg-[#e67e00]'
+                    ? 'h-11 bg-[#ff8c00] px-6 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(255,140,0,0.5)] hover:bg-[#e67e00] dark:bg-[#f29a40] dark:text-[#1b120c] dark:shadow-[0_14px_30px_-16px_rgba(242,154,64,0.4)] dark:hover:bg-[#ffad57]'
                     : 'bg-primary text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] dark:text-bg-dark dark:hover:bg-yellow-400'
                 }`}
                 onClick={() => onNavigate('/signup')}
