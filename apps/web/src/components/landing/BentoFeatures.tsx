@@ -1,51 +1,224 @@
-import { useLanguage } from '../../contexts/languageContext'
+import { useLanguage, type Language } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
 
-const trendBars = [38, 52, 44, 64, 72, 58, 76]
+type BadgeColor = 'red' | 'green' | 'blue'
+
+const panelClass =
+  'rounded-[1.2rem] border border-[#e7d9cb]/85 bg-white/72 backdrop-blur-xl shadow-[0_8px_32px_rgba(162,63,0,0.06)] dark:border-white/10 dark:bg-[#19120e]/78 dark:shadow-[0_18px_40px_rgba(0,0,0,0.34)]'
+
+const monoLabelClass = 'font-mono text-[13px] font-medium md:text-[14px] uppercase tracking-[0.1em]'
+
+const quotePhoto =
+  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80'
+const quoteAvatar =
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80'
+
+const dashboardChrome: Record<
+  Language,
+  {
+    exportLabel: string
+    liveLabel: string
+    criticalPulse: string
+    verifiedSamples: string
+    escalation: string
+    frictionPoints: string
+    distribution: string
+    archive: string
+    accessArchive: string
+    signalName: string
+    signalSubline: string
+    quoteRole: string
+    quoteAuthor: string
+    archivePrefix: string
+  }
+> = {
+  en: {
+    exportLabel: 'Export data',
+    liveLabel: 'Live feed',
+    criticalPulse: 'Critical pulse',
+    verifiedSamples: 'Verified samples only',
+    escalation: 'Priority escalation',
+    frictionPoints: 'Friction points',
+    distribution: 'Data distribution',
+    archive: 'Global log archive',
+    accessArchive: 'Access database',
+    signalName: 'Signal',
+    signalSubline: 'review index',
+    quoteRole: 'review critic',
+    quoteAuthor: 'Elena Vance',
+    archivePrefix: 'TS',
+  },
+  vi: {
+    exportLabel: 'Xuất dữ liệu',
+    liveLabel: 'Live feed',
+    criticalPulse: 'Xung tiêu cực',
+    verifiedSamples: 'Mẫu đã xác minh',
+    escalation: 'Mức ưu tiên',
+    frictionPoints: 'Điểm ma sát',
+    distribution: 'Phân bổ tín hiệu',
+    archive: 'Kho review gốc',
+    accessArchive: 'Mở kho dữ liệu',
+    signalName: 'Signal',
+    signalSubline: 'review index',
+    quoteRole: 'review gốc',
+    quoteAuthor: 'Nguồn thực tế',
+    archivePrefix: 'TS',
+  },
+  ja: {
+    exportLabel: 'Data output',
+    liveLabel: 'Live feed',
+    criticalPulse: 'Critical pulse',
+    verifiedSamples: 'Verified samples only',
+    escalation: 'Priority escalation',
+    frictionPoints: 'Friction points',
+    distribution: 'Data distribution',
+    archive: 'Global log archive',
+    accessArchive: 'Access database',
+    signalName: 'Signal',
+    signalSubline: 'review index',
+    quoteRole: 'review critic',
+    quoteAuthor: 'Elena Vance',
+    archivePrefix: 'TS',
+  },
+}
+
+const frictionIcons = ['timer', 'reorder', 'priority_high'] as const
+
+const archiveAccentMap: Record<BadgeColor, string> = {
+  red: 'border-[#d45a4a]/40 text-[#c25142]',
+  green: 'border-[#c78955]/40 text-[#b4622f]',
+  blue: 'border-[#c78955]/40 text-[#b4622f]',
+}
+
+function metricToNumber(metric: string) {
+  const match = metric.match(/\d+([.,]\d+)?/)
+  if (!match) return 0
+  return Number(match[0].replace(',', '.'))
+}
+
+function circleOffset(radius: number, value: number) {
+  const circumference = 2 * Math.PI * radius
+  return circumference * (1 - value / 100)
+}
 
 export function BentoFeatures() {
-  const { copy } = useLanguage()
+  const { copy, language } = useLanguage()
   const { ref, revealClass, revealStyle } = useScrollReveal()
-  const dashboardDescription = copy.dashboard.description?.trim()
+  const dashboard = copy.dashboard
+  const chrome = dashboardChrome[language]
+  const archiveItems = copy.signals.cards.slice(0, 4)
+  const sentimentRows = dashboard.sentiment.rows
+  const frictionRows = dashboard.overview.complaintRows.slice(0, 2)
+  const maxFrictionMetric = Math.max(...frictionRows.map(([, metric]) => metricToNumber(metric)), 1)
+  const leadQuote = archiveItems[0]
 
   return (
-    <section
-      id="dashboard"
-      className="content-visibility-auto relative bg-bg-light px-6 py-24 dark:bg-bg-dark md:px-12"
-    >
-      <div className="mx-auto max-w-[1440px]">
-        <div className={`mb-16 flex flex-col justify-between gap-6 md:flex-row md:items-end ${revealClass()}`} style={revealStyle(0)}>
-          <div className="max-w-xl">
-            <h3 className="mb-2 text-sm font-bold uppercase tracking-widest text-primary-dark dark:text-primary">
-              {copy.dashboard.eyebrow}
-            </h3>
-            <h2 className="mb-4 text-4xl font-bold text-text-charcoal dark:text-white md:text-5xl">
-              {copy.dashboard.titleLine1}
-              <br />
-              <span className="font-serif font-normal italic text-text-silver-light dark:text-text-silver-dark">
-                {copy.dashboard.titleLine2}
-              </span>
-            </h2>
-          </div>
-          {dashboardDescription ? (
-            <p className="max-w-sm text-right text-sm font-medium leading-relaxed text-text-silver-light dark:text-text-silver-dark md:text-left dark:font-normal">
-              {dashboardDescription}
-            </p>
-          ) : null}
-        </div>
+    <section id="dashboard" className="content-visibility-auto relative overflow-hidden py-20 lg:py-24">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(162,63,0,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(162,63,0,0.025)_1px,transparent_1px)] [background-size:40px_40px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(162,63,0,0.06),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(162,63,0,0.04),transparent_30%)]" />
+      </div>
 
-        <div
-          ref={ref}
-          className="grid auto-rows-[minmax(180px,auto)] grid-cols-1 gap-6 md:grid-cols-6 lg:grid-cols-12 lg:auto-rows-[minmax(220px,auto)]"
-        >
-          <div className={`md:col-span-6 lg:col-span-7 ${revealClass()}`} style={revealStyle(0)}>
-            <OverviewCard />
+      <div className="relative z-10 mx-auto max-w-[1440px] px-6 lg:px-10">
+        <div ref={ref}>
+          <div
+            className={`mb-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between ${revealClass()}`}
+            style={revealStyle(0)}
+          >
+            <div>
+              <span className="block text-[12px] font-bold uppercase tracking-[0.32em] text-primary sm:text-[13px] xl:text-[14px]">
+                {dashboard.eyebrow}
+              </span>
+              <h2 className="mt-3 font-serif text-[2.9rem] leading-[0.94] tracking-tight text-[#2c211b] dark:text-[#fff7ef] md:text-[3.7rem] xl:text-[4.5rem]">
+                <span className="block">{dashboard.titleLine1}</span>
+                <span className="mt-1 block font-normal italic text-[#9b8775] dark:text-[#ccb59a]">{dashboard.titleLine2}</span>
+              </h2>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button className="rounded-[0.2rem] border border-[#e6d8ca] bg-white/50 px-5 py-3 text-[13px] font-mono font-medium uppercase tracking-[0.1em] text-[#705d50] transition-colors hover:bg-white/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-white/5 dark:text-[#d7c3ab] dark:hover:bg-white/10 md:text-[14px]">
+                {chrome.exportLabel}
+              </button>
+              <button className="rounded-[0.2rem] border border-[#c97d48] bg-[#fff4eb] px-5 py-3 text-[13px] font-mono font-medium uppercase tracking-[0.1em] text-[#a64809] shadow-[0_4px_12px_rgba(162,63,0,0.12)] transition-colors hover:bg-[#ffeedf] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-[#9c5b31] dark:bg-[#2a1a11] dark:text-[#f0b37a] dark:hover:bg-[#342117] md:text-[14px]">
+                {chrome.liveLabel}
+              </button>
+            </div>
           </div>
-          <div className={`md:col-span-6 lg:col-span-5 lg:row-span-2 ${revealClass()}`} style={revealStyle(120)}>
-            <TrendCard />
-          </div>
-          <div className={`md:col-span-6 lg:col-span-7 ${revealClass()}`} style={revealStyle(240)}>
-            <SentimentCard />
+
+          <div className={`grid grid-cols-12 gap-5 lg:gap-6 ${revealClass()}`} style={revealStyle(120)}>
+            <div className="col-span-12 xl:col-span-8 grid grid-cols-1 gap-5 md:grid-cols-3 lg:gap-6">
+              <MetricCard
+                icon="visibility"
+                label={dashboard.overview.kpis[0]?.[1] ?? ''}
+                value={dashboard.overview.kpis[0]?.[0] ?? ''}
+                note={dashboard.overview.recentMovementLabel}
+              />
+              <MetricCard
+                label={dashboard.overview.kpis[1]?.[1] ?? ''}
+                value={dashboard.overview.kpis[1]?.[0] ?? ''}
+                suffix="/ 5.0"
+                note={chrome.verifiedSamples}
+                accent="primary"
+              />
+              <MetricCard
+                label={chrome.criticalPulse}
+                value={dashboard.overview.kpis[2]?.[0] ?? ''}
+                note={chrome.escalation}
+                accent="critical"
+              />
+
+              <DistributionCard
+                rows={sentimentRows}
+                title={chrome.distribution}
+                signalName={chrome.signalName}
+                signalSubline={chrome.signalSubline}
+              />
+            </div>
+
+            <div className="col-span-12 space-y-5 xl:col-span-4 lg:space-y-6">
+              <aside className={`${panelClass} p-9`}>
+                <h3 className={`mb-8 flex items-center gap-2 text-[#655447] dark:text-[#d9c4aa] ${monoLabelClass}`}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#c1713d]" />
+                  {chrome.frictionPoints}
+                </h3>
+                <div className="space-y-8">
+                  {frictionRows.map(([label, metric], index) => {
+                    const value = metricToNumber(metric)
+                    const width = (value / maxFrictionMetric) * 100
+                    const icon = frictionIcons[index] ?? 'priority_high'
+                    const accent = index === 0 ? 'text-[#d45a4a] border-[#e7d4cf]' : 'text-[#b45a1a] border-[#eadbcb]'
+                    const barColor = index === 0 ? 'bg-[#e79b92]' : 'bg-[#d59565]'
+
+                    return (
+                      <div key={label} className="flex items-start gap-4">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-[0.3rem] border bg-white/55 dark:bg-white/5 ${accent}`}>
+                          <span className="material-symbols-outlined text-[1.3rem]">{icon}</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="mb-2 flex items-center justify-between gap-4">
+                            <p className={`text-[#2b211b] dark:text-[#fff1e2] ${monoLabelClass}`}>{label}</p>
+                            <p className="text-[13px] font-mono font-medium uppercase tracking-[0.04em] text-[#7d6758] dark:text-[#ccb59a] md:text-[14px]">{metric}</p>
+                          </div>
+                          <div className="h-1 w-full overflow-hidden bg-[#eee4da] dark:bg-[#342820]">
+                            <div className={`h-full ${barColor}`} style={{ width: `${Math.max(width, 20)}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </aside>
+
+              <QuoteCard
+                quote={leadQuote?.description ?? dashboard.trend.description}
+                imageSrc={quotePhoto}
+                avatarSrc={quoteAvatar}
+                author={chrome.quoteAuthor}
+                role={chrome.quoteRole}
+              />
+            </div>
+
+            <ArchiveCard title={chrome.archive} actionLabel={chrome.accessArchive} prefix={chrome.archivePrefix} items={archiveItems} />
           </div>
         </div>
       </div>
@@ -53,140 +226,232 @@ export function BentoFeatures() {
   )
 }
 
-function OverviewCard() {
-  const { copy } = useLanguage()
+function MetricCard({
+  icon,
+  label,
+  value,
+  note,
+  suffix,
+  accent = 'default',
+}: {
+  icon?: string
+  label: string
+  value: string
+  note: string
+  suffix?: string
+  accent?: 'default' | 'primary' | 'critical'
+}) {
+  const toneClass =
+    accent === 'critical'
+      ? 'border-[#f0cfc8] bg-[#fff9f8]/95 text-[#d45a4a] dark:border-[#5d2d28] dark:bg-[#261613]/92'
+      : 'border-[#e7d9cb]/85 bg-white/72 text-[#1f1a17] dark:border-white/10 dark:bg-[#1a130f]/78 dark:text-[#fff7ef]'
+  const noteClass =
+    accent === 'critical'
+      ? 'text-[#bf6c61] dark:text-[#e9a59a]'
+      : accent === 'primary'
+        ? 'text-[#af5d25] dark:text-[#f0b37a]'
+        : 'text-[#866f61] dark:text-[#ccb59a]'
 
   return (
-    <div className="group bento-card relative h-full overflow-hidden rounded-2xl border border-border-light bg-surface-white shadow-sm transition-all duration-500 hover:border-primary/60 dark:border-border-dark dark:bg-surface-dark dark:shadow-none">
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 dark:from-surface-highlight/50"></div>
-      <div className="relative z-10 grid gap-6 p-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <div>
-          <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary-dark transition-colors group-hover:bg-primary group-hover:text-white dark:text-primary dark:group-hover:text-black">
-            <span className="material-symbols-outlined text-2xl">dashboard</span>
-          </div>
-          <h3 className="mb-2 text-2xl font-bold text-text-charcoal dark:text-white">
-            {copy.dashboard.overview.title}
-          </h3>
-          <p className="text-text-silver-light dark:text-text-silver-dark">{copy.dashboard.overview.description}</p>
+    <article className={`${panelClass} relative overflow-hidden p-8 ${toneClass}`}>
+      {icon ? (
+        <div className="absolute right-3 top-3 opacity-10">
+          <span className="material-symbols-outlined text-5xl">{icon}</span>
         </div>
-        <div className="grid gap-4">
-          <div className="grid grid-cols-3 gap-3">
-            {[...copy.dashboard.overview.kpis].map(([value, label]) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-border-light/60 bg-white/80 p-3 text-center dark:border-border-dark dark:bg-surface-dark/75"
-              >
-                <div className="text-lg font-bold text-text-charcoal dark:text-white">{value}</div>
-                <div className="text-[11px] uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
-                  {label}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-2xl border border-border-light/60 bg-white/80 p-4 dark:border-border-dark dark:bg-surface-dark/75">
-            <div className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">
-              {copy.dashboard.overview.topComplaintsLabel}
-            </div>
-            <div className="space-y-2">
-              {copy.dashboard.overview.complaintRows.map(([label, value]) => (
-                <div
-                  key={label}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-sm text-text-charcoal dark:text-text-silver-dark"
-                >
-                  <span className="truncate">{label}</span>
-                  <span className="font-semibold text-primary-dark dark:text-primary">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-border-light/60 bg-white/80 p-4 dark:border-border-dark dark:bg-surface-dark/75">
-            <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-primary">
-              {copy.dashboard.overview.recentMovementLabel}
-            </div>
-            <div className="flex h-[72px] items-end gap-2">
-              {trendBars.map((height, index) => (
-                <div key={index} className="h-full flex-1 rounded-t-full bg-primary/20 dark:bg-primary/30">
-                  <div className="w-full rounded-t-full bg-primary" style={{ height: `${height}%` }}></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="pointer-events-none absolute inset-0 rounded-2xl border border-transparent group-hover:animate-pulse-border"></div>
-    </div>
-  )
-}
-
-function SentimentCard() {
-  const { copy } = useLanguage()
-
-  return (
-    <div className="relative h-full rounded-2xl border border-border-light/80 bg-surface-white p-8 shadow-sm dark:border-border-dark dark:bg-surface-dark">
-      <div className="mb-5 flex items-center gap-3">
-        <span className="inline-flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary-dark dark:text-primary">
-          <span className="material-symbols-outlined text-lg">donut_large</span>
-        </span>
-        <span className="text-xs font-semibold uppercase tracking-widest text-text-silver-light dark:text-text-silver-dark">
-          {copy.dashboard.sentiment.badge}
-        </span>
-      </div>
-      <h3 className="mb-2 text-2xl font-semibold text-text-charcoal dark:text-white">
-        {copy.dashboard.sentiment.title}
-      </h3>
-      <p className="text-sm leading-relaxed text-text-silver-light dark:text-text-silver-dark">
-        {copy.dashboard.sentiment.description}
-      </p>
-      <div className="mt-6 space-y-4">
-        {copy.dashboard.sentiment.rows.map((row) => (
-          <div key={row.label}>
-            <div className="mb-2 flex items-center justify-between text-sm">
-              <span className="text-text-charcoal dark:text-white">{row.label}</span>
-              <span className="font-semibold text-primary-dark dark:text-primary">{row.value}%</span>
-            </div>
-            <div className="h-2 rounded-full bg-surface-ticker-light dark:bg-surface-highlight">
-              <div className="h-2 rounded-full bg-primary" style={{ width: `${row.value}%` }}></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function TrendCard() {
-  const { copy } = useLanguage()
-  const bars = [30, 50, 40, 75, 90]
-  const barClasses = ['bg-primary/20', 'bg-primary/25', 'bg-primary/30', 'bg-primary/35']
-
-  return (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-border-light/80 bg-surface-white shadow-sm dark:border-border-dark dark:bg-surface-dark">
-      <div className="p-8">
-        <h3 className="mb-3 text-2xl font-semibold text-text-charcoal dark:text-white">
-          {copy.dashboard.trend.title}
+      ) : null}
+      <p className={`${monoLabelClass} mb-5 ${accent === 'critical' ? 'text-[#d06759] dark:text-[#f0b1a8]' : 'text-[#786458] dark:text-[#ccb59a]'}`}>{label}</p>
+      <div className="flex items-end gap-2">
+        <h3 className={`text-[3.45rem] leading-none md:text-[3.8rem] ${accent === 'critical' ? 'text-[#d64535] dark:text-[#ff8f81]' : accent === 'primary' ? 'text-[#a23f00] dark:text-[#f3a04d]' : 'text-[#1f1a17] dark:text-[#fff7ef]'}`}>
+          {value}
         </h3>
-        <p className="text-sm leading-relaxed text-text-silver-light dark:text-text-silver-dark">
-          {copy.dashboard.trend.description}
-        </p>
-        <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-primary">
-          {copy.dashboard.trend.pill}
-        </div>
+        {suffix ? <span className="pb-1.5 text-[16px] font-mono text-[#8f7a6e] dark:text-[#ccb59a]">{suffix}</span> : null}
       </div>
-      <div className="mt-auto px-8 pb-8">
-        <div className="h-36 rounded-xl bg-surface-ticker-light/70 p-4 dark:bg-surface-highlight/40">
-          <div className="flex h-full items-end justify-between gap-2 border-b border-border-light/70 pb-2 dark:border-border-dark">
-            {bars.map((height, index) => (
-              <div
-                key={index}
-                className={`w-full rounded-md ${
-                  index === bars.length - 1 ? 'bg-primary' : barClasses[index] ?? 'bg-primary/30'
-                }`}
-                style={{ height: `${height}%` }}
-              ></div>
-            ))}
+      <div className={`mt-5 flex items-center gap-2 text-[14px] md:text-[15px] font-mono font-medium uppercase tracking-[0.04em] ${noteClass}`}>
+        {accent === 'default' ? <span className="material-symbols-outlined text-lg">trending_up</span> : null}
+        <span>{note}</span>
+      </div>
+    </article>
+  )
+}
+
+function DistributionCard({
+  rows,
+  title,
+  signalName,
+  signalSubline,
+}: {
+  rows: Array<{ label: string; value: number }>
+  title: string
+  signalName: string
+  signalSubline: string
+}) {
+  const positive = rows[0]?.value ?? 0
+  const neutral = rows[1]?.value ?? 0
+  const negative = rows[2]?.value ?? 0
+
+  return (
+    <article className={`${panelClass} p-10 md:col-span-3`}>
+      <div className="flex flex-col gap-12 md:flex-row md:items-center">
+        <div className="w-full md:w-1/2">
+          <h3 className={`mb-8 border-l border-[#c1713d] pl-3 text-[#5d4a3e] dark:text-[#d9c4aa] ${monoLabelClass}`}>{title}</h3>
+          <div className="space-y-6">
+            {rows.map((row, index) => {
+              const valueColor = index === 0 ? 'text-[#a23f00]' : index === 1 ? 'text-[#9d938a]' : 'text-[#d45a4a]'
+              const barColor = index === 0 ? 'bg-[#a23f00]' : index === 1 ? 'bg-[#cfc4ba]' : 'bg-[#d9796b]'
+
+              return (
+                <div key={row.label} className="space-y-2">
+                  <div className="flex justify-between gap-4 font-mono text-[13px] font-medium md:text-[14px] uppercase tracking-[0.04em]">
+                    <span className="text-[#725f53] dark:text-[#ccb59a]">{row.label}</span>
+                    <span className={`font-semibold ${valueColor}`}>{row.value.toFixed(2)}%</span>
+                  </div>
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-[#eee6dd] dark:bg-[#342820]">
+                    <div className={`h-full ${barColor}`} style={{ width: `${row.value}%` }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="flex w-full justify-center md:w-1/2">
+          <div className="relative flex h-64 w-64 items-center justify-center">
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 224 224">
+              <circle cx="112" cy="112" r="90" fill="transparent" stroke="rgba(214,199,184,0.7)" strokeWidth="1" />
+              <circle
+                cx="112"
+                cy="112"
+                r="90"
+                fill="transparent"
+                stroke="#a23f00"
+                strokeDasharray={2 * Math.PI * 90}
+                strokeDashoffset={circleOffset(90, positive)}
+                strokeLinecap="butt"
+                strokeWidth="6"
+              />
+              <circle
+                cx="112"
+                cy="112"
+                r="75"
+                fill="transparent"
+                stroke="rgba(203,191,179,0.9)"
+                strokeDasharray={2 * Math.PI * 75}
+                strokeDashoffset={circleOffset(75, neutral)}
+                strokeLinecap="butt"
+                strokeWidth="2"
+              />
+              <circle
+                cx="112"
+                cy="112"
+                r="60"
+                fill="transparent"
+                stroke="rgba(217,121,107,0.34)"
+                strokeDasharray={2 * Math.PI * 60}
+                strokeDashoffset={circleOffset(60, negative)}
+                strokeLinecap="butt"
+                strokeWidth="4"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span className="font-serif text-[2.65rem] text-[#3b2c22] dark:text-[#fff1e2]">{signalName}</span>
+              <span className="mt-1 font-mono text-[12px] font-medium uppercase tracking-[0.08em] text-[#b5662d] dark:text-[#f0b37a] md:text-[14px]">{signalSubline}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </article>
+  )
+}
+
+function QuoteCard({
+  quote,
+  imageSrc,
+  avatarSrc,
+  author,
+  role,
+}: {
+  quote: string
+  imageSrc: string
+  avatarSrc: string
+  author: string
+  role: string
+}) {
+  return (
+    <article className="relative min-h-[248px] overflow-hidden rounded-[1.2rem] border border-[#e7d9cb]/80 bg-[#f5efe9] p-8 dark:border-white/10 dark:bg-[#1b1410]/78">
+      <img
+        src={imageSrc}
+        alt="Dashboard atmosphere"
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover opacity-10 grayscale transition-transform duration-1000"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#fcfaf7] via-[#fcfaf7]/70 to-transparent dark:from-[#1b1410] dark:via-[#1b1410]/74 dark:to-transparent" />
+      <div className="relative z-10 flex h-full flex-col justify-end">
+        <blockquote className="border-l border-[#c1713d] pl-4 font-serif text-[1.25rem] leading-9 italic text-[#4d3d32] dark:text-[#f2e4d6] md:text-[1.4rem]">
+          "{quote}"
+        </blockquote>
+        <div className="mt-5 flex items-center gap-3">
+          <div className="h-7 w-7 overflow-hidden rounded-full border border-[#d9c7b8] grayscale dark:border-white/15">
+            <img src={avatarSrc} alt={author} loading="lazy" className="h-full w-full object-cover" />
+          </div>
+          <p className="font-mono text-[13px] font-medium uppercase tracking-[0.06em] text-[#7f6b5f] dark:text-[#ccb59a] md:text-[14px]">
+            {author} // {role}
+          </p>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function ArchiveCard({
+  title,
+  actionLabel,
+  prefix,
+  items,
+}: {
+  title: string
+  actionLabel: string
+  prefix: string
+  items: Array<{
+    badge: { text: string; color: BadgeColor } | null
+    title: string
+    metric: string
+  }>
+}) {
+  return (
+    <article className={`${panelClass} col-span-12 mt-1 p-10`}>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <h3 className={`text-[#2d241f] dark:text-[#fff1e2] ${monoLabelClass}`}>{title}</h3>
+        <span className="w-fit rounded-[0.2rem] border border-[#d8b79e] px-3 py-2 text-[13px] font-mono font-medium uppercase tracking-[0.08em] text-[#a95318] dark:border-[#885937] dark:text-[#f0b37a] md:text-[14px]">
+          {actionLabel}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+        {items.map((item, index) => {
+          const accent =
+            item.badge?.color != null ? archiveAccentMap[item.badge.color] : 'border-[#c78955]/40 text-[#b4622f]'
+
+          return (
+            <div key={item.title} className={`border-l bg-[#fcfaf7]/55 p-5 transition-colors hover:bg-[#fcfaf7]/80 dark:bg-[#130f0c]/72 dark:hover:bg-[#19130f] ${accent}`}>
+              <div className="mb-2 flex gap-0.5">
+                {Array.from({ length: Math.min(index + 2, 4) }).map((_, starIndex) => (
+                  <span
+                    key={`${item.title}-${starIndex}`}
+                    className="material-symbols-outlined text-[13px]"
+                    style={{ fontVariationSettings: "'FILL' 1, 'wght' 300, 'opsz' 24" }}
+                  >
+                    star
+                  </span>
+                ))}
+              </div>
+              <p className="font-serif text-[16px] leading-7 text-[#4f4035] dark:text-[#f2e4d6] md:text-[18px]">"{item.title}"</p>
+              <p className="mt-2 font-mono text-[12px] font-medium uppercase tracking-[0.04em] text-[#7f6b5f] dark:text-[#ccb59a] md:text-[14px]">
+                {prefix}: {item.metric} // {item.badge?.text ?? 'review'}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+    </article>
   )
 }

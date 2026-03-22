@@ -1,89 +1,122 @@
 import { useLanguage } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
 
+const workflowPhotos = [
+  {
+    src: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1200&q=80',
+    alt: 'Warm restaurant interior',
+    frameClassName: 'bg-[#20140d]',
+    imageClassName: 'object-cover',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+    alt: 'Digital dashboard interface',
+    frameClassName: 'bg-[#f6efe6]',
+    imageClassName: 'object-cover',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80',
+    alt: 'Artistic plated dish',
+    frameClassName: 'bg-[#111111]',
+    imageClassName: 'object-cover',
+  },
+  {
+    src: '/images/Review.png',
+    alt: 'Analytics dashboard preview',
+    frameClassName: 'bg-[#5ea3a5] p-5',
+    imageClassName: 'object-contain scale-[0.92]',
+  },
+] as const
+
+const workflowOffsets = ['xl:pt-[10.5rem]', 'xl:pt-[8rem]', 'xl:pt-[5rem]', 'xl:pt-[2rem]'] as const
+const workflowNumberOffsets = [
+  '-top-[5.95rem] xl:-top-[6.5rem]',
+  '-top-[6.35rem] xl:-top-[6.9rem]',
+  '-top-[6.75rem] xl:-top-[7.3rem]',
+  '-top-[7.15rem] xl:-top-[7.7rem]',
+] as const
+
 export function WorkflowSection() {
-  const { copy } = useLanguage()
+  const { copy, language } = useLanguage()
   const { ref, revealClass, revealStyle } = useScrollReveal()
-  const photos = [
-    {
-      src: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=900&q=60',
-      alt: 'Không gian ăn uống sáng sủa với nhiều ánh sáng tự nhiên',
-    },
-    {
-      src: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=900&q=60',
-      alt: 'Không gian nhà hàng ấm cúng vào buổi tối',
-    },
-    {
-      src: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=60',
-      alt: 'Món ăn được bày trí tinh tế trên bàn',
-    },
-    {
-      src: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=900&q=60',
-      alt: 'Đầu bếp chuẩn bị món ăn trong bếp',
-    },
-  ]
+  const titleLine1 = language === 'vi' ? 'Nghệ Thuật Kiến Tạo' : copy.workflow.titleLine1
+  const titleLine2 = language === 'vi' ? 'Trải Nghiệm Ẩm Thực' : copy.workflow.titleLine2
 
   return (
     <section
       id="workflow"
-      className="content-visibility-auto relative overflow-hidden bg-bg-light px-6 py-24 dark:bg-bg-dark md:px-12"
+      className="content-visibility-auto relative overflow-hidden bg-transparent px-5 py-24 md:px-8 lg:px-12 xl:px-16 xl:py-28"
     >
-      <div className="absolute inset-0 opacity-70 dark:opacity-100">
-        <div className="absolute inset-x-[12%] top-12 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-0 h-[34rem] w-[84rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(243,160,77,0.14)_0%,rgba(243,160,77,0.06)_38%,transparent_72%)] blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-[1440px]">
-        <div className={`mb-10 flex flex-col gap-6 ${revealClass()}`} style={revealStyle(0)}>
-          <div className="max-w-3xl">
-            <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-primary">
-              {copy.workflow.eyebrow}
-            </p>
-            <h2 className="text-4xl font-bold tracking-tight text-text-charcoal dark:text-white md:text-5xl">
-              {copy.workflow.titleLine1}
-              <br />
-              <span className="font-serif text-3xl font-normal italic text-text-silver-light dark:text-text-silver-dark md:text-4xl">
-                {copy.workflow.titleLine2}
-              </span>
-            </h2>
-          </div>
+      <div className="relative mx-auto max-w-[1520px]">
+        <div className={`max-w-[64rem] ${revealClass()}`} style={revealStyle(0)}>
+          <p className="text-[12px] font-bold uppercase tracking-[0.32em] text-primary sm:text-[13px] xl:text-[14px]">
+            {copy.workflow.eyebrow}
+          </p>
+          <h2 className="mt-4 font-serif text-[clamp(3.2rem,6vw,5.4rem)] font-normal leading-[0.88] tracking-[-0.05em] text-[#281913] dark:text-[#fff7ef]">
+            <span className="block xl:whitespace-nowrap">{titleLine1}</span>
+            <span className="mt-2 block pl-5 italic sm:pl-7 xl:mt-3 xl:pl-14 xl:whitespace-nowrap">
+              {titleLine2}
+            </span>
+          </h2>
         </div>
 
-        <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {photos.map((photo) => (
-            <figure
-              key={photo.src}
-              className="overflow-hidden rounded-2xl border border-border-light bg-surface-white/80 shadow-sm dark:border-border-dark dark:bg-surface-dark/70"
-            >
-              <img
-                src={photo.src}
-                alt={photo.alt}
-                loading="lazy"
-                decoding="async"
-                className="h-36 w-full object-cover sm:h-40"
-              />
-            </figure>
-          ))}
-        </div>
+        <div
+          ref={ref}
+          className="relative mt-14 grid items-start gap-10 md:grid-cols-2 xl:grid-cols-4 xl:gap-5"
+        >
+          {copy.workflow.steps.map((step, index) => {
+            const photo = workflowPhotos[index % workflowPhotos.length]
 
-        <div ref={ref} className="grid gap-5 lg:grid-cols-4">
-          {copy.workflow.steps.map((step, index) => (
-            <article
-              key={step.step}
-              className={`relative rounded-[28px] border border-border-light bg-surface-white/90 p-6 shadow-sm transition-colors dark:border-border-dark dark:bg-surface-dark/80 ${revealClass()}`}
-              style={revealStyle(index * 120)}
-            >
-              <div className="mb-8 flex items-center justify-between">
-                <span className="text-sm font-bold uppercase tracking-[0.3em] text-primary">
-                  {step.step}
-                </span>
-                <span className="h-px w-14 bg-primary/30"></span>
-              </div>
-              <h3 className="text-2xl font-bold text-text-charcoal dark:text-white">{step.title}</h3>
-              <p className="mt-4 text-sm leading-7 text-text-silver-light dark:text-text-silver-dark">
-                {step.description}
-              </p>
-            </article>
-          ))}
+            return (
+              <article
+                key={step.step}
+                className={`relative ${workflowOffsets[index]} ${revealClass()}`}
+                style={revealStyle(index * 110)}
+              >
+                <div className="relative z-10 px-3 pt-10 xl:px-3">
+                  <div className="relative">
+                    <span
+                      className={`pointer-events-none absolute -left-1 z-0 tabular-nums text-[5.1rem] font-bold leading-none tracking-[0.015em] text-primary/11 dark:text-primary/18 sm:text-[5.8rem] xl:-left-2 xl:text-[6.4rem] ${workflowNumberOffsets[index]}`}
+                      style={{
+                        fontFamily:
+                          '"Baskerville", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif',
+                      }}
+                    >
+                      {step.step}
+                    </span>
+
+                    <figure
+                      className={`group relative z-10 overflow-hidden rounded-[0.95rem] border border-primary/10 shadow-[0_18px_40px_-26px_rgba(73,41,9,0.42)] ${photo.frameClassName} dark:border-border-dark/70`}
+                    >
+                      <div className="aspect-[4/5] overflow-hidden">
+                        <img
+                          src={photo.src}
+                          alt={photo.alt}
+                          loading="lazy"
+                          decoding="async"
+                          className={`h-full w-full transition-transform duration-700 group-hover:scale-[1.03] ${photo.imageClassName}`}
+                        />
+                      </div>
+                    </figure>
+                  </div>
+
+                  <div className="mt-4">
+                    <h3 className="font-body text-[1.22rem] font-semibold leading-[1.08] tracking-[-0.035em] text-[#2e1d14] dark:text-[#fff7ef] xl:text-[1.3rem] xl:whitespace-nowrap">
+                      {step.title}
+                    </h3>
+                    <p className="mt-3 max-w-[18rem] text-[0.93rem] leading-6 text-[#7c6a59] dark:text-[#ccb59a]">
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            )
+          })}
+
         </div>
       </div>
     </section>

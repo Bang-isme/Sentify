@@ -349,7 +349,7 @@ export function Header({
                       {user?.displayName ?? productCopy.header.accountFallback}
                     </span>
                     <span
-                      className={`block truncate text-[11px] ${
+                      className={`block truncate text-[12px] ${
                         isLandingRoute ? 'text-[#7a6958] dark:text-[#cdb69c]' : 'text-text-silver-light dark:text-text-silver-dark'
                       }`}
                     >
@@ -385,18 +385,18 @@ export function Header({
                         <div className="truncate text-sm font-bold text-text-charcoal dark:text-white">
                           {user?.displayName ?? productCopy.header.accountFallback}
                         </div>
-                        <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-silver-light dark:text-text-silver-dark">
+                        <div className="mt-1 text-[12px] font-semibold uppercase tracking-[0.12em] text-text-silver-light dark:text-text-silver-dark">
                           {productCopy.header.signedInAs}
                         </div>
-                        <div className="mt-1 truncate text-xs text-text-silver-light dark:text-text-silver-dark">
+                        <div className="mt-1 truncate text-sm text-text-silver-light dark:text-text-silver-dark">
                           {user?.email ?? ''}
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
+                          <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[12px] font-semibold text-primary">
                             {productCopy.header.protectedAccess}
                           </span>
                           {restaurantLabel ? (
-                            <span className="rounded-full border border-border-light bg-surface-white px-3 py-1 text-[11px] font-semibold text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
+                            <span className="rounded-full border border-border-light bg-surface-white px-3 py-1.5 text-[12px] font-semibold text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
                               {restaurantLabel}
                             </span>
                           ) : null}

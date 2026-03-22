@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useLanguage, type Language } from '../../contexts/languageContext'
 
 interface HeroSectionProps {
@@ -80,88 +80,6 @@ const HERO_FEATURE_ICONS = ['travel_explore', 'insights', 'monitoring'] as const
 const HERO_CHART_HEIGHTS = [32, 58, 44, 76, 56, 84, 64] as const
 const HERO_REVIEW_IMAGE = '/images/Review.png'
 const HERO_SOURCE_PILLS = ['Google Maps', 'Facebook', 'ShopeeFood'] as const
-const HERO_LINE_COLORS = [
-  'rgba(201,91,20,0.52)',
-  'rgba(235,122,28,0.46)',
-  'rgba(176,127,76,0.38)',
-  'rgba(242,178,77,0.34)',
-] as const
-
-interface HeroAmbientLine {
-  id: string
-  top: string
-  width: string
-  height: string
-  rotate: number
-  opacity: number
-  duration: string
-  delay: string
-  side: 'left' | 'right'
-  offset: string
-  color: string
-  shadow: string
-}
-
-function createAmbientLines(side: 'left' | 'right', count: number) {
-  return Array.from({ length: count }, (_, index): HeroAmbientLine => {
-    const topBase = 6 + index * (82 / count)
-    const topJitter = Math.random() * 10 - 2
-    const width = 74 + Math.round(Math.random() * 118)
-    const height = `${1.4 + Math.random() * 1.3}px`
-    const rotate = (Math.random() * 56 - 28) * (side === 'left' ? 1 : -1)
-    const opacity = 0.56 + Math.random() * 0.26
-    const duration = `${8 + Math.random() * 8}s`
-    const delay = `${Math.random() * 3}s`
-    const color = HERO_LINE_COLORS[index % HERO_LINE_COLORS.length]
-    const offsetBase = side === 'left' ? Math.random() * 22 : Math.random() * 22
-    const shadow = `0 0 16px ${color.replace(/0\.\d+\)/, '0.18)')}`
-
-    return {
-      id: `${side}-${index}`,
-      side,
-      top: `${topBase + topJitter}%`,
-      width: `${width}px`,
-      height,
-      rotate,
-      opacity,
-      duration,
-      delay,
-      offset: `${offsetBase}%`,
-      color,
-      shadow,
-    }
-  })
-}
-
-function HeroAmbientLines() {
-  const lines = useMemo(
-    () => [...createAmbientLines('left', 10), ...createAmbientLines('right', 10)],
-    [],
-  )
-
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      {lines.map((line) => (
-        <span
-          key={line.id}
-          className="absolute block rounded-full"
-          style={{
-            top: line.top,
-            [line.side]: line.offset,
-            width: line.width,
-            height: line.height,
-            opacity: line.opacity,
-            background: `linear-gradient(90deg, transparent 0%, ${line.color} 14%, ${line.color} 86%, transparent 100%)`,
-            boxShadow: line.shadow,
-            transform: `rotate(${line.rotate}deg)`,
-            transformOrigin: line.side === 'left' ? 'left center' : 'right center',
-            animation: `float ${line.duration} ease-in-out ${line.delay} infinite`,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
 
 function HeroStatCard({
   value,
@@ -180,7 +98,7 @@ function HeroStatCard({
         opacity: 0,
       }}
     >
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#b7a08a] dark:text-[#af9273]">{label}</p>
+      <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#b7a08a] dark:text-[#af9273] md:text-[13px]">{label}</p>
       <p className="mt-2 text-[2.6rem] font-black leading-none text-[#201611] dark:text-[#fff7ef] md:text-[2.95rem]">{value}</p>
     </div>
   )
@@ -262,7 +180,7 @@ function HeroDashboardMockup({
                   style={{ animationDelay: '360ms' }}
                 />
               </div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#c4ae96] dark:text-[#b39576]">
+              <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[#c4ae96] dark:text-[#b39576] md:text-[13px]">
                 {ui.dashboardLabel}
               </p>
             </div>
@@ -282,7 +200,7 @@ function HeroDashboardMockup({
               />
               <div className="mb-6 flex items-center justify-between gap-4">
                 <p className="text-lg font-bold text-[#3e3024] dark:text-[#fff3e4]">Sentiment Over Time</p>
-                <span className="animate-dashboard-pill rounded-xl bg-[#fff1df] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167]">
+                <span className="animate-dashboard-pill rounded-xl bg-[#fff1df] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:text-[13px]">
                   +12 %
                 </span>
               </div>
@@ -311,7 +229,7 @@ function HeroDashboardMockup({
                 {HERO_SOURCE_PILLS.map((pill, index) => (
                   <span
                     key={pill}
-                    className="rounded-full border border-[#f0dcc4] bg-white px-4 py-2 text-[11px] font-semibold text-[#8b7259] shadow-[0_10px_18px_-16px_rgba(53,30,11,0.18)] dark:border-[#493525] dark:bg-[#20160f] dark:text-[#dec8af] dark:shadow-[0_14px_28px_-18px_rgba(0,0,0,0.45)]"
+                    className="rounded-full border border-[#f0dcc4] bg-white px-4 py-2.5 text-[12px] font-semibold text-[#8b7259] shadow-[0_10px_18px_-16px_rgba(53,30,11,0.18)] dark:border-[#493525] dark:bg-[#20160f] dark:text-[#dec8af] dark:shadow-[0_14px_28px_-18px_rgba(0,0,0,0.45)] md:text-[13px]"
                     style={{
                       animation: `fade-in-up 0.8s ease-out ${780 + index * 80}ms forwards, dashboard-chip-drift 4.8s ease-in-out ${1460 + index * 180}ms infinite`,
                       opacity: 0,
@@ -329,7 +247,7 @@ function HeroDashboardMockup({
               <p className="max-w-[34rem] text-[14px] italic leading-7 text-[#8e7761] dark:text-[#d1b79a] md:text-[15px]">
                 "{ui.reviewCardQuote}"
               </p>
-              <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-[#eb7a1c]">
+              <div className="mt-4 flex items-center gap-2 text-[12px] font-bold text-[#eb7a1c] md:text-[13px]">
                 <span className="h-px w-5 bg-[#eb7a1c]" />
                 <span>{ui.quoteSource}</span>
               </div>
@@ -358,14 +276,14 @@ function HeroDashboardMockup({
                   </span>
                 ))}
               </div>
-              <span className="rounded-lg bg-[#f7f3ed] px-2.5 py-1 text-[11px] font-bold text-[#a18668] dark:bg-[#2a1c13] dark:text-[#e5cdb2]">4.8</span>
+              <span className="rounded-lg bg-[#f7f3ed] px-2.5 py-1.5 text-[12px] font-bold text-[#a18668] dark:bg-[#2a1c13] dark:text-[#e5cdb2] md:text-[13px]">4.8</span>
             </div>
           </div>
 
           <div className="animate-hero-card-c rounded-[2rem] border border-white/85 bg-white/94 p-5 shadow-[0_26px_58px_-30px_rgba(53,30,11,0.2)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_26px_58px_-28px_rgba(0,0,0,0.58)]">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#b08b67] dark:text-[#b99d7f]">Signal</span>
-              <span className="rounded-full bg-[#fff1df] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167]">
+              <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#b08b67] dark:text-[#b99d7f] md:text-[13px]">Signal</span>
+              <span className="rounded-full bg-[#fff1df] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:text-[13px]">
                 {compactReviewCardTime}
               </span>
             </div>
@@ -375,7 +293,7 @@ function HeroDashboardMockup({
             <div className="mt-6 space-y-4">
               <div>
                 <div className="mb-1.5 flex justify-end">
-                  <span className="text-[10px] font-bold text-[#d96f1d]">86%</span>
+                  <span className="text-[12px] font-bold text-[#d96f1d] md:text-[13px]">86%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-[#fde8cf] dark:bg-[#352419]">
                   <div className="animate-dashboard-meter h-full w-[86%] rounded-full bg-[#f28d2b]" />
@@ -383,7 +301,7 @@ function HeroDashboardMockup({
               </div>
               <div>
                 <div className="mb-1.5 flex justify-end">
-                  <span className="text-[10px] font-bold text-[#34c97a]">96%</span>
+                  <span className="text-[12px] font-bold text-[#34c97a] md:text-[13px]">96%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-[#dff4e6] dark:bg-[#16251b]">
                   <div
@@ -399,9 +317,9 @@ function HeroDashboardMockup({
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="animate-dashboard-live-dot size-2 rounded-full bg-[#34c97a]" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#b08b67] dark:text-[#b99d7f]">{pulseTitle}</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#b08b67] dark:text-[#b99d7f] md:text-[13px]">{pulseTitle}</p>
               </div>
-              <span className="rounded-md bg-[#fff3e6] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167]">
+              <span className="rounded-md bg-[#fff3e6] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:text-[13px]">
                 Live
               </span>
             </div>
@@ -411,7 +329,7 @@ function HeroDashboardMockup({
             <div className="mt-6 space-y-5">
               {pulseItems.map((item) => (
                 <div key={item.label} className="animate-dashboard-mini-row" style={{ animationDelay: item.delay }}>
-                  <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-bold">
+                  <div className="mb-2 flex items-center justify-between gap-3 text-[12px] font-bold md:text-[13px]">
                     <span className="text-[#6e5640] dark:text-[#d5bfa4]">{item.label}</span>
                     <span className="text-[#d96f1d]">{item.value}</span>
                   </div>
@@ -425,7 +343,7 @@ function HeroDashboardMockup({
               ))}
             </div>
 
-            <div className="mt-7 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#a88d71] dark:text-[#bfa587]">
+            <div className="mt-7 flex items-center justify-center gap-2 text-[12px] font-bold uppercase tracking-[0.12em] text-[#a88d71] dark:text-[#bfa587] md:text-[13px]">
               <span className="h-px w-5 bg-[#e6d3bf] dark:bg-[#4c3727]" />
               <span>{pulseFooter}</span>
               <span className="h-px w-5 bg-[#e6d3bf] dark:bg-[#4c3727]" />
@@ -460,13 +378,9 @@ export function HeroSection({
   return (
     <section
       id="overview"
-      className="relative min-h-[100svh] overflow-hidden bg-bg-light selection:bg-primary/20 dark:bg-bg-dark"
+      className="relative min-h-[100svh] overflow-hidden bg-transparent selection:bg-primary/20"
     >
       <div className="absolute inset-0 overflow-hidden">
-        <HeroAmbientLines />
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,#fff8ef_0%,#fdf0df_48%,#f8e4ca_100%)] dark:bg-[linear-gradient(135deg,#1b120b_0%,#160f09_52%,#0f0906_100%)]" />
-        <div className="absolute left-[8%] top-[12%] size-[25rem] rounded-full bg-[rgba(235,122,28,0.16)] blur-[150px]" />
-        <div className="absolute right-[10%] top-[18%] size-[22rem] rounded-full bg-[rgba(250,181,74,0.18)] blur-[150px]" />
         <HeroOutlineCluster
           className="left-[-6%] top-[7.75rem] h-[33rem] w-[21rem] -rotate-[11deg]"
           outerClassName="left-0 top-0 h-[31rem] w-[18rem]"
@@ -493,7 +407,7 @@ export function HeroSection({
         />
       </div>
 
-      <div className="relative mx-auto flex min-h-[100svh] max-w-[1680px] items-center px-3 pb-0 pt-28 md:px-6 lg:px-6 lg:pt-36">
+      <div className="relative mx-auto flex min-h-[100svh] max-w-[1680px] items-center px-3 pb-8 pt-20 md:px-6 md:pb-10 lg:px-6 lg:pb-12 lg:pt-28">
         <div className="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] xl:gap-10">
           <div className="relative z-10 max-w-[40rem] lg:pr-1">
             <div>
@@ -535,7 +449,7 @@ export function HeroSection({
                     value={draftQuery}
                     onChange={(event) => setDraftQuery(event.target.value)}
                     placeholder={ui.searchPlaceholder}
-                    className="w-full rounded-[1.45rem] border border-transparent bg-white px-5 py-4 pl-12 text-base text-[#201611] shadow-[inset_0_0_0_1px_rgba(138,106,74,0.12)] outline-none transition placeholder:text-[#8a6a4a]/75 focus:shadow-[inset_0_0_0_1px_rgba(232,122,32,0.42)] dark:bg-white/8 dark:text-white dark:placeholder:text-white/38"
+                    className="w-full rounded-[1.45rem] border border-transparent bg-white px-5 py-4 pl-12 text-base text-[#201611] shadow-[inset_0_0_0_1px_rgba(138,106,74,0.12)] outline-none transition placeholder:text-[#8a6a4a]/75 focus:shadow-[inset_0_0_0_1px_rgba(232,122,32,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/8 dark:text-white dark:placeholder:text-white/38"
                   />
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8a6a4a] dark:text-[#ccb79b]">
                     <span className="material-symbols-outlined text-[20px]">search</span>
@@ -545,7 +459,7 @@ export function HeroSection({
                 <button
                   type="submit"
                   aria-label={ui.searchActionLabel}
-                  className="inline-flex h-[3.6rem] items-center justify-center gap-2 rounded-[1.45rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-6 text-sm font-bold text-white shadow-[0_20px_36px_-20px_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_40px_-18px_rgba(217,95,22,0.85)]"
+                  className="inline-flex h-[3.6rem] items-center justify-center gap-2 rounded-[1.45rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-6 text-base font-bold text-white shadow-[0_20px_36px_-20px_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_40px_-18px_rgba(217,95,22,0.85)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   <span>{primaryLabel}</span>
                   <span className="material-symbols-outlined text-[18px]">arrow_outward</span>
@@ -556,12 +470,12 @@ export function HeroSection({
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center rounded-full border border-[#ead4bd] bg-white/72 px-5 text-sm font-semibold text-[#201611] shadow-[0_14px_28px_-22px_rgba(53,30,11,0.18)] transition hover:border-[#eb7a1c]/40 hover:text-[#c65f17] dark:border-white/10 dark:bg-white/7 dark:text-white"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[#ead4bd] bg-white/72 px-5 text-sm font-semibold text-[#201611] shadow-[0_14px_28px_-22px_rgba(53,30,11,0.18)] transition hover:border-[#eb7a1c]/40 hover:text-[#c65f17] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-white/7 dark:text-white"
                 onClick={onSecondaryAction}
               >
                 {secondaryLabel}
               </button>
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#fff1df] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#bf6519] shadow-[0_14px_24px_-24px_rgba(53,30,11,0.14)] dark:bg-white/7 dark:text-[#f3c47f]">
+              <span className="inline-flex items-center gap-2 rounded-full bg-[#fff1df] px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#bf6519] shadow-[0_14px_24px_-24px_rgba(53,30,11,0.14)] dark:bg-white/7 dark:text-[#f3c47f] md:text-[13px]">
                 <span className="size-2 rounded-full bg-[#eb7a1c]" />
                 <span>{ui.liveSnapshotLabel}</span>
               </span>
@@ -584,10 +498,10 @@ export function HeroSection({
                       </span>
                     </span>
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#bf6519]">
+                      <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#bf6519] md:text-[13px]">
                         {String(index + 1).padStart(2, '0')}
                       </p>
-                      <p className="mt-2 text-sm font-semibold leading-6 text-[#201611] dark:text-white">
+                      <p className="mt-2 text-base font-semibold leading-7 text-[#201611] dark:text-white">
                         {item}
                       </p>
                     </div>
@@ -609,6 +523,7 @@ export function HeroSection({
           </div>
         </div>
       </div>
+
     </section>
   )
 }

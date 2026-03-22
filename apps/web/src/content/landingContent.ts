@@ -185,7 +185,7 @@ export const landingContent = {
       ],
     },
     sprint: {
-      eyebrow: 'This release Focus',
+      eyebrow: 'This Release Focus',
       titleLine1: 'Focused enough to ship.',
       titleLine2: 'Narrow enough to stay honest.',
       inScopeTitle: 'What This Version Already Solves',
@@ -220,7 +220,7 @@ export const landingContent = {
         {
           icon: 'admin_panel_settings',
           title: 'Restaurant data stays tied to the right account',
-          description: 'Even in This release, the product is built around the idea that one restaurant should not casually see another restaurant’s feedback.',
+          description: 'Even in this release, the product is built around the idea that one restaurant should not casually see another restaurant’s feedback.',
         },
         {
           icon: 'verified_user',
@@ -402,7 +402,7 @@ export const landingContent = {
       titleLine1: 'Một vòng lặp tập trung.',
       titleLine2: 'Một kết quả hữu ích.',
       description:
-        'Phi?n b?n n?y của Sentify cố ý giữ phạm vi hẹp: một nguồn review, một luồng nhà hàng, một dashboard, và một câu hỏi duy nhất: việc gì nên được ưu tiên xử lý trước?',
+        'Phiên bản này của Sentify cố ý giữ phạm vi hẹp: một nguồn review, một luồng nhà hàng, một dashboard, và một câu hỏi duy nhất: việc gì nên được ưu tiên xử lý trước?',
       steps: [
         {
           step: '01',
@@ -520,7 +520,7 @@ export const landingContent = {
       ],
     },
     sprint: {
-      eyebrow: 'Phạm vi Phi?n b?n n?y',
+      eyebrow: 'Phạm vi phiên bản này',
       titleLine1: 'Gọn để có thể ship.',
       titleLine2: 'Hẹp để vẫn trung thực.',
       inScopeTitle: 'Phiên bản này đã giải được gì',
@@ -537,7 +537,7 @@ export const landingContent = {
         'Chưa mở rộng sang các nền tảng khác ngoài Google Maps',
         'Chưa làm luồng mời thành viên, billing hay quản lý đội ngũ mở rộng',
         'Chưa có xuất báo cáo, PDF hay bộ admin quá to',
-        'Không cố gắng biến Phi?n b?n n?y thành một bộ analytics tổng hợp cho mọi bài toán',
+        'Không cố gắng biến phiên bản này thành một bộ analytics tổng hợp cho mọi bài toán',
       ],
       reasons: [
         'Một đầu vào rõ ràng giúp user flow dễ hiểu và dễ dùng.',
@@ -550,12 +550,12 @@ export const landingContent = {
       titleLine1: 'Dữ liệu review vẫn cần được xử lý',
       titleLine2: 'một cách kỷ luật.',
       description:
-        '',
+        'Dữ liệu review của nhà hàng có thể không lớn, nhưng vẫn cần ranh giới xử lý rõ ràng, quyền truy cập được bảo vệ và các hàng rào an toàn có sẵn trước khi giao diện mở rộng hơn.',
       pillars: [
         {
           icon: 'admin_panel_settings',
           title: 'Dữ liệu của từng nhà hàng phải nằm đúng chỗ',
-          description: 'Ngay cả trong Phi?n b?n n?y, sản phẩm đã được nghĩ theo hướng một nhà hàng không thể vô tình thấy review của nhà hàng khác.',
+          description: 'Ngay cả trong phiên bản này, sản phẩm đã được nghĩ theo hướng một nhà hàng không thể vô tình thấy review của nhà hàng khác.',
         },
         {
           icon: 'verified_user',
@@ -573,7 +573,7 @@ export const landingContent = {
       titleLine1: 'Lời hứa nhỏ hơn.',
       titleLine2: 'Giá trị hữu ích hơn.',
       description:
-        'Trong Phi?n b?n n?y, Sentify chỉ tập trung vào một việc: giúp chủ nhà hàng biết khách đang khen điều gì, đang phàn nàn điều gì, và điều nào nên được ưu tiên xử lý trước.',
+        'Trong phiên bản này, Sentify chỉ tập trung vào một việc: giúp chủ nhà hàng biết khách đang khen điều gì, đang phàn nàn điều gì, và điều nào nên được ưu tiên xử lý trước.',
       primaryCta: 'Xem luồng sản phẩm',
       secondaryCta: 'Lên đầu trang',
       chips: ['Import review Google Maps', 'Insight ưu tiên từ phàn nàn', 'Một dashboard cho từng nhà hàng'],
@@ -610,7 +610,7 @@ export const landingContent = {
         },
       ],
       bottomLeft:
-        'Trang giới thiệu Sentify. Phi?n b?n n?y tập trung vào import review, rút insight và một dashboard để ra quyết định nhanh hơn.',
+        'Trang giới thiệu Sentify. Phiên bản này tập trung vào import review, rút insight và một dashboard để ra quyết định nhanh hơn.',
       bottomRight: 'Ưu tiên sự rõ ràng, không dựng một nền tảng quá đà.',
     },
     ticker: [

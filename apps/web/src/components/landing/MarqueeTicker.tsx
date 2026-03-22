@@ -4,7 +4,19 @@ import { useLanguage } from '../../contexts/languageContext'
 const BASE_SCROLL_SPEED = 76
 const COMPACT_SCROLL_SPEED = 84
 
-export function MarqueeTicker({ compact = false }: { compact?: boolean }) {
+interface MarqueeTickerProps {
+  compact?: boolean
+  direction?: 'left' | 'right'
+  className?: string
+  itemClassName?: string
+}
+
+export function MarqueeTicker({
+  compact = false,
+  direction = 'left',
+  className = '',
+  itemClassName = '',
+}: MarqueeTickerProps) {
   const { copy } = useLanguage()
   const tickerRef = useRef<HTMLDivElement | null>(null)
   const trackRef = useRef<HTMLDivElement | null>(null)
@@ -80,6 +92,7 @@ export function MarqueeTicker({ compact = false }: { compact?: boolean }) {
   const marqueeStyle = {
     '--marquee-track-width': `${trackWidth}px`,
     '--marquee-duration': `${durationSeconds.toFixed(2)}s`,
+    animationDirection: direction === 'right' ? 'reverse' : 'normal',
   } as CSSProperties
 
   return (
@@ -87,7 +100,7 @@ export function MarqueeTicker({ compact = false }: { compact?: boolean }) {
       ref={tickerRef}
       className={`marquee-ticker overflow-hidden border-y border-border-light/70 bg-surface-ticker-light/90 dark:border-border-dark dark:bg-surface-ticker-dark/90 ${
         compact ? 'py-4' : 'py-5'
-      } ${isActive ? '' : 'marquee-paused'}`}
+      } ${isActive ? '' : 'marquee-paused'} ${className}`}
     >
       <div className="marquee-viewport">
         <div className="marquee-lane" style={marqueeStyle}>
@@ -101,7 +114,7 @@ export function MarqueeTicker({ compact = false }: { compact?: boolean }) {
               {tickerItems.map((item, index) => (
                 <div
                   key={`${copyIndex}-${item}-${index}`}
-                  className="inline-flex items-center gap-3 text-sm font-medium text-text-silver-light dark:text-text-silver-dark"
+                  className={`inline-flex items-center gap-3 text-sm font-medium text-text-silver-light dark:text-text-silver-dark ${itemClassName}`}
                 >
                   <span className="material-symbols-outlined text-base text-primary">
                     radio_button_checked
