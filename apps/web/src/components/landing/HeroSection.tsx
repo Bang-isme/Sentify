@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getLocaleWithFallback } from '../../content/localeFallback'
 import { useLanguage, type Language } from '../../contexts/languageContext'
-import { LANDING_CHIP_CLASS, LANDING_EYEBROW_CLASS } from './landingVisualSystem'
+import { LANDING_CHIP_CLASS } from './landingVisualSystem'
 
 interface HeroSectionProps {
   primaryLabel: string
@@ -15,11 +15,17 @@ interface HeroVisualCopy {
   searchPlaceholder: string
   searchActionLabel: string
   helperNote: string
+  examplePrompt: string
+  exampleLinkLabel: string
+  supportedSourcesLabel: string
+  supportedSources: string[]
+  scanningLabel: string
   dashboardLabel: string
   totalReviewsLabel: string
   averageRatingLabel: string
   liveSnapshotLabel: string
   chartTitle: string
+  chartAxisLabels: string[]
   reviewCardTitle: string
   reviewCardTime: string
   reviewCardQuote: string
@@ -40,11 +46,17 @@ const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
     searchPlaceholder: 'Paste your Google Maps URL...',
     searchActionLabel: 'Open the restaurant review workflow',
     helperNote: 'Start with one restaurant. Add the Google Maps URL after creating your account.',
+    examplePrompt: 'Try a sample source:',
+    exampleLinkLabel: 'Bep Co Mai',
+    supportedSourcesLabel: 'Review sources already used by teams',
+    supportedSources: ['Google Maps', 'Facebook', 'ShopeeFood', 'Grab', 'TikTok'],
+    scanningLabel: 'Scanning review patterns...',
     dashboardLabel: 'Restaurant dashboard',
     totalReviewsLabel: 'Total reviews',
     averageRatingLabel: 'Avg rating',
     liveSnapshotLabel: 'Live review snapshot',
     chartTitle: 'Sentiment over time',
+    chartAxisLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
     reviewCardTitle: 'Guest signal',
     reviewCardTime: '2 min',
     reviewCardQuote: 'Guests keep mentioning faster service after the menu update.',
@@ -67,11 +79,17 @@ const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
     searchPlaceholder: 'Dán link Google Maps của nhà hàng...',
     searchActionLabel: 'Mở luồng phân tích review nhà hàng',
     helperNote: 'Bắt đầu với một nhà hàng. Thêm link Google Maps sau khi tạo tài khoản.',
+    examplePrompt: 'Thử với nguồn mẫu:',
+    exampleLinkLabel: 'Bếp Cô Mai',
+    supportedSourcesLabel: 'Nguồn review đội ngũ đang dùng để theo dõi',
+    supportedSources: ['Google Maps', 'Facebook', 'ShopeeFood', 'Grab', 'TikTok'],
+    scanningLabel: 'Đang quét tín hiệu review...',
     dashboardLabel: 'Dashboard nhà hàng',
     totalReviewsLabel: 'Tổng review',
     averageRatingLabel: 'Điểm trung bình',
     liveSnapshotLabel: 'Ảnh chụp review realtime',
     chartTitle: 'Sentiment theo thời gian',
+    chartAxisLabels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
     reviewCardTitle: 'Tín hiệu review',
     reviewCardTime: '2 phút',
     reviewCardQuote: 'Khách bắt đầu nhắc nhiều hơn về dịch vụ nhanh và ổn định.',
@@ -90,15 +108,21 @@ const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
     quoteSource: 'Review từ Google Maps',
   },
   ja: {
-    eyebrow: 'レストランレビューの整理',
+    eyebrow: 'レストランレビュー分析',
     searchPlaceholder: 'Google MapsのURLを貼り付け...',
     searchActionLabel: 'レビュー分析を開く',
     helperNote: 'まずは1店舗から始めます。アカウント作成後にGoogle MapsのURLを追加してください。',
+    examplePrompt: 'サンプルで試す:',
+    exampleLinkLabel: 'ベップ・コー・マイ',
+    supportedSourcesLabel: 'チームが確認に使うレビューソース',
+    supportedSources: ['Google Maps', 'Facebook', 'ShopeeFood', 'Grab', 'TikTok'],
+    scanningLabel: 'レビューの傾向を確認中...',
     dashboardLabel: 'レストランダッシュボード',
     totalReviewsLabel: 'レビュー総数',
     averageRatingLabel: '平均評価',
     liveSnapshotLabel: 'リアルタイムレビュー',
     chartTitle: '感情の推移',
+    chartAxisLabels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月'],
     reviewCardTitle: 'レビューシグナル',
     reviewCardTime: '2分前',
     reviewCardQuote: '直近の変更後、サービスに関する前向きな言及が増えています。',
@@ -118,9 +142,9 @@ const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
   },
 }
 
-const HERO_FEATURE_ICONS = ['travel_explore', 'insights', 'monitoring'] as const
 const HERO_CHART_HEIGHTS = [32, 58, 44, 76, 56, 84, 64] as const
 const HERO_REVIEW_IMAGE = '/images/Review.png'
+const HERO_EXAMPLE_URL = 'https://maps.google.com/?cid=sentify-demo-bep-co-mai'
 
 function HeroStatCard({
   value,
@@ -139,7 +163,7 @@ function HeroStatCard({
         opacity: 0,
       }}
     >
-      <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#b7a08a] dark:text-[#af9273] md:text-[13px]">{label}</p>
+      <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#9f8772] dark:text-[#b89b7d] md:text-[13px]">{label}</p>
       <p className="mt-2 text-[2.6rem] font-black leading-none text-[#201611] dark:text-[#fff7ef] md:text-[2.95rem]">{value}</p>
     </div>
   )
@@ -175,7 +199,7 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
   const pulseItems = ui.pulseItems
 
   return (
-    <div className="relative mx-auto w-full max-w-[54rem] px-2 py-6 md:px-5 md:py-8">
+    <div className="relative mx-auto w-full max-w-[53.5rem] px-1 py-4 md:px-3 md:py-5 lg:ml-auto lg:mr-0 lg:translate-x-8 xl:translate-x-10">
       <div className="pointer-events-none absolute inset-x-8 top-6 h-[31rem] rounded-[3.4rem] bg-[radial-gradient(circle,rgba(235,122,28,0.2)_0%,rgba(235,122,28,0.06)_40%,transparent_72%)] blur-[38px]" />
       <div className="pointer-events-none absolute inset-x-16 top-14 hidden h-[26rem] rounded-[3rem] border border-[#f5dcc0]/60 md:block" />
       <span className="pointer-events-none absolute left-4 top-16 hidden text-[2rem] font-light text-[#eb7a1c]/24 animate-float-slow md:block">
@@ -185,9 +209,9 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
         +
       </span>
 
-      <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start">
+      <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_14.75rem] lg:items-start">
         <section className="space-y-4">
-          <div className="animate-dashboard-panel relative overflow-hidden rounded-[2.8rem] border border-white/80 bg-[rgba(255,252,247,0.88)] p-6 shadow-[0_42px_96px_-46px_rgba(53,30,11,0.3)] backdrop-blur-xl dark:border-[#463224] dark:bg-[rgba(22,15,11,0.9)] dark:shadow-[0_46px_100px_-44px_rgba(0,0,0,0.72)] md:p-7">
+          <div className="animate-dashboard-panel relative overflow-hidden rounded-[2.55rem] border border-white/80 bg-[rgba(255,252,247,0.88)] p-5 shadow-[0_38px_90px_-48px_rgba(53,30,11,0.28)] backdrop-blur-xl dark:border-[#463224] dark:bg-[rgba(22,15,11,0.9)] dark:shadow-[0_42px_96px_-46px_rgba(0,0,0,0.68)] md:p-6">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <span
@@ -203,56 +227,69 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
                   style={{ animationDelay: '360ms' }}
                 />
               </div>
-              <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[#c4ae96] dark:text-[#b39576] md:text-[13px]">
+              <p className="whitespace-nowrap text-[12px] font-bold uppercase tracking-[0.16em] text-[#aa927d] dark:text-[#c3a589] md:text-[13px]">
                 {ui.dashboardLabel}
               </p>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-5 grid gap-3.5 md:grid-cols-2">
               <HeroStatCard value="1,240" label={ui.totalReviewsLabel} delayMs={160} />
               <HeroStatCard value="4.8" label={ui.averageRatingLabel} delayMs={240} />
             </div>
 
             <div
-              className="animate-fade-in-up relative mt-7 overflow-hidden rounded-[2.25rem] border border-[#f4e7d8] bg-white/82 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)] dark:border-[#3f2d20] dark:bg-[#16100c]/82 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+              className="animate-fade-in-up relative mt-6 overflow-hidden rounded-[2.05rem] border border-[#f4e7d8] bg-white/82 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)] dark:border-[#3f2d20] dark:bg-[#16100c]/82 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
               style={{ animationDelay: '300ms', opacity: 0 }}
             >
               <span
                 aria-hidden
                 className="animate-dashboard-sheen pointer-events-none absolute inset-y-10 left-[-34%] w-[34%] rotate-[12deg] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.42),transparent)] blur-xl"
               />
-              <div className="mb-6 flex items-center justify-between gap-4">
-                <p className="text-lg font-bold text-[#3e3024] dark:text-[#fff3e4]">{ui.chartTitle}</p>
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <p className="text-[1.02rem] font-bold text-[#3e3024] dark:text-[#fff3e4] md:text-[1.08rem]">{ui.chartTitle}</p>
                 <span className="animate-dashboard-pill rounded-xl bg-[#fff1df] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:text-[13px]">
                   +12 %
                 </span>
               </div>
 
-              <div className="animate-dashboard-chart flex h-[15rem] items-end gap-2 rounded-[1.8rem] bg-[#fff8f1] px-4 pb-5 pt-6 dark:bg-[#21160f] md:h-[16rem]">
-                {HERO_CHART_HEIGHTS.map((height, index) => (
-                  <div key={`${height}-${index}`} className="flex-1 self-end" style={{ height: `${height}%` }}>
-                    <div
-                      className="animate-dashboard-bar-rise h-full"
-                      style={{ animationDelay: `${360 + index * 90}ms`, opacity: 0 }}
-                    >
+              <div className="rounded-[1.65rem] bg-[#fff8f1] px-4 pb-3 pt-5 dark:bg-[#21160f]">
+                <div className="animate-dashboard-chart flex h-[11rem] items-end gap-2 md:h-[11.6rem]">
+                  {HERO_CHART_HEIGHTS.map((height, index) => (
+                    <div key={`${height}-${index}`} className="flex flex-1 self-end" style={{ height: `${height}%` }}>
                       <div
-                        className={`animate-dashboard-bar-loop h-full rounded-full ${
-                          index === 3 || index === HERO_CHART_HEIGHTS.length - 2
-                            ? 'bg-[#e87a20]'
-                            : 'bg-[#f28d2b]'
-                        }`}
-                        style={{ animationDelay: `${1180 + index * 120}ms` }}
-                      />
+                        className="animate-dashboard-bar-rise h-full w-full"
+                        style={{ animationDelay: `${360 + index * 90}ms`, opacity: 0 }}
+                      >
+                        <div
+                          className={`animate-dashboard-bar-loop h-full rounded-full ${
+                            index === 3 || index === HERO_CHART_HEIGHTS.length - 2
+                              ? 'bg-[#e87a20]'
+                              : 'bg-[#f28d2b]'
+                          }`}
+                          style={{ animationDelay: `${1180 + index * 120}ms` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                <div className="mt-3.5 flex gap-2">
+                  {ui.chartAxisLabels.map((label) => (
+                    <span
+                      key={label}
+                      className="flex-1 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#9a8069] dark:text-[#bea183] md:text-[12px]"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2.5">
+              <div className="mt-4 flex flex-wrap gap-2.5">
                 {ui.sourcePills.map((pill, index) => (
                   <span
                     key={pill}
-                    className="rounded-full border border-[#f0dcc4] bg-white px-4 py-2.5 text-[12px] font-semibold text-[#8b7259] shadow-[0_10px_18px_-16px_rgba(53,30,11,0.18)] dark:border-[#493525] dark:bg-[#20160f] dark:text-[#dec8af] dark:shadow-[0_14px_28px_-18px_rgba(0,0,0,0.45)] md:text-[13px]"
+                    className="whitespace-nowrap rounded-full border border-[#ecd4b8] bg-white px-4 py-2.5 text-[12px] font-semibold text-[#7b6652] shadow-[0_10px_18px_-16px_rgba(53,30,11,0.18)] dark:border-[#493525] dark:bg-[#20160f] dark:text-[#e0cab2] dark:shadow-[0_14px_28px_-18px_rgba(0,0,0,0.45)] md:text-[13px]"
                     style={{
                       animation: `fade-in-up 0.8s ease-out ${780 + index * 80}ms forwards, dashboard-chip-drift 4.8s ease-in-out ${1460 + index * 180}ms infinite`,
                       opacity: 0,
@@ -266,8 +303,8 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
           </div>
 
           <div className="pt-1">
-            <div className="animate-hero-card-b w-full rounded-[1.9rem] border border-[#f1e2d2] bg-white/96 p-5 shadow-[0_28px_60px_-32px_rgba(53,30,11,0.22)] backdrop-blur dark:border-[#483425] dark:bg-[#1a130f]/95 dark:shadow-[0_28px_60px_-28px_rgba(0,0,0,0.58)] md:p-6">
-              <p className="max-w-[34rem] text-[14px] italic leading-7 text-[#8e7761] dark:text-[#d1b79a] md:text-[15px]">
+            <div className="animate-hero-card-b min-h-[7.7rem] w-full rounded-[1.75rem] border border-[#f1e2d2] bg-white/96 p-4 shadow-[0_24px_54px_-34px_rgba(53,30,11,0.2)] backdrop-blur dark:border-[#483425] dark:bg-[#1a130f]/95 dark:shadow-[0_26px_56px_-30px_rgba(0,0,0,0.54)] md:p-5">
+              <p className="max-w-[34rem] text-[14px] italic leading-7 text-[#7f6956] dark:text-[#d7bea2] md:text-[15px]">
                 "{ui.reviewCardQuote}"
               </p>
               <div className="mt-4 flex items-center gap-2 text-[12px] font-bold text-[#eb7a1c] md:text-[13px]">
@@ -279,7 +316,7 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
         </section>
 
         <aside className="grid gap-4">
-          <div className="animate-hero-card-a rounded-[2rem] border border-white/85 bg-white/95 p-4 shadow-[0_28px_62px_-34px_rgba(53,30,11,0.24)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_30px_64px_-30px_rgba(0,0,0,0.62)]">
+          <div className="animate-hero-card-a rounded-[1.8rem] border border-white/85 bg-white/95 p-3.5 shadow-[0_24px_56px_-34px_rgba(53,30,11,0.22)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_28px_60px_-32px_rgba(0,0,0,0.58)]">
             <div className="relative overflow-hidden rounded-[1.5rem] border border-[#f6e8d7] bg-[radial-gradient(circle_at_24%_18%,#fffaf0_0%,#f8ecde_60%,#f0e2cf_100%)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-[#413023] dark:bg-[radial-gradient(circle_at_24%_18%,#322117_0%,#21150f_62%,#170f0b_100%)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="pointer-events-none absolute inset-x-6 top-1 h-16 rounded-full bg-[rgba(255,255,255,0.34)] blur-2xl" />
               <img
@@ -291,7 +328,7 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
               />
             </div>
 
-            <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="mt-3.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-0 text-[#f28d2b]">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <span key={star} className="material-symbols-outlined text-[17px] leading-none">
@@ -303,17 +340,19 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
             </div>
           </div>
 
-          <div className="animate-hero-card-c rounded-[2rem] border border-white/85 bg-white/94 p-5 shadow-[0_26px_58px_-30px_rgba(53,30,11,0.2)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_26px_58px_-28px_rgba(0,0,0,0.58)]">
+          <div className="animate-hero-card-c rounded-[1.8rem] border border-white/85 bg-white/94 p-4.5 shadow-[0_24px_54px_-32px_rgba(53,30,11,0.18)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_24px_56px_-30px_rgba(0,0,0,0.54)]">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#b08b67] dark:text-[#b99d7f] md:text-[13px]">{ui.signalLabel}</span>
+              <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#9f7d5c] dark:text-[#c1a184] md:text-[13px]">{ui.signalLabel}</span>
               <span className="inline-flex min-w-[5.75rem] items-center justify-center rounded-full bg-[#fff1df] px-3 py-1.5 text-center text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:min-w-[6rem] md:text-[13px]">
                 {ui.reviewCardTime}
               </span>
             </div>
 
-            <p className="mt-5 text-lg font-bold leading-7 text-[#201611] dark:text-[#fff6ec]">{ui.reviewCardTitle}</p>
+            <p className="mt-4 min-h-[3rem] text-[1.02rem] font-bold leading-6 text-[#201611] dark:text-[#fff6ec] md:text-[1.08rem]">
+              {ui.reviewCardTitle}
+            </p>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-5 space-y-4">
               <div>
                 <div className="mb-1.5 flex justify-end">
                   <span className="text-[12px] font-bold text-[#d96f1d] md:text-[13px]">86%</span>
@@ -336,24 +375,26 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
             </div>
           </div>
 
-          <div className="animate-hero-card-d rounded-[2rem] border border-white/85 bg-white/94 p-5 shadow-[0_26px_58px_-30px_rgba(53,30,11,0.2)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_26px_58px_-28px_rgba(0,0,0,0.58)]">
+          <div className="animate-hero-card-d rounded-[1.8rem] border border-white/85 bg-white/94 p-4.5 shadow-[0_24px_54px_-32px_rgba(53,30,11,0.18)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_24px_56px_-30px_rgba(0,0,0,0.54)]">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="animate-dashboard-live-dot size-2 rounded-full bg-[#34c97a]" />
-                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#b08b67] dark:text-[#b99d7f] md:text-[13px]">{ui.pulseTitle}</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#9f7d5c] dark:text-[#c1a184] md:text-[13px]">{ui.pulseTitle}</p>
               </div>
               <span className="inline-flex min-w-[4.35rem] items-center justify-center rounded-md bg-[#fff3e6] px-3 py-1.5 text-center text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:min-w-[4.5rem] md:text-[13px]">
                 {ui.liveLabel}
               </span>
             </div>
 
-            <p className="mt-5 text-[15px] font-bold leading-6 text-[#201611] dark:text-[#fff6ec]">{ui.pulseSubtitle}</p>
+            <p className="mt-4 min-h-[2.75rem] text-[14px] font-bold leading-6 text-[#201611] dark:text-[#fff6ec] md:text-[15px]">
+              {ui.pulseSubtitle}
+            </p>
 
-            <div className="mt-6 space-y-5">
+            <div className="mt-5 space-y-4.5">
               {pulseItems.map((item) => (
                 <div key={item.label} className="animate-dashboard-mini-row" style={{ animationDelay: item.delay }}>
                   <div className="mb-2 flex items-center justify-between gap-3 text-[12px] font-bold md:text-[13px]">
-                    <span className="text-[#6e5640] dark:text-[#d5bfa4]">{item.label}</span>
+                    <span className="whitespace-nowrap text-[#5f4b3b] dark:text-[#dcc7ae]">{item.label}</span>
                     <span className="text-[#d96f1d]">{item.value}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-[#f8ebdc] dark:bg-[#312218]">
@@ -366,10 +407,10 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
               ))}
             </div>
 
-            <div className="mt-7 flex items-center justify-center gap-2 text-[12px] font-bold uppercase tracking-[0.12em] text-[#a88d71] dark:text-[#bfa587] md:text-[13px]">
-              <span className="h-px w-5 bg-[#e6d3bf] dark:bg-[#4c3727]" />
-              <span>{ui.pulseFooter}</span>
-              <span className="h-px w-5 bg-[#e6d3bf] dark:bg-[#4c3727]" />
+            <div className="mt-7 flex items-center justify-center gap-2 text-[12px] font-bold uppercase tracking-[0.12em] text-[#917760] dark:text-[#c3aa8f] md:text-[13px]">
+              <span className="h-px w-5 shrink-0 bg-[#e6d3bf] dark:bg-[#4c3727]" />
+              <span className="text-center leading-[1.15]">{ui.pulseFooter}</span>
+              <span className="h-px w-5 shrink-0 bg-[#e6d3bf] dark:bg-[#4c3727]" />
             </div>
           </div>
         </aside>
@@ -386,10 +427,43 @@ export function HeroSection({
 }: HeroSectionProps) {
   const { copy, language } = useLanguage()
   const [draftQuery, setDraftQuery] = useState('')
+  const [isScanning, setIsScanning] = useState(false)
+  const [scanProgress, setScanProgress] = useState(0)
   const ui = getLocaleWithFallback(HERO_VISUAL_COPY, language)
-  const isVietnameseBrandLead = language === 'vi' && copy.hero.titleLine1.trim() === copy.header.brand
-  const isEnglishHero = language === 'en'
+  const isBrandLeadHero = copy.hero.titleLine1.trim() === copy.header.brand
   const secondaryLine = copy.hero.titleLine2
+  const heroEyebrowClass =
+    'mt-3 block max-w-fit text-[10px] font-bold uppercase tracking-[0.22em] leading-[1.2] text-primary sm:mt-3.5 sm:text-[11px] sm:whitespace-nowrap xl:text-[12px]'
+  const heroAccentClass =
+    language === 'en'
+      ? 'mt-3 block max-w-fit font-serif text-[clamp(1.05rem,3vw,2.95rem)] italic leading-[0.95] text-[#e87a20] lg:whitespace-nowrap'
+      : language === 'ja'
+        ? 'mt-3 block max-w-fit font-serif text-[clamp(1.1rem,2.9vw,2.8rem)] italic leading-[1] text-[#e87a20] lg:whitespace-nowrap'
+        : 'mt-3 block max-w-fit font-serif text-[clamp(1.05rem,3.05vw,3rem)] italic leading-[0.98] text-[#e87a20] lg:whitespace-nowrap'
+
+  useEffect(() => {
+    if (!isScanning) return
+
+    const intervalId = window.setInterval(() => {
+      setScanProgress((current) => Math.min(current + (current < 70 ? 13 : 7), 92))
+    }, 180)
+
+    const timeoutId = window.setTimeout(() => {
+      window.clearInterval(intervalId)
+      setScanProgress(100)
+
+      window.setTimeout(() => {
+        onPrimaryAction()
+        setIsScanning(false)
+        setScanProgress(0)
+      }, 160)
+    }, 1600)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.clearTimeout(timeoutId)
+    }
+  }, [isScanning, onPrimaryAction])
 
   return (
     <section
@@ -423,51 +497,48 @@ export function HeroSection({
         />
       </div>
 
-      <div className="relative mx-auto flex min-h-[100svh] max-w-[1680px] items-center px-3 pb-8 pt-20 md:px-6 md:pb-10 lg:px-6 lg:pb-12 lg:pt-28">
-        <div className="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] xl:gap-10">
-          <div className="relative z-10 max-w-[40rem] lg:pr-1">
-            <div>
-              {isVietnameseBrandLead ? (
-                <h1 className="mt-4">
+      <div className="relative mx-auto flex min-h-[100svh] max-w-[1680px] items-center px-4 pb-8 pt-20 md:px-8 md:pb-10 lg:px-10 lg:pb-12 lg:pt-28 xl:px-14">
+        <div className="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:gap-14 xl:gap-16">
+          <div className="relative z-10 max-w-[41rem] space-y-5 md:space-y-6 lg:space-y-7 lg:-translate-x-8 lg:pr-8 xl:-translate-x-10">
+            <div className="space-y-7 md:space-y-8">
+              {isBrandLeadHero ? (
+                <h1 className="mt-5">
                   <span className="block font-display text-[clamp(4.9rem,10vw,7.8rem)] font-black leading-[0.86] tracking-[-0.085em] text-[#201611] dark:text-white">
                     {copy.hero.titleLine1}
                   </span>
-                  <span className={`mt-4 block ${LANDING_EYEBROW_CLASS}`}>
+                  <span className={heroEyebrowClass}>
                     {ui.eyebrow}
                   </span>
-                  <span className="mt-5 block max-w-fit whitespace-nowrap font-serif text-[clamp(1.05rem,3.2vw,3.1rem)] italic leading-none text-[#e87a20]">
+                  <span className={heroAccentClass}>
                     {secondaryLine}
                   </span>
                 </h1>
               ) : (
-                <h1 className="mt-4 font-display text-[clamp(4rem,8vw,6.8rem)] font-black leading-[0.88] tracking-[-0.065em] text-[#201611] dark:text-white">
+                <h1 className="mt-5 font-display text-[clamp(4rem,8vw,6.8rem)] font-black leading-[0.88] tracking-[-0.065em] text-[#201611] dark:text-white">
                   <span className="block">{copy.hero.titleLine1}</span>
-                  <span className={`mt-4 block ${LANDING_EYEBROW_CLASS}`}>
+                  <span className={heroEyebrowClass}>
                     {ui.eyebrow}
                   </span>
-                  <span
-                    className={`mt-4 block font-serif font-normal italic text-[#e87a20] ${
-                      isEnglishHero
-                        ? 'max-w-[8.6ch] text-[0.67em] leading-[0.92] sm:max-w-[10.5ch] lg:max-w-[11.5ch]'
-                        : 'max-w-fit whitespace-nowrap text-[0.78em]'
-                    }`}
-                  >
+                  <span className={heroAccentClass}>
                     {secondaryLine}
                   </span>
                 </h1>
               )}
 
-              <p className="mt-8 max-w-[38rem] text-base leading-8 text-[#715945] md:text-lg dark:text-[#ccb79b]">
+              <p className="max-w-[36rem] text-balance text-base leading-[2.08rem] text-[#665244] md:text-lg md:leading-[2.2rem] dark:text-[#d2bda1]">
                 {copy.hero.description}
               </p>
+
             </div>
 
-            <div className="mt-10 max-w-[38rem] rounded-[2rem] border border-[#efdcc8] bg-white/78 p-2 shadow-[0_28px_60px_-38px_rgba(53,30,11,0.24)] backdrop-blur dark:border-white/10 dark:bg-white/7">
+            <div className="max-w-[39rem] rounded-[2rem] border border-[#e6d1bb] bg-white/78 p-3 shadow-[0_28px_60px_-38px_rgba(53,30,11,0.24)] backdrop-blur dark:border-white/10 dark:bg-white/7">
               <form
                 className="flex flex-col gap-3 sm:flex-row"
                 onSubmit={(event) => {
                   event.preventDefault()
-                  onPrimaryAction()
+                  if (isScanning) return
+                  setScanProgress(18)
+                  setIsScanning(true)
                 }}
               >
                 <label className="relative min-w-0 flex-1">
@@ -477,7 +548,8 @@ export function HeroSection({
                     value={draftQuery}
                     onChange={(event) => setDraftQuery(event.target.value)}
                     placeholder={ui.searchPlaceholder}
-                    className="w-full rounded-[1.45rem] border border-transparent bg-white px-5 py-4 pl-12 text-base text-[#201611] shadow-[inset_0_0_0_1px_rgba(138,106,74,0.12)] outline-none transition placeholder:text-[#8a6a4a]/75 focus:shadow-[inset_0_0_0_1px_rgba(232,122,32,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:bg-white/8 dark:text-white dark:placeholder:text-white/38"
+                    disabled={isScanning}
+                    className="w-full rounded-[1.45rem] border border-[#ddc2a6] bg-[#fffdfa] px-5 py-4 pl-12 text-[15px] text-[#201611] shadow-[inset_0_0_0_1px_rgba(138,106,74,0.18)] outline-none transition placeholder:text-[#7d654f]/82 hover:border-[#d5b48e] focus:border-[#e87a20] focus:shadow-[inset_0_0_0_1px_rgba(232,122,32,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/12 dark:bg-white/8 dark:text-white dark:placeholder:text-white/42 md:text-base"
                   />
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8a6a4a] dark:text-[#ccb79b]">
                     <span className="material-symbols-outlined text-[20px]">search</span>
@@ -487,60 +559,68 @@ export function HeroSection({
                 <button
                   type="submit"
                   aria-label={ui.searchActionLabel}
-                  className="inline-flex h-[3.6rem] w-full items-center justify-center gap-2 rounded-[1.45rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-6 text-base font-bold text-white shadow-[0_20px_36px_-20px_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_40px_-18px_rgba(217,95,22,0.85)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
+                  disabled={isScanning}
+                  className="inline-flex h-[3.6rem] w-full items-center justify-center gap-2 rounded-[1.45rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-6 text-base font-bold text-white shadow-[0_20px_36px_-20px_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_40px_-18px_rgba(217,95,22,0.85)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-w-[11.5rem] sm:w-auto"
                 >
-                  <span>{primaryLabel}</span>
+                  <span>{isScanning ? ui.scanningLabel : primaryLabel}</span>
                   <span className="material-symbols-outlined text-[18px]">arrow_outward</span>
                 </button>
               </form>
+
+              <div
+                className={`overflow-hidden transition-all duration-300 ${isScanning ? 'mt-3 max-h-10 opacity-100' : 'mt-0 max-h-0 opacity-0'}`}
+              >
+                <div className="rounded-full bg-[#f5e6d4]/90 p-1 dark:bg-white/8">
+                  <div
+                    className="h-1.5 rounded-full bg-[linear-gradient(90deg,#f2b24d_0%,#eb7a1c_100%)] transition-[width] duration-200 ease-out"
+                    style={{ width: `${scanProgress}%` }}
+                  />
+                </div>
+              </div>
             </div>
 
-            <p className="mt-3 max-w-[38rem] text-[14px] leading-6 text-[#8a6a4a] dark:text-[#c8b092]">
-              {ui.helperNote}
-            </p>
-
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-[#836856] dark:text-[#d5bfa4] md:text-[14px]">
+              <span>{ui.examplePrompt}</span>
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center rounded-full border border-[#ead4bd] bg-white/72 px-5 text-sm font-semibold text-[#201611] shadow-[0_14px_28px_-22px_rgba(53,30,11,0.18)] transition hover:border-[#eb7a1c]/40 hover:text-[#c65f17] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-white/7 dark:text-white"
+                className="inline-flex items-center gap-1 rounded-full border border-[#e7d4c2] bg-white/72 px-3 py-1.5 text-[#b55a19] transition hover:border-[#dfb992] hover:bg-white dark:border-white/10 dark:bg-white/6 dark:text-[#f0b37a] dark:hover:bg-white/10"
+                onClick={() => setDraftQuery(HERO_EXAMPLE_URL)}
+              >
+                <span className="material-symbols-outlined text-[15px]">link</span>
+                <span>{ui.exampleLinkLabel}</span>
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 md:gap-[1.15rem]">
+              <button
+                type="button"
+                className="inline-flex h-11 min-w-[10.5rem] items-center justify-center rounded-full border border-[#ead4bd] bg-white/72 px-5 text-sm font-semibold text-[#201611] shadow-[0_14px_28px_-22px_rgba(53,30,11,0.18)] transition hover:border-[#eb7a1c]/40 hover:text-[#c65f17] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-white/7 dark:text-white"
                 onClick={onSecondaryAction}
               >
                 {secondaryLabel}
               </button>
-              <span className={`${LANDING_CHIP_CLASS} inline-flex items-center gap-2 bg-[#fff1df] text-[12px] font-semibold uppercase tracking-[0.14em] text-[#bf6519] dark:bg-white/7 dark:text-[#f3c47f] md:text-[13px]`}>
+              <span className={`${LANDING_CHIP_CLASS} inline-flex h-11 items-center gap-2 bg-[#fff1df] text-[12px] font-semibold uppercase tracking-[0.14em] text-[#bf6519] dark:bg-white/7 dark:text-[#f3c47f] md:text-[13px]`}>
                 <span className="size-2 rounded-full bg-[#eb7a1c]" />
-                <span>{ui.liveSnapshotLabel}</span>
+                <span className="whitespace-nowrap">{ui.liveSnapshotLabel}</span>
               </span>
             </div>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
-              {copy.hero.highlights.map((item, index) => (
-                <article
-                  key={item}
-                  className={`border p-5 transition hover:-translate-y-1 ${
-                    index === 1
-                      ? 'rounded-[1.35rem] border-[#f0d5b7] bg-[linear-gradient(160deg,rgba(255,243,224,0.95),rgba(255,232,204,0.9))] shadow-[0_18px_40px_-28px_rgba(53,30,11,0.16)]'
-                      : 'rounded-[1.35rem] border-[#f0ddc7] bg-[rgba(255,252,247,0.84)] shadow-[0_18px_40px_-28px_rgba(53,30,11,0.14)]'
-                  } dark:border-white/10 dark:bg-white/7`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#fff1df] text-[#d96f1d]">
-                      <span className="material-symbols-outlined text-[18px]">
-                        {HERO_FEATURE_ICONS[index] ?? 'insights'}
-                      </span>
-                    </span>
-                    <div>
-                      <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#bf6519] md:text-[13px]">
-                        {String(index + 1).padStart(2, '0')}
-                      </p>
-                      <p className="mt-2 text-base font-semibold leading-7 text-[#201611] dark:text-white">
-                        {item}
-                      </p>
-                    </div>
-                  </div>
-                </article>
-              ))}
+            <div className="flex flex-wrap items-center gap-3.5 rounded-[1.15rem] border border-[#ebdac8]/80 bg-white/58 px-4 py-3 backdrop-blur-sm dark:border-white/10 dark:bg-white/6">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#866b58] dark:text-[#cdb69a] md:text-[13px]">
+                {ui.supportedSourcesLabel}
+              </span>
+              <div className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+                {ui.supportedSources.map((source) => (
+                  <span
+                    key={source}
+                    className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-[#ead8c5] bg-white/82 px-3 py-1.5 text-center text-[12px] font-semibold text-[#6a5647] shadow-[0_10px_18px_-18px_rgba(53,30,11,0.14)] dark:border-white/10 dark:bg-white/5 dark:text-[#dec6ac] md:text-[13px]"
+                  >
+                    {source}
+                  </span>
+                ))}
+              </div>
             </div>
+
           </div>
 
           <div className="relative lg:pl-0">

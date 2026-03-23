@@ -24,7 +24,7 @@ export function CTASection({
   const { ref, revealClass, revealStyle } = useScrollReveal()
 
   return (
-    <section className="content-visibility-auto relative overflow-hidden bg-transparent py-24 md:py-28">
+    <section className="content-visibility-auto relative overflow-hidden bg-transparent py-28 md:py-32">
       <div aria-hidden className="absolute inset-0">
         <div className="absolute inset-0 dark:bg-[linear-gradient(180deg,rgba(18,12,8,0.82)_0%,rgba(15,10,7,0.9)_100%)]" />
         <div className="absolute inset-0 dark:bg-[linear-gradient(rgba(255,228,202,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,228,202,0.04)_1px,transparent_1px)] [background-size:40px_40px]" />
@@ -46,7 +46,7 @@ export function CTASection({
         <div className={`flex flex-col items-center justify-center gap-4 sm:flex-row ${revealClass()}`} style={revealStyle(200)}>
           <button
             type="button"
-            className="inline-flex h-14 w-full items-center justify-center rounded-full bg-primary px-8 font-bold whitespace-nowrap text-white shadow-[0_10px_20px_rgba(212,175,55,0.3)] transition-colors hover:bg-primary-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[#1b120c] dark:shadow-[0_0_20px_rgba(242,208,13,0.3)] dark:hover:bg-yellow-400 sm:w-auto"
+            className="inline-flex h-16 w-full items-center justify-center rounded-full bg-primary px-10 text-[17px] font-bold whitespace-nowrap text-white shadow-[0_18px_34px_rgba(212,175,55,0.36)] transition-all hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-[0_22px_38px_rgba(212,175,55,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-[#1b120c] dark:shadow-[0_0_24px_rgba(242,208,13,0.34)] dark:hover:bg-yellow-400 sm:w-auto"
             onClick={onPrimaryAction}
           >
             {primaryLabel}

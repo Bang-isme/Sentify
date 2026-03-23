@@ -2,6 +2,8 @@ import { useLanguage } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
 import {
   LANDING_EYEBROW_CLASS,
+  LANDING_SECTION_HEADER_CLASS,
+  LANDING_SECTION_HEADER_MARGIN_CLASS,
   LANDING_PANEL_CLASS,
   LANDING_SECTION_ACCENT_CLASS,
   LANDING_SECTION_TITLE_CLASS,
@@ -57,17 +59,17 @@ export function WorkflowSection() {
       </div>
 
       <div className="relative mx-auto max-w-[1520px]">
-        <div className={`max-w-[64rem] ${revealClass()}`} style={revealStyle(0)}>
-          <p className={LANDING_EYEBROW_CLASS}>
+        <header className={`${LANDING_SECTION_HEADER_CLASS} ${LANDING_SECTION_HEADER_MARGIN_CLASS} ${revealClass()}`} style={revealStyle(0)}>
+          <span className={LANDING_EYEBROW_CLASS}>
             {copy.workflow.eyebrow}
-          </p>
-          <h2 className={LANDING_SECTION_TITLE_CLASS}>
-            <span className="block xl:whitespace-nowrap">{copy.workflow.titleLine1}</span>
-            <span className={`${LANDING_SECTION_ACCENT_CLASS} pl-5 sm:pl-7 xl:pl-14 xl:whitespace-nowrap`}>
+          </span>
+          <h2 className={`${LANDING_SECTION_TITLE_CLASS} max-w-[14ch]`}>
+            <span className="block">{copy.workflow.titleLine1}</span>
+            <span className={LANDING_SECTION_ACCENT_CLASS}>
               {copy.workflow.titleLine2}
             </span>
           </h2>
-        </div>
+        </header>
 
         <div
           ref={ref}

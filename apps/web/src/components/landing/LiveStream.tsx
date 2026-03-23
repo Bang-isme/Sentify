@@ -1,3 +1,4 @@
+import { getLocaleWithFallback } from '../../content/localeFallback'
 import { useLanguage, type Language } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
 import {
@@ -5,6 +6,8 @@ import {
   LANDING_PANEL_CLASS,
   LANDING_PANEL_SOFT_CLASS,
   LANDING_SECTION_ACCENT_CLASS,
+  LANDING_SECTION_HEADER_CLASS,
+  LANDING_SECTION_HEADER_MARGIN_CLASS,
   LANDING_SECTION_TITLE_CLASS,
 } from './landingVisualSystem'
 
@@ -43,39 +46,39 @@ const editorialCopy: Record<
     recommendationTitle: 'Strategic Advisory',
     recommendationLabels: ['Highest impact pattern', 'Secondary watchpoint'],
     quote:
-      '“A useful signal is not another dashboard layer. It is a clear indication of what the team should fix first, and what should be monitored next.”',
+      '"A useful signal is not another dashboard layer. It shows what the team should fix first, and what should be monitored next."',
     quoteAuthor: 'Sentify Framework',
     quoteRole: 'Operational signal layer',
   },
   vi: {
     titleLine1: 'Tín hiệu đáng',
-    titleLine2: 'được xử lý ngay.',
+    titleLine2: 'xử lý tiếp theo.',
     detailLabel: 'Chi tiết',
-    tileLabels: ['Điểm nghẽn', 'Chất lượng dịch vụ', 'Đóng gói', 'Đà phục hồi'],
+    tileLabels: ['Điểm nghẽn', 'Chất lượng', 'Đóng gói', 'Đà phục hồi'],
     tileTitles: ['Chờ lâu', 'Chất lượng phục vụ', 'Đóng gói', 'Đà cải thiện'],
-    tileNotes: ['Điểm nghẽn chính', 'Đã xác minh', 'Cần theo dõi', 'Tăng trở lại'],
-    recommendationEyebrow: 'Khuyến nghị từ nhóm',
+    tileNotes: ['Ưu tiên chính', 'Đã xác minh', 'Cần theo dõi', 'Tăng trở lại'],
+    recommendationEyebrow: 'Khuyến nghị của nhóm',
     recommendationTitle: 'Ưu tiên chiến lược',
-    recommendationLabels: ['Ưu tiên tác động lớn', 'Tín hiệu cần theo dõi tiếp'],
+    recommendationLabels: ['Ưu tiên chính', 'Theo dõi tiếp'],
     quote:
-      '“Tín hiệu tốt không phải là thêm biểu đồ. Tín hiệu tốt là chỉ ra rõ đội ngũ nên xử lý gì trước, rồi theo dõi xem nó có thực sự cải thiện hay không.”',
-    quoteAuthor: 'Khung vận hành Sentify',
+      '"Một tín hiệu tốt không phải là thêm dashboard. Nó phải chỉ ra điều gì nên sửa trước, rồi điều gì cần tiếp tục theo dõi."',
+    quoteAuthor: 'Khung Sentify',
     quoteRole: 'Lớp tín hiệu vận hành',
   },
   ja: {
-    titleLine1: 'Signals worth',
-    titleLine2: 'acting on next.',
-    detailLabel: 'Details',
-    tileLabels: ['Guest friction', 'Service quality', 'Packaging', 'Recovery trend'],
-    tileTitles: ['Wait Time', 'Service Quality', 'Packaging', 'Recovery Pace'],
-    tileNotes: ['Primary issue', 'Verified signal', 'Needs watching', 'Positive shift'],
-    recommendationEyebrow: "The team's recommendation",
-    recommendationTitle: 'Strategic Advisory',
-    recommendationLabels: ['Highest impact pattern', 'Secondary watchpoint'],
+    titleLine1: '次に見るべき',
+    titleLine2: 'シグナル。',
+    detailLabel: '詳細',
+    tileLabels: ['運営摩擦', '接客品質', '梱包', '回復傾向'],
+    tileTitles: ['待ち時間', '接客品質', '梱包', '回復ペース'],
+    tileNotes: ['最優先', '確認済み', '要注視', '改善傾向'],
+    recommendationEyebrow: 'チームの提案',
+    recommendationTitle: '優先アドバイス',
+    recommendationLabels: ['最優先の兆候', '次に見るポイント'],
     quote:
-      '“A useful signal is not another dashboard layer. It is a clear indication of what the team should fix first, and what should be monitored next.”',
+      '「役立つシグナルは、ダッシュボードを増やすことではありません。何を先に直し、次に何を見守るべきかを示すことです。」',
     quoteAuthor: 'Sentify Framework',
-    quoteRole: 'Operational signal layer',
+    quoteRole: '運用シグナルレイヤー',
   },
 }
 
@@ -95,7 +98,7 @@ function splitMetric(metric: string) {
 export function LiveStream() {
   const { copy, language } = useLanguage()
   const { ref, revealClass, revealStyle } = useScrollReveal()
-  const ui = editorialCopy[language]
+  const ui = getLocaleWithFallback(editorialCopy, language)
 
   const primarySignal = copy.signals.cards[0]
   const qualitySignal = copy.signals.cards[1]
@@ -158,29 +161,27 @@ export function LiveStream() {
   ] as const
 
   return (
-    <section id="signals" className="content-visibility-auto relative overflow-hidden bg-transparent py-24 lg:py-28">
+    <section id="signals" className="content-visibility-auto relative overflow-hidden bg-transparent py-28 lg:py-32">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-x-[8%] top-0 h-[26rem] rounded-full bg-[radial-gradient(circle,rgba(162,63,0,0)_0%,transparent_70%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(235,122,28,0.12)_0%,rgba(242,176,77,0.05)_38%,transparent_70%)]" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-[1600px] px-6 md:px-10">
         <div ref={ref}>
-          <header className={`mb-14 max-w-[52rem] ${revealClass()}`} style={revealStyle(0)}>
-            <div>
-              <span className={LANDING_EYEBROW_CLASS}>
-                {copy.signals.eyebrow}
-              </span>
-              <h2 className={LANDING_SECTION_TITLE_CLASS}>
-                <span className="block">{ui.titleLine1}</span>
-                <span className={LANDING_SECTION_ACCENT_CLASS}>{ui.titleLine2}</span>
-              </h2>
-            </div>
+          <header className={`${LANDING_SECTION_HEADER_CLASS} ${LANDING_SECTION_HEADER_MARGIN_CLASS} ${revealClass()}`} style={revealStyle(0)}>
+            <span className={LANDING_EYEBROW_CLASS}>
+              {copy.signals.eyebrow}
+            </span>
+            <h2 className={LANDING_SECTION_TITLE_CLASS}>
+              <span className="block">{ui.titleLine1}</span>
+              <span className={LANDING_SECTION_ACCENT_CLASS}>{ui.titleLine2}</span>
+            </h2>
           </header>
 
           <div className={`grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 ${revealClass()}`} style={revealStyle(120)}>
             {signalTiles.map((tile) => (
               <article key={tile.title} className="group">
-                <div className="relative h-[29rem] overflow-hidden rounded-[1.3rem] bg-[#1b1511] shadow-[0_20px_48px_rgba(44,23,10,0.08)]">
+                <div className="relative h-[29rem] overflow-hidden rounded-[1.3rem] bg-[#1b1511] shadow-[0_22px_52px_rgba(68,34,11,0.1)]">
                   <img
                     src={tile.imageSrc}
                     alt={tile.imageAlt}
@@ -188,7 +189,7 @@ export function LiveStream() {
                     decoding="async"
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,12,9,0.12)_0%,rgba(17,12,9,0.28)_36%,rgba(17,12,9,0.92)_100%)]" />
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,12,9,0.08)_0%,rgba(17,12,9,0.24)_30%,rgba(17,12,9,0.68)_62%,rgba(17,12,9,0.96)_100%)]" />
 
                   <div className="absolute inset-x-5 top-5 flex items-center justify-between">
                     <span className="inline-flex items-center gap-2 rounded-full bg-[rgba(243,160,77,0.14)] px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#f1b172] backdrop-blur-sm">
@@ -207,11 +208,11 @@ export function LiveStream() {
                         <span className="pb-2 text-[1.15rem] font-medium text-[#efe0d5]">{tile.metric.suffix}</span>
                       ) : null}
                     </div>
-                    <p className="mt-2 text-[14px] font-medium text-[#e9d9cc]/82">{tile.note}</p>
+                    <p className="mt-2 text-[14px] font-medium text-[#f1e4d7]/92">{tile.note}</p>
 
                     <button
                       type="button"
-                      className="mt-5 inline-flex rounded-[0.8rem] bg-white/10 px-4 py-2 text-[13px] font-semibold text-white backdrop-blur-sm ring-1 ring-white/16 transition-colors hover:bg-white/16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                      className="mt-5 inline-flex min-w-[6.25rem] justify-center rounded-[0.8rem] bg-white/10 px-4 py-2 text-[13px] font-semibold text-white backdrop-blur-sm ring-1 ring-white/16 transition-colors hover:bg-white/16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                     >
                       {ui.detailLabel}
                     </button>

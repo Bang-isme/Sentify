@@ -1,9 +1,12 @@
+import { getLocaleWithFallback } from '../../content/localeFallback'
 import { useLanguage, type Language } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
 import {
   LANDING_EYEBROW_CLASS,
   LANDING_PANEL_CLASS,
   LANDING_SECTION_ACCENT_CLASS,
+  LANDING_SECTION_HEADER_CLASS,
+  LANDING_SECTION_HEADER_MARGIN_CLASS,
   LANDING_SECTION_TITLE_CLASS,
 } from './landingVisualSystem'
 
@@ -25,31 +28,31 @@ const securityUi: Record<
   },
   vi: {
     cardLabels: ['Giao thức kiến trúc', 'Lớp xác thực', 'Tiêu chuẩn an toàn'],
-    quote: '"Sự chính xác là nguyên liệu cuối cùng để một hệ thống đáng tin cậy được hoàn thiện."',
+    quote: '"Sự chính xác là lớp hoàn thiện cuối cùng để một hệ thống đáng tin cậy được vận hành tốt."',
     quoteAuthor: 'Kiến trúc hệ thống',
   },
   ja: {
-    cardLabels: ['Architecture Protocol', 'Authentication Layer', 'Safety Standards'],
-    quote: '"Precision is the final ingredient in every curation."',
-    quoteAuthor: 'Systems Architect',
+    cardLabels: ['設計境界', '認証レイヤー', '安全基準'],
+    quote: '「精度は、信頼できる運用を仕上げる最後の要素です。」',
+    quoteAuthor: 'システム設計',
   },
 }
 
 export function SecuritySection() {
   const { copy, language } = useLanguage()
   const { ref, revealClass, revealStyle } = useScrollReveal()
-  const ui = securityUi[language]
+  const ui = getLocaleWithFallback(securityUi, language)
 
   return (
-    <section id="trust" className="content-visibility-auto relative overflow-hidden bg-transparent py-24 md:py-28">
+    <section id="trust" className="content-visibility-auto relative overflow-hidden bg-transparent py-28 md:py-32">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-x-[14%] top-0 h-[24rem] rounded-full bg-[radial-gradient(circle,rgba(162,63,0,0)_0%,transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(235,122,28,0.12)_0%,rgba(242,176,77,0.05)_42%,transparent_72%)]" />
         <div className="absolute inset-x-0 bottom-0 h-[18rem] bg-[linear-gradient(180deg,transparent_0%,rgba(247,243,238,0)_100%)] dark:bg-[linear-gradient(180deg,transparent_0%,rgba(26,18,14,0.38)_100%)]" />
       </div>
 
       <div className="relative z-10 mx-auto w-full px-4 md:px-6 lg:px-10 xl:px-14">
-        <header className="mb-16 max-w-3xl">
-          <span className={`mb-4 ${LANDING_EYEBROW_CLASS}`}>
+        <header className={`${LANDING_SECTION_HEADER_CLASS} ${LANDING_SECTION_HEADER_MARGIN_CLASS}`}>
+          <span className={LANDING_EYEBROW_CLASS}>
             {copy.trust.eyebrow}
           </span>
           <h2 className={LANDING_SECTION_TITLE_CLASS}>

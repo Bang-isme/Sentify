@@ -1,11 +1,15 @@
 export const LANDING_EYEBROW_CLASS =
-  'block text-[12px] font-bold uppercase tracking-[0.32em] text-primary sm:text-[13px] xl:text-[14px]'
+  'block w-fit text-[12px] font-bold uppercase tracking-[0.32em] leading-[1.1] text-primary sm:text-[13px] sm:whitespace-nowrap xl:text-[14px]'
+
+export const LANDING_SECTION_HEADER_CLASS = 'max-w-[58rem] flex flex-col gap-4 md:gap-5'
+
+export const LANDING_SECTION_HEADER_MARGIN_CLASS = 'mb-14 md:mb-16'
 
 export const LANDING_SECTION_TITLE_CLASS =
-  'mt-4 font-serif text-[clamp(3rem,5.9vw,4.95rem)] font-normal leading-[0.93] tracking-[-0.04em] text-[#2c211b] dark:text-[#fff7ef]'
+  'font-serif text-[clamp(3rem,5.9vw,4.95rem)] font-normal leading-[0.93] tracking-[-0.04em] text-[#2c211b] dark:text-[#fff7ef]'
 
 export const LANDING_SECTION_ACCENT_CLASS =
-  'mt-2 block italic text-[#8f7562] dark:text-[#d8c1a6]'
+  'mt-3 block italic text-[#8f7562] dark:text-[#d8c1a6] lg:whitespace-nowrap'
 
 export const LANDING_BODY_CLASS =
   'mt-6 text-[16px] leading-8 text-[#6f5a4a] dark:text-[#ccb59a]'

@@ -26,11 +26,11 @@ export const landingContent = {
       titleLine1: 'Sentify',
       titleLine2: 'Turn reviews into action.',
       description:
-        'Sentify helps restaurant teams pull Google Maps reviews into one place, spot repeated complaints, track sentiment, and decide what to fix first.',
+        'Sentify pulls Google Maps reviews into one place, surfaces repeated complaints, tracks sentiment, and shows what to fix first.',
       highlights: [
-        'Pull Google Maps reviews into one view',
-        'Group repeated complaints by theme',
-        'Turn review noise into one next action',
+        'Pull reviews into one view',
+        'Group repeated complaints',
+        'Choose the next fix',
       ],
       primaryCta: 'See How It Works',
       secondaryCta: 'View Dashboard',
@@ -361,11 +361,11 @@ export const landingContent = {
       titleLine1: 'Sentify',
       titleLine2: 'Biến review thành việc cần xử lý.',
       description:
-        'Sentify giúp đội ngũ nhà hàng gom review từ Google Maps, nhìn ra phàn nàn lặp lại, theo dõi sentiment và biết điều gì nên sửa trước.',
+        'Sentify giúp đội ngũ nhà hàng nhìn review rõ hơn: khách đang phàn nàn điều gì, sentiment đang ra sao, và việc gì nên làm trước.',
       highlights: [
         'Gom review về một màn hình',
-        'Nhóm phàn nàn lặp lại theo chủ đề',
-        'Chốt việc cần xử lý trước trong tuần',
+        'Nhóm phàn nàn lặp lại',
+        'Chốt việc xử lý trước',
       ],
       primaryCta: 'Xem cách hoạt động',
       secondaryCta: 'Xem dashboard',
@@ -694,14 +694,14 @@ export const landingContent = {
     },
     hero: {
       badge: '',
-      titleLine1: 'レビューが集まる。',
+      titleLine1: 'Sentify',
       titleLine2: '次の一手が見える。',
       description:
-        'Sentify は、Google Maps のレビューを取り込み、繰り返し出る不満や感情の傾向を整理して、まず何を直すべきかを1画面で把握できるようにします。',
+        'Sentify は Google Maps のレビューを一か所に集め、繰り返す不満や感情の傾向を整理し、まず直すべき点を明確にします。',
       highlights: [
-        'Google Mapsレビューを取り込む',
-        '店舗ごとの感情傾向を整理する',
-        '不満キーワードを抽出する',
+        'レビューを一画面に集約',
+        '繰り返す不満を整理',
+        '先に直す点を絞る',
       ],
       primaryCta: '流れを見る',
       secondaryCta: 'ダッシュボードを見る',

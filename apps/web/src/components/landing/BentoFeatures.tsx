@@ -1,3 +1,4 @@
+import { getLocaleWithFallback } from '../../content/localeFallback'
 import { useLanguage, type Language } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
 import {
@@ -6,6 +7,8 @@ import {
   LANDING_PANEL_CLASS,
   LANDING_PANEL_SOFT_CLASS,
   LANDING_SECTION_ACCENT_CLASS,
+  LANDING_SECTION_HEADER_CLASS,
+  LANDING_SECTION_HEADER_MARGIN_CLASS,
   LANDING_SECTION_TITLE_CLASS,
 } from './landingVisualSystem'
 
@@ -55,7 +58,7 @@ const dashboardChrome: Record<
   },
   vi: {
     exportLabel: 'Xuất dữ liệu',
-    liveLabel: 'Live feed',
+    liveLabel: 'Trực tiếp',
     criticalPulse: 'Xung tiêu cực',
     verifiedSamples: 'Mẫu đã xác minh',
     escalation: 'Mức ưu tiên',
@@ -63,26 +66,26 @@ const dashboardChrome: Record<
     distribution: 'Phân bổ tín hiệu',
     archive: 'Kho review gốc',
     accessArchive: 'Mở kho dữ liệu',
-    signalName: 'Signal',
-    signalSubline: 'review index',
+    signalName: 'Tín hiệu',
+    signalSubline: 'chỉ số review',
     quoteRole: 'review gốc',
     quoteAuthor: 'Nguồn thực tế',
     archivePrefix: 'TS',
   },
   ja: {
-    exportLabel: 'Data output',
-    liveLabel: 'Live feed',
-    criticalPulse: 'Critical pulse',
-    verifiedSamples: 'Verified samples only',
-    escalation: 'Priority escalation',
-    frictionPoints: 'Friction points',
-    distribution: 'Data distribution',
-    archive: 'Global log archive',
-    accessArchive: 'Access database',
-    signalName: 'Signal',
-    signalSubline: 'review index',
-    quoteRole: 'review critic',
-    quoteAuthor: 'Elena Vance',
+    exportLabel: 'データ出力',
+    liveLabel: 'ライブ',
+    criticalPulse: '重要シグナル',
+    verifiedSamples: '確認済みデータのみ',
+    escalation: '優先対応',
+    frictionPoints: '運営摩擦',
+    distribution: 'シグナル配分',
+    archive: '元レビュー記録',
+    accessArchive: '元レビューを見る',
+    signalName: 'シグナル',
+    signalSubline: 'レビュー指標',
+    quoteRole: 'レビュー原文',
+    quoteAuthor: '実際のレビュー',
     archivePrefix: 'TS',
   },
 }
@@ -110,7 +113,7 @@ export function BentoFeatures() {
   const { copy, language } = useLanguage()
   const { ref, revealClass, revealStyle } = useScrollReveal()
   const dashboard = copy.dashboard
-  const chrome = dashboardChrome[language]
+  const chrome = getLocaleWithFallback(dashboardChrome, language)
   const archiveItems = copy.signals.cards.slice(0, 4)
   const sentimentRows = dashboard.sentiment.rows
   const frictionRows = dashboard.overview.complaintRows.slice(0, 2)
@@ -118,7 +121,7 @@ export function BentoFeatures() {
   const leadQuote = archiveItems[0]
 
   return (
-    <section id="dashboard" className="content-visibility-auto relative overflow-hidden py-20 lg:py-24">
+    <section id="dashboard" className="content-visibility-auto relative overflow-hidden py-24 lg:py-28">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(162,63,0,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(162,63,0,0.025)_1px,transparent_1px)] [background-size:40px_40px]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(162,63,0,0),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(162,63,0,0),transparent_30%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(235,122,28,0.12),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(242,176,77,0.08),transparent_30%)]" />
@@ -127,10 +130,10 @@ export function BentoFeatures() {
       <div className="relative z-10 mx-auto w-full px-4 md:px-6 lg:px-10 xl:px-14">
         <div ref={ref}>
           <div
-            className={`mb-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between ${revealClass()}`}
+            className={`${LANDING_SECTION_HEADER_MARGIN_CLASS} flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between ${revealClass()}`}
             style={revealStyle(0)}
           >
-            <div>
+            <div className={LANDING_SECTION_HEADER_CLASS}>
               <span className={LANDING_EYEBROW_CLASS}>
                 {dashboard.eyebrow}
               </span>
@@ -141,10 +144,10 @@ export function BentoFeatures() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <button className={`${LANDING_MONO_BUTTON_CLASS} border-[#e6d8ca] bg-white/50 text-[#705d50] hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-[#d7c3ab] dark:hover:bg-white/10`}>
+              <button className={`${LANDING_MONO_BUTTON_CLASS} inline-flex min-w-[10rem] justify-center border-[#e6d8ca] bg-white/50 text-[#705d50] hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-[#d7c3ab] dark:hover:bg-white/10`}>
                 {chrome.exportLabel}
               </button>
-              <button className={`${LANDING_MONO_BUTTON_CLASS} border-[#c97d48] bg-[#fff4eb] text-[#a64809] shadow-[0_4px_12px_rgba(162,63,0,0.12)] hover:bg-[#ffeedf] dark:border-[#9c5b31] dark:bg-[#2a1a11] dark:text-[#f0b37a] dark:hover:bg-[#342117]`}>
+              <button className={`${LANDING_MONO_BUTTON_CLASS} inline-flex min-w-[10rem] justify-center border-[#c97d48] bg-[#fff4eb] text-[#a64809] shadow-[0_4px_12px_rgba(162,63,0,0.12)] hover:bg-[#ffeedf] dark:border-[#9c5b31] dark:bg-[#2a1a11] dark:text-[#f0b37a] dark:hover:bg-[#342117]`}>
                 {chrome.liveLabel}
               </button>
             </div>
@@ -266,10 +269,10 @@ function MetricCard({
       ) : null}
       <p className={`${monoLabelClass} mb-5 ${accent === 'critical' ? 'text-[#d06759] dark:text-[#f0b1a8]' : 'text-[#786458] dark:text-[#ccb59a]'}`}>{label}</p>
       <div className="flex items-end gap-2">
-        <h3 className={`text-[3.45rem] leading-none md:text-[3.8rem] ${accent === 'critical' ? 'text-[#d64535] dark:text-[#ff8f81]' : accent === 'primary' ? 'text-[#a23f00] dark:text-[#f3a04d]' : 'text-[#1f1a17] dark:text-[#fff7ef]'}`}>
+        <h3 className={`text-[3.9rem] leading-none md:text-[4.35rem] ${accent === 'critical' ? 'text-[#d64535] dark:text-[#ff8f81]' : accent === 'primary' ? 'text-[#a23f00] dark:text-[#f3a04d]' : 'text-[#1f1a17] dark:text-[#fff7ef]'}`}>
           {value}
         </h3>
-        {suffix ? <span className="pb-1.5 text-[16px] font-mono text-[#8f7a6e] dark:text-[#ccb59a]">{suffix}</span> : null}
+        {suffix ? <span className="pb-2 text-[17px] font-mono text-[#8f7a6e] dark:text-[#ccb59a]">{suffix}</span> : null}
       </div>
       <div className={`mt-5 flex items-center gap-2 text-[14px] md:text-[15px] font-mono font-medium uppercase tracking-[0.04em] ${noteClass}`}>
         {accent === 'default' ? <span className="material-symbols-outlined text-lg">trending_up</span> : null}
@@ -358,7 +361,7 @@ function DistributionCard({
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="font-serif text-[2.65rem] text-[#3b2c22] dark:text-[#fff1e2]">{signalName}</span>
+              <span className="font-serif text-[2.9rem] text-[#3b2c22] dark:text-[#fff1e2] md:text-[3.15rem]">{signalName}</span>
               <span className="mt-1 font-mono text-[12px] font-medium uppercase tracking-[0.08em] text-[#b5662d] dark:text-[#f0b37a] md:text-[14px]">{signalSubline}</span>
             </div>
           </div>
@@ -426,7 +429,7 @@ function ArchiveCard({
     <article className={`${LANDING_PANEL_CLASS} col-span-12 mt-1 p-10`}>
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h3 className={`text-[#2d241f] dark:text-[#fff1e2] ${monoLabelClass}`}>{title}</h3>
-        <span className={`${LANDING_MONO_BUTTON_CLASS} w-fit border-[#d8b79e] px-3 py-2 text-[#a95318] dark:border-[#885937] dark:text-[#f0b37a]`}>
+        <span className={`${LANDING_MONO_BUTTON_CLASS} inline-flex min-w-[10rem] justify-center border-[#d8b79e] px-3 py-2 text-[#a95318] dark:border-[#885937] dark:text-[#f0b37a]`}>
           {actionLabel}
         </span>
       </div>
