@@ -47,7 +47,10 @@ export function Header({
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
   const isAppRoute = route.startsWith('/app')
   const isLandingRoute = route === '/'
+  const useLandingChrome = !isAppRoute
+  const marketingSurfaceVisible = isLandingRoute ? isLandingScrolled : true
   const isLandingCompact = isLandingRoute && isLandingScrolled
+  const marketingShellCompact = isLandingRoute ? isLandingCompact : false
   const currentViewLabel =
     route === '/app'
       ? productCopy.header.dashboard
@@ -154,21 +157,21 @@ export function Header({
       ].flatMap((action) => (action ? [action] : []))
     : []
 
-  const shellClassName = isLandingRoute
+  const shellClassName = useLandingChrome
     ? `pointer-events-auto flex w-full max-w-[1600px] items-center px-4 text-[#1a1a1a] transition-all duration-300 dark:text-[#fff7ef] md:px-6 lg:px-8 ${
-        isLandingCompact
+        marketingShellCompact
           ? 'min-h-[4rem] gap-3 md:min-h-[4.1rem] md:px-5 lg:min-h-[4.2rem] lg:px-7'
           : 'min-h-[4.75rem] gap-4'
       } ${
-        isLandingScrolled ? 'animate-landing-header-shell' : ''
+        marketingSurfaceVisible ? 'animate-landing-header-shell' : ''
       }`
     : `pointer-events-auto mx-4 flex w-full max-w-[1260px] items-center gap-3 rounded-full border border-border-light/70 bg-surface-white/90 px-4 shadow-[0_10px_34px_rgba(0,0,0,0.1)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 dark:border-border-dark/70 dark:bg-surface-dark/92 dark:shadow-[0_10px_34px_rgba(0,0,0,0.5)] md:px-6 ${
         'min-h-16 md:min-h-[4.5rem]'
       }`
 
-  const headerClassName = isLandingRoute
+  const headerClassName = useLandingChrome
     ? `pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${
-        isLandingScrolled
+        marketingSurfaceVisible
           ? 'border-b border-[#f3e4d3] bg-white/98 shadow-[0_2px_15px_rgba(0,0,0,0.03)] backdrop-blur-sm dark:border-[#3f2c1f] dark:bg-[#17100c]/96 dark:shadow-[0_12px_30px_-22px_rgba(0,0,0,0.65)]'
           : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0'
       }`
@@ -193,15 +196,15 @@ export function Header({
         >
           <div
             className={`flex items-center justify-center rounded-full transition-all duration-300 ${
-              isLandingRoute
-                ? `${isLandingCompact ? 'size-8 rounded-[0.95rem]' : 'size-9 rounded-xl'} bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.65)] group-hover:scale-105 dark:bg-gradient-to-br dark:from-[#f29a40] dark:to-[#d96f1d] dark:text-[#1b120c]`
+              useLandingChrome
+                ? `${marketingShellCompact ? 'size-8 rounded-[0.95rem]' : 'size-9 rounded-xl'} bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.65)] group-hover:scale-105 dark:bg-gradient-to-br dark:from-[#f29a40] dark:to-[#d96f1d] dark:text-[#1b120c]`
                 : 'size-9 border border-primary/25 bg-primary/8 text-primary group-hover:rotate-180'
             }`}
           >
-            {isLandingRoute ? (
+            {useLandingChrome ? (
               <span
                 className={`material-symbols-outlined font-bold transition-all duration-300 ${
-                  isLandingCompact ? 'text-[18px]' : 'text-[20px]'
+                  marketingShellCompact ? 'text-[18px]' : 'text-[20px]'
                 }`}
               >
                 bolt
@@ -212,11 +215,11 @@ export function Header({
           </div>
           <span
             className={`hidden tracking-tight sm:block ${
-              isLandingRoute
-                ? `${isLandingCompact ? 'text-lg md:text-[1.08rem]' : 'text-xl'} font-bold text-[#1a1a1a] transition-all duration-300 dark:text-[#fff7ef]`
+              useLandingChrome
+                ? `${marketingShellCompact ? 'text-lg md:text-[1.08rem]' : 'text-xl'} font-bold text-[#1a1a1a] transition-all duration-300 dark:text-[#fff7ef]`
                 : 'text-lg font-bold text-text-charcoal dark:text-white'
             }`}
-            style={isLandingRoute ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
+            style={useLandingChrome ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
           >
             {copy.header.brand}
           </span>
@@ -224,8 +227,8 @@ export function Header({
 
         <nav
           className={
-            isLandingRoute
-              ? `hidden items-center md:flex ${isLandingCompact ? 'gap-8 lg:gap-9' : 'gap-10'}`
+            useLandingChrome
+              ? `hidden items-center md:flex ${marketingShellCompact ? 'gap-8 lg:gap-9' : 'gap-10'}`
               : 'hidden items-center gap-2 lg:flex'
           }
         >
@@ -242,8 +245,8 @@ export function Header({
                 key={item.sectionId}
                 type="button"
                 className={`inline-flex items-center justify-center ${
-                  isLandingRoute
-                    ? `${isLandingCompact ? 'text-[12px] tracking-[0.1em]' : 'text-[13px] tracking-[0.12em]'} font-bold uppercase text-[#1a1a1a] transition-all duration-300 hover:text-[#ff8c00] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]`
+                  useLandingChrome
+                    ? `${marketingShellCompact ? 'text-[12px] tracking-[0.1em]' : 'text-[13px] tracking-[0.12em]'} font-bold uppercase text-[#1a1a1a] transition-all duration-300 hover:text-[#ff8c00] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]`
                     : 'h-10 rounded-full px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary'
                 }`}
                 onClick={() => onScrollToSection(item.sectionId)}
@@ -264,14 +267,14 @@ export function Header({
             onClick={(event) => toggleTheme(event)}
             aria-label={copy.header.themeLabel}
             className={`flex items-center justify-center rounded-full transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 ${
-              isLandingRoute
-                ? `${isLandingCompact ? 'size-8' : 'size-9'} text-[#1a1a1a] hover:bg-[#fff4e8] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:bg-[#211710] dark:hover:text-[#f29a40]`
+              useLandingChrome
+                ? `${marketingShellCompact ? 'size-8' : 'size-9'} text-[#1a1a1a] hover:bg-[#fff4e8] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:bg-[#211710] dark:hover:text-[#f29a40]`
                 : 'size-9 text-text-silver-light hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] dark:text-text-silver-dark dark:hover:bg-white/5'
             }`}
           >
             <span
               className={`material-symbols-outlined transition-all duration-300 ${
-                isLandingCompact ? 'text-[17px]' : 'text-lg'
+                marketingShellCompact ? 'text-[17px]' : 'text-lg'
               }`}
             >
               {theme === 'dark' ? 'dark_mode' : 'light_mode'}
@@ -289,15 +292,15 @@ export function Header({
               aria-haspopup="menu"
               aria-expanded={isLanguageMenuOpen}
               className={`flex items-center rounded-full px-3 text-xs font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                isLandingRoute
-                  ? `${isLandingCompact ? 'h-8 gap-1.5 text-[13px]' : 'h-9 gap-2 text-sm'} rounded-none border-0 bg-transparent px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
+                useLandingChrome
+                  ? `${marketingShellCompact ? 'h-8 gap-1.5 text-[13px]' : 'h-9 gap-2 text-sm'} rounded-none border-0 bg-transparent px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
                   : 'h-9 gap-2 border border-border-light text-text-charcoal hover:border-primary/40 hover:text-primary dark:border-border-dark dark:text-white'
               }`}
             >
-              {isLandingRoute ? (
+              {useLandingChrome ? (
                 <span
                   className={`material-symbols-outlined transition-all duration-300 ${
-                    isLandingCompact ? 'text-[16px]' : 'text-[18px]'
+                    marketingShellCompact ? 'text-[16px]' : 'text-[18px]'
                   }`}
                 >
                   language
@@ -365,8 +368,8 @@ export function Header({
                     setIsLanguageMenuOpen(false)
                   }}
                   className={`group flex items-center rounded-full text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                    isLandingRoute
-                      ? `${isLandingCompact ? 'h-9 gap-1.5 pl-1.5 pr-2.5' : 'h-10 gap-2 pl-2 pr-3'} border border-[#eadbc8] bg-white/78 hover:border-[#eb7a1c]/40 hover:bg-white dark:border-[#3d2c1f] dark:bg-[#1c140f]/88 dark:hover:border-[#f29a40]/45 dark:hover:bg-[#241912]`
+                    useLandingChrome
+                      ? `${marketingShellCompact ? 'h-9 gap-1.5 pl-1.5 pr-2.5' : 'h-10 gap-2 pl-2 pr-3'} border border-[#eadbc8] bg-white/78 hover:border-[#eb7a1c]/40 hover:bg-white dark:border-[#3d2c1f] dark:bg-[#1c140f]/88 dark:hover:border-[#f29a40]/45 dark:hover:bg-[#241912]`
                       : 'h-10 gap-2 border border-border-light/80 bg-surface-white/70 hover:border-primary/35 hover:bg-primary/6 dark:border-border-dark dark:bg-surface-dark/78'
                   }`}
                 >
@@ -380,14 +383,14 @@ export function Header({
                   <span className="hidden min-w-0 md:block">
                     <span
                       className={`block truncate text-sm font-semibold ${
-                        isLandingRoute ? 'text-[#201611] dark:text-[#fff7ef]' : 'text-text-charcoal dark:text-white'
+                        useLandingChrome ? 'text-[#201611] dark:text-[#fff7ef]' : 'text-text-charcoal dark:text-white'
                       }`}
                     >
                       {user?.displayName ?? productCopy.header.accountFallback}
                     </span>
                     <span
                       className={`block truncate text-[12px] ${
-                        isLandingRoute ? 'text-[#7a6958] dark:text-[#cdb69c]' : 'text-text-silver-light dark:text-text-silver-dark'
+                        useLandingChrome ? 'text-[#7a6958] dark:text-[#cdb69c]' : 'text-text-silver-light dark:text-text-silver-dark'
                       }`}
                     >
                       {restaurantLabel ?? productCopy.header.protectedAccess}
@@ -395,7 +398,7 @@ export function Header({
                   </span>
                   <span
                     className={`material-symbols-outlined text-base transition-transform duration-200 ${
-                      isLandingRoute
+                      useLandingChrome
                         ? `text-[#7a6958] group-hover:text-[#c95b14] dark:text-[#cdb69c] dark:group-hover:text-[#f29a40] ${isAccountMenuOpen ? 'rotate-180' : ''}`
                         : `text-text-silver-light group-hover:text-primary dark:text-text-silver-dark ${isAccountMenuOpen ? 'rotate-180' : ''}`
                     }`}
@@ -482,8 +485,8 @@ export function Header({
               <button
                 type="button"
                 className={`hidden items-center justify-center rounded-full px-2 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex ${
-                  isLandingRoute
-                    ? `${isLandingCompact ? 'h-8 text-[13px]' : 'h-9 text-sm'} rounded-none px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
+                  useLandingChrome
+                    ? `${marketingShellCompact ? 'h-8 text-[13px]' : 'h-9 text-sm'} rounded-none px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
                     : 'h-9 text-text-charcoal hover:text-primary-dark dark:text-white dark:hover:text-primary'
                 }`}
                 onClick={() => onNavigate('/login')}
@@ -493,8 +496,8 @@ export function Header({
               <button
                 type="button"
                 className={`flex items-center justify-center rounded-full px-4 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                  isLandingRoute
-                    ? `${isLandingCompact ? 'h-10 px-5 text-[13px] shadow-[0_10px_24px_-14px_rgba(255,140,0,0.45)]' : 'h-11 px-6 text-sm shadow-[0_12px_28px_-14px_rgba(255,140,0,0.5)]'} bg-[#ff8c00] font-bold text-white hover:bg-[#e67e00] dark:bg-[#f29a40] dark:text-[#1b120c] dark:shadow-[0_14px_30px_-16px_rgba(242,154,64,0.4)] dark:hover:bg-[#ffad57]`
+                  useLandingChrome
+                    ? `${marketingShellCompact ? 'h-10 px-5 text-[13px] shadow-[0_10px_24px_-14px_rgba(255,140,0,0.45)]' : 'h-11 px-6 text-sm shadow-[0_12px_28px_-14px_rgba(255,140,0,0.5)]'} bg-[#ff8c00] font-bold text-white hover:bg-[#e67e00] dark:bg-[#f29a40] dark:text-[#1b120c] dark:shadow-[0_14px_30px_-16px_rgba(242,154,64,0.4)] dark:hover:bg-[#ffad57]`
                     : 'h-9 bg-primary text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] dark:text-bg-dark dark:hover:bg-yellow-400'
                 }`}
                 onClick={() => onNavigate('/signup')}

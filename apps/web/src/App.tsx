@@ -993,6 +993,7 @@ function SentifyShell() {
         </main>
       ) : route === '/login' || route === '/signup' ? (
         <AuthScreen
+          language={language}
           key={route}
           mode={route === '/login' ? 'login' : 'signup'}
           copy={productCopy.auth}
