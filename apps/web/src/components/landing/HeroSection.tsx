@@ -388,7 +388,7 @@ export function HeroSection({
           innerClassName="left-[5rem] top-[3rem] h-[21rem] w-[10rem]"
         />
         <HeroOutlineCluster
-          className="right-[-6.5%] top-[6.75rem] h-[35rem] w-[22rem] rotate-[16deg]"
+          className="right-[-6%] top-[7.75rem] h-[33rem] w-[21rem] rotate-[11deg]"
           outerClassName="right-0 top-0 h-[31rem] w-[18rem]"
           middleClassName="right-[2.6rem] top-[1.6rem] h-[26rem] w-[14rem]"
           innerClassName="right-[5rem] top-[3rem] h-[21rem] w-[10rem]"
@@ -400,7 +400,7 @@ export function HeroSection({
           innerClassName="left-[2.95rem] top-[2.1rem] h-[10rem] w-[4.6rem]"
         />
         <HeroOutlineCluster
-          className="bottom-[2.25rem] right-[-3.75%] h-[18rem] w-[12rem] -rotate-[15deg] opacity-80"
+          className="bottom-[2.5rem] right-[-3.5%] h-[18rem] w-[12rem] -rotate-[15deg] opacity-80"
           outerClassName="right-0 top-0 h-[16rem] w-[9rem]"
           middleClassName="right-[1.55rem] top-[1.1rem] h-[13rem] w-[6.75rem]"
           innerClassName="right-[2.95rem] top-[2.1rem] h-[10rem] w-[4.6rem]"

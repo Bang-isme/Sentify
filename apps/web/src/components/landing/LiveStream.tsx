@@ -153,7 +153,7 @@ export function LiveStream() {
   return (
     <section id="signals" className="content-visibility-auto relative overflow-hidden bg-transparent py-24 lg:py-28">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-x-[8%] top-0 h-[26rem] rounded-full bg-[radial-gradient(circle,rgba(162,63,0,0.07)_0%,transparent_70%)] blur-3xl" />
+        <div className="absolute inset-x-[8%] top-0 h-[26rem] rounded-full bg-[radial-gradient(circle,rgba(162,63,0,0)_0%,transparent_70%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(235,122,28,0.12)_0%,rgba(242,176,77,0.05)_38%,transparent_70%)]" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-[1600px] px-6 md:px-10">

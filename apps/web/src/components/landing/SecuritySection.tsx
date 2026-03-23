@@ -45,8 +45,8 @@ export function SecuritySection() {
   return (
     <section id="trust" className="content-visibility-auto relative overflow-hidden bg-transparent py-24 md:py-28">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-x-[14%] top-0 h-[24rem] rounded-full bg-[radial-gradient(circle,rgba(162,63,0,0.07)_0%,transparent_72%)] blur-3xl" />
-        <div className="absolute inset-x-0 bottom-0 h-[18rem] bg-[linear-gradient(180deg,transparent_0%,rgba(247,243,238,0.46)_100%)] dark:bg-[linear-gradient(180deg,transparent_0%,rgba(26,18,14,0.38)_100%)]" />
+        <div className="absolute inset-x-[14%] top-0 h-[24rem] rounded-full bg-[radial-gradient(circle,rgba(162,63,0,0)_0%,transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(235,122,28,0.12)_0%,rgba(242,176,77,0.05)_42%,transparent_72%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-[18rem] bg-[linear-gradient(180deg,transparent_0%,rgba(247,243,238,0)_100%)] dark:bg-[linear-gradient(180deg,transparent_0%,rgba(26,18,14,0.38)_100%)]" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-[1540px] px-6 md:px-10">

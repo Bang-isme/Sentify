@@ -19,8 +19,10 @@ export function CTASection({
 
   return (
     <section className="content-visibility-auto relative overflow-hidden bg-transparent py-24 md:py-28">
-      <div className="absolute inset-0 dark:bg-bg-dark">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.05)_0%,rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_center,rgba(242,208,13,0.15)_0%,rgba(0,0,0,0)_60%)]"></div>
+      <div aria-hidden className="absolute inset-0">
+        <div className="absolute inset-0 dark:bg-[linear-gradient(180deg,rgba(18,12,8,0.82)_0%,rgba(15,10,7,0.9)_100%)]" />
+        <div className="absolute inset-0 dark:bg-[linear-gradient(rgba(255,228,202,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,228,202,0.04)_1px,transparent_1px)] [background-size:40px_40px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0)_0%,rgba(255,255,255,0)_60%)] dark:bg-[radial-gradient(circle_at_center,rgba(242,176,77,0.16)_0%,rgba(235,122,28,0.06)_34%,rgba(0,0,0,0)_60%)]"></div>
       </div>
 
       <div ref={ref} className="relative z-10 mx-auto max-w-4xl px-6 text-center">

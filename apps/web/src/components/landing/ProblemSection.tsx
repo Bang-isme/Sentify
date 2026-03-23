@@ -47,8 +47,8 @@ export function ProblemSection() {
     >
       <div ref={ref} className="mx-auto w-full px-4 md:px-6 lg:px-10 xl:px-14">
         <div className="relative overflow-hidden rounded-[1.75rem] md:rounded-[2.25rem] lg:rounded-[2.75rem]">
-          <div className="pointer-events-none absolute -left-12 top-12 h-52 w-52 rounded-full bg-primary/10 blur-3xl dark:bg-primary/12" />
-          <div className="pointer-events-none absolute right-10 top-8 h-56 w-56 rounded-full bg-primary/10 blur-3xl dark:bg-primary/12" />
+          <div className="pointer-events-none absolute -left-12 top-12 h-52 w-52 rounded-full bg-transparent blur-3xl dark:bg-[rgba(235,122,28,0.12)]" />
+          <div className="pointer-events-none absolute right-10 top-8 h-56 w-56 rounded-full bg-transparent blur-3xl dark:bg-[rgba(242,176,77,0.1)]" />
 
           <div
             className={`grid min-h-[760px] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] ${

@@ -48,7 +48,7 @@ export function WorkflowSection() {
       className="content-visibility-auto relative overflow-hidden bg-transparent px-5 py-24 md:px-8 lg:px-12 xl:px-16 xl:py-28"
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-0 h-[34rem] w-[84rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(243,160,77,0.14)_0%,rgba(243,160,77,0.06)_38%,transparent_72%)] blur-3xl" />
+        <div className="absolute left-1/2 top-0 h-[34rem] w-[84rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(243,160,77,0)_0%,rgba(243,160,77,0)_38%,transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(235,122,28,0.12)_0%,rgba(242,176,77,0.06)_38%,transparent_72%)]" />
       </div>
 
       <div className="relative mx-auto max-w-[1520px]">

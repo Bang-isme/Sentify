@@ -116,7 +116,7 @@ export function BentoFeatures() {
     <section id="dashboard" className="content-visibility-auto relative overflow-hidden py-20 lg:py-24">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(162,63,0,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(162,63,0,0.025)_1px,transparent_1px)] [background-size:40px_40px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(162,63,0,0.06),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(162,63,0,0.04),transparent_30%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(162,63,0,0),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(162,63,0,0),transparent_30%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(235,122,28,0.12),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(242,176,77,0.08),transparent_30%)]" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-[1440px] px-6 lg:px-10">
