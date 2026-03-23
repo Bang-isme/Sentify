@@ -1,5 +1,11 @@
 import { useLanguage } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
+import {
+  LANDING_EYEBROW_CLASS,
+  LANDING_PANEL_CLASS,
+  LANDING_SECTION_ACCENT_CLASS,
+  LANDING_SECTION_TITLE_CLASS,
+} from './landingVisualSystem'
 
 const workflowPhotos = [
   {
@@ -39,8 +45,7 @@ const workflowNumberOffsets = [
 export function WorkflowSection() {
   const { copy, language } = useLanguage()
   const { ref, revealClass, revealStyle } = useScrollReveal()
-  const titleLine1 = language === 'vi' ? 'Nghệ Thuật Kiến Tạo' : copy.workflow.titleLine1
-  const titleLine2 = language === 'vi' ? 'Trải Nghiệm Ẩm Thực' : copy.workflow.titleLine2
+  const isEnglish = language === 'en'
 
   return (
     <section
@@ -53,13 +58,13 @@ export function WorkflowSection() {
 
       <div className="relative mx-auto max-w-[1520px]">
         <div className={`max-w-[64rem] ${revealClass()}`} style={revealStyle(0)}>
-          <p className="text-[12px] font-bold uppercase tracking-[0.32em] text-primary sm:text-[13px] xl:text-[14px]">
+          <p className={LANDING_EYEBROW_CLASS}>
             {copy.workflow.eyebrow}
           </p>
-          <h2 className="mt-4 font-serif text-[clamp(3.2rem,6vw,5.4rem)] font-normal leading-[0.88] tracking-[-0.05em] text-[#281913] dark:text-[#fff7ef]">
-            <span className="block xl:whitespace-nowrap">{titleLine1}</span>
-            <span className="mt-2 block pl-5 italic sm:pl-7 xl:mt-3 xl:pl-14 xl:whitespace-nowrap">
-              {titleLine2}
+          <h2 className={LANDING_SECTION_TITLE_CLASS}>
+            <span className="block xl:whitespace-nowrap">{copy.workflow.titleLine1}</span>
+            <span className={`${LANDING_SECTION_ACCENT_CLASS} pl-5 sm:pl-7 xl:pl-14 xl:whitespace-nowrap`}>
+              {copy.workflow.titleLine2}
             </span>
           </h2>
         </div>
@@ -90,7 +95,7 @@ export function WorkflowSection() {
                     </span>
 
                     <figure
-                      className={`group relative z-10 overflow-hidden rounded-[0.95rem] border border-primary/10 shadow-[0_18px_40px_-26px_rgba(73,41,9,0.42)] ${photo.frameClassName} dark:border-border-dark/70`}
+                      className={`group relative z-10 overflow-hidden ${LANDING_PANEL_CLASS} ${photo.frameClassName} dark:border-border-dark/70`}
                     >
                       <div className="aspect-[4/5] overflow-hidden">
                         <img
@@ -105,10 +110,18 @@ export function WorkflowSection() {
                   </div>
 
                   <div className="mt-4">
-                    <h3 className="font-body text-[1.22rem] font-semibold leading-[1.08] tracking-[-0.035em] text-[#2e1d14] dark:text-[#fff7ef] xl:text-[1.3rem] xl:whitespace-nowrap">
+                    <h3
+                      className={`font-body font-semibold leading-[1.08] tracking-[-0.03em] text-[#2e1d14] dark:text-[#fff7ef] ${
+                        isEnglish ? 'max-w-[14ch] text-[1.16rem] xl:text-[1.22rem]' : 'text-[1.22rem] xl:text-[1.3rem]'
+                      }`}
+                    >
                       {step.title}
                     </h3>
-                    <p className="mt-3 max-w-[18rem] text-[0.93rem] leading-6 text-[#7c6a59] dark:text-[#ccb59a]">
+                    <p
+                      className={`mt-3 max-w-[18rem] leading-6 text-[#7c6a59] dark:text-[#ccb59a] ${
+                        isEnglish ? 'text-[0.9rem]' : 'text-[0.93rem]'
+                      }`}
+                    >
                       {step.description}
                     </p>
                   </div>

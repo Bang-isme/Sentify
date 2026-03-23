@@ -1,5 +1,11 @@
 import { useLanguage } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
+import {
+  LANDING_BODY_CLASS,
+  LANDING_CHIP_CLASS,
+  LANDING_SECTION_ACCENT_CLASS,
+  LANDING_SECTION_TITLE_CLASS,
+} from './landingVisualSystem'
 
 interface CTASectionProps {
   primaryLabel: string
@@ -26,12 +32,14 @@ export function CTASection({
       </div>
 
       <div ref={ref} className="relative z-10 mx-auto max-w-4xl px-6 text-center">
-        <h2 className={`mb-6 text-4xl font-bold tracking-tight text-text-charcoal dark:text-white md:text-6xl ${revealClass()}`} style={revealStyle(0)}>
+        <h2 className={`${LANDING_SECTION_TITLE_CLASS} mb-6 ${revealClass()}`} style={revealStyle(0)}>
           {copy.cta.titleLine1}
           <br />
-          <span className="pr-2 font-serif italic text-primary">{copy.cta.titleLine2}</span>
+          <span className={`${LANDING_SECTION_ACCENT_CLASS} pr-2 text-primary dark:text-[#f3c47f]`}>
+            {copy.cta.titleLine2}
+          </span>
         </h2>
-        <p className={`mx-auto mb-10 max-w-2xl text-base leading-8 text-text-silver-light dark:text-text-silver-dark md:text-lg ${revealClass()}`} style={revealStyle(100)}>
+        <p className={`mx-auto mb-10 max-w-2xl ${LANDING_BODY_CLASS} ${revealClass()}`} style={revealStyle(100)}>
           {copy.cta.description}
         </p>
 
@@ -61,7 +69,7 @@ export function CTASection({
           {copy.cta.chips.map((item) => (
             <span
               key={item}
-              className="rounded-full border border-border-light bg-surface-white/80 px-4 py-2 dark:border-border-dark dark:bg-surface-dark/70"
+              className={LANDING_CHIP_CLASS}
             >
               {item}
             </span>

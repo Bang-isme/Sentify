@@ -13,19 +13,19 @@ const footerUi: Record<
     subtitle: 'Restaurant Review Curator',
     auxiliaryTitle: 'Trust',
     actionLabels: ['Back to top', 'Open dashboard', 'Trust section'],
-    bottomNote: 'Crafted to keep review insight clear and useful.',
+    bottomNote: 'Crafted to keep review insights clear and useful.',
   },
   vi: {
-    subtitle: 'The Review Signal Curator',
+    subtitle: 'Điều hướng tín hiệu review',
     auxiliaryTitle: 'Tin cậy',
     actionLabels: ['Lên đầu trang', 'Mở dashboard', 'Xem phần tin cậy'],
     bottomNote: 'Ưu tiên sự rõ ràng, không dựng một nền tảng quá đà.',
   },
   ja: {
-    subtitle: 'Restaurant Review Curator',
-    auxiliaryTitle: 'Trust',
-    actionLabels: ['Back to top', 'Open dashboard', 'Trust section'],
-    bottomNote: 'Crafted to keep review insight clear and useful.',
+    subtitle: 'レストランレビューキュレーター',
+    auxiliaryTitle: '信頼',
+    actionLabels: ['ページ上部へ', 'ダッシュボードへ', '信頼性セクション'],
+    bottomNote: 'レビューインサイトを明確で使いやすい形に整えます。',
   },
 }
 

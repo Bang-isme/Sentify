@@ -1,5 +1,12 @@
 import { useLanguage, type Language } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
+import {
+  LANDING_EYEBROW_CLASS,
+  LANDING_PANEL_CLASS,
+  LANDING_PANEL_SOFT_CLASS,
+  LANDING_SECTION_ACCENT_CLASS,
+  LANDING_SECTION_TITLE_CLASS,
+} from './landingVisualSystem'
 
 const editorialPhotos = [
   'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80',
@@ -160,12 +167,12 @@ export function LiveStream() {
         <div ref={ref}>
           <header className={`mb-14 max-w-[52rem] ${revealClass()}`} style={revealStyle(0)}>
             <div>
-              <span className="block text-[12px] font-bold uppercase tracking-[0.32em] text-primary sm:text-[13px] xl:text-[14px]">
+              <span className={LANDING_EYEBROW_CLASS}>
                 {copy.signals.eyebrow}
               </span>
-              <h2 className="mt-4 font-serif text-[clamp(3rem,6vw,5rem)] font-normal leading-[0.94] tracking-tight text-[#2c211b] dark:text-[#fff7ef]">
+              <h2 className={LANDING_SECTION_TITLE_CLASS}>
                 <span className="block">{ui.titleLine1}</span>
-                <span className="block italic text-[#8f7562] dark:text-[#d8c1a6]">{ui.titleLine2}</span>
+                <span className={LANDING_SECTION_ACCENT_CLASS}>{ui.titleLine2}</span>
               </h2>
             </div>
           </header>
@@ -173,7 +180,7 @@ export function LiveStream() {
           <div className={`grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 ${revealClass()}`} style={revealStyle(120)}>
             {signalTiles.map((tile) => (
               <article key={tile.title} className="group">
-                <div className="relative h-[29rem] overflow-hidden rounded-[1.1rem] bg-[#1b1511] shadow-[0_20px_48px_rgba(44,23,10,0.08)]">
+                <div className="relative h-[29rem] overflow-hidden rounded-[1.3rem] bg-[#1b1511] shadow-[0_20px_48px_rgba(44,23,10,0.08)]">
                   <img
                     src={tile.imageSrc}
                     alt={tile.imageAlt}
@@ -218,7 +225,7 @@ export function LiveStream() {
             className={`mt-10 grid grid-cols-1 gap-6 xl:grid-cols-[1.04fr_0.96fr] ${revealClass()}`}
             style={revealStyle(240)}
           >
-            <article className="rounded-[1.15rem] bg-[#f4ede4]/86 p-7 shadow-[0_16px_44px_rgba(68,34,11,0.05)] dark:bg-[#201610]/78 dark:ring-1 dark:ring-white/8 md:p-8">
+            <article className={`${LANDING_PANEL_SOFT_CLASS} p-7 md:p-8`}>
               <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary md:text-[13px]">
                 {ui.recommendationEyebrow}
               </span>
@@ -247,7 +254,7 @@ export function LiveStream() {
               </div>
             </article>
 
-            <article className="rounded-[1.15rem] bg-white/74 p-7 shadow-[0_16px_44px_rgba(68,34,11,0.04)] ring-1 ring-outline-variant/20 md:p-8 dark:bg-[#19120e]/84">
+            <article className={`${LANDING_PANEL_CLASS} p-7 ring-1 ring-outline-variant/20 md:p-8`}>
               <div className="flex h-full flex-col justify-between">
                 <blockquote className="max-w-[28rem] font-serif text-[2rem] italic leading-[1.45] text-[#3a2d24] dark:text-[#fff7ef]">
                   {ui.quote}

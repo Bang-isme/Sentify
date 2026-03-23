@@ -1,10 +1,15 @@
 import { useLanguage, type Language } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
+import {
+  LANDING_EYEBROW_CLASS,
+  LANDING_MONO_BUTTON_CLASS,
+  LANDING_PANEL_CLASS,
+  LANDING_PANEL_SOFT_CLASS,
+  LANDING_SECTION_ACCENT_CLASS,
+  LANDING_SECTION_TITLE_CLASS,
+} from './landingVisualSystem'
 
 type BadgeColor = 'red' | 'green' | 'blue'
-
-const panelClass =
-  'rounded-[1.2rem] border border-[#e7d9cb]/85 bg-white/72 backdrop-blur-xl shadow-[0_8px_32px_rgba(162,63,0,0.06)] dark:border-white/10 dark:bg-[#19120e]/78 dark:shadow-[0_18px_40px_rgba(0,0,0,0.34)]'
 
 const monoLabelClass = 'font-mono text-[13px] font-medium md:text-[14px] uppercase tracking-[0.1em]'
 
@@ -119,27 +124,27 @@ export function BentoFeatures() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(162,63,0,0),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(162,63,0,0),transparent_30%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(235,122,28,0.12),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(242,176,77,0.08),transparent_30%)]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-[1440px] px-6 lg:px-10">
+      <div className="relative z-10 mx-auto w-full px-4 md:px-6 lg:px-10 xl:px-14">
         <div ref={ref}>
           <div
             className={`mb-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between ${revealClass()}`}
             style={revealStyle(0)}
           >
             <div>
-              <span className="block text-[12px] font-bold uppercase tracking-[0.32em] text-primary sm:text-[13px] xl:text-[14px]">
+              <span className={LANDING_EYEBROW_CLASS}>
                 {dashboard.eyebrow}
               </span>
-              <h2 className="mt-3 font-serif text-[2.9rem] leading-[0.94] tracking-tight text-[#2c211b] dark:text-[#fff7ef] md:text-[3.7rem] xl:text-[4.5rem]">
+              <h2 className={LANDING_SECTION_TITLE_CLASS}>
                 <span className="block">{dashboard.titleLine1}</span>
-                <span className="mt-1 block font-normal italic text-[#9b8775] dark:text-[#ccb59a]">{dashboard.titleLine2}</span>
+                <span className={LANDING_SECTION_ACCENT_CLASS}>{dashboard.titleLine2}</span>
               </h2>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <button className="rounded-[0.2rem] border border-[#e6d8ca] bg-white/50 px-5 py-3 text-[13px] font-mono font-medium uppercase tracking-[0.1em] text-[#705d50] transition-colors hover:bg-white/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-white/5 dark:text-[#d7c3ab] dark:hover:bg-white/10 md:text-[14px]">
+              <button className={`${LANDING_MONO_BUTTON_CLASS} border-[#e6d8ca] bg-white/50 text-[#705d50] hover:bg-white/75 dark:border-white/10 dark:bg-white/5 dark:text-[#d7c3ab] dark:hover:bg-white/10`}>
                 {chrome.exportLabel}
               </button>
-              <button className="rounded-[0.2rem] border border-[#c97d48] bg-[#fff4eb] px-5 py-3 text-[13px] font-mono font-medium uppercase tracking-[0.1em] text-[#a64809] shadow-[0_4px_12px_rgba(162,63,0,0.12)] transition-colors hover:bg-[#ffeedf] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-[#9c5b31] dark:bg-[#2a1a11] dark:text-[#f0b37a] dark:hover:bg-[#342117] md:text-[14px]">
+              <button className={`${LANDING_MONO_BUTTON_CLASS} border-[#c97d48] bg-[#fff4eb] text-[#a64809] shadow-[0_4px_12px_rgba(162,63,0,0.12)] hover:bg-[#ffeedf] dark:border-[#9c5b31] dark:bg-[#2a1a11] dark:text-[#f0b37a] dark:hover:bg-[#342117]`}>
                 {chrome.liveLabel}
               </button>
             </div>
@@ -176,7 +181,7 @@ export function BentoFeatures() {
             </div>
 
             <div className="col-span-12 space-y-5 xl:col-span-4 lg:space-y-6">
-              <aside className={`${panelClass} p-9`}>
+              <aside className={`${LANDING_PANEL_CLASS} p-9`}>
                 <h3 className={`mb-8 flex items-center gap-2 text-[#655447] dark:text-[#d9c4aa] ${monoLabelClass}`}>
                   <span className="h-1.5 w-1.5 rounded-full bg-[#c1713d]" />
                   {chrome.frictionPoints}
@@ -253,7 +258,7 @@ function MetricCard({
         : 'text-[#866f61] dark:text-[#ccb59a]'
 
   return (
-    <article className={`${panelClass} relative overflow-hidden p-8 ${toneClass}`}>
+    <article className={`${LANDING_PANEL_CLASS} relative overflow-hidden p-8 ${toneClass}`}>
       {icon ? (
         <div className="absolute right-3 top-3 opacity-10">
           <span className="material-symbols-outlined text-5xl">{icon}</span>
@@ -290,7 +295,7 @@ function DistributionCard({
   const negative = rows[2]?.value ?? 0
 
   return (
-    <article className={`${panelClass} p-10 md:col-span-3`}>
+    <article className={`${LANDING_PANEL_CLASS} p-10 md:col-span-3`}>
       <div className="flex flex-col gap-12 md:flex-row md:items-center">
         <div className="w-full md:w-1/2">
           <h3 className={`mb-8 border-l border-[#c1713d] pl-3 text-[#5d4a3e] dark:text-[#d9c4aa] ${monoLabelClass}`}>{title}</h3>
@@ -377,7 +382,7 @@ function QuoteCard({
   role: string
 }) {
   return (
-    <article className="relative min-h-[248px] overflow-hidden rounded-[1.2rem] border border-[#e7d9cb]/80 bg-[#f5efe9] p-8 dark:border-white/10 dark:bg-[#1b1410]/78">
+    <article className={`relative min-h-[248px] overflow-hidden p-8 ${LANDING_PANEL_SOFT_CLASS}`}>
       <img
         src={imageSrc}
         alt="Dashboard atmosphere"
@@ -418,10 +423,10 @@ function ArchiveCard({
   }>
 }) {
   return (
-    <article className={`${panelClass} col-span-12 mt-1 p-10`}>
+    <article className={`${LANDING_PANEL_CLASS} col-span-12 mt-1 p-10`}>
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h3 className={`text-[#2d241f] dark:text-[#fff1e2] ${monoLabelClass}`}>{title}</h3>
-        <span className="w-fit rounded-[0.2rem] border border-[#d8b79e] px-3 py-2 text-[13px] font-mono font-medium uppercase tracking-[0.08em] text-[#a95318] dark:border-[#885937] dark:text-[#f0b37a] md:text-[14px]">
+        <span className={`${LANDING_MONO_BUTTON_CLASS} w-fit border-[#d8b79e] px-3 py-2 text-[#a95318] dark:border-[#885937] dark:text-[#f0b37a]`}>
           {actionLabel}
         </span>
       </div>

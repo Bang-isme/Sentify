@@ -47,6 +47,7 @@ export function Header({
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
   const isAppRoute = route.startsWith('/app')
   const isLandingRoute = route === '/'
+  const isLandingCompact = isLandingRoute && isLandingScrolled
   const currentViewLabel =
     route === '/app'
       ? productCopy.header.dashboard
@@ -154,7 +155,11 @@ export function Header({
     : []
 
   const shellClassName = isLandingRoute
-    ? `pointer-events-auto flex min-h-[4.75rem] w-full max-w-[1600px] items-center gap-4 px-4 text-[#1a1a1a] transition-[transform,opacity] duration-300 dark:text-[#fff7ef] md:px-6 lg:px-8 ${
+    ? `pointer-events-auto flex w-full max-w-[1600px] items-center px-4 text-[#1a1a1a] transition-all duration-300 dark:text-[#fff7ef] md:px-6 lg:px-8 ${
+        isLandingCompact
+          ? 'min-h-[4rem] gap-3 md:min-h-[4.1rem] md:px-5 lg:min-h-[4.2rem] lg:px-7'
+          : 'min-h-[4.75rem] gap-4'
+      } ${
         isLandingScrolled ? 'animate-landing-header-shell' : ''
       }`
     : `pointer-events-auto mx-4 flex w-full max-w-[1260px] items-center gap-3 rounded-full border border-border-light/70 bg-surface-white/90 px-4 shadow-[0_10px_34px_rgba(0,0,0,0.1)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 dark:border-border-dark/70 dark:bg-surface-dark/92 dark:shadow-[0_10px_34px_rgba(0,0,0,0.5)] md:px-6 ${
@@ -174,7 +179,9 @@ export function Header({
       <div className={shellClassName}>
         <button
           type="button"
-          className="group mr-2 flex shrink-0 items-center gap-3"
+          className={`group mr-2 flex shrink-0 items-center transition-all duration-300 ${
+            isLandingCompact ? 'gap-2.5' : 'gap-3'
+          }`}
           onClick={() => {
             if (isAuthenticated) {
               onNavigate('/app')
@@ -185,14 +192,20 @@ export function Header({
           }}
         >
           <div
-            className={`flex size-9 items-center justify-center rounded-full transition-transform duration-500 ${
+            className={`flex items-center justify-center rounded-full transition-all duration-300 ${
               isLandingRoute
-                ? 'rounded-xl bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.65)] group-hover:scale-105 dark:bg-gradient-to-br dark:from-[#f29a40] dark:to-[#d96f1d] dark:text-[#1b120c]'
-                : 'border border-primary/25 bg-primary/8 text-primary group-hover:rotate-180'
+                ? `${isLandingCompact ? 'size-8 rounded-[0.95rem]' : 'size-9 rounded-xl'} bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.65)] group-hover:scale-105 dark:bg-gradient-to-br dark:from-[#f29a40] dark:to-[#d96f1d] dark:text-[#1b120c]`
+                : 'size-9 border border-primary/25 bg-primary/8 text-primary group-hover:rotate-180'
             }`}
           >
             {isLandingRoute ? (
-              <span className="material-symbols-outlined text-[20px] font-bold">bolt</span>
+              <span
+                className={`material-symbols-outlined font-bold transition-all duration-300 ${
+                  isLandingCompact ? 'text-[18px]' : 'text-[20px]'
+                }`}
+              >
+                bolt
+              </span>
             ) : (
               <span className="material-symbols-outlined text-[20px]">token</span>
             )}
@@ -200,7 +213,7 @@ export function Header({
           <span
             className={`hidden tracking-tight sm:block ${
               isLandingRoute
-                ? 'text-xl font-bold text-[#1a1a1a] dark:text-[#fff7ef]'
+                ? `${isLandingCompact ? 'text-lg md:text-[1.08rem]' : 'text-xl'} font-bold text-[#1a1a1a] transition-all duration-300 dark:text-[#fff7ef]`
                 : 'text-lg font-bold text-text-charcoal dark:text-white'
             }`}
             style={isLandingRoute ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
@@ -209,7 +222,13 @@ export function Header({
           </span>
         </button>
 
-        <nav className={isLandingRoute ? 'hidden items-center gap-10 md:flex' : 'hidden items-center gap-2 lg:flex'}>
+        <nav
+          className={
+            isLandingRoute
+              ? `hidden items-center md:flex ${isLandingCompact ? 'gap-8 lg:gap-9' : 'gap-10'}`
+              : 'hidden items-center gap-2 lg:flex'
+          }
+        >
           {isAppRoute && isAuthenticated ? (
             currentViewLabel ? (
               <div className="inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
@@ -224,7 +243,7 @@ export function Header({
                 type="button"
                 className={`inline-flex items-center justify-center ${
                   isLandingRoute
-                    ? 'text-[13px] font-bold uppercase tracking-[0.12em] text-[#1a1a1a] transition-colors hover:text-[#ff8c00] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]'
+                    ? `${isLandingCompact ? 'text-[12px] tracking-[0.1em]' : 'text-[13px] tracking-[0.12em]'} font-bold uppercase text-[#1a1a1a] transition-all duration-300 hover:text-[#ff8c00] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]`
                     : 'h-10 rounded-full px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary'
                 }`}
                 onClick={() => onScrollToSection(item.sectionId)}
@@ -235,18 +254,26 @@ export function Header({
           )}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 md:gap-3">
+        <div
+          className={`ml-auto flex items-center transition-all duration-300 ${
+            isLandingCompact ? 'gap-1.5 md:gap-2.5' : 'gap-2 md:gap-3'
+          }`}
+        >
           <button
             type="button"
             onClick={(event) => toggleTheme(event)}
             aria-label={copy.header.themeLabel}
-            className={`flex size-9 items-center justify-center rounded-full transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 ${
+            className={`flex items-center justify-center rounded-full transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 ${
               isLandingRoute
-                ? 'text-[#1a1a1a] hover:bg-[#fff4e8] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:bg-[#211710] dark:hover:text-[#f29a40]'
-                : 'text-text-silver-light hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] dark:text-text-silver-dark dark:hover:bg-white/5'
+                ? `${isLandingCompact ? 'size-8' : 'size-9'} text-[#1a1a1a] hover:bg-[#fff4e8] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:bg-[#211710] dark:hover:text-[#f29a40]`
+                : 'size-9 text-text-silver-light hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] dark:text-text-silver-dark dark:hover:bg-white/5'
             }`}
           >
-            <span className="material-symbols-outlined text-lg">
+            <span
+              className={`material-symbols-outlined transition-all duration-300 ${
+                isLandingCompact ? 'text-[17px]' : 'text-lg'
+              }`}
+            >
               {theme === 'dark' ? 'dark_mode' : 'light_mode'}
             </span>
           </button>
@@ -261,14 +288,20 @@ export function Header({
               aria-label={copy.header.languageLabel}
               aria-haspopup="menu"
               aria-expanded={isLanguageMenuOpen}
-              className={`flex h-9 items-center gap-2 rounded-full px-3 text-xs font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+              className={`flex items-center rounded-full px-3 text-xs font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 isLandingRoute
-                  ? 'rounded-none border-0 bg-transparent px-0 text-sm font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]'
-                  : 'border border-border-light text-text-charcoal hover:border-primary/40 hover:text-primary dark:border-border-dark dark:text-white'
+                  ? `${isLandingCompact ? 'h-8 gap-1.5 text-[13px]' : 'h-9 gap-2 text-sm'} rounded-none border-0 bg-transparent px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
+                  : 'h-9 gap-2 border border-border-light text-text-charcoal hover:border-primary/40 hover:text-primary dark:border-border-dark dark:text-white'
               }`}
             >
               {isLandingRoute ? (
-                <span className="material-symbols-outlined text-[18px]">language</span>
+                <span
+                  className={`material-symbols-outlined transition-all duration-300 ${
+                    isLandingCompact ? 'text-[16px]' : 'text-[18px]'
+                  }`}
+                >
+                  language
+                </span>
               ) : null}
               <span className="hidden sm:block">{currentLanguage.label}</span>
               <span className="sm:hidden">{currentLanguage.code.toUpperCase()}</span>
@@ -331,13 +364,17 @@ export function Header({
                     setIsAccountMenuOpen((current) => !current)
                     setIsLanguageMenuOpen(false)
                   }}
-                  className={`group flex h-10 items-center gap-2 rounded-full pl-2 pr-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  className={`group flex items-center rounded-full text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     isLandingRoute
-                      ? 'border border-[#eadbc8] bg-white/78 hover:border-[#eb7a1c]/40 hover:bg-white dark:border-[#3d2c1f] dark:bg-[#1c140f]/88 dark:hover:border-[#f29a40]/45 dark:hover:bg-[#241912]'
-                      : 'border border-border-light/80 bg-surface-white/70 hover:border-primary/35 hover:bg-primary/6 dark:border-border-dark dark:bg-surface-dark/78'
+                      ? `${isLandingCompact ? 'h-9 gap-1.5 pl-1.5 pr-2.5' : 'h-10 gap-2 pl-2 pr-3'} border border-[#eadbc8] bg-white/78 hover:border-[#eb7a1c]/40 hover:bg-white dark:border-[#3d2c1f] dark:bg-[#1c140f]/88 dark:hover:border-[#f29a40]/45 dark:hover:bg-[#241912]`
+                      : 'h-10 gap-2 border border-border-light/80 bg-surface-white/70 hover:border-primary/35 hover:bg-primary/6 dark:border-border-dark dark:bg-surface-dark/78'
                   }`}
                 >
-                  <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-black text-bg-dark">
+                  <span
+                    className={`flex items-center justify-center rounded-full bg-primary text-xs font-black text-bg-dark transition-all duration-300 ${
+                      isLandingCompact ? 'size-[1.625rem]' : 'size-7'
+                    }`}
+                  >
                     {user?.initials ?? 'S'}
                   </span>
                   <span className="hidden min-w-0 md:block">
@@ -444,10 +481,10 @@ export function Header({
             <>
               <button
                 type="button"
-                className={`hidden h-9 items-center justify-center rounded-full px-2 text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex ${
+                className={`hidden items-center justify-center rounded-full px-2 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex ${
                   isLandingRoute
-                    ? 'rounded-none px-0 text-sm font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]'
-                    : 'text-text-charcoal hover:text-primary-dark dark:text-white dark:hover:text-primary'
+                    ? `${isLandingCompact ? 'h-8 text-[13px]' : 'h-9 text-sm'} rounded-none px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
+                    : 'h-9 text-text-charcoal hover:text-primary-dark dark:text-white dark:hover:text-primary'
                 }`}
                 onClick={() => onNavigate('/login')}
               >
@@ -455,10 +492,10 @@ export function Header({
               </button>
               <button
                 type="button"
-                className={`flex h-9 items-center justify-center rounded-full px-4 text-xs font-bold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                className={`flex items-center justify-center rounded-full px-4 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   isLandingRoute
-                    ? 'h-11 bg-[#ff8c00] px-6 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(255,140,0,0.5)] hover:bg-[#e67e00] dark:bg-[#f29a40] dark:text-[#1b120c] dark:shadow-[0_14px_30px_-16px_rgba(242,154,64,0.4)] dark:hover:bg-[#ffad57]'
-                    : 'bg-primary text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] dark:text-bg-dark dark:hover:bg-yellow-400'
+                    ? `${isLandingCompact ? 'h-10 px-5 text-[13px] shadow-[0_10px_24px_-14px_rgba(255,140,0,0.45)]' : 'h-11 px-6 text-sm shadow-[0_12px_28px_-14px_rgba(255,140,0,0.5)]'} bg-[#ff8c00] font-bold text-white hover:bg-[#e67e00] dark:bg-[#f29a40] dark:text-[#1b120c] dark:shadow-[0_14px_30px_-16px_rgba(242,154,64,0.4)] dark:hover:bg-[#ffad57]`
+                    : 'h-9 bg-primary text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] dark:text-bg-dark dark:hover:bg-yellow-400'
                 }`}
                 onClick={() => onNavigate('/signup')}
               >

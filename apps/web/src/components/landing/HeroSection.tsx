@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { getLocaleWithFallback } from '../../content/localeFallback'
 import { useLanguage, type Language } from '../../contexts/languageContext'
+import { LANDING_CHIP_CLASS, LANDING_EYEBROW_CLASS } from './landingVisualSystem'
 
 interface HeroSectionProps {
   primaryLabel: string
@@ -12,74 +14,113 @@ interface HeroVisualCopy {
   eyebrow: string
   searchPlaceholder: string
   searchActionLabel: string
+  helperNote: string
   dashboardLabel: string
   totalReviewsLabel: string
   averageRatingLabel: string
   liveSnapshotLabel: string
+  chartTitle: string
   reviewCardTitle: string
   reviewCardTime: string
   reviewCardQuote: string
-  sentimentTitle: string
-  sentimentPositive: string
+  signalLabel: string
+  liveLabel: string
+  pulseTitle: string
+  pulseSubtitle: string
+  pulseFooter: string
+  sourcePills: string[]
+  pulseItems: Array<{ label: string; value: string; width: string; delay: string }>
   galleryAltPrefix: string
   quoteSource: string
 }
 
 const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
   en: {
-    eyebrow: 'Google Maps review intelligence',
+    eyebrow: 'Restaurant review intelligence',
     searchPlaceholder: 'Paste your Google Maps URL...',
-    searchActionLabel: 'Inspect restaurant review flow',
+    searchActionLabel: 'Open the restaurant review workflow',
+    helperNote: 'Start with one restaurant. Add the Google Maps URL after creating your account.',
     dashboardLabel: 'Restaurant dashboard',
     totalReviewsLabel: 'Total reviews',
     averageRatingLabel: 'Avg rating',
     liveSnapshotLabel: 'Live review snapshot',
+    chartTitle: 'Sentiment over time',
     reviewCardTitle: 'Guest signal',
-    reviewCardTime: '2 minutes ago',
-    reviewCardQuote: '"Guests keep mentioning faster service after the menu update."',
-    sentimentTitle: 'Sentiment trend',
-    sentimentPositive: 'Positive shift',
+    reviewCardTime: '2 min',
+    reviewCardQuote: 'Guests keep mentioning faster service after the menu update.',
+    signalLabel: 'Signal',
+    liveLabel: 'LIVE',
+    pulseTitle: 'Live pulse',
+    pulseSubtitle: 'Sources gaining traction',
+    pulseFooter: 'Continuous updates',
+    sourcePills: ['Google Maps', 'Facebook', 'ShopeeFood'],
+    pulseItems: [
+      { label: 'Google Maps', value: '86', width: '86%', delay: '0ms' },
+      { label: 'Facebook', value: '72', width: '72%', delay: '180ms' },
+      { label: 'ShopeeFood', value: '91', width: '91%', delay: '360ms' },
+    ],
     galleryAltPrefix: 'Restaurant review insight',
     quoteSource: 'Review from Google Maps',
   },
   vi: {
-    eyebrow: 'Phân tích review từ Google Maps',
+    eyebrow: 'Phân tích review cho nhà hàng',
     searchPlaceholder: 'Dán link Google Maps của nhà hàng...',
     searchActionLabel: 'Mở luồng phân tích review nhà hàng',
+    helperNote: 'Bắt đầu với một nhà hàng. Thêm link Google Maps sau khi tạo tài khoản.',
     dashboardLabel: 'Dashboard nhà hàng',
     totalReviewsLabel: 'Tổng review',
     averageRatingLabel: 'Điểm trung bình',
     liveSnapshotLabel: 'Ảnh chụp review realtime',
-    reviewCardTitle: 'Tín hiệu khách hàng',
-    reviewCardTime: '2 phút trước',
-    reviewCardQuote: '"Khách bắt đầu nhắc nhiều hơn về dịch vụ nhanh và ổn định."',
-    sentimentTitle: 'Xu hướng sentiment',
-    sentimentPositive: 'Tích cực hơn',
-    galleryAltPrefix: 'Minh hoạ review nhà hàng',
+    chartTitle: 'Sentiment theo thời gian',
+    reviewCardTitle: 'Tín hiệu review',
+    reviewCardTime: '2 phút',
+    reviewCardQuote: 'Khách bắt đầu nhắc nhiều hơn về dịch vụ nhanh và ổn định.',
+    signalLabel: 'Tín hiệu',
+    liveLabel: 'LIVE',
+    pulseTitle: 'Nhịp review',
+    pulseSubtitle: 'Nguồn đang nhắc nhiều hơn',
+    pulseFooter: 'Cập nhật liên tục',
+    sourcePills: ['Google Maps', 'Facebook', 'ShopeeFood'],
+    pulseItems: [
+      { label: 'Google Maps', value: '86', width: '86%', delay: '0ms' },
+      { label: 'Facebook', value: '72', width: '72%', delay: '180ms' },
+      { label: 'ShopeeFood', value: '91', width: '91%', delay: '360ms' },
+    ],
+    galleryAltPrefix: 'Minh họa review nhà hàng',
     quoteSource: 'Review từ Google Maps',
   },
   ja: {
-    eyebrow: 'Google Maps review intelligence',
-    searchPlaceholder: 'Google Maps URL...',
-    searchActionLabel: 'Open review flow',
-    dashboardLabel: 'Restaurant dashboard',
-    totalReviewsLabel: 'Total reviews',
-    averageRatingLabel: 'Avg rating',
-    liveSnapshotLabel: 'Live review snapshot',
-    reviewCardTitle: 'Guest signal',
-    reviewCardTime: '2 minutes ago',
-    reviewCardQuote: '"Service mentions are trending upward after the latest changes."',
-    sentimentTitle: 'Sentiment trend',
-    sentimentPositive: 'Positive shift',
-    galleryAltPrefix: 'Restaurant review insight',
-    quoteSource: 'Review from Google Maps',
+    eyebrow: 'レストランレビューの整理',
+    searchPlaceholder: 'Google MapsのURLを貼り付け...',
+    searchActionLabel: 'レビュー分析を開く',
+    helperNote: 'まずは1店舗から始めます。アカウント作成後にGoogle MapsのURLを追加してください。',
+    dashboardLabel: 'レストランダッシュボード',
+    totalReviewsLabel: 'レビュー総数',
+    averageRatingLabel: '平均評価',
+    liveSnapshotLabel: 'リアルタイムレビュー',
+    chartTitle: '感情の推移',
+    reviewCardTitle: 'レビューシグナル',
+    reviewCardTime: '2分前',
+    reviewCardQuote: '直近の変更後、サービスに関する前向きな言及が増えています。',
+    signalLabel: 'シグナル',
+    liveLabel: 'LIVE',
+    pulseTitle: 'レビュー動向',
+    pulseSubtitle: '言及が増えている媒体',
+    pulseFooter: '継続更新中',
+    sourcePills: ['Google Maps', 'Facebook', 'ShopeeFood'],
+    pulseItems: [
+      { label: 'Google Maps', value: '86', width: '86%', delay: '0ms' },
+      { label: 'Facebook', value: '72', width: '72%', delay: '180ms' },
+      { label: 'ShopeeFood', value: '91', width: '91%', delay: '360ms' },
+    ],
+    galleryAltPrefix: 'レストランレビューのインサイト',
+    quoteSource: 'Google Mapsのレビュー',
   },
 }
 
 const HERO_FEATURE_ICONS = ['travel_explore', 'insights', 'monitoring'] as const
 const HERO_CHART_HEIGHTS = [32, 58, 44, 76, 56, 84, 64] as const
 const HERO_REVIEW_IMAGE = '/images/Review.png'
-const HERO_SOURCE_PILLS = ['Google Maps', 'Facebook', 'ShopeeFood'] as const
 
 function HeroStatCard({
   value,
@@ -130,26 +171,8 @@ function HeroOutlineCluster({
   )
 }
 
-function HeroDashboardMockup({
-  ui,
-  compactReviewCardTitle,
-  compactReviewCardTime,
-  pulseTitle,
-  pulseSubtitle,
-  pulseFooter,
-}: {
-  ui: HeroVisualCopy
-  compactReviewCardTitle: string
-  compactReviewCardTime: string
-  pulseTitle: string
-  pulseSubtitle: string
-  pulseFooter: string
-}) {
-  const pulseItems = [
-    { label: 'Google Maps', value: '86', width: '86%', delay: '0ms' },
-    { label: 'Facebook', value: '72', width: '72%', delay: '180ms' },
-    { label: 'ShopeeFood', value: '91', width: '91%', delay: '360ms' },
-  ] as const
+function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
+  const pulseItems = ui.pulseItems
 
   return (
     <div className="relative mx-auto w-full max-w-[54rem] px-2 py-6 md:px-5 md:py-8">
@@ -199,7 +222,7 @@ function HeroDashboardMockup({
                 className="animate-dashboard-sheen pointer-events-none absolute inset-y-10 left-[-34%] w-[34%] rotate-[12deg] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.42),transparent)] blur-xl"
               />
               <div className="mb-6 flex items-center justify-between gap-4">
-                <p className="text-lg font-bold text-[#3e3024] dark:text-[#fff3e4]">Sentiment Over Time</p>
+                <p className="text-lg font-bold text-[#3e3024] dark:text-[#fff3e4]">{ui.chartTitle}</p>
                 <span className="animate-dashboard-pill rounded-xl bg-[#fff1df] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:text-[13px]">
                   +12 %
                 </span>
@@ -226,7 +249,7 @@ function HeroDashboardMockup({
               </div>
 
               <div className="mt-5 flex flex-wrap gap-2.5">
-                {HERO_SOURCE_PILLS.map((pill, index) => (
+                {ui.sourcePills.map((pill, index) => (
                   <span
                     key={pill}
                     className="rounded-full border border-[#f0dcc4] bg-white px-4 py-2.5 text-[12px] font-semibold text-[#8b7259] shadow-[0_10px_18px_-16px_rgba(53,30,11,0.18)] dark:border-[#493525] dark:bg-[#20160f] dark:text-[#dec8af] dark:shadow-[0_14px_28px_-18px_rgba(0,0,0,0.45)] md:text-[13px]"
@@ -282,13 +305,13 @@ function HeroDashboardMockup({
 
           <div className="animate-hero-card-c rounded-[2rem] border border-white/85 bg-white/94 p-5 shadow-[0_26px_58px_-30px_rgba(53,30,11,0.2)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_26px_58px_-28px_rgba(0,0,0,0.58)]">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#b08b67] dark:text-[#b99d7f] md:text-[13px]">Signal</span>
-              <span className="rounded-full bg-[#fff1df] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:text-[13px]">
-                {compactReviewCardTime}
+              <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#b08b67] dark:text-[#b99d7f] md:text-[13px]">{ui.signalLabel}</span>
+              <span className="inline-flex min-w-[5.75rem] items-center justify-center rounded-full bg-[#fff1df] px-3 py-1.5 text-center text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:min-w-[6rem] md:text-[13px]">
+                {ui.reviewCardTime}
               </span>
             </div>
 
-            <p className="mt-5 text-lg font-bold leading-7 text-[#201611] dark:text-[#fff6ec]">{compactReviewCardTitle}</p>
+            <p className="mt-5 text-lg font-bold leading-7 text-[#201611] dark:text-[#fff6ec]">{ui.reviewCardTitle}</p>
 
             <div className="mt-6 space-y-4">
               <div>
@@ -317,14 +340,14 @@ function HeroDashboardMockup({
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="animate-dashboard-live-dot size-2 rounded-full bg-[#34c97a]" />
-                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#b08b67] dark:text-[#b99d7f] md:text-[13px]">{pulseTitle}</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#b08b67] dark:text-[#b99d7f] md:text-[13px]">{ui.pulseTitle}</p>
               </div>
-              <span className="rounded-md bg-[#fff3e6] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:text-[13px]">
-                Live
+              <span className="inline-flex min-w-[4.35rem] items-center justify-center rounded-md bg-[#fff3e6] px-3 py-1.5 text-center text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:min-w-[4.5rem] md:text-[13px]">
+                {ui.liveLabel}
               </span>
             </div>
 
-            <p className="mt-5 text-[15px] font-bold leading-6 text-[#201611] dark:text-[#fff6ec]">{pulseSubtitle}</p>
+            <p className="mt-5 text-[15px] font-bold leading-6 text-[#201611] dark:text-[#fff6ec]">{ui.pulseSubtitle}</p>
 
             <div className="mt-6 space-y-5">
               {pulseItems.map((item) => (
@@ -345,7 +368,7 @@ function HeroDashboardMockup({
 
             <div className="mt-7 flex items-center justify-center gap-2 text-[12px] font-bold uppercase tracking-[0.12em] text-[#a88d71] dark:text-[#bfa587] md:text-[13px]">
               <span className="h-px w-5 bg-[#e6d3bf] dark:bg-[#4c3727]" />
-              <span>{pulseFooter}</span>
+              <span>{ui.pulseFooter}</span>
               <span className="h-px w-5 bg-[#e6d3bf] dark:bg-[#4c3727]" />
             </div>
           </div>
@@ -363,17 +386,10 @@ export function HeroSection({
 }: HeroSectionProps) {
   const { copy, language } = useLanguage()
   const [draftQuery, setDraftQuery] = useState('')
-  const ui = HERO_VISUAL_COPY[language]
-  const compactReviewCardTitle = language === 'vi' ? 'T\u00edn hi\u1ec7u review' : ui.reviewCardTitle
-  const compactReviewCardTime = language === 'vi' ? '2m tr\u01b0\u1edbc' : ui.reviewCardTime
-  const pulseTitle = language === 'vi' ? 'Nh\u1ecbp review' : 'Live pulse'
-  const pulseSubtitle =
-    language === 'vi' ? 'Ngu\u1ed3n \u0111ang nh\u1eafc nhi\u1ec1u h\u01a1n' : 'Sources gaining traction'
-  const pulseFooter = language === 'vi' ? 'C\u1eadp nh\u1eadt li\u00ean t\u1ee5c' : 'Continuous updates'
+  const ui = getLocaleWithFallback(HERO_VISUAL_COPY, language)
   const isVietnameseBrandLead = language === 'vi' && copy.hero.titleLine1.trim() === copy.header.brand
-  const secondaryLine = isVietnameseBrandLead
-    ? 'Lắng nghe. Phân tích. Cải tiến.'
-    : copy.hero.titleLine2
+  const isEnglishHero = language === 'en'
+  const secondaryLine = copy.hero.titleLine2
 
   return (
     <section
@@ -412,18 +428,30 @@ export function HeroSection({
           <div className="relative z-10 max-w-[40rem] lg:pr-1">
             <div>
               {isVietnameseBrandLead ? (
-                <h1>
+                <h1 className="mt-4">
                   <span className="block font-display text-[clamp(4.9rem,10vw,7.8rem)] font-black leading-[0.86] tracking-[-0.085em] text-[#201611] dark:text-white">
                     {copy.hero.titleLine1}
+                  </span>
+                  <span className={`mt-4 block ${LANDING_EYEBROW_CLASS}`}>
+                    {ui.eyebrow}
                   </span>
                   <span className="mt-5 block max-w-fit whitespace-nowrap font-serif text-[clamp(1.05rem,3.2vw,3.1rem)] italic leading-none text-[#e87a20]">
                     {secondaryLine}
                   </span>
                 </h1>
               ) : (
-                <h1 className="font-display text-[clamp(4rem,8vw,6.8rem)] font-black leading-[0.88] tracking-[-0.065em] text-[#201611] dark:text-white">
+                <h1 className="mt-4 font-display text-[clamp(4rem,8vw,6.8rem)] font-black leading-[0.88] tracking-[-0.065em] text-[#201611] dark:text-white">
                   <span className="block">{copy.hero.titleLine1}</span>
-                  <span className="mt-4 block max-w-fit whitespace-nowrap font-serif text-[0.78em] font-normal italic text-[#e87a20]">
+                  <span className={`mt-4 block ${LANDING_EYEBROW_CLASS}`}>
+                    {ui.eyebrow}
+                  </span>
+                  <span
+                    className={`mt-4 block font-serif font-normal italic text-[#e87a20] ${
+                      isEnglishHero
+                        ? 'max-w-[8.6ch] text-[0.67em] leading-[0.92] sm:max-w-[10.5ch] lg:max-w-[11.5ch]'
+                        : 'max-w-fit whitespace-nowrap text-[0.78em]'
+                    }`}
+                  >
                     {secondaryLine}
                   </span>
                 </h1>
@@ -459,13 +487,17 @@ export function HeroSection({
                 <button
                   type="submit"
                   aria-label={ui.searchActionLabel}
-                  className="inline-flex h-[3.6rem] items-center justify-center gap-2 rounded-[1.45rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-6 text-base font-bold text-white shadow-[0_20px_36px_-20px_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_40px_-18px_rgba(217,95,22,0.85)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="inline-flex h-[3.6rem] w-full items-center justify-center gap-2 rounded-[1.45rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-6 text-base font-bold text-white shadow-[0_20px_36px_-20px_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_40px_-18px_rgba(217,95,22,0.85)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
                 >
                   <span>{primaryLabel}</span>
                   <span className="material-symbols-outlined text-[18px]">arrow_outward</span>
                 </button>
               </form>
             </div>
+
+            <p className="mt-3 max-w-[38rem] text-[14px] leading-6 text-[#8a6a4a] dark:text-[#c8b092]">
+              {ui.helperNote}
+            </p>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
@@ -475,7 +507,7 @@ export function HeroSection({
               >
                 {secondaryLabel}
               </button>
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#fff1df] px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#bf6519] shadow-[0_14px_24px_-24px_rgba(53,30,11,0.14)] dark:bg-white/7 dark:text-[#f3c47f] md:text-[13px]">
+              <span className={`${LANDING_CHIP_CLASS} inline-flex items-center gap-2 bg-[#fff1df] text-[12px] font-semibold uppercase tracking-[0.14em] text-[#bf6519] dark:bg-white/7 dark:text-[#f3c47f] md:text-[13px]`}>
                 <span className="size-2 rounded-full bg-[#eb7a1c]" />
                 <span>{ui.liveSnapshotLabel}</span>
               </span>
@@ -485,10 +517,10 @@ export function HeroSection({
               {copy.hero.highlights.map((item, index) => (
                 <article
                   key={item}
-                  className={`rounded-[1.7rem] border p-5 shadow-[0_22px_44px_-34px_rgba(53,30,11,0.18)] transition hover:-translate-y-1 ${
+                  className={`border p-5 transition hover:-translate-y-1 ${
                     index === 1
-                      ? 'border-[#f0d5b7] bg-[linear-gradient(160deg,rgba(255,243,224,0.95),rgba(255,232,204,0.9))]'
-                      : 'border-[#f0ddc7] bg-[rgba(255,252,247,0.88)]'
+                      ? 'rounded-[1.35rem] border-[#f0d5b7] bg-[linear-gradient(160deg,rgba(255,243,224,0.95),rgba(255,232,204,0.9))] shadow-[0_18px_40px_-28px_rgba(53,30,11,0.16)]'
+                      : 'rounded-[1.35rem] border-[#f0ddc7] bg-[rgba(255,252,247,0.84)] shadow-[0_18px_40px_-28px_rgba(53,30,11,0.14)]'
                   } dark:border-white/10 dark:bg-white/7`}
                 >
                   <div className="flex items-start gap-3">
@@ -512,14 +544,7 @@ export function HeroSection({
           </div>
 
           <div className="relative lg:pl-0">
-            <HeroDashboardMockup
-              ui={ui}
-              compactReviewCardTitle={compactReviewCardTitle}
-              compactReviewCardTime={compactReviewCardTime}
-              pulseTitle={pulseTitle}
-              pulseSubtitle={pulseSubtitle}
-              pulseFooter={pulseFooter}
-            />
+            <HeroDashboardMockup ui={ui} />
           </div>
         </div>
       </div>
