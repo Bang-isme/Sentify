@@ -191,6 +191,8 @@ test('review crawl service creates a queued run and enqueues it', async () => {
     assert.equal(createdRunData.maxPages, 10)
     assert.equal(createdRunData.delayMs, 250)
     assert.equal(enqueuedRunId, 'run-1')
+    assert.equal(result.crawlCoverage.completeness, 'IN_PROGRESS')
+    assert.equal(result.crawlCoverage.operatorPolicy.code, 'WAIT_FOR_TERMINAL_RUN')
 
     restoreModules()
 })
@@ -705,6 +707,20 @@ test('review crawl service keeps a reported-total mismatch warning when the sour
     assert.equal(result.status, 'COMPLETED')
     assert.equal(result.extractedCount, 1)
     assert.equal(result.warningCount, 1)
+    assert.equal(result.crawlCoverage.completeness, 'PUBLIC_CHAIN_EXHAUSTED')
+    assert.equal(result.crawlCoverage.reportedTotal, 5)
+    assert.equal(result.crawlCoverage.reportedTotalDelta, 4)
+    assert.equal(
+        result.crawlCoverage.mismatchStatus,
+        'REPORTED_TOTAL_EXCEEDS_EXTRACTED',
+    )
+    assert.equal(result.crawlCoverage.publicReviewChainExhausted, true)
+    assert.equal(result.crawlCoverage.stopReason, 'exhausted_source')
+    assert.equal(
+        result.crawlCoverage.operatorPolicy.code,
+        'REPORTED_TOTAL_IS_ADVISORY',
+    )
+    assert.equal(result.crawlCoverage.operatorPolicy.actionRequired, false)
     assert.match(
         result.warnings[0],
         /Google Maps reported 5 reviews, but only 1 unique reviews were extracted/,

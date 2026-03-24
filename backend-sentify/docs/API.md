@@ -361,6 +361,7 @@ Notes:
 
 - `BACKFILL` now defaults to `delayMs = 0`
 - run warnings may still include a `reportedTotal` vs `extractedCount` mismatch after a `COMPLETED` run
+- run payloads now also include `crawlCoverage` with structured completeness, mismatch, delta, and operator-policy fields
 
 ### `GET /api/admin/review-crawl/runs/:runId`
 
@@ -373,6 +374,7 @@ Returns run progress:
 - `duplicateCount`
 - `checkpointCursor`
 - `warnings`
+- `crawlCoverage`
 - optional linked `intakeBatch`
 
 Status contract:
@@ -383,6 +385,13 @@ Status contract:
 - `COMPLETED`
 - `FAILED`
 - `CANCELLED`
+
+`crawlCoverage` semantics:
+
+- `reportedTotalDelta = reportedTotal - extractedCount`
+- positive `reportedTotalDelta` does not automatically mean more public reviews are still crawlable
+- `crawlCoverage.completeness = "PUBLIC_CHAIN_EXHAUSTED"` plus `operatorPolicy.code = "REPORTED_TOTAL_IS_ADVISORY"` means the public page chain ended even though Google still reported a higher total
+- `operatorPolicy.code = "RESUME_FROM_CHECKPOINT"` means the run ended with `premature_exhaustion` and should be resumed from the saved checkpoint if deeper backfill proof is required
 
 ### `POST /api/admin/review-crawl/runs/:runId/cancel`
 
@@ -440,14 +449,15 @@ Important behavior:
 - default strategy is `BACKFILL` for a source that has never succeeded before
 - default strategy is `INCREMENTAL` for an already-synced source
 - manual publish is still required after the draft batch is ready
-- backfill defaults now favor throughput, but warning semantics still protect operators from assuming `reportedTotal` was fully reached
+- backfill defaults now favor throughput
+- `run.crawlCoverage.operatorPolicy` is the structured operator-facing replacement for inferring crawl coverage from warning strings alone
 
 ### `GET /api/admin/review-ops/sources?restaurantId=...`
 
 Returns:
 
 - source list
-- latest run summary per source
+- latest run summary per source, including `latestRun.crawlCoverage`
 - open draft batch summary per source
 - queue health
 - worker heartbeat summary
@@ -469,6 +479,7 @@ Returns:
 - mapped run detail
 - queue job state, when available
 - flags such as `resumable` and `materializable`
+- `run.crawlCoverage` for mismatch and operator-policy interpretation
 
 ### `POST /api/admin/review-ops/sources/:sourceId/disable`
 

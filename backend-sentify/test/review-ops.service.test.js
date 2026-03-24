@@ -135,7 +135,10 @@ test('review ops lists sources with latest run, open draft batch, and runtime he
                         errorCode: null,
                         errorMessage: null,
                         warningsJson: ['partial'],
-                        metadataJson: { materializeMode: 'DRAFT' },
+                        metadataJson: {
+                            materializeMode: 'DRAFT',
+                            stopReason: 'premature_exhaustion',
+                        },
                         queuedAt: new Date('2026-03-24T00:00:00Z'),
                         startedAt: new Date('2026-03-24T00:00:05Z'),
                         lastCheckpointAt: new Date('2026-03-24T00:01:00Z'),
@@ -187,6 +190,15 @@ test('review ops lists sources with latest run, open draft batch, and runtime he
     assert.equal(result.sources.length, 1)
     assert.equal(result.sources[0].latestRun.id, 'run-1')
     assert.equal(result.sources[0].openDraftBatch.id, 'batch-1')
+    assert.equal(result.sources[0].latestRun.crawlCoverage.completeness, 'PARTIAL')
+    assert.equal(
+        result.sources[0].latestRun.crawlCoverage.mismatchStatus,
+        'REPORTED_TOTAL_EXCEEDS_EXTRACTED',
+    )
+    assert.equal(
+        result.sources[0].latestRun.crawlCoverage.operatorPolicy.code,
+        'RESUME_FROM_CHECKPOINT',
+    )
     assert.equal(result.queueHealth.configured, true)
     assert.equal(result.workerHealth.processors.length, 1)
 

@@ -25,8 +25,8 @@ The backend is no longer a mock-demo. It already behaves like a real product fou
 | Auth and security | Mostly done | JWT, refresh, cookies, CSRF, lockout, reset flow, service-level lifecycle proof for refresh rotation/reuse and forgot/reset password, controller proof for refresh and reset route contracts | Staging-style auth smoke if release confidence needs to go higher |
 | Merchant read APIs | Mostly done | Dashboard, reviews, sentiment, trend, complaints, top issue, seeded real-DB HTTP smoke, local SMB read-load proof | Staging-style soak and perf guardrails |
 | Admin intake | Mostly done | Create, edit, review, publish, canonical reuse | More multi-batch regression proof |
-| Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, repeated deep-crawl benchmarks to the same public ceiling, local worker-pressure harness | Redis-backed SMB load proof and dedicated Redis ops evidence |
-| Review ops control plane | Mostly done | One-click draft sync, source list, run list, readiness, bulk approve valid, publish proxy | End-to-end queue proof through the operator surface |
+| Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, repeated deep-crawl benchmarks to the same public ceiling, structured `crawlCoverage` diagnostics, local worker-pressure harness | Redis-backed SMB load proof and dedicated Redis ops evidence |
+| Review ops control plane | Mostly done | One-click draft sync, source list, run list, readiness, bulk approve valid, publish proxy, operator policy for `reportedTotal` mismatch | End-to-end queue proof through the operator surface |
 | Publish integrity | Mostly done | Stable external review identity, canonical reuse, and real-DB duplicate publish regression | Keep widening edge-case coverage as source rules evolve |
 | Database | Mostly done | Runtime models, crawl invariants, seed dataset | Backup and restore evidence |
 | Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued crawl smoke, seeded merchant-read HTTP proof, local SMB load harnesses | Redis-backed queue load proof and staged smoke |
@@ -109,7 +109,7 @@ Key backend milestones already achieved:
 
 - confidence still lacks staging-style release proof
 - queue worker load behavior is still unmeasured under real Redis SMB concurrency
-- Google-reported totals can still exceed the public review rows exposed through the unofficial RPC
+- Google-reported totals can still exceed the public review rows exposed through the unofficial RPC, even though operator surfaces now label that mismatch as advisory when the public chain is exhausted
 - release operations are not yet demonstrated in staging
 
 ## 6. Recommended Next Order
@@ -117,9 +117,8 @@ Key backend milestones already achieved:
 The next backend priorities should be:
 
 1. run the new worker load harness against real Redis and the operator-triggered queue path
-2. document operator policy when `reportedTotal` exceeds crawlable public reviews
-3. prepare staging, backup, restore, and rollback evidence
-4. keep tightening staged auth and ops smoke as release confidence rises
+2. prepare staging, backup, restore, and rollback evidence
+3. keep tightening staged auth and ops smoke as release confidence rises
 
 ## 7. Short Conclusion
 

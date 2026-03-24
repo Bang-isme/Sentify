@@ -73,14 +73,14 @@ The backend is a modular monolith. `admin-intake`, `review-crawl`, and `review-o
 - draft materialization into intake batches
 - fresh-session cursor recovery for suspicious empty pages
 - backfill auto-resume from persisted checkpoint cursors
-- mismatch warnings when preview metadata totals exceed extracted public reviews
+- structured `crawlCoverage` diagnostics plus mismatch warnings when preview metadata totals exceed extracted public reviews
 
 ### Review ops control plane
 
 - one-click `sync-to-draft` orchestration from Google Maps URL
-- source list with latest run and open draft batch summary
+- source list with latest run `crawlCoverage` and open draft batch summary
 - run history by source
-- enriched run detail with queue state
+- enriched run detail with queue state and operator policy
 - source enable and disable controls
 - batch readiness summary before publish
 - bulk approve of only currently publishable pending items
@@ -146,7 +146,7 @@ Current crawl evidence on the live `Quan Pho Hong` source:
 
 - direct full crawl, `delayMs=0`: `4527 / 4746` in about `33-36s`
 - queued backfill smoke, default backfill delay `0`: `4527 / 4746` in about `50.3s`
-- completed runs keep a mismatch warning when `reportedTotal > extractedCount`
+- completed runs keep a mismatch warning and expose `crawlCoverage.operatorPolicy = REPORTED_TOTAL_IS_ADVISORY` when `reportedTotal > extractedCount`
 
 Current crawl evidence on the larger live `Cong Ca Phe` source:
 
@@ -194,7 +194,6 @@ The backend is still not fully release-ready. Main remaining gaps:
 - Redis-backed SMB load proof for queued crawl workers and operator-triggered queue paths
 - staging evidence, backup, restore, and rollback drills
 - continued refactor of older auth and restaurant modules toward the same feature-module shape
-- a clear product policy for places where preview metadata totals stay above the public crawl ceiling
 
 ## 8. Short Conclusion
 
