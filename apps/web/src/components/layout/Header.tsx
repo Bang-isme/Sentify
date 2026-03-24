@@ -47,6 +47,7 @@ export function Header({
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
   const isAppRoute = route.startsWith('/app')
   const isLandingRoute = route === '/'
+  const isAuthRoute = route === '/login' || route === '/signup'
   const useLandingChrome = !isAppRoute
   const marketingSurfaceVisible = isLandingRoute ? isLandingScrolled : true
   const isLandingCompact = isLandingRoute && isLandingScrolled
@@ -171,7 +172,9 @@ export function Header({
 
   const headerClassName = useLandingChrome
     ? `pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${
-        marketingSurfaceVisible
+        isAuthRoute
+          ? 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0'
+          : marketingSurfaceVisible
           ? 'border-b border-[#f3e4d3] bg-white/98 shadow-[0_2px_15px_rgba(0,0,0,0.03)] backdrop-blur-sm dark:border-[#3f2c1f] dark:bg-[#17100c]/96 dark:shadow-[0_12px_30px_-22px_rgba(0,0,0,0.65)]'
           : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0'
       }`
@@ -216,7 +219,7 @@ export function Header({
           <span
             className={`hidden tracking-tight sm:block ${
               useLandingChrome
-                ? `${marketingShellCompact ? 'text-lg md:text-[1.08rem]' : 'text-xl'} font-bold text-[#1a1a1a] transition-all duration-300 dark:text-[#fff7ef]`
+                ? `${marketingShellCompact ? 'text-lg md:text-[1.08rem]' : 'text-xl'} font-bold ${isAuthRoute ? 'text-white dark:text-white' : 'text-[#1a1a1a] dark:text-[#fff7ef]'} transition-all duration-300`
                 : 'text-lg font-bold text-text-charcoal dark:text-white'
             }`}
             style={useLandingChrome ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
@@ -228,7 +231,7 @@ export function Header({
         <nav
           className={
             useLandingChrome
-              ? `hidden items-center md:flex ${marketingShellCompact ? 'gap-8 lg:gap-9' : 'gap-10'}`
+              ? `hidden items-center md:flex md:translate-y-[1px] ${marketingShellCompact ? 'gap-8 lg:gap-9' : 'gap-10'}`
               : 'hidden items-center gap-2 lg:flex'
           }
         >
@@ -246,7 +249,7 @@ export function Header({
                 type="button"
                 className={`inline-flex items-center justify-center ${
                   useLandingChrome
-                    ? `${marketingShellCompact ? 'text-[12px] tracking-[0.1em]' : 'text-[13px] tracking-[0.12em]'} font-bold uppercase text-[#1a1a1a] transition-all duration-300 hover:text-[#ff8c00] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]`
+                    ? `${marketingShellCompact ? 'text-[0.92rem] tracking-[0.01em]' : 'text-[0.96rem] tracking-[0.01em]'} font-semibold ${isAuthRoute ? 'text-white/90 hover:text-[#ff8c00] dark:text-white/90 dark:hover:text-[#f29a40]' : 'text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]'} transition-all duration-300`
                     : 'h-10 rounded-full px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary'
                 }`}
                 onClick={() => onScrollToSection(item.sectionId)}
@@ -258,7 +261,7 @@ export function Header({
         </nav>
 
         <div
-          className={`ml-auto flex items-center transition-all duration-300 ${
+          className={`ml-auto flex items-center transition-all duration-300 md:translate-y-[1px] ${
             isLandingCompact ? 'gap-1.5 md:gap-2.5' : 'gap-2 md:gap-3'
           }`}
         >
@@ -293,7 +296,7 @@ export function Header({
               aria-expanded={isLanguageMenuOpen}
               className={`flex items-center rounded-full px-3 text-xs font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 useLandingChrome
-                  ? `${marketingShellCompact ? 'h-8 gap-1.5 text-[13px]' : 'h-9 gap-2 text-sm'} rounded-none border-0 bg-transparent px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
+                  ? `${marketingShellCompact ? 'h-8 gap-1.5 text-[0.92rem]' : 'h-9 gap-2 text-[0.96rem]'} rounded-none border-0 bg-transparent px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
                   : 'h-9 gap-2 border border-border-light text-text-charcoal hover:border-primary/40 hover:text-primary dark:border-border-dark dark:text-white'
               }`}
             >
@@ -486,7 +489,7 @@ export function Header({
                 type="button"
                 className={`hidden items-center justify-center rounded-full px-2 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex ${
                   useLandingChrome
-                    ? `${marketingShellCompact ? 'h-8 text-[13px]' : 'h-9 text-sm'} rounded-none px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
+                    ? `${marketingShellCompact ? 'h-8 text-[0.92rem]' : 'h-9 text-[0.96rem]'} rounded-none px-0 font-semibold text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]`
                     : 'h-9 text-text-charcoal hover:text-primary-dark dark:text-white dark:hover:text-primary'
                 }`}
                 onClick={() => onNavigate('/login')}
@@ -497,7 +500,7 @@ export function Header({
                 type="button"
                 className={`flex items-center justify-center rounded-full px-4 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   useLandingChrome
-                    ? `${marketingShellCompact ? 'h-10 px-5 text-[13px] shadow-[0_10px_24px_-14px_rgba(255,140,0,0.45)]' : 'h-11 px-6 text-sm shadow-[0_12px_28px_-14px_rgba(255,140,0,0.5)]'} bg-[#ff8c00] font-bold text-white hover:bg-[#e67e00] dark:bg-[#f29a40] dark:text-[#1b120c] dark:shadow-[0_14px_30px_-16px_rgba(242,154,64,0.4)] dark:hover:bg-[#ffad57]`
+                    ? `${marketingShellCompact ? 'h-10 px-5 text-[0.92rem] shadow-[0_10px_24px_-14px_rgba(255,140,0,0.45)]' : 'h-10.5 px-5.5 text-[0.96rem] shadow-[0_12px_28px_-14px_rgba(255,140,0,0.5)]'} bg-[#ff8c00] font-bold text-white hover:bg-[#e67e00] dark:bg-[#f29a40] dark:text-[#1b120c] dark:shadow-[0_14px_30px_-16px_rgba(242,154,64,0.4)] dark:hover:bg-[#ffad57]`
                     : 'h-9 bg-primary text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] dark:text-bg-dark dark:hover:bg-yellow-400'
                 }`}
                 onClick={() => onNavigate('/signup')}

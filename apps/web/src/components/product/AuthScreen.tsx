@@ -40,6 +40,7 @@ const authSceneCopy: Record<
     terms: string
     showPassword: string
     hidePassword: string
+    passwordPlaceholder: string
   }
 > = {
   en: {
@@ -52,35 +53,140 @@ const authSceneCopy: Record<
     terms: 'Terms of Service',
     showPassword: 'Show password',
     hidePassword: 'Hide password',
+    passwordPlaceholder: 'At least 8 characters',
   },
   vi: {
-    joinedBy: 'Đã có hơn 5.000 đội ngũ sử dụng',
+    joinedBy: '\u0110\u00e3 c\u00f3 h\u01a1n 5.000 \u0111\u1ed9i ng\u0169 s\u1eed d\u1ee5ng',
     quote:
-      '"Một luồng review tốt là khi đội ngũ nhìn ra điều quan trọng và hành động nhanh hơn."',
-    credit: 'Ghi chú từ đội vận hành',
-    divider: 'Hoặc tiếp tục với email',
-    privacy: 'Chính sách bảo mật',
-    terms: 'Điều khoản dịch vụ',
-    showPassword: 'Hiện mật khẩu',
-    hidePassword: 'Ẩn mật khẩu',
+      '"M\u1ed9t lu\u1ed3ng review t\u1ed1t l\u00e0 khi \u0111\u1ed9i ng\u0169 nh\u00ecn ra \u0111i\u1ec1u quan tr\u1ecdng v\u00e0 h\u00e0nh \u0111\u1ed9ng nhanh h\u01a1n."',
+    credit: 'Ghi ch\u00fa t\u1eeb \u0111\u1ed9i v\u1eadn h\u00e0nh',
+    divider: 'Ho\u1eb7c ti\u1ebfp t\u1ee5c v\u1edbi email',
+    privacy: 'Ch\u00ednh s\u00e1ch b\u1ea3o m\u1eadt',
+    terms: '\u0110i\u1ec1u kho\u1ea3n d\u1ecbch v\u1ee5',
+    showPassword: 'Hi\u1ec7n m\u1eadt kh\u1ea9u',
+    hidePassword: '\u1ea8n m\u1eadt kh\u1ea9u',
+    passwordPlaceholder: 'T\u1ed1i thi\u1ec3u 8 k\u00fd t\u1ef1',
   },
   ja: {
-    joinedBy: '5,000以上のチームが利用中',
+    joinedBy: '5,000\u4ee5\u4e0a\u306e\u30c1\u30fc\u30e0\u304c\u5229\u7528\u4e2d',
     quote:
-      '「よいレビュー運用とは、チームが本当に重要なことをすばやく見つけられることです。」',
-    credit: 'Sentify オペレーションノート',
-    divider: 'またはメールで続行',
-    privacy: 'プライバシーポリシー',
-    terms: '利用規約',
-    showPassword: 'パスワードを表示',
-    hidePassword: 'パスワードを隠す',
+      '\u300c\u3088\u3044\u30ec\u30d3\u30e5\u30fc\u904b\u7528\u3068\u306f\u3001\u30c1\u30fc\u30e0\u304c\u672c\u5f53\u306b\u91cd\u8981\u306a\u3053\u3068\u3092\u3059\u3070\u3084\u304f\u898b\u3064\u3051\u3089\u308c\u308b\u3053\u3068\u3067\u3059\u3002\u300d',
+    credit: 'Sentify \u30aa\u30da\u30ec\u30fc\u30b7\u30e7\u30f3\u30ce\u30fc\u30c8',
+    divider: '\u307e\u305f\u306f\u30e1\u30fc\u30eb\u3067\u7d9a\u884c',
+    privacy: '\u30d7\u30e9\u30a4\u30d0\u30b7\u30fc\u30dd\u30ea\u30b7\u30fc',
+    terms: '\u5229\u7528\u898f\u7d04',
+    showPassword: '\u30d1\u30b9\u30ef\u30fc\u30c9\u3092\u8868\u793a',
+    hidePassword: '\u30d1\u30b9\u30ef\u30fc\u30c9\u3092\u96a0\u3059',
+    passwordPlaceholder: '8\u6587\u5b57\u4ee5\u4e0a',
+  },
+}
+
+const authFormCopy: Record<
+  Language,
+  {
+    loginTitle: string
+    signupTitle: string
+    loginDescription: string
+    signupDescription: string
+    fullNameLabel: string
+    emailLabel: string
+    passwordLabel: string
+    submitLogin: string
+    submitSignup: string
+    loginAltPrompt: string
+    signupAltPrompt: string
+    loginAltAction: string
+    signupAltAction: string
+    validation: {
+      fullNameRequired: string
+      fullNameTooLong: string
+      emailRequired: string
+      emailInvalid: string
+      passwordRequired: string
+      passwordTooShort: string
+    }
+  }
+> = {
+  en: {
+    loginTitle: 'Return to the dashboard.',
+    signupTitle: 'Start with one restaurant and one review source.',
+    loginDescription:
+      'Log in to continue reviewing sources, signals, and what should be fixed next.',
+    signupDescription:
+      'Create your account, connect one restaurant, save one Google Maps URL, and move straight into the dashboard.',
+    fullNameLabel: 'Full name',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    submitLogin: 'Log in',
+    submitSignup: 'Create account',
+    loginAltPrompt: 'Need an account?',
+    signupAltPrompt: 'Already have an account?',
+    loginAltAction: 'Sign up',
+    signupAltAction: 'Log in',
+    validation: {
+      fullNameRequired: 'Enter your full name.',
+      fullNameTooLong: 'Full name must be 100 characters or fewer.',
+      emailRequired: 'Enter your email address.',
+      emailInvalid: 'Enter a valid email address.',
+      passwordRequired: 'Enter your password.',
+      passwordTooShort: 'Password must be at least 8 characters.',
+    },
+  },
+  vi: {
+    loginTitle: 'Quay lại bảng điều hành.',
+    signupTitle: 'Bắt đầu với một nhà hàng và một nguồn review.',
+    loginDescription:
+      'Đăng nhập để tiếp tục xem nguồn review, tín hiệu và việc cần ưu tiên xử lý.',
+    signupDescription:
+      'Tạo tài khoản, kết nối một nhà hàng, lưu một URL Google Maps, rồi đi thẳng vào bảng điều hành.',
+    fullNameLabel: 'Họ và tên',
+    emailLabel: 'Email',
+    passwordLabel: 'Mật khẩu',
+    submitLogin: 'Đăng nhập',
+    submitSignup: 'Tạo tài khoản',
+    loginAltPrompt: 'Chưa có tài khoản?',
+    signupAltPrompt: 'Đã có tài khoản?',
+    loginAltAction: 'Đăng ký',
+    signupAltAction: 'Đăng nhập',
+    validation: {
+      fullNameRequired: 'Hãy nhập họ và tên.',
+      fullNameTooLong: 'Họ và tên không được vượt quá 100 ký tự.',
+      emailRequired: 'Hãy nhập địa chỉ email.',
+      emailInvalid: 'Email không hợp lệ.',
+      passwordRequired: 'Hãy nhập mật khẩu.',
+      passwordTooShort: 'Mật khẩu phải có ít nhất 8 ký tự.',
+    },
+  },
+  ja: {
+    loginTitle: 'ダッシュボードに戻る。',
+    signupTitle: '1店舗、1つのレビューソースから始める。',
+    loginDescription:
+      'ログインすると、レビューソース、シグナル、次に直すべきことの確認にすぐ戻れます。',
+    signupDescription:
+      'アカウントを作成し、1店舗を接続してGoogle MapsのURLを保存すると、そのままダッシュボードに進めます。',
+    fullNameLabel: '氏名',
+    emailLabel: 'メールアドレス',
+    passwordLabel: 'パスワード',
+    submitLogin: 'ログイン',
+    submitSignup: 'アカウントを作成',
+    loginAltPrompt: 'アカウントをお持ちではないですか？',
+    signupAltPrompt: 'すでにアカウントをお持ちですか？',
+    loginAltAction: '登録',
+    signupAltAction: 'ログイン',
+    validation: {
+      fullNameRequired: '氏名を入力してください。',
+      fullNameTooLong: '氏名は100文字以内で入力してください。',
+      emailRequired: 'メールアドレスを入力してください。',
+      emailInvalid: '有効なメールアドレスを入力してください。',
+      passwordRequired: 'パスワードを入力してください。',
+      passwordTooShort: 'パスワードは8文字以上で入力してください。',
+    },
   },
 }
 
 export function AuthScreen({
   language,
   mode,
-  copy,
   pending,
   error,
   onLogin,
@@ -94,9 +200,10 @@ export function AuthScreen({
   const [showPassword, setShowPassword] = useState(false)
 
   const isLogin = mode === 'login'
-  const authTitle = isLogin ? copy.loginTitle : copy.signupTitle
-  const authDescription = isLogin ? copy.loginDescription : copy.signupDescription
   const scene = authSceneCopy[language]
+  const authCopy = authFormCopy[language]
+  const authTitle = isLogin ? authCopy.loginTitle : authCopy.signupTitle
+  const authDescription = isLogin ? authCopy.loginDescription : authCopy.signupDescription
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -107,22 +214,22 @@ export function AuthScreen({
 
     if (!isLogin) {
       if (!trimmedFullName) {
-        nextErrors.fullName = copy.validation.fullNameRequired
+        nextErrors.fullName = authCopy.validation.fullNameRequired
       } else if (trimmedFullName.length > FIELD_LIMITS.fullName) {
-        nextErrors.fullName = copy.validation.fullNameTooLong
+        nextErrors.fullName = authCopy.validation.fullNameTooLong
       }
     }
 
     if (!normalizedEmail) {
-      nextErrors.email = copy.validation.emailRequired
+      nextErrors.email = authCopy.validation.emailRequired
     } else if (!isValidEmail(normalizedEmail)) {
-      nextErrors.email = copy.validation.emailInvalid
+      nextErrors.email = authCopy.validation.emailInvalid
     }
 
     if (!password) {
-      nextErrors.password = copy.validation.passwordRequired
+      nextErrors.password = authCopy.validation.passwordRequired
     } else if (!isLogin && password.length < FIELD_LIMITS.passwordMin) {
-      nextErrors.password = copy.validation.passwordTooShort
+      nextErrors.password = authCopy.validation.passwordTooShort
     }
 
     if (Object.keys(nextErrors).length > 0) {
@@ -148,24 +255,22 @@ export function AuthScreen({
   }
 
   return (
-    <main
-      id="main-content"
-      className="relative min-h-screen overflow-hidden bg-bg-light pt-20 dark:bg-bg-dark sm:pt-24"
-    >
+    <main id="main-content" className="relative min-h-screen overflow-hidden bg-bg-light dark:bg-bg-dark">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(235,122,28,0.1),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(235,122,28,0.08),transparent_34%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.12),transparent_34%)]"></div>
 
-      <div className="relative z-10 flex min-h-[calc(100vh-5rem)] overflow-hidden">
-        <section className="relative hidden min-h-[calc(100vh-5rem)] lg:flex lg:w-7/12 lg:items-end lg:overflow-hidden lg:p-10 xl:p-12">
-          <img
-            className="absolute inset-0 h-full w-full object-cover brightness-[0.78] saturate-[0.92]"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7p3TZKZ4bBDiObnP8KCEDNMmReCwiJKwP0TMThZWoKaWloVbTrw2-AfTQEpv8qrwfxLLl5c0FiQ5sD_KTjvPqZlnqwFxIWM-qZegZdWxC1kOQVwT3ZTir_dBwyoPcRlp-O-j5wsyTBJbMf3Lwwo5J8CxMY1mjAivGV9Yszd1jKI1SMxm2MjMmKKK8FxmnHnn4xtyUekibeSbqhJ_kyVgGTjoJKvGvwFrSV8io0-Mw9CnalPUtuVRftf9lHE4BA7w6NDdnFjJuTA"
-            alt=""
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,12,8,0.12)_0%,rgba(16,12,8,0.28)_46%,rgba(16,12,8,0.78)_100%)] dark:bg-[linear-gradient(180deg,rgba(0,0,0,0.16)_0%,rgba(0,0,0,0.4)_38%,rgba(0,0,0,0.84)_100%)]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(235,122,28,0.18),transparent_40%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.06),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.14),transparent_40%)]"></div>
+      <div className="relative z-10 flex min-h-screen overflow-hidden">
+        <section className="relative hidden min-h-screen items-end overflow-hidden p-12 lg:flex lg:w-7/12">
+          <div className="absolute inset-0 z-0">
+            <img
+              className="h-full w-full object-cover grayscale-[20%] brightness-[0.85]"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7p3TZKZ4bBDiObnP8KCEDNMmReCwiJKwP0TMThZWoKaWloVbTrw2-AfTQEpv8qrwfxLLl5c0FiQ5sD_KTjvPqZlnqwFxIWM-qZegZdWxC1kOQVwT3ZTir_dBwyoPcRlp-O-j5wsyTBJbMf3Lwwo5J8CxMY1mjAivGV9Yszd1jKI1SMxm2MjMmKKK8FxmnHnn4xtyUekibeSbqhJ_kyVgGTjoJKvGvwFrSV8io0-Mw9CnalPUtuVRftf9lHE4BA7w6NDdnFjJuTA"
+              alt=""
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-on-background/60 via-transparent to-transparent"></div>
+          </div>
 
           <div className="relative z-10 w-full max-w-2xl">
-            <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-white/18 bg-surface-white/10 px-4 py-2 outline outline-1 outline-white/10 backdrop-blur-md">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-surface-white/10 px-4 py-2 outline outline-1 outline-white/20 backdrop-blur-md">
               <div className="flex -space-x-2">
                 <img
                   className="size-8 rounded-full border-2 border-surface-white object-cover"
@@ -183,27 +288,27 @@ export function AuthScreen({
                   alt=""
                 />
               </div>
-              <span className="pr-1 text-sm font-medium tracking-tight text-white">
+              <span className="px-2 text-sm font-medium tracking-tight text-white">
                 {scene.joinedBy}
               </span>
             </div>
 
-            <blockquote className="font-serif text-[2.55rem] italic leading-[1.18] tracking-tight text-white xl:text-[3.05rem]">
+            <blockquote className="font-serif text-4xl italic leading-snug tracking-tight text-white">
               {scene.quote}
             </blockquote>
-            <cite className="mt-4 block text-xs font-semibold not-italic uppercase tracking-[0.28em] text-white/80">
+            <cite className="mt-4 block text-xs not-italic uppercase tracking-widest text-white/80">
               {scene.credit}
             </cite>
           </div>
         </section>
 
-        <section className="flex w-full flex-col items-center justify-center bg-surface-white px-6 py-10 dark:bg-surface-dark/96 md:px-10 lg:w-5/12 lg:px-12 lg:py-12 xl:px-16">
+        <section className="flex w-full flex-col items-center justify-start overflow-y-auto bg-surface-white px-6 pt-[6.5rem] pb-10 dark:bg-surface-dark/96 md:px-12 md:pt-28 md:pb-12 lg:w-5/12 lg:px-16 lg:pt-28 lg:pb-12">
           <div className="w-full max-w-md">
             <header className="mb-10 text-center lg:text-left">
-              <h1 className="font-serif text-[2.3rem] tracking-tight text-[#8a3c10] dark:text-[#f2dfc7] md:text-[2.7rem]">
+              <h1 className="font-serif text-3xl tracking-tight text-[#8a3c10] dark:text-[#f2dfc7] md:text-4xl">
                 {authTitle}
               </h1>
-              <p className="mt-3 text-base leading-7 text-text-silver-light dark:text-text-silver-dark">
+              <p className="mt-3 text-on-surface-variant dark:text-text-silver-dark">
                 {authDescription}
               </p>
             </header>
@@ -234,10 +339,10 @@ export function AuthScreen({
 
             <div className="relative mb-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="h-px w-full bg-[#e6e2dd] dark:bg-border-dark"></div>
+                <div className="h-px w-full bg-border-light dark:bg-border-dark"></div>
               </div>
-              <div className="relative flex justify-center text-[11px] uppercase tracking-[0.24em]">
-                <span className="bg-surface-white px-4 text-[#564337] dark:bg-surface-dark dark:text-text-silver-dark">
+              <div className="relative flex justify-center text-xs uppercase tracking-widest">
+                <span className="bg-surface-white px-4 text-text-silver-light dark:bg-surface-dark dark:text-text-silver-dark">
                   {scene.divider}
                 </span>
               </div>
@@ -250,7 +355,7 @@ export function AuthScreen({
                   className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
                 >
                   <span className="ml-1 text-xs uppercase tracking-[0.16em] text-text-silver-light dark:text-text-silver-dark">
-                    {copy.fullNameLabel}
+                    {authCopy.fullNameLabel}
                   </span>
                   <input
                     id="auth-full-name"
@@ -263,7 +368,7 @@ export function AuthScreen({
                     }}
                     aria-invalid={fieldErrors.fullName ? 'true' : 'false'}
                     autoComplete="name"
-                    className="h-14 rounded-xl border-none bg-[#f7f3ee] px-5 text-base text-text-charcoal outline-none transition placeholder:text-text-silver-light/55 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
+                    className="w-full rounded-xl border-none bg-[#f7f3ee] px-5 py-4 text-base text-text-charcoal outline-none transition-all placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
                     type="text"
                     placeholder="Elias Vance"
                   />
@@ -276,7 +381,7 @@ export function AuthScreen({
                 className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
               >
                 <span className="ml-1 text-xs uppercase tracking-[0.16em] text-text-silver-light dark:text-text-silver-dark">
-                  {copy.emailLabel}
+                  {authCopy.emailLabel}
                 </span>
                 <input
                   id="auth-email"
@@ -288,7 +393,7 @@ export function AuthScreen({
                     setFieldErrors((current) => ({ ...current, email: undefined }))
                   }}
                   aria-invalid={fieldErrors.email ? 'true' : 'false'}
-                  className="h-14 rounded-xl border-none bg-[#f7f3ee] px-5 text-base text-text-charcoal outline-none transition placeholder:text-text-silver-light/55 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
+                  className="w-full rounded-xl border-none bg-[#f7f3ee] px-5 py-4 text-base text-text-charcoal outline-none transition-all placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
                   type="email"
                   autoComplete="email"
                   placeholder="elias@sentify.app"
@@ -301,7 +406,7 @@ export function AuthScreen({
                 className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
               >
                 <span className="ml-1 text-xs uppercase tracking-[0.16em] text-text-silver-light dark:text-text-silver-dark">
-                  {copy.passwordLabel}
+                  {authCopy.passwordLabel}
                 </span>
                 <div className="relative">
                   <input
@@ -314,10 +419,10 @@ export function AuthScreen({
                       setFieldErrors((current) => ({ ...current, password: undefined }))
                     }}
                     aria-invalid={fieldErrors.password ? 'true' : 'false'}
-                    className="h-14 w-full rounded-xl border-none bg-[#f7f3ee] px-5 pr-14 text-base text-text-charcoal outline-none transition placeholder:text-text-silver-light/55 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
+                    className="w-full rounded-xl border-none bg-[#f7f3ee] px-5 py-4 pr-14 text-base text-text-charcoal outline-none transition-all placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
                     type={showPassword ? 'text' : 'password'}
                     autoComplete={isLogin ? 'current-password' : 'new-password'}
-                    placeholder="••••••••"
+                    placeholder={scene.passwordPlaceholder}
                   />
                   <button
                     type="button"
@@ -343,35 +448,35 @@ export function AuthScreen({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-primary to-[#fa7025] px-6 text-sm font-bold tracking-tight text-white shadow-[0_20px_40px_-18px_rgba(235,122,28,0.55)] transition hover:scale-[1.01] hover:shadow-[0_24px_48px_-18px_rgba(235,122,28,0.62)] disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-primary to-[#fa7025] px-6 py-5 text-sm font-bold tracking-tight text-white shadow-[0_18px_38px_-16px_rgba(235,122,28,0.34)] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_22px_44px_-16px_rgba(235,122,28,0.42)] disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
                 >
                   {pending
                     ? isLogin
-                      ? `${copy.submitLogin}...`
-                      : `${copy.submitSignup}...`
+                      ? `${authCopy.submitLogin}...`
+                      : `${authCopy.submitSignup}...`
                     : isLogin
-                      ? copy.submitLogin
-                      : copy.submitSignup}
+                      ? authCopy.submitLogin
+                      : authCopy.submitSignup}
                 </button>
               </div>
             </form>
 
             <footer className="mt-12 text-center">
               <p className="text-sm text-text-silver-light dark:text-text-silver-dark">
-                {isLogin ? copy.loginAltPrompt : copy.signupAltPrompt}
+                {isLogin ? authCopy.loginAltPrompt : authCopy.signupAltPrompt}
                 <button
                   type="button"
-                    className="ml-1 font-bold text-primary hover:underline"
-                    onClick={() => onSwitchMode(isLogin ? 'signup' : 'login')}
-                  >
-                  {isLogin ? copy.loginAltAction : copy.signupAltAction}
+                  className="ml-1 font-bold text-primary hover:underline"
+                  onClick={() => onSwitchMode(isLogin ? 'signup' : 'login')}
+                >
+                  {isLogin ? authCopy.loginAltAction : authCopy.signupAltAction}
                 </button>
               </p>
-              <div className="mt-10 flex items-center justify-center gap-6">
-                <span className="text-[10px] uppercase tracking-[0.22em] text-text-silver-light/80 dark:text-text-silver-dark/80">
+              <div className="mt-12 flex items-center justify-center gap-6">
+                <span className="text-[10px] uppercase tracking-widest text-text-silver-light/80 dark:text-text-silver-dark/80">
                   {scene.privacy}
                 </span>
-                <span className="text-[10px] uppercase tracking-[0.22em] text-text-silver-light/80 dark:text-text-silver-dark/80">
+                <span className="text-[10px] uppercase tracking-widest text-text-silver-light/80 dark:text-text-silver-dark/80">
                   {scene.terms}
                 </span>
               </div>
