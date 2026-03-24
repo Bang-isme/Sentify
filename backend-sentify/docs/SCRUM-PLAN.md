@@ -23,9 +23,9 @@ Working scope guards:
 
 Primary grounding documents:
 
-- `D:\Project 3\output\doc\10-manual-first-admin-architecture.md`
-- `D:\Project 3\output\doc\11-merchant-first-plan.md`
-- `D:\Project 3\output\doc\12-minimal-ops-runbook.md`
+- `D:\Project 3\backend-sentify\docs\PROPOSAL.md`
+- `D:\Project 3\backend-sentify\docs\CURRENT-STATE.md`
+- `D:\Project 3\backend-sentify\docs\PROJECT-STATUS.md`
 - `D:\Project 3\backend-sentify\docs\API.md`
 - `D:\Project 3\backend-sentify\docs\ARCHITECTURE.md`
 - `D:\Project 3\backend-sentify\docs\DATABASE.md`
@@ -255,7 +255,7 @@ Architecture decision record, capacity model, storage lifecycle plan, and a cost
 - Priority: P0
 - Estimate: XS, 1 point
 - Dependencies: none
-- Files: `D:\Project 3\output\doc\README.md`, `D:\Project 3\output\doc\10-manual-first-admin-architecture.md`, `D:\Project 3\output\doc\11-merchant-first-plan.md`, `D:\Project 3\backend-sentify\docs\README.md`, `D:\Project 3\backend-sentify\docs\TESTING-STRATEGY.md`, `D:\Project 3\sentify-scrum-plan.md`
+- Files: `D:\Project 3\backend-sentify\docs\README.md`, `D:\Project 3\backend-sentify\docs\PROPOSAL.md`, `D:\Project 3\backend-sentify\docs\CURRENT-STATE.md`, `D:\Project 3\backend-sentify\docs\PROJECT-STATUS.md`, `D:\Project 3\backend-sentify\docs\TESTING-STRATEGY.md`, `D:\Project 3\backend-sentify\docs\SCRUM-PLAN.md`
 - Input: current manual-first docs, current backend docs, current route and API surface
 - Output: one agreed project scope line, explicit non-goals, synced testing roadmap, and sprint acceptance boundaries
 - Verify: every Sprint 1 to Sprint 4 story maps to the manual-first product; no backlog item depends on removed import automation

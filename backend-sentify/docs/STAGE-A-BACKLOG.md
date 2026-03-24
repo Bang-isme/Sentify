@@ -73,7 +73,7 @@ Stage A is considered delivered when:
 - Domain: backend
 - Estimate: 1 point
 - Dependencies: none
-- Files: `D:\Project 3\output\doc\README.md`, `D:\Project 3\output\doc\10-manual-first-admin-architecture.md`, `D:\Project 3\output\doc\11-merchant-first-plan.md`, `D:\Project 3\backend-sentify\docs\README.md`, `D:\Project 3\backend-sentify\docs\TESTING-STRATEGY.md`, `D:\Project 3\sentify-scrum-plan.md`
+- Files: `D:\Project 3\backend-sentify\docs\README.md`, `D:\Project 3\backend-sentify\docs\PROPOSAL.md`, `D:\Project 3\backend-sentify\docs\CURRENT-STATE.md`, `D:\Project 3\backend-sentify\docs\PROJECT-STATUS.md`, `D:\Project 3\backend-sentify\docs\TESTING-STRATEGY.md`, `D:\Project 3\backend-sentify\docs\SCRUM-PLAN.md`
 - Acceptance Criteria:
   - manual-first and merchant-first scope is the documented source of truth
   - no Sprint 1 to Sprint 4 backlog item depends on retired import automation

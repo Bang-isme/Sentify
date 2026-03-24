@@ -27,6 +27,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.tmp/
 
 # Generated screenshots and scratch outputs
 stitch_landing_screenshot.png

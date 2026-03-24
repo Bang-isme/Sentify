@@ -21,13 +21,13 @@ Sentify is a Sprint 1 implementation of an AI-assisted customer insight tool for
 ```text
 apps/web/           Frontend app
 backend-sentify/    Backend API + Prisma schema
-output/doc/         Sprint 1 design documentation
+backend-sentify/docs/ Active backend and database documentation
 ```
 
 ## Local Setup
 
-Backend setup details live in [output/doc/08-environment-setup.md](output/doc/08-environment-setup.md).
+Backend setup details live in [backend-sentify/docs/SETUP.md](backend-sentify/docs/SETUP.md).
 
 ## Runtime Docs
 
-Manual intake and admin workflows are captured in the `manual-first-admin.md` plan and related Sprint 1 docs.
+Current backend, database, crawler, and project status docs live in [backend-sentify/docs/README.md](backend-sentify/docs/README.md).
