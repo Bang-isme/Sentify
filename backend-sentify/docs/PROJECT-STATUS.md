@@ -22,14 +22,14 @@ The backend is no longer a mock-demo. It already behaves like a real product fou
 |---|---|---|---|
 | Product direction | Done | Manual-first, canonical merchant reads, admin-curated publish boundary | Keep scope stable |
 | Core architecture | Mostly done | Modular monolith, feature modules for `admin-intake`, `review-crawl`, `review-ops` | Continue refactor for auth and restaurant areas |
-| Auth and security | Mostly done | JWT, refresh, cookies, CSRF, lockout, reset flow | Deeper refresh and reset proof |
-| Merchant read APIs | Mostly done | Dashboard, reviews, sentiment, trend, complaints, top issue | Wider seeded smoke coverage |
+| Auth and security | Mostly done | JWT, refresh, cookies, CSRF, lockout, reset flow, service-level lifecycle proof for refresh rotation/reuse and forgot/reset password, controller proof for refresh and reset route contracts | Staging-style auth smoke if release confidence needs to go higher |
+| Merchant read APIs | Mostly done | Dashboard, reviews, sentiment, trend, complaints, top issue, seeded real-DB HTTP smoke | SMB load proof |
 | Admin intake | Mostly done | Create, edit, review, publish, canonical reuse | More multi-batch regression proof |
 | Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, repeated deep-crawl benchmarks to the same public ceiling | SMB load testing and dedicated Redis ops proof |
 | Review ops control plane | Mostly done | One-click draft sync, source list, run list, readiness, bulk approve valid, publish proxy | End-to-end queue proof through the operator surface |
-| Publish integrity | Mostly done | Stable external review identity and canonical reuse | Duplicate publish smoke on real DB |
+| Publish integrity | Mostly done | Stable external review identity, canonical reuse, and real-DB duplicate publish regression | Keep widening edge-case coverage as source rules evolve |
 | Database | Mostly done | Runtime models, crawl invariants, seed dataset | Backup and restore evidence |
-| Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued crawl smoke | Load testing, staged smoke, broader read-path proof |
+| Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued crawl smoke, seeded merchant-read HTTP proof | Load testing and staged smoke |
 | Docs | Mostly done | Current-state docs match code more closely | Keep sync as code evolves |
 | Ops and release | Partial | Health endpoints, worker runtime, setup docs | Staging, backup, restore, rollback |
 
@@ -37,18 +37,18 @@ The backend is no longer a mock-demo. It already behaves like a real product fou
 
 ### Sprint 1 backend
 
-Almost closed, but not fully complete.
+Functionally closed for the current backend foundation scope.
 
 Done:
 
 - auth and CSRF trust contract
+- refresh rotation, reuse, and password reset lifecycle proof
 - restaurant-scoped authorization
 - docs synced to live backend
 
 Still thin:
 
-- refresh lifecycle evidence
-- forgot/reset password evidence
+- no release-style staged auth smoke yet
 
 ### Sprint 2 backend
 
@@ -61,7 +61,6 @@ Done:
 
 Still missing:
 
-- broader read-path smoke on seeded data
 - richer admin-intake state coverage
 
 ### Sprint 3 backend
@@ -73,10 +72,11 @@ Done:
 - better publish invariants
 - stronger canonical dedupe semantics
 - backend-only review ops layer for crawl-to-draft control
+- seeded real-DB HTTP smoke for merchant read APIs
+- real-DB duplicate publish regression across batches
 
 Still missing:
 
-- deeper confidence on seeded merchant reads
 - SMB scale proof for crawl workers
 
 ### Sprint 4 backend
@@ -107,7 +107,6 @@ Key backend milestones already achieved:
 ## 5. Risk If Work Stops Here
 
 - confidence still leans too much on mocked tests
-- merchant read-path proof is not broad enough yet
 - queue worker load behavior is still unmeasured under SMB concurrency
 - Google-reported totals can still exceed the public review rows exposed through the unofficial RPC
 - release operations are not yet demonstrated in staging
@@ -116,12 +115,10 @@ Key backend milestones already achieved:
 
 The next backend priorities should be:
 
-1. add seeded smoke for merchant read APIs
-2. add real-DB duplicate publish regression across batches
-3. deepen refresh and password reset coverage
-4. run SMB load tests for queue workers and dashboard reads
-5. document operator policy when `reportedTotal` exceeds crawlable public reviews
-6. prepare staging, backup, restore, and rollback evidence
+1. run SMB load tests for queue workers and dashboard reads
+2. document operator policy when `reportedTotal` exceeds crawlable public reviews
+3. prepare staging, backup, restore, and rollback evidence
+4. keep tightening staged auth and ops smoke as release confidence rises
 
 ## 7. Short Conclusion
 

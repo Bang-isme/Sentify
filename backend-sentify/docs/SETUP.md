@@ -130,6 +130,19 @@ Real Postgres smoke:
 npm run test:realdb
 ```
 
+The real-DB suite now covers both:
+
+- publish -> canonical review -> dashboard refresh
+- duplicate publish regression across multiple batches
+- seeded merchant-read HTTP routes for restaurants, reviews, KPI, sentiment, trend, complaints, and top issue
+
+The fast suite also now covers:
+
+- refresh token rotation, reuse detection, invalid and expired token handling
+- refresh route body-token fallback and cookie clearing on refresh failure
+- forgot-password token issuance and enumeration-safe responses
+- reset-password invalid token, used token, expired token, refresh-session invalidation, and cookie cleanup
+
 Schema validation:
 
 ```bash
@@ -147,7 +160,7 @@ npm run db:validate
 | `npm run validate:review-crawl-scale -- --url "<google-maps-url>"` | Run repeated direct and queued scale validation plus a target-review estimate |
 | `npm run ops:review -- <subcommand>` | Run the review ops CLI |
 | `npm test` | Fast day-to-day backend suite |
-| `npm run test:realdb` | Real Postgres publish smoke |
+| `npm run test:realdb` | Real Postgres smoke suite for publish and merchant-read routes |
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:migrate` | Apply migrations |
 | `npm run db:seed` | Seed the shared demo dataset |
@@ -157,7 +170,7 @@ npm run db:validate
 ## 11. Notes
 
 - `npm run db:seed` is idempotent within the Sentify demo dataset scope; it does not reset the whole database.
-- `npm run test:realdb` creates temporary publish-smoke data and cleans it up after the test completes.
+- `npm run test:realdb` seeds the shared demo dataset and runs the real-DB smoke suite for publish plus merchant-read routes.
 - Preview crawl does not require Redis.
 - Queued crawl and queue health require Redis in production, but the local smoke harness can fall back to inline queue mode when Redis is unavailable.
 - Current live-source benchmarks show that Google preview metadata can be higher than the visible public review surface. Two important examples are `4527 / 4746` on `Quan Pho Hong` and `9744 / 15098` on `Cong Ca Phe`, where the user-confirmed public place card also showed `9744`. Operators should treat `reportedTotal` as a reference number, not a guaranteed extraction count.

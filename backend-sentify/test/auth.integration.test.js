@@ -31,6 +31,14 @@ function buildCookieHeader(setCookieHeaders, names) {
         .join('; ')
 }
 
+function hasClearedCookie(setCookieHeaders, name) {
+    return (setCookieHeaders || []).some(
+        (entry) =>
+            entry.startsWith(`${name}=`) &&
+            (/Expires=Thu, 01 Jan 1970/i.test(entry) || /Max-Age=0/i.test(entry)),
+    )
+}
+
 test('auth integration flows', async (t) => {
     const validPassword = `pw-${randomUUID()}`
     const invalidPassword = `${validPassword}-bad`
@@ -288,4 +296,195 @@ test('cookie-authenticated writes require a matching csrf token', async (t) => {
     assert.equal(logoutWithCsrf.status, 200)
 
     bcrypt.compare = compareStub
+})
+
+test('refresh accepts a body token without session cookies and skips csrf enforcement', async (t) => {
+    let rotatedToken = null
+
+    const { server } = await startApp({}, {
+        mockCsrf: false,
+        refreshTokenServiceOverrides: {
+            rotateRefreshToken: async (rawToken) => {
+                rotatedToken = rawToken
+                return {
+                    newRawToken: 'rotated-body-refresh-token',
+                    userId: 'user-1',
+                    user: {
+                        id: 'user-1',
+                        tokenVersion: 3,
+                    },
+                }
+            },
+        },
+    })
+
+    t.after(async () => {
+        await stopApp(server)
+    })
+
+    const response = await request(server, 'POST', '/api/auth/refresh', {
+        body: {
+            refreshToken: 'body-refresh-token',
+        },
+    })
+
+    assert.equal(response.status, 200)
+    assert.equal(rotatedToken, 'body-refresh-token')
+    assert.ok(readCookieValue(response.headers['set-cookie'], 'XSRF-TOKEN'))
+    assert.equal(
+        readCookieValue(response.headers['set-cookie'], 'sentify_refresh_token'),
+        'rotated-body-refresh-token',
+    )
+})
+
+test('refresh clears cookies when rotation fails', async (t) => {
+    const validPassword = `pw-${randomUUID()}`
+
+    const prismaOverrides = {
+        user: {
+            findUnique: async ({ where }) => {
+                if (where.email === 'exists@sentify.com') {
+                    return {
+                        id: 'user-1',
+                        email: 'exists@sentify.com',
+                        fullName: 'Existing User',
+                        passwordHash: 'hashed',
+                        tokenVersion: 0,
+                        failedLoginCount: 0,
+                        lockedUntil: null,
+                        restaurants: [],
+                    }
+                }
+
+                return null
+            },
+            update: async ({ where }) => ({
+                id: where.id,
+                email: 'exists@sentify.com',
+                fullName: 'Existing User',
+                tokenVersion: 0,
+            }),
+        },
+    }
+
+    const { server } = await startApp(prismaOverrides, {
+        mockCsrf: false,
+        refreshTokenServiceOverrides: {
+            rotateRefreshToken: async () => {
+                const { unauthorized } = require('../src/lib/app-error')
+                throw unauthorized(
+                    'AUTH_REFRESH_TOKEN_REUSE',
+                    'Refresh token reuse detected - all sessions revoked',
+                )
+            },
+        },
+    })
+
+    t.after(async () => {
+        await stopApp(server)
+    })
+
+    const bcrypt = require('bcryptjs')
+    const compareStub = bcrypt.compare
+    bcrypt.compare = async (input) => input === validPassword
+
+    const loginResponse = await request(server, 'POST', '/api/auth/login', {
+        body: {
+            email: 'exists@sentify.com',
+            password: validPassword,
+        },
+    })
+
+    const issuedCookies = loginResponse.headers['set-cookie']
+    const refreshSessionCookies = buildCookieHeader(issuedCookies, [
+        'sentify_refresh_token',
+        'XSRF-TOKEN',
+    ])
+    const csrfToken = readCookieValue(issuedCookies, 'XSRF-TOKEN')
+
+    const response = await request(server, 'POST', '/api/auth/refresh', {
+        cookies: refreshSessionCookies,
+        headers: {
+            'X-CSRF-Token': csrfToken,
+        },
+    })
+
+    assert.equal(response.status, 401)
+    assert.equal(response.body.error.code, 'AUTH_REFRESH_TOKEN_REUSE')
+    assert.ok(hasClearedCookie(response.headers['set-cookie'], 'sentify_access_token'))
+    assert.ok(hasClearedCookie(response.headers['set-cookie'], 'sentify_refresh_token'))
+    assert.ok(hasClearedCookie(response.headers['set-cookie'], 'XSRF-TOKEN'))
+
+    bcrypt.compare = compareStub
+})
+
+test('forgot and reset password routes validate input and clear cookies on success', async (t) => {
+    let requestedEmail = null
+    let resetArgs = null
+
+    const { server } = await startApp({}, {
+        mockCsrf: false,
+        passwordResetServiceOverrides: {
+            requestPasswordReset: async (email) => {
+                requestedEmail = email
+                return { message: 'If the email is registered, a reset link has been sent.' }
+            },
+            resetPassword: async (token, newPassword) => {
+                resetArgs = { token, newPassword }
+                return { message: 'Password has been reset successfully' }
+            },
+        },
+    })
+
+    t.after(async () => {
+        await stopApp(server)
+    })
+
+    const forgotInvalid = await request(server, 'POST', '/api/auth/forgot-password', {
+        body: {
+            email: 'not-an-email',
+        },
+    })
+
+    assert.equal(forgotInvalid.status, 400)
+    assert.equal(forgotInvalid.body.error.code, 'VALIDATION_FAILED')
+
+    const forgotResponse = await request(server, 'POST', '/api/auth/forgot-password', {
+        body: {
+            email: 'OWNER@Sentify.com',
+        },
+    })
+
+    assert.equal(forgotResponse.status, 200)
+    assert.equal(
+        forgotResponse.body.data.message,
+        'If the email is registered, a reset link has been sent.',
+    )
+    assert.equal(requestedEmail, 'owner@sentify.com')
+
+    const resetInvalid = await request(server, 'POST', '/api/auth/reset-password', {
+        body: {
+            token: '',
+            newPassword: 'short',
+        },
+    })
+
+    assert.equal(resetInvalid.status, 400)
+    assert.equal(resetInvalid.body.error.code, 'VALIDATION_FAILED')
+
+    const resetResponse = await request(server, 'POST', '/api/auth/reset-password', {
+        body: {
+            token: 'reset-token-123',
+            newPassword: 'new-password-123',
+        },
+    })
+
+    assert.equal(resetResponse.status, 200)
+    assert.deepEqual(resetArgs, {
+        token: 'reset-token-123',
+        newPassword: 'new-password-123',
+    })
+    assert.ok(hasClearedCookie(resetResponse.headers['set-cookie'], 'sentify_access_token'))
+    assert.ok(hasClearedCookie(resetResponse.headers['set-cookie'], 'sentify_refresh_token'))
+    assert.ok(hasClearedCookie(resetResponse.headers['set-cookie'], 'XSRF-TOKEN'))
 })

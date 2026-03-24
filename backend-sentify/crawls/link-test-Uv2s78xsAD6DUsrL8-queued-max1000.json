@@ -1,0 +1,109 @@
+{
+  "redis": {
+    "url": null,
+    "startedEmbeddedRedis": false,
+    "inlineQueueMode": true
+  },
+  "ownerContext": {
+    "userId": "85e0d1b0-ffa5-4085-a7e8-80c9c9eee0b3",
+    "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1"
+  },
+  "source": {
+    "id": "804c149f-8b6b-4096-805b-c167cb9207e2",
+    "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1",
+    "provider": "GOOGLE_MAPS",
+    "status": "ACTIVE",
+    "inputUrl": "https://maps.app.goo.gl/Uv2s78xsAD6DUsrL8",
+    "resolvedUrl": "https://www.google.com/maps?cid=15153788408304610630&hl=en&gl=US",
+    "canonicalCid": "15153788408304610630",
+    "placeHexId": "0x314219ccdf0f40a9:0xd24d1244e66dad46",
+    "googlePlaceId": "ChIJqUAP38wZQjERRq1t5kQSTdI",
+    "placeName": "Pizza 4P's Hoang Van Thu",
+    "language": "en",
+    "region": "us",
+    "syncEnabled": true,
+    "syncIntervalMinutes": 1440,
+    "lastReportedTotal": 17646,
+    "lastSyncedAt": null,
+    "lastSuccessfulRunAt": null,
+    "nextScheduledAt": "2026-03-25T18:49:01.616Z",
+    "createdAt": "2026-03-24T18:49:01.645Z",
+    "updatedAt": "2026-03-24T18:49:01.645Z"
+  },
+  "run": {
+    "id": "868061fd-6abc-4bf5-bb49-87406e0e1e74",
+    "sourceId": "804c149f-8b6b-4096-805b-c167cb9207e2",
+    "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1",
+    "requestedByUserId": "85e0d1b0-ffa5-4085-a7e8-80c9c9eee0b3",
+    "intakeBatchId": null,
+    "strategy": "BACKFILL",
+    "status": "COMPLETED",
+    "priority": "NORMAL",
+    "reportedTotal": 17646,
+    "extractedCount": 14599,
+    "validCount": 14599,
+    "skippedCount": 0,
+    "duplicateCount": 0,
+    "warningCount": 1,
+    "pagesFetched": 730,
+    "pageSize": 20,
+    "delayMs": 0,
+    "maxPages": 1000,
+    "maxReviews": null,
+    "checkpointCursor": null,
+    "knownReviewStreak": 0,
+    "cancelRequestedAt": null,
+    "leaseExpiresAt": null,
+    "errorCode": null,
+    "errorMessage": null,
+    "warnings": [
+      "Google Maps reported 17646 reviews, but only 14599 unique reviews were extracted"
+    ],
+    "metadata": {
+      "trigger": "manual",
+      "stopReason": "exhausted_source"
+    },
+    "queuedAt": "2026-03-24T18:49:01.682Z",
+    "startedAt": "2026-03-24T18:49:01.824Z",
+    "lastCheckpointAt": "2026-03-24T18:51:22.510Z",
+    "finishedAt": "2026-03-24T18:51:22.518Z",
+    "createdAt": "2026-03-24T18:49:01.712Z",
+    "updatedAt": "2026-03-24T18:51:22.523Z",
+    "source": {
+      "id": "804c149f-8b6b-4096-805b-c167cb9207e2",
+      "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1",
+      "provider": "GOOGLE_MAPS",
+      "status": "ACTIVE",
+      "inputUrl": "https://maps.app.goo.gl/Uv2s78xsAD6DUsrL8",
+      "resolvedUrl": "https://www.google.com/maps?cid=15153788408304610630&hl=en&gl=US",
+      "canonicalCid": "15153788408304610630",
+      "placeHexId": "0x314219ccdf0f40a9:0xd24d1244e66dad46",
+      "googlePlaceId": "ChIJqUAP38wZQjERRq1t5kQSTdI",
+      "placeName": "Pizza 4P's Hoang Van Thu",
+      "language": "en",
+      "region": "us",
+      "syncEnabled": true,
+      "syncIntervalMinutes": 1440,
+      "lastReportedTotal": 17646,
+      "lastSyncedAt": "2026-03-24T18:51:22.518Z",
+      "lastSuccessfulRunAt": "2026-03-24T18:51:22.518Z",
+      "nextScheduledAt": "2026-03-25T18:51:22.518Z",
+      "createdAt": "2026-03-24T18:49:01.645Z",
+      "updatedAt": "2026-03-24T18:51:22.519Z"
+    },
+    "intakeBatch": null
+  },
+  "benchmark": {
+    "totalWallClockMs": 149030,
+    "terminalSnapshot": {
+      "status": "COMPLETED",
+      "updatedAt": "2026-03-24T18:51:22.523Z",
+      "extractedCount": 14599,
+      "pagesFetched": 730,
+      "warningCount": 1,
+      "autoResumeChainCount": 0,
+      "stopReason": "exhausted_source"
+    }
+  },
+  "materialization": null
+}

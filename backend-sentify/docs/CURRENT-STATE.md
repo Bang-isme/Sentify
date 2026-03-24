@@ -132,7 +132,11 @@ Important proof points already exist:
 - BullMQ-safe queued crawl runtime
 - worker heartbeat and scheduler lock behavior
 - shared seed dataset for demo and regression work
+- service-level auth lifecycle proof for refresh rotation, refresh-token reuse detection, forgot-password issuance, and reset-password invalidation
+- controller-level auth route proof for body-token refresh, cookie clearing on failed refresh, and reset-password cookie cleanup
 - real Postgres publish smoke
+- real Postgres HTTP smoke for merchant read routes
+- real Postgres duplicate-publish regression across batches
 - operator orchestration tests for `review-ops`
 - repeated live Google Maps crawl benchmarks that converge to stable public review ceilings
 
@@ -149,6 +153,13 @@ Current crawl evidence on the larger live `Cong Ca Phe` source:
 - the user-confirmed Google Maps place card also showed `9744`
 - this strongly suggests the crawler matched the visible public review surface
 
+Current crawl evidence on the even larger live `Pizza 4P's Hoang Van Thu` source:
+
+- preview metadata reported `17646`
+- direct full crawl converged at `14599`
+- queued backfill with `maxPages=1000` also converged at `14599`
+- this shows the same mismatch pattern can persist at larger scale while direct and queued modes still agree on the crawlable public review ceiling
+
 ## 6. Seed And Demo Data
 
 The shared seed dataset currently creates:
@@ -164,9 +175,6 @@ The shared seed dataset currently creates:
 
 The backend is still not fully release-ready. Main remaining gaps:
 
-- deeper auth lifecycle proof for refresh and password reset
-- broader seeded read-path smoke for `reviews`, `sentiment`, `trend`, `complaints`, and `top issue`
-- real-DB duplicate publish regression across multiple batches
 - SMB load testing for queue workers and merchant reads
 - staging evidence, backup, restore, and rollback drills
 - continued refactor of older auth and restaurant modules toward the same feature-module shape

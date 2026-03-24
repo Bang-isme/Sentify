@@ -126,6 +126,25 @@ Artifacts:
 - [link-test-kaFYtSNsriybyw6w7-queued-max1000.json](D:/Project%203/backend-sentify/crawls/link-test-kaFYtSNsriybyw6w7-queued-max1000.json)
 - [scale-validation-kaFYtSNsriybyw6w7.json](D:/Project%203/backend-sentify/crawls/scale-validation-kaFYtSNsriybyw6w7.json)
 
+### Source 3: Pizza 4P's Hoang Van Thu
+
+Live URL:
+
+- `https://maps.app.goo.gl/Uv2s78xsAD6DUsrL8`
+
+Observed on 2026-03-25:
+
+- direct full crawl, `delayMs=0`: `14599` unique reviews, `730` pages, about `128.1s`
+- queued backfill with `maxPages=1000`: `14599` unique reviews, `730` pages, about `149.0s`
+- preview metadata reported total: `17646`
+- both direct and queued runs converged to the same extracted-review ceiling
+
+Artifacts:
+
+- [link-test-Uv2s78xsAD6DUsrL8-direct.json](D:/Project%203/backend-sentify/crawls/link-test-Uv2s78xsAD6DUsrL8-direct.json)
+- [link-test-Uv2s78xsAD6DUsrL8-queued-max1000.json](D:/Project%203/backend-sentify/crawls/link-test-Uv2s78xsAD6DUsrL8-queued-max1000.json)
+- [scale-validation-Uv2s78xsAD6DUsrL8.json](D:/Project%203/backend-sentify/crawls/scale-validation-Uv2s78xsAD6DUsrL8.json)
+
 ## What These Benchmarks Mean
 
 Two strong patterns now appear:
@@ -140,6 +159,14 @@ The `Cong Ca Phe` case is especially important:
 - the public Google Maps place card also showed `9744`
 
 That strongly suggests the crawler is matching the public review surface, while preview metadata may include a larger opaque total that is not fully reachable through the public review pagination chain.
+
+The `Pizza 4P's Hoang Van Thu` case extends the same pattern to a much larger source:
+
+- preview metadata said `17646`
+- both direct and queued runs converged at `14599`
+- the queued worker matched direct crawl exactly once the page budget was high enough
+
+That gives stronger evidence that the mismatch pattern is not a small-source edge case. It can also appear on places with more than fourteen thousand crawlable public reviews.
 
 ## Limits
 

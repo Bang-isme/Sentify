@@ -67,6 +67,7 @@ Reports:
 
 - [scale-validation-quan-pho-hong.json](D:/Project%203/backend-sentify/crawls/scale-validation-quan-pho-hong.json)
 - [scale-validation-kaFYtSNsriybyw6w7.json](D:/Project%203/backend-sentify/crawls/scale-validation-kaFYtSNsriybyw6w7.json)
+- [scale-validation-Uv2s78xsAD6DUsrL8.json](D:/Project%203/backend-sentify/crawls/scale-validation-Uv2s78xsAD6DUsrL8.json)
 
 ### Quan Pho Hong
 
@@ -91,6 +92,17 @@ Reports:
   - queued: about `190.8s`
 - estimated backfill legs for `20K` with `1000 pages/run`: `2`
 
+### Pizza 4P's Hoang Van Thu
+
+- preview metadata reported `17646`
+- direct and queued runs both converged at `14599`
+- direct throughput: about `122.54 reviews/s`
+- queued throughput: about `100.17 reviews/s`
+- estimated `20K` runtime:
+  - direct: about `163.2s`
+  - queued: about `199.7s`
+- estimated backfill legs for `20K` with `1000 pages/run`: `2`
+
 ## What We Learned
 
 The `Cong Ca Phe` case is especially important because it shows a practical distinction between:
@@ -99,3 +111,9 @@ The `Cong Ca Phe` case is especially important because it shows a practical dist
 - the public review surface the crawler can actually exhaust
 
 For operator policy, the crawler should be considered correct when it repeatedly converges to the public review surface, even if preview metadata still reports a larger number.
+
+The `Pizza 4P's Hoang Van Thu` benchmark strengthens that policy again:
+
+- it is a larger source than `Cong Ca Phe`
+- direct and queued modes still converged to the same extracted-review ceiling
+- runtime for a `20K`-scale source still fits the current `1000 pages/run` budget in about `2` backfill legs

@@ -127,7 +127,13 @@ async function request(server, method, path, options = {}) {
 }
 
 async function startApp(prismaOverrides = {}, options = {}) {
-    const { mockCsrf = true } = options
+    const {
+        mockCsrf = true,
+        securityEventOverrides = null,
+        refreshTokenServiceOverrides = null,
+        passwordResetServiceOverrides = null,
+        emailServiceOverrides = null,
+    } = options
 
     process.env.NODE_ENV = 'test'
     process.env.JWT_SECRET =
@@ -181,20 +187,24 @@ async function startApp(prismaOverrides = {}, options = {}) {
     }
     withMock('../src/lib/security-event', {
         logSecurityEvent: () => {},
+        ...securityEventOverrides,
     })
     withMock('../src/services/refresh-token.service', {
         REFRESH_TOKEN_TTL_DAYS: 7,
         createRefreshToken: async () => ({ raw: 'mock-refresh-token', familyId: 'mock-family' }),
         rotateRefreshToken: async () => ({ newRawToken: 'mock-new-refresh', userId: 'user-1', user: { id: 'user-1', tokenVersion: 0 } }),
         revokeAllUserTokens: async () => {},
+        ...refreshTokenServiceOverrides,
     })
     withMock('../src/services/password-reset.service', {
         requestPasswordReset: async () => ({ message: 'If the email is registered, a reset link has been sent.' }),
         resetPassword: async () => ({ message: 'Password has been reset successfully' }),
+        ...passwordResetServiceOverrides,
     })
     withMock('../src/services/email.service', {
         sendEmail: async () => ({ success: true, provider: 'mock' }),
         sendPasswordResetEmail: async () => ({ success: true, provider: 'mock' }),
+        ...emailServiceOverrides,
     })
 
     const app = require('../src/app')
