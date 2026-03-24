@@ -13,6 +13,8 @@
     "worker:review-crawl": "node src/review-crawl-worker.js",
     "smoke:review-crawl-queue": "node scripts/review-crawl-queue-smoke.js",
     "validate:review-crawl-scale": "node scripts/review-crawl-scale-validate.js",
+    "load:merchant-reads": "node scripts/load-merchant-reads.js",
+    "load:review-crawl-workers": "node scripts/load-review-crawl-workers.js",
     "crawl:google-reviews": "node scripts/crawl-google-reviews.js",
     "ops:review": "node scripts/review-ops.js",
     "db:seed": "node prisma/seed.js",

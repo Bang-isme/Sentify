@@ -12,17 +12,20 @@ Source-of-truth docs:
 
 ## 1. Goals
 
-The backend is no longer mock-only. The test strategy now has four practical layers:
+The backend is no longer mock-only. The test strategy now has six practical layers:
 
 1. fast day-to-day tests for development
 2. real Postgres smoke for publish and canonical data updates
 3. queued crawl runtime proof for background ingestion
 4. seeded HTTP smoke for merchant-read routes
+5. local SMB load proof for merchant-read latency and throughput
+6. local worker-pressure proof for crawl checkpoint persistence
 
 ## 2. Current Test Layers
 
 ```text
 Browser E2E                Planned later
+Local SMB load proof       Implemented
 Seeded read-path smoke     Implemented
 Real Postgres smoke        Implemented
 Queued crawl smoke         Implemented
@@ -44,6 +47,8 @@ Unit tests                 Current baseline
 
 - `npm run db:seed`
 - `npm run test:realdb`
+- `npm run load:merchant-reads -- --extra-reviews 4000 --concurrency 8 --rounds 45 --output load-reports/merchant-reads-smb-local.json`
+- `npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-per-run 12 --reviews-per-page 20 --step-ms 40 --output load-reports/review-crawl-workers-smb-local.json`
 - `npm run smoke:review-crawl-queue -- --url "..."`
 - `test/merchant-read.realdb.test.js` for full HTTP merchant-read proof on seeded Postgres
 
@@ -133,6 +138,14 @@ set REVIEW_CRAWL_REDIS_BINARY=D:\tools\redis-server.exe
 npm run smoke:review-crawl-queue -- --url "https://maps.app.goo.gl/..."
 ```
 
+Local SMB load proof:
+
+```powershell
+cd "D:\Project 3\backend-sentify"
+npm run load:merchant-reads -- --extra-reviews 4000 --concurrency 8 --rounds 45 --output load-reports/merchant-reads-smb-local.json
+npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-per-run 12 --reviews-per-page 20 --step-ms 40 --output load-reports/review-crawl-workers-smb-local.json
+```
+
 ## 6. Minimum Evidence
 
 | Area | Minimum expected evidence |
@@ -143,13 +156,14 @@ npm run smoke:review-crawl-queue -- --url "https://maps.app.goo.gl/..."
 | Merchant read routes | seeded `GET /api/restaurants`, `/:id`, `/:id/reviews`, KPI, sentiment, trend, complaints, top issue |
 | Admin intake | create, add, update, delete, publish, duplicate reuse |
 | Review crawl | source upsert, queued run, worker processing, materialize-intake |
+| Performance | local SMB read-load report and worker-pressure report for high-risk backend changes |
 | Ops | `/health`, `/api/health`, migrations, seed, worker startup |
 
 ## 7. Remaining Gaps
 
 The main testing gaps still left are:
 
-- SMB load testing for queue workers and dashboard reads
+- Redis-backed queue transport proof under SMB concurrency
 - staging proof, backup, restore, and rollback
 
 ## 8. Merge Gate
@@ -158,4 +172,5 @@ The main testing gaps still left are:
 - `npm run db:validate` passes
 - any high-risk backend change ships with test or smoke evidence
 - changes to publish or crawl runtime need real evidence, not only mocks
+- read-path or worker runtime performance changes should refresh the local load report or equivalent evidence
 - public contract docs stay synced when behavior changes

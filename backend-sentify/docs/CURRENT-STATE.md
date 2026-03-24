@@ -136,6 +136,8 @@ Important proof points already exist:
 - controller-level auth route proof for body-token refresh, cookie clearing on failed refresh, and reset-password cookie cleanup
 - real Postgres publish smoke
 - real Postgres HTTP smoke for merchant read routes
+- local SMB load proof for merchant read routes over seeded HTTP + Prisma paths
+- local worker-pressure proof for crawl checkpoint persistence and concurrency
 - real Postgres duplicate-publish regression across batches
 - operator orchestration tests for `review-ops`
 - repeated live Google Maps crawl benchmarks that converge to stable public review ceilings
@@ -160,6 +162,20 @@ Current crawl evidence on the even larger live `Pizza 4P's Hoang Van Thu` source
 - queued backfill with `maxPages=1000` also converged at `14599`
 - this shows the same mismatch pattern can persist at larger scale while direct and queued modes still agree on the crawlable public review ceiling
 
+Current local SMB load evidence:
+
+- merchant reads on seeded local Postgres plus real HTTP routes:
+  - `4010` canonical reviews on the target restaurant
+  - `360` successful requests, `0` errors
+  - overall throughput about `186.32 requests/s`
+  - overall latency about `42.87ms avg`, `63.63ms p95`, `188.21ms p99`
+- review crawl workers on seeded local Postgres with synthetic checkpoint writes:
+  - `24` queued runs at concurrency `4`
+  - `5760` raw reviews persisted across `288` synthetic pages
+  - about `4.99 runs/s`, `59.9 pages/s`, `1198.06 raw reviews/s`
+  - observed max running concurrency `4`
+  - local environment had no Redis, so this proof used inline queue fallback and an in-process worker pool
+
 ## 6. Seed And Demo Data
 
 The shared seed dataset currently creates:
@@ -175,7 +191,7 @@ The shared seed dataset currently creates:
 
 The backend is still not fully release-ready. Main remaining gaps:
 
-- SMB load testing for queue workers and merchant reads
+- Redis-backed SMB load proof for queued crawl workers and operator-triggered queue paths
 - staging evidence, backup, restore, and rollback drills
 - continued refactor of older auth and restaurant modules toward the same feature-module shape
 - a clear product policy for places where preview metadata totals stay above the public crawl ceiling
@@ -191,6 +207,7 @@ It already has:
 - queue-based crawl infrastructure outside the request path
 - a backend-only operator layer that reduces internal crawl-to-draft work
 - seed and real-database proof for core publish behavior
+- local SMB load proof for merchant reads and worker checkpoint pressure
 - real benchmark evidence that the crawler can handle larger sources operationally
 
-The remaining work is mostly about stronger evidence, scale proof under concurrency, and release discipline, not missing core business flow.
+The remaining work is mostly about Redis-backed queue proof, staging evidence, and release discipline, not missing core business flow.

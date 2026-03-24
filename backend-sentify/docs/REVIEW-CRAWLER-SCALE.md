@@ -21,6 +21,12 @@ The backend still cannot prove:
 - multi-source SMB concurrency under real Redis worker pressure
 - that preview metadata totals always equal the public review surface
 
+What the backend can now additionally prove in local development:
+
+- multi-run checkpoint persistence under synthetic SMB pressure
+- in-process worker orchestration up to observed concurrency `4`
+- stable page-by-page raw-review writes without keeping the full run in memory
+
 ## Validation Checklist
 
 Use the scale-validation harness before making larger-scale claims:
@@ -48,6 +54,12 @@ The harness will:
 - estimate runtime and backfill-leg count for the requested target review count
 - state clearly that target-scale completeness is still unproven unless a comparable live source is tested
 
+For local worker-pressure proof, use:
+
+```bash
+npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-per-run 12 --reviews-per-page 20 --step-ms 40 --output load-reports/review-crawl-workers-smb-local.json
+```
+
 ## Interpretation Rules
 
 - If direct and queued runs converge to the same extracted count, treat that as a strong signal of the current public review ceiling for that source.
@@ -68,6 +80,7 @@ Reports:
 - [scale-validation-quan-pho-hong.json](D:/Project%203/backend-sentify/crawls/scale-validation-quan-pho-hong.json)
 - [scale-validation-kaFYtSNsriybyw6w7.json](D:/Project%203/backend-sentify/crawls/scale-validation-kaFYtSNsriybyw6w7.json)
 - [scale-validation-Uv2s78xsAD6DUsrL8.json](D:/Project%203/backend-sentify/crawls/scale-validation-Uv2s78xsAD6DUsrL8.json)
+- [review-crawl-workers-smb-local.json](D:/Project%203/backend-sentify/load-reports/review-crawl-workers-smb-local.json)
 
 ### Quan Pho Hong
 
@@ -103,6 +116,24 @@ Reports:
   - queued: about `199.7s`
 - estimated backfill legs for `20K` with `1000 pages/run`: `2`
 
+### Local Worker Pressure Snapshot
+
+- queue mode: `inline` fallback because Redis was unavailable locally
+- queued runs: `24`
+- configured concurrency: `4`
+- observed max running: `4`
+- persisted raw reviews: `5760`
+- throughput:
+  - about `4.99 runs/s`
+  - about `59.9 pages/s`
+  - about `1198.06 raw reviews/s`
+- latency:
+  - processing about `775.54ms avg`, `880ms p95`
+  - total run about `2963.63ms avg`, `4892ms p95`
+- interpretation:
+  - this is useful local evidence for checkpoint pressure and in-process worker orchestration
+  - it is not evidence for Redis queue transport or multi-process BullMQ behavior
+
 ## What We Learned
 
 The `Cong Ca Phe` case is especially important because it shows a practical distinction between:
@@ -117,3 +148,8 @@ The `Pizza 4P's Hoang Van Thu` benchmark strengthens that policy again:
 - it is a larger source than `Cong Ca Phe`
 - direct and queued modes still converged to the same extracted-review ceiling
 - runtime for a `20K`-scale source still fits the current `1000 pages/run` budget in about `2` backfill legs
+
+The local worker-pressure snapshot is useful for a different claim:
+
+- the runtime can sustain repeated checkpoint writes and bounded concurrency on local Postgres
+- the remaining scale question is now specifically about Redis-backed queue transport, not whether checkpoint persistence works at all
