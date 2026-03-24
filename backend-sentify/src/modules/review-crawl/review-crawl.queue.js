@@ -7,8 +7,16 @@ const { serviceUnavailable } = require('../../lib/app-error')
 let sharedConnection = null
 let sharedQueue = null
 
+function buildReviewCrawlJobId(runId) {
+    return `review-crawl-${runId}`
+}
+
 function isQueueConfigured() {
     return Boolean(env.REDIS_URL)
+}
+
+function isInlineQueueMode() {
+    return env.NODE_ENV === 'test' || env.REVIEW_CRAWL_INLINE_QUEUE_MODE
 }
 
 function getRedisConnection() {
@@ -55,7 +63,7 @@ function getReviewCrawlQueue() {
 
 async function enqueueReviewCrawlRun(runId, options = {}) {
     if (!isQueueConfigured()) {
-        if (env.NODE_ENV === 'test') {
+        if (isInlineQueueMode()) {
             return {
                 id: `test-inline:${runId}`,
                 name: 'process-run',
@@ -77,10 +85,41 @@ async function enqueueReviewCrawlRun(runId, options = {}) {
             runId,
         },
         {
-            jobId: `review-crawl-${runId}`,
+            jobId: buildReviewCrawlJobId(runId),
             delay: options.delayMs ?? 0,
         },
     )
+}
+
+async function getReviewCrawlJob(runId) {
+    if (!isQueueConfigured()) {
+        return null
+    }
+
+    return getReviewCrawlQueue().getJob(buildReviewCrawlJobId(runId))
+}
+
+async function getReviewCrawlQueueHealth() {
+    if (!isQueueConfigured()) {
+        return {
+            configured: false,
+            counts: null,
+        }
+    }
+
+    const queue = getReviewCrawlQueue()
+    const counts = await queue.getJobCounts(
+        'waiting',
+        'active',
+        'completed',
+        'failed',
+        'delayed',
+    )
+
+    return {
+        configured: true,
+        counts,
+    }
 }
 
 function createReviewCrawlWorker(processor) {
@@ -118,9 +157,14 @@ async function closeReviewCrawlQueueResources() {
 }
 
 module.exports = {
+    buildReviewCrawlJobId,
     closeReviewCrawlQueueResources,
     createReviewCrawlWorker,
     enqueueReviewCrawlRun,
+    getRedisConnection,
+    getReviewCrawlJob,
     getReviewCrawlQueue,
+    getReviewCrawlQueueHealth,
+    isInlineQueueMode,
     isQueueConfigured,
 }

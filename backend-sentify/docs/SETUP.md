@@ -1,17 +1,17 @@
 # Sentify Backend Setup
 
-Updated: 2026-03-24
+Updated: 2026-03-25
 
-Tài liệu này mô tả cách chạy backend hiện tại theo đúng state của codebase.
+This document describes how to run the backend and the backend-only crawl tooling in the current codebase.
 
-## 1. Yêu cầu
+## 1. Requirements
 
 - Node.js 18+
 - npm 9+
 - PostgreSQL 15+
-- Redis nếu muốn chạy queued review-crawl bằng worker riêng
+- Redis if you want to run queued review-crawl workers as separate processes
 
-## 2. Cài đặt
+## 2. Install
 
 ```bash
 cd backend-sentify
@@ -20,41 +20,43 @@ npm install
 
 ## 3. Environment
 
-Tạo file `.env` từ `.env.example` rồi điền tối thiểu:
+Create `.env` from `.env.example` and fill at least:
 
 - `DATABASE_URL`
 - `JWT_SECRET`
 
-Các biến review-crawl queue quan trọng:
+Important queue and worker settings:
 
 - `REDIS_URL`
 - `REVIEW_CRAWL_QUEUE_NAME`
 - `REVIEW_CRAWL_WORKER_CONCURRENCY`
+- `REVIEW_CRAWL_RUNTIME_MODE`
+- `REVIEW_CRAWL_BACKFILL_AUTO_RESUME_MAX_CHAINS`
 
 ## 4. Database
 
-Chạy migrate và generate client:
+Generate Prisma client and apply migrations:
 
 ```bash
 npm run db:generate
 npm run db:migrate
 ```
 
-Seed dataset dùng chung cho demo, smoke, và regression:
+Seed the shared demo and regression dataset:
 
 ```bash
 npm run db:seed
 ```
 
-Seed hiện tạo:
+The seed currently creates:
 
 - 2 demo restaurants
-- 3 demo users: owner, manager, outsider
+- 3 demo users with owner, manager, and outsider boundaries
 - 2 published baseline batches
 - 1 open Google Maps curation batch
-- 1 review crawl source, 1 crawl run, và raw review audit trail
+- 1 crawl source, 1 crawl run, and raw review audit rows
 
-## 5. Chạy Backend
+## 5. Run The Backend
 
 ```bash
 npm run dev
@@ -67,42 +69,62 @@ curl http://localhost:3000/health
 curl http://localhost:3000/api/health
 ```
 
-## 6. Chạy Review Crawl Queue
+## 6. Run Review Crawl Workers
 
-Nếu muốn chạy queued crawl bằng worker riêng:
+If you want a separate queued worker process:
 
 ```bash
 set REDIS_URL=redis://127.0.0.1:6379
 npm run worker:review-crawl
 ```
 
-Nếu local Windows chưa có Redis service, smoke script có thể tự bật một binary local:
+Local development may run `processor + scheduler` in one process. A production-style setup should prefer:
+
+- 1 worker with `REVIEW_CRAWL_RUNTIME_MODE=scheduler`
+- 1 or more workers with `REVIEW_CRAWL_RUNTIME_MODE=processor`
+
+## 7. Local Queue Smoke
+
+If Windows does not have a Redis service, the smoke script can start a local Redis binary:
 
 ```bash
 set REVIEW_CRAWL_REDIS_BINARY=D:\tools\redis-server.exe
-node scripts/review-crawl-queue-smoke.js --url "https://maps.app.goo.gl/..." --strategy backfill --max-pages 1 --materialize
+node scripts/review-crawl-queue-smoke.js --url "https://maps.app.goo.gl/..." --strategy backfill --materialize
 ```
 
-Flow smoke này sẽ:
+If neither `REDIS_URL` nor a Redis binary is available, the smoke script now falls back to inline queue mode for local benchmarking only.
 
-- khởi động Redis local tạm thời nếu `REDIS_URL` chưa có
-- khởi động worker runtime
-- upsert crawl source
-- enqueue run
-- chờ run kết thúc
-- materialize raw reviews sang draft intake batch nếu có `--materialize`
+That local smoke flow will:
 
-## 7. Chạy Tests
+- upsert the crawl source
+- create a queued crawl run
+- process the run until the terminal state is stable
+- follow auto-resume backfill chains when they occur
+- optionally materialize valid raw reviews into a draft intake batch
 
-Suite mặc định:
+Production queued runs still require Redis.
+
+## 8. Review Ops CLI
+
+The backend-only review ops CLI lets developers or operators drive the system without touching SQL:
+
+```bash
+npm run ops:review -- sync-draft --user-id="<user-uuid>" --restaurant-id="<restaurant-uuid>" --url="https://maps.app.goo.gl/..."
+npm run ops:review -- sources --user-id="<user-uuid>" --restaurant-id="<restaurant-uuid>"
+npm run ops:review -- run-status --user-id="<user-uuid>" --run-id="<run-uuid>"
+npm run ops:review -- batch-readiness --user-id="<user-uuid>" --batch-id="<batch-uuid>"
+npm run ops:review -- approve-valid --user-id="<user-uuid>" --batch-id="<batch-uuid>" --reviewer-note="Bulk approved after readiness review"
+```
+
+## 9. Tests And Validation
+
+Fast suite:
 
 ```bash
 npm test
 ```
 
-Suite này ưu tiên speed, chủ yếu dùng mocks, và `publish.realdb.test.js` sẽ bị skip theo mặc định.
-
-Smoke trên Postgres thật:
+Real Postgres smoke:
 
 ```bash
 npm run test:realdb
@@ -114,24 +136,27 @@ Schema validation:
 npm run db:validate
 ```
 
-## 8. Scripts Quan Trọng
+## 10. Important Scripts
 
-| Script | Mục đích |
+| Script | Purpose |
 |---|---|
-| `npm run dev` | chạy API với nodemon |
-| `npm start` | chạy API production mode |
-| `npm run worker:review-crawl` | chạy BullMQ worker và scheduler |
-| `npm run smoke:review-crawl-queue -- --url "<google-maps-url>"` | proof lane cho queue worker |
-| `npm test` | suite nhanh dùng cho vòng phát triển thường ngày |
-| `npm run test:realdb` | smoke path trên Postgres thật cho publish và dashboard refresh |
-| `npm run db:generate` | generate Prisma client |
-| `npm run db:migrate` | apply migrations |
-| `npm run db:seed` | seed dataset dùng chung |
-| `npm run db:validate` | validate Prisma schema |
-| `npm run db:studio` | mở Prisma Studio |
+| `npm run dev` | Run the API with nodemon |
+| `npm start` | Run the API in production mode |
+| `npm run worker:review-crawl` | Run the BullMQ worker and scheduler |
+| `npm run smoke:review-crawl-queue -- --url "<google-maps-url>"` | Run the queued crawl smoke harness |
+| `npm run ops:review -- <subcommand>` | Run the review ops CLI |
+| `npm test` | Fast day-to-day backend suite |
+| `npm run test:realdb` | Real Postgres publish smoke |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run db:migrate` | Apply migrations |
+| `npm run db:seed` | Seed the shared demo dataset |
+| `npm run db:validate` | Validate Prisma schema |
+| `npm run db:studio` | Open Prisma Studio |
 
-## 9. Ghi Chú
+## 11. Notes
 
-- `npm run db:seed` là idempotent trong phạm vi dataset demo của Sentify, không reset toàn bộ database.
-- `npm run test:realdb` tạo restaurant tạm cho smoke publish rồi tự dọn sau khi test kết thúc.
-- Preview crawl không cần Redis, nhưng queued crawl thì cần Redis hoặc local binary qua smoke harness.
+- `npm run db:seed` is idempotent within the Sentify demo dataset scope; it does not reset the whole database.
+- `npm run test:realdb` creates temporary publish-smoke data and cleans it up after the test completes.
+- Preview crawl does not require Redis.
+- Queued crawl and queue health require Redis in production, but the local smoke harness can fall back to inline queue mode when Redis is unavailable.
+- Current live-source benchmarks show a stable ceiling of `4527` extracted public reviews on a place where Google reports `4746`, so operators should treat `reportedTotal` as a reference number, not a guaranteed extraction count.

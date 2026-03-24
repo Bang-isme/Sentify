@@ -2,6 +2,7 @@ const { badRequest, notFound } = require('../../lib/app-error')
 const { getRestaurantAccess } = require('../../services/restaurant-access.service')
 const { recalculateRestaurantInsights } = require('../../services/insight.service')
 const {
+    buildIntakeItemDedupKey,
     buildReviewPayload,
     buildRawItemKey,
     deriveBatchStatus,
@@ -94,7 +95,9 @@ async function addReviewItemsBulk({ userId, batchId, items }) {
 
     const existingKeys = new Set(
         (batch.items || []).map((item) =>
-            buildRawItemKey({
+            buildIntakeItemDedupKey({
+                sourceProvider: item.sourceProvider,
+                sourceExternalId: item.sourceExternalId,
                 rawAuthorName: item.rawAuthorName,
                 rawRating: item.rawRating,
                 rawContent: item.rawContent,
@@ -105,7 +108,7 @@ async function addReviewItemsBulk({ userId, batchId, items }) {
 
     const uniqueItems = []
     for (const item of items) {
-        const key = buildRawItemKey(item)
+        const key = buildIntakeItemDedupKey(item)
         if (existingKeys.has(key)) {
             continue
         }

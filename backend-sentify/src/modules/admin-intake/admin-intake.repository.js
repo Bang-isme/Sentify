@@ -42,6 +42,19 @@ async function findBatchById(batchId, options = {}) {
     })
 }
 
+async function findOpenBatchByCrawlSourceId(crawlSourceId, options = {}) {
+    return prisma.reviewIntakeBatch.findFirst({
+        where: {
+            crawlSourceId,
+            status: {
+                in: ['DRAFT', 'IN_REVIEW', 'READY_TO_PUBLISH'],
+            },
+        },
+        include: buildBatchInclude(Boolean(options.includeItems)),
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+    })
+}
+
 async function createItems(batchId, restaurantId, items) {
     if (!items.length) {
         return { count: 0 }
@@ -60,6 +73,21 @@ async function updateItem(itemId, data) {
     return prisma.reviewIntakeItem.update({
         where: {
             id: itemId,
+        },
+        data,
+    })
+}
+
+async function updateItemsMany(itemIds, data) {
+    if (!itemIds.length) {
+        return { count: 0 }
+    }
+
+    return prisma.reviewIntakeItem.updateMany({
+        where: {
+            id: {
+                in: itemIds,
+            },
         },
         data,
     })
@@ -240,9 +268,11 @@ module.exports = {
     deleteBatch,
     deleteItem,
     findBatchById,
+    findOpenBatchByCrawlSourceId,
     findItemById,
     listBatchesByRestaurant,
     publishApprovedItems,
     updateBatch,
     updateItem,
+    updateItemsMany,
 }

@@ -75,7 +75,7 @@ const crawlGoogleMapsOptionsSchema = z.object({
     pages: z.union([z.literal('max'), z.coerce.number().int().positive().max(500)]).default(1),
     pageSize: z.coerce.number().int().min(1).max(20).default(20),
     maxReviews: z.coerce.number().int().positive().max(10000).optional(),
-    delayMs: z.coerce.number().int().min(0).max(5000).default(500),
+    delayMs: z.coerce.number().int().min(0).max(5000).default(0),
 })
 
 const crawlGoogleMapsRequestSchema = crawlGoogleMapsOptionsSchema.extend({

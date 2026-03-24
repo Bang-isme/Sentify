@@ -1,6 +1,6 @@
 # Sentify API Reference
 
-Updated: 2026-03-24
+Updated: 2026-03-25
 Base URL: `http://localhost:3000/api`
 
 This file documents the API surface that exists in the current backend codebase.
@@ -283,7 +283,7 @@ Request body:
   "pages": 1,
   "pageSize": 20,
   "maxReviews": 100,
-  "delayMs": 500
+  "delayMs": 0
 }
 ```
 
@@ -308,6 +308,12 @@ Response shape:
   }
 }
 ```
+
+Important semantics:
+
+- `crawl.completeness = "complete"` means the currently exposed public review page chain was exhausted
+- it does not guarantee `totalReviewsExtracted === place.totalReviewCount`
+- when Google reports more reviews than the crawler can extract, the response carries a warning in `crawl.warnings`
 
 ### `POST /api/admin/review-crawl/sources`
 
@@ -345,11 +351,16 @@ Request body:
   "priority": "NORMAL",
   "maxPages": 10,
   "pageSize": 20,
-  "delayMs": 250
+  "delayMs": 0
 }
 ```
 
 Returns `202` with a queued run payload.
+
+Notes:
+
+- `BACKFILL` now defaults to `delayMs = 0`
+- run warnings may still include a `reportedTotal` vs `extractedCount` mismatch after a `COMPLETED` run
 
 ### `GET /api/admin/review-crawl/runs/:runId`
 
@@ -391,6 +402,111 @@ Important behavior:
 - crawler runs do not write directly to canonical `Review`
 - intake items now preserve `sourceProvider`, `sourceExternalId`, and `sourceReviewUrl`
 - publish still goes through admin-intake review and canonical dedupe
+
+## Review Ops
+
+All `/api/admin/review-ops/*` endpoints require auth plus restaurant-scoped `OWNER` or `MANAGER` access.
+
+This layer exists to reduce the number of backend-only operator steps. It composes `review-crawl` and `admin-intake` without bypassing the publish gate.
+
+### `POST /api/admin/review-ops/google-maps/sync-to-draft`
+
+Creates or reuses a crawl source, creates or reuses an active run, and marks the run for draft auto-materialization when it reaches `COMPLETED` or `PARTIAL`.
+
+Request body:
+
+```json
+{
+  "restaurantId": "uuid",
+  "url": "https://maps.app.goo.gl/...",
+  "language": "en",
+  "region": "us",
+  "strategy": "BACKFILL",
+  "priority": "NORMAL",
+  "maxPages": 50,
+  "pageSize": 20,
+  "delayMs": 0
+}
+```
+
+Returns `202` with:
+
+- `source`
+- `run`
+- `draftPolicy`
+
+Important behavior:
+
+- default strategy is `BACKFILL` for a source that has never succeeded before
+- default strategy is `INCREMENTAL` for an already-synced source
+- manual publish is still required after the draft batch is ready
+- backfill defaults now favor throughput, but warning semantics still protect operators from assuming `reportedTotal` was fully reached
+
+### `GET /api/admin/review-ops/sources?restaurantId=...`
+
+Returns:
+
+- source list
+- latest run summary per source
+- open draft batch summary per source
+- queue health
+- worker heartbeat summary
+- overdue source count for that restaurant
+
+### `GET /api/admin/review-ops/sources/:sourceId/runs`
+
+Query params:
+
+- `page`
+- `limit`
+
+Returns paginated run history for one crawl source.
+
+### `GET /api/admin/review-ops/runs/:runId`
+
+Returns:
+
+- mapped run detail
+- queue job state, when available
+- flags such as `resumable` and `materializable`
+
+### `POST /api/admin/review-ops/sources/:sourceId/disable`
+
+Disables a crawl source and clears its next scheduled sync timestamp.
+
+### `POST /api/admin/review-ops/sources/:sourceId/enable`
+
+Re-enables a crawl source and recomputes the next scheduled sync timestamp when source sync is enabled.
+
+### `GET /api/admin/review-ops/batches/:batchId/readiness`
+
+Returns:
+
+- batch summary
+- batch counts
+- `publishAllowed`
+- `blockingReasons`
+- `bulkApprovableCount`
+- crawl diagnostics for invalid raw reviews
+- top validation issue codes
+
+This endpoint does not publish anything. It is a readiness check.
+
+### `POST /api/admin/review-ops/batches/:batchId/approve-valid`
+
+Bulk-approves only `PENDING` items that still pass publish validation at the moment of execution.
+
+Important behavior:
+
+- invalid pending items are skipped
+- publish validation still reuses the same domain rule as manual publish
+- the batch status is recalculated after the bulk update
+
+### `POST /api/admin/review-ops/batches/:batchId/publish`
+
+Thin proxy to the existing admin-intake publish path.
+
+It does not bypass canonical dedupe or publish validation.
 
 ## Admin Intake
 

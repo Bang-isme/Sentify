@@ -67,6 +67,11 @@ const envSchema = z.object({
     EMAIL_FROM: z.string().optional(),
     REDIS_URL: z.string().optional(),
     REVIEW_CRAWL_QUEUE_NAME: z.string().min(1).default('review-crawl'),
+    REVIEW_CRAWL_INLINE_QUEUE_MODE: z
+        .string()
+        .optional()
+        .transform((value) => value === 'true'),
+    REVIEW_CRAWL_RUNTIME_MODE: z.enum(['processor', 'scheduler', 'both']).default('both'),
     REVIEW_CRAWL_WORKER_CONCURRENCY: z.coerce.number().int().positive().max(20).default(2),
     REVIEW_CRAWL_JOB_TIMEOUT_MS: z.coerce.number().int().positive().default(10 * 60 * 1000),
     REVIEW_CRAWL_MAX_RETRIES: z.coerce.number().int().min(0).max(10).default(3),
@@ -75,11 +80,20 @@ const envSchema = z.object({
     REVIEW_CRAWL_HEARTBEAT_INTERVAL_MS: z.coerce.number().int().positive().default(20 * 1000),
     REVIEW_CRAWL_INCREMENTAL_MAX_PAGES: z.coerce.number().int().positive().default(10),
     REVIEW_CRAWL_BACKFILL_MAX_PAGES: z.coerce.number().int().positive().default(250),
+    REVIEW_CRAWL_BACKFILL_AUTO_RESUME_MAX_CHAINS: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .max(200)
+        .default(25),
     REVIEW_CRAWL_MAX_DURATION_MS: z.coerce.number().int().positive().default(10 * 60 * 1000),
     REVIEW_CRAWL_KNOWN_REVIEW_STREAK_LIMIT: z.coerce.number().int().positive().default(25),
     REVIEW_CRAWL_FAILURE_COOLDOWN_MINUTES: z.coerce.number().int().positive().default(30),
     REVIEW_CRAWL_SCHEDULER_INTERVAL_MS: z.coerce.number().int().positive().default(60 * 1000),
     REVIEW_CRAWL_SCHEDULER_BATCH_SIZE: z.coerce.number().int().positive().default(20),
+    REVIEW_CRAWL_SCHEDULER_LOCK_KEY: z.string().min(1).default('review-crawl:scheduler:lock'),
+    REVIEW_CRAWL_SCHEDULER_LOCK_TTL_MS: z.coerce.number().int().positive().default(45 * 1000),
+    REVIEW_CRAWL_RUNTIME_HEALTH_TTL_MS: z.coerce.number().int().positive().default(90 * 1000),
 })
 
 const parsedEnv = envSchema.parse(process.env)

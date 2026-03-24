@@ -174,6 +174,14 @@ function buildRawItemKey(item) {
     return serializeIdentity(buildSourceIdentity(item))
 }
 
+function buildIntakeItemDedupKey(item) {
+    if (item.sourceProvider && item.sourceExternalId) {
+        return `source:${item.sourceProvider}:${item.sourceExternalId}`
+    }
+
+    return `raw:${buildRawItemKey(item)}`
+}
+
 function buildCanonicalReviewExternalId(restaurantId, item) {
     if (item.sourceProvider && item.sourceExternalId) {
         return `source-review:v1:${item.sourceProvider.toLowerCase()}:${item.sourceExternalId}`
@@ -251,6 +259,7 @@ function mapBatch(batch, options = {}) {
         id: batch.id,
         restaurantId: batch.restaurantId,
         createdByUserId: batch.createdByUserId,
+        crawlSourceId: batch.crawlSourceId ?? null,
         title: batch.title ?? null,
         sourceType: batch.sourceType,
         status: batch.status,
@@ -288,6 +297,7 @@ function mapBatch(batch, options = {}) {
 
 module.exports = {
     buildCanonicalReviewExternalId,
+    buildIntakeItemDedupKey,
     buildRawItemKey,
     buildReviewPayload,
     deriveBatchStatus,

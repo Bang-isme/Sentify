@@ -1,5 +1,7 @@
 const prisma = require('../../lib/prisma')
 
+const ACTIVE_RUN_UNIQUE_INDEX = 'ReviewCrawlRun_sourceId_active_unique'
+
 function buildRunInclude(options = {}) {
     return {
         source: Boolean(options.includeSource),
@@ -15,6 +17,52 @@ function buildRunInclude(options = {}) {
     }
 }
 
+function buildSourceInclude(options = {}) {
+    return {
+        runs: options.includeLatestRun
+            ? {
+                  include: buildRunInclude({
+                      includeSource: false,
+                      includeIntakeBatch: true,
+                  }),
+                  orderBy: [{ queuedAt: 'desc' }, { createdAt: 'desc' }],
+                  take: 1,
+              }
+            : false,
+        intakeBatches: options.includeOpenDraftBatch
+            ? {
+                  where: {
+                      status: {
+                          in: ['DRAFT', 'IN_REVIEW', 'READY_TO_PUBLISH'],
+                      },
+                  },
+                  orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+                  take: 1,
+                  select: {
+                      id: true,
+                      status: true,
+                      title: true,
+                      updatedAt: true,
+                      createdAt: true,
+                  },
+              }
+            : false,
+    }
+}
+
+function isActiveRunUniqueViolation(error) {
+    if (!error) {
+        return false
+    }
+
+    const message = `${error.message ?? ''} ${error.meta?.database_error ?? ''}`
+    return (
+        error.code === 'P2002' ||
+        message.includes(ACTIVE_RUN_UNIQUE_INDEX) ||
+        message.includes('duplicate key value violates unique constraint')
+    )
+}
+
 async function upsertSourceByCanonicalIdentity(identity, createData, updateData) {
     return prisma.reviewCrawlSource.upsert({
         where: {
@@ -28,9 +76,23 @@ async function upsertSourceByCanonicalIdentity(identity, createData, updateData)
     })
 }
 
-async function findSourceById(sourceId) {
+async function findSourceById(sourceId, options = {}) {
     return prisma.reviewCrawlSource.findUnique({
         where: { id: sourceId },
+        include: buildSourceInclude(options),
+    })
+}
+
+async function listSourcesByRestaurant(restaurantId) {
+    return prisma.reviewCrawlSource.findMany({
+        where: {
+            restaurantId,
+        },
+        include: buildSourceInclude({
+            includeLatestRun: true,
+            includeOpenDraftBatch: true,
+        }),
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
     })
 }
 
@@ -61,10 +123,18 @@ async function findActiveRunBySourceId(sourceId) {
 }
 
 async function createRun(data) {
-    return prisma.reviewCrawlRun.create({
-        data,
-        include: buildRunInclude({ includeSource: true }),
-    })
+    try {
+        return await prisma.reviewCrawlRun.create({
+            data,
+            include: buildRunInclude({ includeSource: true }),
+        })
+    } catch (error) {
+        if (isActiveRunUniqueViolation(error)) {
+            error.isActiveRunUniqueViolation = true
+        }
+
+        throw error
+    }
 }
 
 async function findRunById(runId, options = {}) {
@@ -94,6 +164,36 @@ async function updateSource(sourceId, data) {
         where: { id: sourceId },
         data,
     })
+}
+
+async function listRunsBySource(sourceId, options = {}) {
+    const take = options.take ?? 20
+    const skip = options.skip ?? 0
+
+    const [runs, totalCount] = await prisma.$transaction([
+        prisma.reviewCrawlRun.findMany({
+            where: {
+                sourceId,
+            },
+            include: buildRunInclude({
+                includeSource: true,
+                includeIntakeBatch: true,
+            }),
+            orderBy: [{ queuedAt: 'desc' }, { createdAt: 'desc' }],
+            skip,
+            take,
+        }),
+        prisma.reviewCrawlRun.count({
+            where: {
+                sourceId,
+            },
+        }),
+    ])
+
+    return {
+        runs,
+        totalCount,
+    }
 }
 
 async function findRawReviewsBySourceAndKeys(sourceId, externalReviewKeys) {
@@ -137,14 +237,48 @@ async function listRunRawReviews(runId) {
     })
 }
 
+async function listSourceRawReviewsSince(sourceId, sinceDate) {
+    return prisma.reviewCrawlRawReview.findMany({
+        where: {
+            sourceId,
+            ...(sinceDate
+                ? {
+                      updatedAt: {
+                          gte: sinceDate,
+                      },
+                  }
+                : {}),
+        },
+        orderBy: [{ updatedAt: 'desc' }, { reviewDate: 'desc' }],
+    })
+}
+
+async function countDueSources(now, restaurantId = null) {
+    return prisma.reviewCrawlSource.count({
+        where: {
+            ...(restaurantId ? { restaurantId } : {}),
+            status: 'ACTIVE',
+            syncEnabled: true,
+            nextScheduledAt: {
+                lte: now,
+            },
+        },
+    })
+}
+
 module.exports = {
+    countDueSources,
     createRun,
     findActiveRunBySourceId,
     findRawReviewsBySourceAndKeys,
     findRunById,
     findSourceById,
+    isActiveRunUniqueViolation,
     listDueSources,
     listRunRawReviews,
+    listSourceRawReviewsSince,
+    listRunsBySource,
+    listSourcesByRestaurant,
     updateRun,
     updateRunMany,
     updateSource,

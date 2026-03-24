@@ -1,6 +1,6 @@
 # Sentify Backend Docs
 
-Updated: 2026-03-24
+Updated: 2026-03-25
 
 This folder now keeps only backend documents that are intended to match the current codebase.
 
@@ -28,7 +28,7 @@ Notes:
 - `CURRENT-STATE.md` is the fastest way to understand what the codebase already has today
 - `PROJECT-STATUS.md` is the fastest way to understand progress, remaining gaps, and next priorities
 - `PROPOSAL.md` is the concise project proposal aligned to the current manual-first direction
-- `REVIEW-CRAWLER.md` documents the non-browser Google Maps review crawler, queued run model, and intake-ready JSON output
-- `SETUP.md` includes `db:seed`, `test:realdb`, and the local queued crawl smoke commands
+- `REVIEW-CRAWLER.md` documents the non-browser Google Maps review crawler, queued run model, benchmark evidence, mismatch semantics for reported totals, and the backend-only `review-ops` control plane
+- `SETUP.md` includes `db:seed`, `test:realdb`, the local queued crawl smoke commands, and the inline-queue fallback for local benchmarking
 - `BACKEND-STAGE-A-BACKLOG.md` is the backend-only execution slice
 - `STAGE-A-BACKLOG.md` is the broader Stage A delivery view when cross-functional context is needed

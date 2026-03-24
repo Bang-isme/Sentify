@@ -1,122 +1,136 @@
 # Sentify Backend Project Status
 
-Updated: 2026-03-24
+Updated: 2026-03-25
 
-Tài liệu này trả lời ngắn gọn dự án backend đang ở đâu, đã xong gì, và nên làm gì tiếp.
+This document answers three questions: where the backend is now, what is already done, and what should happen next.
 
-## 1. Tổng quan
+## 1. Overall Assessment
 
-Đánh giá hiện tại:
+Current status:
 
-- product direction: đã chốt
-- backend foundation: đã đủ chắc
-- database direction: đúng hướng
-- core business flow: đã có
-- release evidence: chưa đủ
+- product direction: locked
+- backend foundation: strong
+- database direction: correct
+- core business flow: working
+- release evidence: still incomplete
 
-Backend hiện không còn ở mức mock-demo. Nó đã có shape của một sản phẩm thật, nhưng vẫn thiếu một số bằng chứng vận hành trước khi gọi là production-ready.
+The backend is no longer a mock-demo. It already behaves like a real product foundation, but it still needs more operational proof before it should be called release-ready.
 
-## 2. Trạng thái theo workstream
+## 2. Status By Workstream
 
-| Hạng mục | Trạng thái | Hiện có | Còn thiếu |
+| Area | Status | Already in place | Still missing |
 |---|---|---|---|
-| Product direction | Done | Manual-first, merchant reads from curated data | Giữ scope không drift |
-| Core architecture | Mostly done | Modular monolith, `admin-intake` và `review-crawl` đã rõ | Refactor nốt auth, restaurants, dashboard |
-| Auth and security | Mostly done | JWT, refresh, cookies, CSRF, lockout, reset token | Thêm smoke depth cho refresh và reset |
-| Merchant read APIs | Mostly done | Dashboard, reviews, complaints, sentiment, trend, top issue | Seeded read-path smoke rộng hơn |
-| Admin intake | Mostly done | Create, edit, review, publish, canonical reuse | Smoke qua nhiều batch states hơn |
-| Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, materialize | Load test SMB và production Redis ops evidence |
-| Publish integrity | Mostly done | Dedupe và canonical review reuse đã ổn hơn nhiều | Duplicate publish smoke trên real DB |
-| Database | Mostly done | Schema đúng hướng, queue runtime đã có, seed dataset đã có | Backup/restore evidence |
-| Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued smoke | Load test, staged smoke, wider read-path proof |
-| Docs | Mostly done | Docs lõi đã bám code hơn trước | Duy trì sync khi code tiếp tục đổi |
-| Ops and release | Partial | Health endpoints, setup docs, worker flow | Staging proof, backup, restore, rollback |
+| Product direction | Done | Manual-first, canonical merchant reads, admin-curated publish boundary | Keep scope stable |
+| Core architecture | Mostly done | Modular monolith, feature modules for `admin-intake`, `review-crawl`, `review-ops` | Continue refactor for auth and restaurant areas |
+| Auth and security | Mostly done | JWT, refresh, cookies, CSRF, lockout, reset flow | Deeper refresh and reset proof |
+| Merchant read APIs | Mostly done | Dashboard, reviews, sentiment, trend, complaints, top issue | Wider seeded smoke coverage |
+| Admin intake | Mostly done | Create, edit, review, publish, canonical reuse | More multi-batch regression proof |
+| Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, repeated deep-crawl benchmarks to the same public ceiling | SMB load testing and dedicated Redis ops proof |
+| Review ops control plane | Mostly done | One-click draft sync, source list, run list, readiness, bulk approve valid, publish proxy | End-to-end queue proof through the operator surface |
+| Publish integrity | Mostly done | Stable external review identity and canonical reuse | Duplicate publish smoke on real DB |
+| Database | Mostly done | Runtime models, crawl invariants, seed dataset | Backup and restore evidence |
+| Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued crawl smoke | Load testing, staged smoke, broader read-path proof |
+| Docs | Mostly done | Current-state docs match code more closely | Keep sync as code evolves |
+| Ops and release | Partial | Health endpoints, worker runtime, setup docs | Staging, backup, restore, rollback |
 
-## 3. Sprint lens
+## 3. Sprint Lens
 
 ### Sprint 1 backend
 
-Gần đóng xong nhưng chưa hoàn tất 100%.
+Almost closed, but not fully complete.
 
-Đã có:
+Done:
 
-- auth/CSRF trust contract
+- auth and CSRF trust contract
 - restaurant-scoped authorization
-- docs sync
+- docs synced to live backend
 
-Còn thiếu:
+Still thin:
 
-- refresh lifecycle evidence sâu hơn
-- forgot/reset password evidence sâu hơn
+- refresh lifecycle evidence
+- forgot/reset password evidence
 
 ### Sprint 2 backend
 
-Đã tiến thêm rõ rệt.
+Substantial progress.
 
-Đã có:
+Done:
 
 - shared seed and demo dataset
-- one real Postgres smoke path cho publish và dashboard refresh
+- one real Postgres smoke path for publish and dashboard refresh
 
-Còn thiếu:
+Still missing:
 
-- mở rộng smoke sang merchant read APIs trên seeded data
-- mở rộng admin-intake smoke qua nhiều trạng thái batch hơn
+- broader read-path smoke on seeded data
+- richer admin-intake state coverage
 
 ### Sprint 3 backend
 
-Mới có một phần nền.
+Foundation is present.
 
-Đã có:
+Done:
 
-- publish invariants tốt hơn
-- canonical dedupe xuyên batch tốt hơn
+- better publish invariants
+- stronger canonical dedupe semantics
+- backend-only review ops layer for crawl-to-draft control
 
-Còn thiếu:
+Still missing:
 
-- seeded read-path confidence đầy đủ
-- load behavior awareness ở mức SMB
+- deeper confidence on seeded merchant reads
+- SMB scale proof for crawl workers
 
 ### Sprint 4 backend
 
-Chưa có đủ evidence release.
+Release evidence is still incomplete.
 
-Còn thiếu:
+Still missing:
 
 - staging deployment proof
-- health smoke routine trong môi trường gần production
-- backup/restore/rollback drill
+- near-production health smoke
+- backup, restore, and rollback drills
 
-## 4. Mốc đã đạt
+## 4. Milestones Already Reached
 
-Các mốc đáng kể nhất hiện tại:
+Key backend milestones already achieved:
 
-1. Chuyển hẳn sang manual-first admin intake
-2. Tách canonical dataset khỏi intake workflow
-3. Đóng CSRF trust contract cho cookie-auth writes
-4. Siết publish invariants và canonical review reuse
-5. Đưa review crawl sang queue + worker thay vì request dài
-6. Có seed dataset dùng chung
-7. Có real DB publish smoke
-8. Có queued crawl smoke với Redis local binary
+1. Fully moved to manual-first admin intake
+2. Separated canonical dataset from intake workflow
+3. Closed the cookie auth and CSRF contract
+4. Hardened publish invariants and canonical review reuse
+5. Moved review crawl to queue and worker processing
+6. Added shared seed data for demos and regression
+7. Added real Postgres publish smoke
+8. Added queued crawl smoke with local Redis
+9. Added a backend-only operator surface to cut down crawl-to-draft steps
+10. Benchmarked deep Google Maps crawl throughput and lowered default backfill delay without losing extracted review quality
 
-## 5. Rủi ro nếu dừng ở đây
+## 5. Risk If Work Stops Here
 
-- vẫn còn tự tin hơi nhiều vào mocked suite
-- read-path chưa được chứng minh đủ rộng trên seeded data
-- chưa có load signal cho queue worker
-- chưa có release evidence thật ở staging
+- confidence still leans too much on mocked tests
+- merchant read-path proof is not broad enough yet
+- queue worker load behavior is still unmeasured under SMB concurrency
+- Google-reported totals can still exceed the public review rows exposed through the unofficial RPC
+- release operations are not yet demonstrated in staging
 
-## 6. Ưu tiên tiếp theo
+## 6. Recommended Next Order
 
-Thứ tự nên làm tiếp:
+The next backend priorities should be:
 
-1. thêm seeded smoke cho merchant read APIs
-2. thêm duplicate publish smoke trên real DB
-3. tăng độ sâu cho refresh/password reset
-4. chuẩn bị load test SMB cho queue và dashboard reads
-5. chuẩn bị staging, backup, restore, rollback
+1. add seeded smoke for merchant read APIs
+2. add real-DB duplicate publish regression across batches
+3. deepen refresh and password reset coverage
+4. run SMB load tests for queue workers and dashboard reads
+5. document operator policy when `reportedTotal` exceeds crawlable public reviews
+6. prepare staging, backup, restore, and rollback evidence
 
-## 7. Kết luận
+## 7. Short Conclusion
 
-Backend hiện đã đủ chắc để FE sửa lại dựa vào sau này. Phần thiếu bây giờ chủ yếu là evidence, scale proof, và release discipline, không còn là thiếu business flow cốt lõi.
+The backend is already strong enough for FE to rely on later.
+
+What remains is mostly:
+
+- stronger evidence
+- scale proof
+- release discipline
+
+The missing work is no longer about whether a core backend exists. It is about proving that the backend can be trusted under more realistic operating conditions and being explicit about the limits of unofficial Google review completeness.

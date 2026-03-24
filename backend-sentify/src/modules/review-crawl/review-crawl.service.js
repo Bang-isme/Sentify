@@ -109,6 +109,153 @@ function resolveSourceCreateInput(input, resolved, now) {
     }
 }
 
+function mergeMetadata(currentMetadata, nextMetadata) {
+    return {
+        ...(currentMetadata || {}),
+        ...(nextMetadata || {}),
+    }
+}
+
+function ensureSourceIsSyncable(source) {
+    if (source.status === 'DISABLED') {
+        throw conflict(
+            'REVIEW_CRAWL_SOURCE_DISABLED',
+            'This crawl source is disabled and must be re-enabled before syncing',
+        )
+    }
+}
+
+async function updateActiveRunMetadata(activeRun, metadata) {
+    if (!metadata || Object.keys(metadata).length === 0) {
+        return repository.findRunById(activeRun.id, {
+            includeSource: true,
+            includeIntakeBatch: true,
+        })
+    }
+
+    const mergedMetadata = mergeMetadata(activeRun.metadataJson, metadata)
+    const hasChanged =
+        JSON.stringify(activeRun.metadataJson || {}) !== JSON.stringify(mergedMetadata)
+
+    if (!hasChanged) {
+        return repository.findRunById(activeRun.id, {
+            includeSource: true,
+            includeIntakeBatch: true,
+        })
+    }
+
+    return repository.updateRun(
+        activeRun.id,
+        {
+            metadataJson: mergedMetadata,
+        },
+        {
+            includeSource: true,
+            includeIntakeBatch: true,
+        },
+    )
+}
+
+async function createQueuedRunForSource({
+    source,
+    userId,
+    input = {},
+    trigger = 'manual',
+    metadata = {},
+    reuseActiveRun = false,
+}) {
+    ensureSourceIsSyncable(source)
+
+    const strategy = input.strategy ?? 'INCREMENTAL'
+    const budget = clampRunBudget(strategy, input)
+    const now = new Date()
+    const activeRun = await repository.findActiveRunBySourceId(source.id)
+
+    if (activeRun) {
+        if (reuseActiveRun) {
+            const reusedRun = await updateActiveRunMetadata(activeRun, metadata)
+            return {
+                run: reusedRun,
+                reusedExisting: true,
+            }
+        }
+
+        throw conflict(
+            'REVIEW_CRAWL_RUN_ALREADY_ACTIVE',
+            'This crawl source already has an active run',
+        )
+    }
+
+    let run
+
+    try {
+        run = await repository.createRun({
+            sourceId: source.id,
+            restaurantId: source.restaurantId,
+            requestedByUserId: userId ?? null,
+            strategy,
+            priority: input.priority ?? 'NORMAL',
+            status: 'QUEUED',
+            pageSize: budget.pageSize,
+            delayMs: budget.delayMs,
+            maxPages: budget.maxPages,
+            maxReviews: budget.maxReviews,
+            queuedAt: now,
+            metadataJson: mergeMetadata(
+                {
+                    trigger,
+                },
+                metadata,
+            ),
+        })
+    } catch (error) {
+        if (repository.isActiveRunUniqueViolation(error)) {
+            const conflictingRun = await repository.findActiveRunBySourceId(source.id)
+
+            if (conflictingRun && reuseActiveRun) {
+                const reusedRun = await updateActiveRunMetadata(conflictingRun, metadata)
+                return {
+                    run: reusedRun,
+                    reusedExisting: true,
+                }
+            }
+
+            throw conflict(
+                'REVIEW_CRAWL_RUN_ALREADY_ACTIVE',
+                'This crawl source already has an active run',
+            )
+        }
+
+        throw error
+    }
+
+    try {
+        await enqueueReviewCrawlRun(run.id)
+    } catch (error) {
+        await repository.updateRun(run.id, {
+            status: 'FAILED',
+            errorCode: error.code || 'REVIEW_CRAWL_ENQUEUE_FAILED',
+            errorMessage: error.message,
+            finishedAt: new Date(),
+        })
+        throw error
+    }
+
+    logReviewCrawlEvent('run.queued', {
+        runId: run.id,
+        sourceId: source.id,
+        restaurantId: source.restaurantId,
+        strategy,
+        trigger,
+        reusedExisting: false,
+    })
+
+    return {
+        run,
+        reusedExisting: false,
+    }
+}
+
 async function previewGoogleMapsReviews({ userId, input }) {
     await ensureRestaurantEditorAccess(userId, input.restaurantId)
     return googleMapsProvider.crawlGoogleMapsReviews(input)
@@ -150,55 +297,22 @@ async function upsertReviewCrawlSource({ userId, input }) {
     }
 }
 
-async function createReviewCrawlRun({ userId, sourceId, input, trigger = 'manual' }) {
+async function createReviewCrawlRun({
+    userId,
+    sourceId,
+    input,
+    trigger = 'manual',
+    metadata,
+    reuseActiveRun = false,
+}) {
     const source = await ensureSourceAccess(userId, sourceId)
-    const activeRun = await repository.findActiveRunBySourceId(source.id)
-
-    if (activeRun) {
-        throw conflict(
-            'REVIEW_CRAWL_RUN_ALREADY_ACTIVE',
-            'This crawl source already has an active run',
-        )
-    }
-
-    const strategy = input.strategy ?? 'INCREMENTAL'
-    const budget = clampRunBudget(strategy, input)
-    const now = new Date()
-    const run = await repository.createRun({
-        sourceId: source.id,
-        restaurantId: source.restaurantId,
-        requestedByUserId: userId,
-        strategy,
-        priority: input.priority ?? 'NORMAL',
-        status: 'QUEUED',
-        pageSize: budget.pageSize,
-        delayMs: budget.delayMs,
-        maxPages: budget.maxPages,
-        maxReviews: budget.maxReviews,
-        queuedAt: now,
-        metadataJson: {
-            trigger,
-        },
-    })
-
-    try {
-        await enqueueReviewCrawlRun(run.id)
-    } catch (error) {
-        await repository.updateRun(run.id, {
-            status: 'FAILED',
-            errorCode: error.code || 'REVIEW_CRAWL_ENQUEUE_FAILED',
-            errorMessage: error.message,
-            finishedAt: new Date(),
-        })
-        throw error
-    }
-
-    logReviewCrawlEvent('run.queued', {
-        runId: run.id,
-        sourceId: source.id,
-        restaurantId: source.restaurantId,
-        strategy,
+    const { run } = await createQueuedRunForSource({
+        source,
+        userId,
+        input,
         trigger,
+        metadata,
+        reuseActiveRun,
     })
 
     return mapRun(run, { includeSource: true })
@@ -286,6 +400,73 @@ function mergeWarnings(existingWarnings, nextWarnings) {
     )
 }
 
+function getAutoResumeChainCount(metadataJson) {
+    return Number.isInteger(metadataJson?.autoResumeChainCount)
+        ? metadataJson.autoResumeChainCount
+        : 0
+}
+
+function shouldAutoResumePrematureBackfill(run) {
+    if (!run || run.strategy !== 'BACKFILL' || run.status !== 'PARTIAL') {
+        return false
+    }
+
+    if (run.metadataJson?.stopReason !== 'premature_exhaustion') {
+        return false
+    }
+
+    if (!run.checkpointCursor) {
+        return false
+    }
+
+    return getAutoResumeChainCount(run.metadataJson) < env.REVIEW_CRAWL_BACKFILL_AUTO_RESUME_MAX_CHAINS
+}
+
+async function queueAutoResumeRun(run, source) {
+    const autoResumeChainCount = getAutoResumeChainCount(run.metadataJson) + 1
+    const warnings = mergeWarnings(
+        Array.isArray(run.warningsJson) ? run.warningsJson : [],
+        [
+            `Queued automatic backfill resume ${autoResumeChainCount}/${env.REVIEW_CRAWL_BACKFILL_AUTO_RESUME_MAX_CHAINS} from saved cursor`,
+        ],
+    )
+    const metadataJson = mergeMetadata(run.metadataJson, {
+        autoResumeChainCount,
+        lastAutoResumeQueuedAt: new Date().toISOString(),
+    })
+
+    const resumedRun = await repository.updateRun(
+        run.id,
+        {
+            status: 'QUEUED',
+            queuedAt: new Date(),
+            startedAt: null,
+            finishedAt: null,
+            cancelRequestedAt: null,
+            leaseToken: null,
+            leaseExpiresAt: null,
+            warningCount: warnings.length,
+            warningsJson: warnings,
+            metadataJson,
+        },
+        {
+            includeSource: true,
+            includeIntakeBatch: true,
+        },
+    )
+
+    await enqueueReviewCrawlRun(run.id)
+
+    logReviewCrawlEvent('run.auto_resumed', {
+        runId: run.id,
+        sourceId: source.id,
+        checkpointCursor: resumedRun.checkpointCursor,
+        autoResumeChainCount,
+    })
+
+    return resumedRun
+}
+
 async function persistPageReviews({ source, run, reviews, warnings }) {
     const existingRows = await repository.findRawReviewsBySourceAndKeys(
         source.id,
@@ -302,8 +483,8 @@ async function persistPageReviews({ source, run, reviews, warnings }) {
 
     for (const review of reviews) {
         const existing = existingByKey.get(review.externalReviewKey)
-        const validation = googleMapsProvider.buildValidatedIntakeItems([review])
-        const intakeItemPayload = validation.items[0] || null
+        const validation = googleMapsProvider.validateReviewForIntake(review)
+        const intakeItemPayload = validation.item || null
         const isValidForIntake = Boolean(intakeItemPayload)
 
         if (existing) {
@@ -336,7 +517,7 @@ async function persistPageReviews({ source, run, reviews, warnings }) {
             language: review.language ?? null,
             ownerResponseText: review.ownerResponse?.text ?? null,
             validForIntake: isValidForIntake,
-            validationIssues: isValidForIntake ? null : validation.warnings,
+            validationIssues: isValidForIntake ? null : validation.issues,
             intakeItemPayload,
             payload: review,
         })
@@ -358,6 +539,16 @@ async function finalizeRunSuccess(run, source, status, updates = {}) {
         source.syncEnabled && status !== 'CANCELLED'
             ? computeNextScheduledAt(now, source.syncIntervalMinutes)
             : source.nextScheduledAt
+    const normalizedUpdates = {
+        ...updates,
+    }
+
+    if (
+        Array.isArray(normalizedUpdates.warningsJson) &&
+        !Object.prototype.hasOwnProperty.call(normalizedUpdates, 'warningCount')
+    ) {
+        normalizedUpdates.warningCount = normalizedUpdates.warningsJson.length
+    }
 
     await repository.updateSource(source.id, {
         lastReportedTotal: run.reportedTotal ?? source.lastReportedTotal ?? null,
@@ -373,7 +564,7 @@ async function finalizeRunSuccess(run, source, status, updates = {}) {
             finishedAt: now,
             leaseToken: null,
             leaseExpiresAt: null,
-            ...updates,
+            ...normalizedUpdates,
         },
         {
             includeSource: true,
@@ -391,6 +582,66 @@ async function finalizeRunSuccess(run, source, status, updates = {}) {
     })
 
     return persistedRun
+}
+
+async function finalizeAndMaybeMaterializeRun(run, source, status, updates = {}) {
+    let persistedRun = await finalizeRunSuccess(run, source, status, updates)
+    const materializeMode = persistedRun.metadataJson?.materializeMode
+    const materializeUserId = persistedRun.requestedByUserId
+
+    if (materializeMode !== 'DRAFT' || !materializeUserId) {
+        return persistedRun
+    }
+
+    try {
+        const result = await materializeRunToIntakeInternal({
+            run: persistedRun,
+            userId: materializeUserId,
+        })
+
+        logReviewCrawlEvent('run.auto_materialized', {
+            runId: persistedRun.id,
+            batchId: result.batch.id,
+            materializedCount: result.materializedCount,
+        })
+
+        return repository.findRunById(persistedRun.id, {
+            includeSource: true,
+            includeIntakeBatch: true,
+        })
+    } catch (error) {
+        const warnings = mergeWarnings(
+            Array.isArray(persistedRun.warningsJson) ? persistedRun.warningsJson : [],
+            [`Auto materialization failed: ${error.message}`],
+        )
+
+        persistedRun = await repository.updateRun(
+            persistedRun.id,
+            {
+                warningCount: warnings.length,
+                warningsJson: warnings,
+                metadataJson: mergeMetadata(persistedRun.metadataJson, {
+                    autoMaterializeError: {
+                        code: error.code || 'REVIEW_CRAWL_AUTO_MATERIALIZE_FAILED',
+                        message: error.message,
+                        failedAt: new Date().toISOString(),
+                    },
+                }),
+            },
+            {
+                includeSource: true,
+                includeIntakeBatch: true,
+            },
+        )
+
+        logReviewCrawlEvent('run.auto_materialize_failed', {
+            runId: persistedRun.id,
+            errorCode: error.code || 'REVIEW_CRAWL_AUTO_MATERIALIZE_FAILED',
+            message: error.message,
+        })
+
+        return persistedRun
+    }
 }
 
 async function failRun(run, source, error, job) {
@@ -490,7 +741,7 @@ async function processReviewCrawlRun(runId, job) {
     })
 
     try {
-        const session = await googleMapsProvider.initializeGoogleMapsReviewSession({
+        let session = await googleMapsProvider.initializeGoogleMapsReviewSession({
             url: source.inputUrl,
             language: source.language,
             region: source.region,
@@ -507,6 +758,7 @@ async function processReviewCrawlRun(runId, job) {
 
         let nextPageToken = run.checkpointCursor ?? ''
         let exhaustedSource = false
+        let prematureExhaustionDetected = false
         let warnings = Array.isArray(run.warningsJson) ? [...run.warningsJson] : []
         const startTime = Date.now()
 
@@ -529,7 +781,7 @@ async function processReviewCrawlRun(runId, job) {
                 currentRun.maxPages &&
                 currentRun.pagesFetched >= currentRun.maxPages
             ) {
-                const partialRun = await finalizeRunSuccess(currentRun, source, 'PARTIAL', {
+                const partialRun = await finalizeAndMaybeMaterializeRun(currentRun, source, 'PARTIAL', {
                     warningsJson: mergeWarnings(warnings, [
                         'Run stopped because the configured page budget was reached',
                     ]),
@@ -541,7 +793,7 @@ async function processReviewCrawlRun(runId, job) {
                 currentRun.maxReviews &&
                 currentRun.extractedCount >= currentRun.maxReviews
             ) {
-                const partialRun = await finalizeRunSuccess(currentRun, source, 'PARTIAL', {
+                const partialRun = await finalizeAndMaybeMaterializeRun(currentRun, source, 'PARTIAL', {
                     warningsJson: mergeWarnings(warnings, [
                         'Run stopped because the configured review budget was reached',
                     ]),
@@ -550,7 +802,7 @@ async function processReviewCrawlRun(runId, job) {
             }
 
             if (Date.now() - startTime >= env.REVIEW_CRAWL_MAX_DURATION_MS) {
-                const partialRun = await finalizeRunSuccess(currentRun, source, 'PARTIAL', {
+                const partialRun = await finalizeAndMaybeMaterializeRun(currentRun, source, 'PARTIAL', {
                     warningsJson: mergeWarnings(warnings, [
                         'Run stopped because the configured duration budget was reached',
                     ]),
@@ -563,17 +815,66 @@ async function processReviewCrawlRun(runId, job) {
                 leaseExpiresAt: new Date(Date.now() + env.REVIEW_CRAWL_LEASE_SECONDS * 1000),
             })
 
-            const page = await googleMapsProvider.fetchGoogleMapsReviewPage({
-                client: session.client,
-                placeHexId: session.place.identifiers.placeHexId,
-                sessionToken: session.sessionToken,
-                sort: 'newest',
-                nextPageToken,
-                searchQuery: undefined,
-                pageSize: currentRun.pageSize,
-                language: source.language,
-                region: source.region,
-            })
+            const pageResult = googleMapsProvider.fetchGoogleMapsReviewPageWithRecovery
+                ? await googleMapsProvider.fetchGoogleMapsReviewPageWithRecovery(
+                      {
+                          client: session.client,
+                          placeHexId: session.place.identifiers.placeHexId,
+                          sessionToken: session.sessionToken,
+                          sort: 'newest',
+                          nextPageToken,
+                          searchQuery: undefined,
+                          pageSize: currentRun.pageSize,
+                          language: source.language,
+                          region: source.region,
+                      },
+                      {
+                          reportedTotal: session.place.totalReviewCount ?? currentRun.reportedTotal ?? 0,
+                          searchQuery: undefined,
+                          extractedCount: currentRun.extractedCount,
+                      },
+                  )
+                : {
+                      page: await googleMapsProvider.fetchGoogleMapsReviewPage({
+                          client: session.client,
+                          placeHexId: session.place.identifiers.placeHexId,
+                          sessionToken: session.sessionToken,
+                          sort: 'newest',
+                          nextPageToken,
+                          searchQuery: undefined,
+                          pageSize: currentRun.pageSize,
+                          language: source.language,
+                          region: source.region,
+                      }),
+                      attempts: 1,
+                      suspiciousEmpty: false,
+                  }
+            if (currentRun.pagesFetched > 0 && pageResult.suspiciousEmpty) {
+                const recoveredCursor = await googleMapsProvider.recoverCursorWithFreshSessions({
+                    session,
+                    input: {
+                        url: source.inputUrl,
+                        language: source.language,
+                        region: source.region,
+                        sort: 'newest',
+                        searchQuery: undefined,
+                        pageSize: currentRun.pageSize,
+                    },
+                    nextPageToken,
+                    extractedCount: currentRun.extractedCount,
+                    reportedTotal: session.place.totalReviewCount ?? currentRun.reportedTotal ?? 0,
+                })
+
+                if (recoveredCursor.recovered) {
+                    session = recoveredCursor.session
+                    pageResult = recoveredCursor.pageResult
+                    warnings = mergeWarnings(warnings, [
+                        `Recovered queued review cursor for page ${currentRun.pagesFetched + 1} after ${recoveredCursor.attempts} fresh session attempt(s)`,
+                    ])
+                }
+            }
+
+            const page = pageResult.page
 
             if (
                 currentRun.pagesFetched === 0 &&
@@ -586,6 +887,12 @@ async function processReviewCrawlRun(runId, job) {
                 )
             }
 
+            if (pageResult.attempts > 1) {
+                warnings = mergeWarnings(warnings, [
+                    `Retried queued review page ${currentRun.pagesFetched + 1} ${pageResult.attempts - 1} time(s) before accepting the response`,
+                ])
+            }
+
             const persisted = await persistPageReviews({
                 source,
                 run: currentRun,
@@ -594,8 +901,24 @@ async function processReviewCrawlRun(runId, job) {
             })
 
             warnings = mergeWarnings(warnings, persisted.warnings)
-            nextPageToken = page.nextPageToken || ''
             exhaustedSource = !page.nextPageToken
+            prematureExhaustionDetected =
+                prematureExhaustionDetected || Boolean(pageResult.suspiciousEmpty)
+            const nextCheckpointCursor =
+                pageResult.suspiciousEmpty && nextPageToken
+                    ? nextPageToken
+                    : page.nextPageToken || ''
+
+            if (
+                pageResult.suspiciousEmpty &&
+                typeof session.place.totalReviewCount === 'number' &&
+                currentRun.extractedCount + page.reviews.length < session.place.totalReviewCount
+            ) {
+                warnings = mergeWarnings(warnings, [
+                    `Google Maps reported ${session.place.totalReviewCount} reviews, but only ${currentRun.extractedCount + page.reviews.length} unique reviews were extracted before the queued run exhausted unexpectedly`,
+                    'Google Maps stopped returning review pages before the reported total could be reached, so this queued crawl run was marked as partial',
+                ])
+            }
 
             run = await repository.updateRun(
                 run.id,
@@ -607,7 +930,7 @@ async function processReviewCrawlRun(runId, job) {
                     duplicateCount: currentRun.duplicateCount + persisted.duplicateCount,
                     warningCount: warnings.length,
                     pagesFetched: currentRun.pagesFetched + 1,
-                    checkpointCursor: page.nextPageToken || null,
+                    checkpointCursor: nextCheckpointCursor || null,
                     knownReviewStreak: persisted.knownReviewStreak,
                     warningsJson: warnings,
                     lastCheckpointAt: new Date(),
@@ -618,11 +941,13 @@ async function processReviewCrawlRun(runId, job) {
                 },
             )
 
+            nextPageToken = nextCheckpointCursor
+
             if (
                 run.strategy === 'INCREMENTAL' &&
                 run.knownReviewStreak >= env.REVIEW_CRAWL_KNOWN_REVIEW_STREAK_LIMIT
             ) {
-                const completedRun = await finalizeRunSuccess(run, source, 'COMPLETED', {
+                const completedRun = await finalizeAndMaybeMaterializeRun(run, source, 'COMPLETED', {
                     warningsJson: warnings,
                     metadataJson: {
                         ...(run.metadataJson || {}),
@@ -633,13 +958,63 @@ async function processReviewCrawlRun(runId, job) {
             }
 
             if (exhaustedSource) {
-                const completedRun = await finalizeRunSuccess(run, source, 'COMPLETED', {
-                    warningsJson: warnings,
-                    metadataJson: {
-                        ...(run.metadataJson || {}),
-                        stopReason: 'exhausted_source',
+                if (
+                    !prematureExhaustionDetected &&
+                    typeof session.place.totalReviewCount === 'number' &&
+                    run.extractedCount < session.place.totalReviewCount
+                ) {
+                    warnings = mergeWarnings(warnings, [
+                        `Google Maps reported ${session.place.totalReviewCount} reviews, but only ${run.extractedCount} unique reviews were extracted`,
+                    ])
+                }
+
+                let completedRun = await finalizeAndMaybeMaterializeRun(
+                    run,
+                    source,
+                    prematureExhaustionDetected ? 'PARTIAL' : 'COMPLETED',
+                    {
+                        warningsJson: warnings,
+                        metadataJson: {
+                            ...(run.metadataJson || {}),
+                            stopReason: prematureExhaustionDetected
+                                ? 'premature_exhaustion'
+                                : 'exhausted_source',
+                        },
                     },
-                })
+                )
+
+                if (shouldAutoResumePrematureBackfill(completedRun)) {
+                    try {
+                        completedRun = await queueAutoResumeRun(completedRun, source)
+                    } catch (error) {
+                        const warnings = mergeWarnings(
+                            Array.isArray(completedRun.warningsJson)
+                                ? completedRun.warningsJson
+                                : [],
+                            [`Automatic backfill resume could not be queued: ${error.message}`],
+                        )
+
+                        completedRun = await repository.updateRun(
+                            completedRun.id,
+                            {
+                                warningCount: warnings.length,
+                                warningsJson: warnings,
+                                metadataJson: mergeMetadata(completedRun.metadataJson, {
+                                    autoResumeQueueError: {
+                                        code: error.code || 'REVIEW_CRAWL_AUTO_RESUME_ENQUEUE_FAILED',
+                                        message: error.message,
+                                        failedAt: new Date().toISOString(),
+                                    },
+                                }),
+                            },
+                            {
+                                includeSource: true,
+                                includeIntakeBatch: true,
+                            },
+                        )
+                    }
+                }
+
                 return mapRun(completedRun, { includeSource: true, includeIntakeBatch: true })
             }
 
@@ -663,12 +1038,23 @@ function chunkItems(items, size) {
     return chunks
 }
 
-async function materializeRunToIntake({ userId, runId }) {
-    const run = await ensureRunAccess(userId, runId, {
-        includeSource: true,
-        includeIntakeBatch: true,
-    })
+async function refreshBatchStatus(batch) {
+    const nextStatus = adminIntakeDomain.deriveBatchStatus(batch, batch.items || [])
 
+    if (nextStatus === batch.status) {
+        return batch
+    }
+
+    return adminIntakeRepository.updateBatch(batch.id, {
+        status: nextStatus,
+    })
+}
+
+function getMaterializationKey(item) {
+    return adminIntakeDomain.buildIntakeItemDedupKey(item)
+}
+
+async function materializeRunToIntakeInternal({ run, userId }) {
     if (!['COMPLETED', 'PARTIAL'].includes(run.status)) {
         throw conflict(
             'REVIEW_CRAWL_RUN_NOT_MATERIALIZABLE',
@@ -676,16 +1062,30 @@ async function materializeRunToIntake({ userId, runId }) {
         )
     }
 
+    let draftBatch = null
+
     if (run.intakeBatchId) {
-        const existingBatch = await adminIntakeRepository.findBatchById(run.intakeBatchId, {
+        draftBatch = await adminIntakeRepository.findBatchById(run.intakeBatchId, {
             includeItems: true,
         })
 
-        return {
-            run: mapRun(run, { includeSource: true, includeIntakeBatch: true }),
-            batch: adminIntakeDomain.mapBatch(existingBatch, { includeItems: true }),
-            materializedCount: existingBatch.items.length,
+        if (
+            draftBatch &&
+            !['DRAFT', 'IN_REVIEW', 'READY_TO_PUBLISH'].includes(draftBatch.status)
+        ) {
+            draftBatch = null
         }
+    }
+
+    if (
+        !draftBatch &&
+        run.sourceId &&
+        run.source &&
+        run.source.provider === 'GOOGLE_MAPS'
+    ) {
+        draftBatch = await adminIntakeRepository.findOpenBatchByCrawlSourceId(run.sourceId, {
+            includeItems: true,
+        })
     }
 
     const rawReviews = await repository.listRunRawReviews(run.id)
@@ -700,23 +1100,44 @@ async function materializeRunToIntake({ userId, runId }) {
         )
     }
 
-    const batch = await adminIntakeRepository.createBatch({
-        restaurantId: run.restaurantId,
-        createdByUserId: userId,
-        sourceType: 'GOOGLE_MAPS_CRAWL',
-        title: buildIntakeBatchTitle(run.source, run),
-    })
-
-    for (const chunk of chunkItems(materializableItems, 200)) {
-        await adminIntakeRepository.createItems(batch.id, run.restaurantId, chunk)
+    if (!draftBatch) {
+        draftBatch = await adminIntakeRepository.createBatch({
+            restaurantId: run.restaurantId,
+            createdByUserId: userId,
+            crawlSourceId: run.sourceId ?? null,
+            sourceType: 'GOOGLE_MAPS_CRAWL',
+            title: buildIntakeBatchTitle(run.source, run),
+        })
+        draftBatch = await adminIntakeRepository.findBatchById(draftBatch.id, {
+            includeItems: true,
+        })
     }
 
-    const persistedBatch = await adminIntakeRepository.findBatchById(batch.id, {
-        includeItems: true,
+    const existingKeys = new Set(
+        (draftBatch.items || []).map((item) => getMaterializationKey(item)),
+    )
+    const newItems = materializableItems.filter((item) => {
+        const key = getMaterializationKey(item)
+
+        if (existingKeys.has(key)) {
+            return false
+        }
+
+        existingKeys.add(key)
+        return true
     })
 
+    for (const chunk of chunkItems(newItems, 200)) {
+        await adminIntakeRepository.createItems(draftBatch.id, run.restaurantId, chunk)
+    }
+
+    let persistedBatch = await adminIntakeRepository.findBatchById(draftBatch.id, {
+        includeItems: true,
+    })
+    persistedBatch = await refreshBatchStatus(persistedBatch)
+
     await repository.updateRun(run.id, {
-        intakeBatchId: batch.id,
+        intakeBatchId: draftBatch.id,
     })
 
     return {
@@ -731,8 +1152,20 @@ async function materializeRunToIntake({ userId, runId }) {
             },
         ),
         batch: adminIntakeDomain.mapBatch(persistedBatch, { includeItems: true }),
-        materializedCount: materializableItems.length,
+        materializedCount: newItems.length,
     }
+}
+
+async function materializeRunToIntake({ userId, runId }) {
+    const run = await ensureRunAccess(userId, runId, {
+        includeSource: true,
+        includeIntakeBatch: true,
+    })
+
+    return materializeRunToIntakeInternal({
+        run,
+        userId,
+    })
 }
 
 async function scheduleDueReviewCrawlRuns() {
@@ -741,39 +1174,23 @@ async function scheduleDueReviewCrawlRuns() {
     let scheduledCount = 0
 
     for (const source of dueSources) {
-        const activeRun = await repository.findActiveRunBySourceId(source.id)
-
-        if (activeRun) {
-            continue
-        }
-
-        const budget = clampRunBudget('INCREMENTAL')
-        const run = await repository.createRun({
-            sourceId: source.id,
-            restaurantId: source.restaurantId,
-            strategy: 'INCREMENTAL',
-            priority: 'LOW',
-            status: 'QUEUED',
-            pageSize: budget.pageSize,
-            delayMs: budget.delayMs,
-            maxPages: budget.maxPages,
-            maxReviews: budget.maxReviews,
-            queuedAt: now,
-            metadataJson: {
-                trigger: 'scheduler',
-            },
-        })
-
         try {
-            await enqueueReviewCrawlRun(run.id)
+            await createQueuedRunForSource({
+                source,
+                userId: null,
+                input: {
+                    strategy: 'INCREMENTAL',
+                    priority: 'LOW',
+                },
+                trigger: 'scheduler',
+            })
             scheduledCount += 1
         } catch (error) {
-            await repository.updateRun(run.id, {
-                status: 'FAILED',
-                errorCode: error.code || 'REVIEW_CRAWL_ENQUEUE_FAILED',
-                errorMessage: error.message,
-                finishedAt: new Date(),
-            })
+            if (error.code === 'REVIEW_CRAWL_RUN_ALREADY_ACTIVE') {
+                continue
+            }
+
+            throw error
         }
     }
 

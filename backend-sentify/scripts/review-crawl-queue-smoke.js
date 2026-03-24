@@ -55,12 +55,14 @@ function printUsage() {
             '  --delay-ms <n>            Delay between pages, default: 250',
             '  --timeout-ms <n>          Poll timeout for the run, default: 600000',
             '  --poll-ms <n>             Poll interval, default: 1000',
+            '  --settle-ms <n>           Stable terminal window, default: 5000',
             '  --materialize             Materialize completed run into a draft intake batch',
             '  --output <file>           Write the smoke summary JSON to a file',
             '',
             'Redis:',
             '  If REDIS_URL is not set, the script will try a local redis-server or memurai',
-            '  binary from PATH or common Chocolatey locations.',
+            '  binary from PATH or common Chocolatey locations. If neither is available,',
+            '  the script falls back to inline queue mode for local benchmarking.',
         ].join('\n'),
     )
 }
@@ -185,15 +187,22 @@ async function startLocalRedisIfNeeded() {
             child: null,
             tempDir: null,
             startedEmbeddedRedis: false,
+            inlineQueueMode: false,
         }
     }
 
     const binary = resolveRedisBinary()
 
     if (!binary) {
-        throw new Error(
-            'REDIS_URL is missing and no local redis-server or memurai binary was found',
-        )
+        process.env.REVIEW_CRAWL_INLINE_QUEUE_MODE = 'true'
+
+        return {
+            redisUrl: null,
+            child: null,
+            tempDir: null,
+            startedEmbeddedRedis: false,
+            inlineQueueMode: true,
+        }
     }
 
     const port = await getFreePort()
@@ -233,6 +242,7 @@ async function startLocalRedisIfNeeded() {
         child,
         tempDir,
         startedEmbeddedRedis: true,
+        inlineQueueMode: false,
     }
 }
 
@@ -292,8 +302,48 @@ async function resolveOwnerContext(prisma, explicitUserId, explicitRestaurantId)
     }
 }
 
-async function waitForTerminalRun(service, userId, runId, timeoutMs, pollMs) {
+function snapshotRun(run) {
+    return {
+        status: run.status,
+        updatedAt: run.updatedAt,
+        extractedCount: run.extractedCount,
+        pagesFetched: run.pagesFetched,
+        warningCount: run.warningCount,
+        autoResumeChainCount: run.metadata?.autoResumeChainCount ?? 0,
+        stopReason: run.metadata?.stopReason ?? null,
+    }
+}
+
+async function readJobState(runId) {
+    const { getReviewCrawlJob } = require('../src/modules/review-crawl/review-crawl.queue')
+    const job = await getReviewCrawlJob(runId)
+
+    if (!job) {
+        return null
+    }
+
+    try {
+        return await job.getState()
+    } catch {
+        return null
+    }
+}
+
+function isTerminalStatus(status) {
+    return ['COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED'].includes(status)
+}
+
+async function waitForStableTerminalRun(
+    service,
+    userId,
+    runId,
+    timeoutMs,
+    pollMs,
+    settleMs,
+) {
     const startedAt = Date.now()
+    let lastStableTerminalSnapshot = null
+    let lastStableTerminalSeenAt = 0
 
     while (Date.now() - startedAt < timeoutMs) {
         const run = await service.getReviewCrawlRun({
@@ -301,14 +351,100 @@ async function waitForTerminalRun(service, userId, runId, timeoutMs, pollMs) {
             runId,
         })
 
-        if (['COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED'].includes(run.status)) {
-            return run
+        if (!isTerminalStatus(run.status)) {
+            lastStableTerminalSnapshot = null
+            lastStableTerminalSeenAt = 0
+            await wait(pollMs)
+            continue
+        }
+
+        const jobState = await readJobState(runId)
+        const currentSnapshot = snapshotRun(run)
+
+        if (jobState && !['completed', 'failed', 'unknown'].includes(jobState)) {
+            lastStableTerminalSnapshot = null
+            lastStableTerminalSeenAt = 0
+            await wait(pollMs)
+            continue
+        }
+
+        if (
+            lastStableTerminalSnapshot &&
+            JSON.stringify(lastStableTerminalSnapshot) === JSON.stringify(currentSnapshot)
+        ) {
+            if (Date.now() - lastStableTerminalSeenAt >= settleMs) {
+                return {
+                    run,
+                    terminalSnapshot: currentSnapshot,
+                    totalWallClockMs: Date.now() - startedAt,
+                }
+            }
+        } else {
+            lastStableTerminalSnapshot = currentSnapshot
+            lastStableTerminalSeenAt = Date.now()
         }
 
         await wait(pollMs)
     }
 
     throw new Error(`Timed out waiting for crawl run ${runId} to settle`)
+}
+
+async function processRunInlineUntilStable(
+    service,
+    userId,
+    runId,
+    timeoutMs,
+    pollMs,
+    settleMs,
+) {
+    const startedAt = Date.now()
+    let lastTerminalSnapshot = null
+    let lastTerminalSeenAt = 0
+
+    while (Date.now() - startedAt < timeoutMs) {
+        let run = await service.getReviewCrawlRun({
+            userId,
+            runId,
+        })
+
+        if (run.status === 'QUEUED') {
+            await service.processReviewCrawlRun(runId)
+            run = await service.getReviewCrawlRun({
+                userId,
+                runId,
+            })
+        }
+
+        if (!isTerminalStatus(run.status)) {
+            lastTerminalSnapshot = null
+            lastTerminalSeenAt = 0
+            await wait(pollMs)
+            continue
+        }
+
+        const currentSnapshot = snapshotRun(run)
+
+        if (
+            lastTerminalSnapshot &&
+            JSON.stringify(lastTerminalSnapshot) === JSON.stringify(currentSnapshot)
+        ) {
+            if (Date.now() - lastTerminalSeenAt >= settleMs) {
+                return {
+                    run,
+                    terminalSnapshot: currentSnapshot,
+                    totalWallClockMs: Date.now() - startedAt,
+                }
+            }
+        } else {
+            lastTerminalSnapshot = currentSnapshot
+            lastTerminalSeenAt = Date.now()
+        }
+
+        await wait(pollMs)
+    }
+
+    throw new Error(`Timed out waiting for inline crawl run ${runId} to settle`)
 }
 
 async function main() {
@@ -326,7 +462,9 @@ async function main() {
     const { startReviewCrawlWorkerRuntime } = require('../src/modules/review-crawl/review-crawl.worker-runtime')
     const service = require('../src/modules/review-crawl/review-crawl.service')
 
-    const runtime = await startReviewCrawlWorkerRuntime()
+    const runtime = redisState.inlineQueueMode
+        ? null
+        : await startReviewCrawlWorkerRuntime()
 
     try {
         const ownerContext = await resolveOwnerContext(
@@ -357,13 +495,27 @@ async function main() {
             },
         })
 
-        const terminalRun = await waitForTerminalRun(
-            service,
-            ownerContext.userId,
-            runResult.id,
-            Number(readFlag(args, '--timeout-ms') || 10 * 60 * 1000),
-            Number(readFlag(args, '--poll-ms') || 1000),
-        )
+        const timeoutMs = Number(readFlag(args, '--timeout-ms') || 10 * 60 * 1000)
+        const pollMs = Number(readFlag(args, '--poll-ms') || 1000)
+        const settleMs = Number(readFlag(args, '--settle-ms') || 5000)
+        const terminalResult = redisState.inlineQueueMode
+            ? await processRunInlineUntilStable(
+                  service,
+                  ownerContext.userId,
+                  runResult.id,
+                  timeoutMs,
+                  pollMs,
+                  settleMs,
+              )
+            : await waitForStableTerminalRun(
+                  service,
+                  ownerContext.userId,
+                  runResult.id,
+                  timeoutMs,
+                  pollMs,
+                  settleMs,
+              )
+        const terminalRun = terminalResult.run
 
         let materialization = null
 
@@ -381,10 +533,15 @@ async function main() {
             redis: {
                 url: redisState.redisUrl,
                 startedEmbeddedRedis: redisState.startedEmbeddedRedis,
+                inlineQueueMode: redisState.inlineQueueMode,
             },
             ownerContext,
             source: sourceResult.source,
             run: terminalRun,
+            benchmark: {
+                totalWallClockMs: terminalResult.totalWallClockMs,
+                terminalSnapshot: terminalResult.terminalSnapshot,
+            },
             materialization: materialization
                 ? {
                       batchId: materialization.batch.id,
@@ -405,7 +562,9 @@ async function main() {
             process.stdout.write(text)
         }
     } finally {
-        await runtime.stop()
+        if (runtime) {
+            await runtime.stop()
+        }
         await prisma.disconnect()
         await stopLocalRedis(redisState)
     }

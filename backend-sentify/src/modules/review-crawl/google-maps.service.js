@@ -23,6 +23,17 @@ const SORT_TO_CODE = {
     lowest_rating: 4,
 }
 
+const SESSION_BOOTSTRAP_WARMUP_MS = 2000
+const FIRST_PAGE_SESSION_RECOVERY_DELAYS_MS = [500, 1000, 1500, 2000, 3000]
+const EMPTY_PAGE_RETRY_DELAYS_MS = [500, 1000]
+const CURSOR_SESSION_RECOVERY_DELAYS_MS = [1000, 2000, 4000]
+const RETRYABLE_SESSION_ERROR_CODES = new Set([
+    'GOOGLE_MAPS_FETCH_FAILED',
+    'GOOGLE_MAPS_RATE_LIMITED',
+    'GOOGLE_MAPS_REVIEW_FETCH_FAILED',
+    'GOOGLE_MAPS_SESSION_INIT_FAILED',
+])
+
 function buildGoogleHeaders(language) {
     return {
         Accept: '*/*',
@@ -148,40 +159,116 @@ function serializeValidatedIntakeItem(item) {
     })
 }
 
+function mapIntakeValidationCode(issue) {
+    const path = Array.isArray(issue.path) ? issue.path.join('.') : ''
+
+    if (path === 'items.0.rawRating') {
+        return 'INTAKE_INVALID_RATING'
+    }
+
+    if (path === 'items.0.rawReviewDate') {
+        return 'INTAKE_INVALID_REVIEW_DATE'
+    }
+
+    if (path === 'items.0.sourceReviewUrl') {
+        return 'INTAKE_INVALID_SOURCE_REVIEW_URL'
+    }
+
+    if (path === 'items.0.rawContent') {
+        return 'INTAKE_INVALID_CONTENT'
+    }
+
+    if (path === 'items.0.rawAuthorName') {
+        return 'INTAKE_INVALID_AUTHOR_NAME'
+    }
+
+    return 'INTAKE_VALIDATION_FAILED'
+}
+
+function formatIntakeValidationIssues(error, review) {
+    const issues = Array.isArray(error?.issues) ? error.issues : []
+
+    if (issues.length === 0) {
+        return [
+            {
+                code: 'INTAKE_VALIDATION_FAILED',
+                field: null,
+                reviewId: review.reviewId ?? null,
+                message: 'Review could not be validated for intake',
+            },
+        ]
+    }
+
+    return issues.map((issue) => ({
+        code: mapIntakeValidationCode(issue),
+        field: Array.isArray(issue.path) ? issue.path.join('.') : null,
+        reviewId: review.reviewId ?? null,
+        message: issue.message,
+    }))
+}
+
 function buildValidatedIntakeItems(reviews) {
     const warnings = []
     const items = []
+    const issues = []
 
     for (const review of reviews) {
-        const candidate = buildIntakeCandidateFromReview(review)
+        const validation = validateReviewForIntake(review)
 
-        if (typeof review.text === 'string' && review.text.length > 4000) {
-            warnings.push(`Review ${review.reviewId} content was truncated to 4000 characters`)
+        warnings.push(...validation.warnings)
+
+        if (validation.item) {
+            items.push(validation.item)
         }
 
-        if (typeof review.author?.name === 'string' && review.author.name.length > 120) {
-            warnings.push(`Review ${review.reviewId} author name was truncated to 120 characters`)
-        }
-
-        try {
-            const parsed = createReviewItemsSchema.parse({
-                items: [candidate],
-            })
-
-            items.push(serializeValidatedIntakeItem(parsed.items[0]))
-        } catch {
-            warnings.push(`Review ${review.reviewId} was skipped because it could not be validated for intake`)
+        if (validation.issues.length > 0) {
+            issues.push(...validation.issues)
         }
     }
 
     return {
         items,
+        issues,
         warnings,
     }
 }
 
 function buildReviewDedupKey(review) {
     return buildGoogleReviewExternalKey(review)
+}
+
+function validateReviewForIntake(review) {
+    const candidate = buildIntakeCandidateFromReview(review)
+    const warnings = []
+
+    if (typeof review.text === 'string' && review.text.length > 4000) {
+        warnings.push(`Review ${review.reviewId} content was truncated to 4000 characters`)
+    }
+
+    if (typeof review.author?.name === 'string' && review.author.name.length > 120) {
+        warnings.push(`Review ${review.reviewId} author name was truncated to 120 characters`)
+    }
+
+    try {
+        const parsed = createReviewItemsSchema.parse({
+            items: [candidate],
+        })
+
+        return {
+            item: serializeValidatedIntakeItem(parsed.items[0]),
+            issues: [],
+            warnings,
+        }
+    } catch (error) {
+        return {
+            item: null,
+            issues: formatIntakeValidationIssues(error, review),
+            warnings: [
+                ...warnings,
+                `Review ${review.reviewId} was skipped because it could not be validated for intake`,
+            ],
+        }
+    }
 }
 
 async function fetchText(url, headers = {}) {
@@ -364,37 +451,300 @@ async function fetchGoogleMapsReviewPage({
     }
 }
 
+function isRetryableSessionError(error) {
+    return RETRYABLE_SESSION_ERROR_CODES.has(error?.code)
+}
+
+function shouldRetrySuspiciousEmptyPage({ page, reportedTotal, searchQuery, extractedCount }) {
+    if (searchQuery) {
+        return false
+    }
+
+    if ((reportedTotal || 0) <= 0) {
+        return false
+    }
+
+    if (page.reviews.length > 0 || page.nextPageToken) {
+        return false
+    }
+
+    return extractedCount < reportedTotal
+}
+
+function determineCrawlCompleteness({
+    extractedCount,
+    exhaustedSource,
+    prematureExhaustionDetected,
+}) {
+    if (extractedCount === 0) {
+        return 'metadata_only'
+    }
+
+    if (prematureExhaustionDetected) {
+        return 'partial'
+    }
+
+    return exhaustedSource ? 'complete' : 'partial'
+}
+
+async function fetchGoogleMapsReviewPageWithRecovery(params, options = {}) {
+    const retryDelaysMs = Array.isArray(options.retryDelaysMs)
+        ? options.retryDelaysMs
+        : EMPTY_PAGE_RETRY_DELAYS_MS
+
+    let lastPage = null
+    let suspiciousEmpty = false
+
+    for (let attemptIndex = 0; attemptIndex <= retryDelaysMs.length; attemptIndex += 1) {
+        const page = await fetchGoogleMapsReviewPage(params)
+        lastPage = page
+        suspiciousEmpty = shouldRetrySuspiciousEmptyPage({
+            page,
+            reportedTotal: options.reportedTotal,
+            searchQuery: options.searchQuery,
+            extractedCount: options.extractedCount || 0,
+        })
+
+        if (!suspiciousEmpty) {
+            return {
+                page,
+                attempts: attemptIndex + 1,
+                suspiciousEmpty: false,
+            }
+        }
+
+        if (attemptIndex < retryDelaysMs.length) {
+            await sleep(retryDelaysMs[attemptIndex])
+        }
+    }
+
+    return {
+        page: lastPage,
+        attempts: retryDelaysMs.length + 1,
+        suspiciousEmpty,
+    }
+}
+
+async function recoverCursorWithFreshSessions({
+    session,
+    input,
+    nextPageToken,
+    extractedCount,
+    reportedTotal,
+    retryDelaysMs = CURSOR_SESSION_RECOVERY_DELAYS_MS,
+}) {
+    if (!nextPageToken) {
+        return {
+            session,
+            pageResult: null,
+            attempts: 0,
+            recovered: false,
+        }
+    }
+
+    let lastSession = session
+    let lastPageResult = null
+
+    for (let attemptIndex = 0; attemptIndex <= retryDelaysMs.length; attemptIndex += 1) {
+        const recoveredSession = await initializeGoogleMapsReviewSession({
+            ...input,
+            place: session.place,
+            source: session.source,
+            reviewContextToken: session.reviewContextToken,
+        })
+
+        await sleep(SESSION_BOOTSTRAP_WARMUP_MS)
+
+        const pageResult = await fetchGoogleMapsReviewPageWithRecovery(
+            {
+                client: recoveredSession.client,
+                placeHexId: recoveredSession.place.identifiers.placeHexId,
+                sessionToken: recoveredSession.sessionToken,
+                sort: input.sort,
+                nextPageToken,
+                searchQuery: input.searchQuery,
+                pageSize: input.pageSize,
+                language: input.language,
+                region: input.region,
+            },
+            {
+                reportedTotal,
+                searchQuery: input.searchQuery,
+                extractedCount,
+            },
+        )
+
+        lastSession = recoveredSession
+        lastPageResult = pageResult
+
+        if (!pageResult.suspiciousEmpty) {
+            return {
+                session: recoveredSession,
+                pageResult,
+                attempts: attemptIndex + 1,
+                recovered: true,
+            }
+        }
+
+        if (attemptIndex < retryDelaysMs.length) {
+            await sleep(retryDelaysMs[attemptIndex])
+        }
+    }
+
+    return {
+        session: lastSession,
+        pageResult: lastPageResult,
+        attempts: retryDelaysMs.length + 1,
+        recovered: false,
+    }
+}
+
 async function crawlGoogleMapsReviews(input) {
-    const session = await initializeGoogleMapsReviewSession(input)
-
-    // Google Maps often returns empty review payloads if the RPC call is sent immediately
-    // after the source page session is established.
-    await sleep(2000)
-
     const pageLimit = input.pages === 'max' ? Infinity : input.pages
-    const maxReviews = input.maxReviews ?? session.place.totalReviewCount ?? Number.POSITIVE_INFINITY
-
     const warnings = []
     const reviews = []
     const seenReviewKeys = new Set()
     let nextPageToken = ''
     let fetchedPages = 0
     let exhaustedSource = false
+    let prematureExhaustionDetected = false
+    let session = null
+    let firstPageResult = null
+    let lastRecoverableSessionError = null
+
+    for (
+        let sessionAttemptIndex = 0;
+        sessionAttemptIndex <= FIRST_PAGE_SESSION_RECOVERY_DELAYS_MS.length;
+        sessionAttemptIndex += 1
+    ) {
+        try {
+            session = await initializeGoogleMapsReviewSession(input)
+
+            // Google Maps often returns placeholder review payloads if the first RPC call is
+            // sent immediately after the source page session is established.
+            await sleep(SESSION_BOOTSTRAP_WARMUP_MS)
+
+            firstPageResult = await fetchGoogleMapsReviewPageWithRecovery(
+                {
+                    client: session.client,
+                    placeHexId: session.place.identifiers.placeHexId,
+                    sessionToken: session.sessionToken,
+                    sort: input.sort,
+                    nextPageToken: '',
+                    searchQuery: input.searchQuery,
+                    pageSize: input.pageSize,
+                    language: input.language,
+                    region: input.region,
+                },
+                {
+                    reportedTotal: session.place.totalReviewCount ?? 0,
+                    searchQuery: input.searchQuery,
+                    extractedCount: 0,
+                },
+            )
+
+            if (!firstPageResult.suspiciousEmpty) {
+                if (sessionAttemptIndex > 0) {
+                    warnings.push(
+                        `Recovered the initial Google Maps review session after ${sessionAttemptIndex + 1} attempts`,
+                    )
+                }
+
+                if (firstPageResult.attempts > 1) {
+                    warnings.push(
+                        `Retried the first review page ${firstPageResult.attempts - 1} time(s) before reviews were returned`,
+                    )
+                }
+
+                break
+            }
+
+            warnings.push(
+                `Google Maps returned an empty first review page on session attempt ${sessionAttemptIndex + 1}`,
+            )
+        } catch (error) {
+            if (!isRetryableSessionError(error)) {
+                throw error
+            }
+
+            lastRecoverableSessionError = error
+            warnings.push(
+                `Google Maps review session attempt ${sessionAttemptIndex + 1} failed with ${error.code}`,
+            )
+        }
+
+        session = null
+        firstPageResult = null
+
+        if (sessionAttemptIndex < FIRST_PAGE_SESSION_RECOVERY_DELAYS_MS.length) {
+            await sleep(FIRST_PAGE_SESSION_RECOVERY_DELAYS_MS[sessionAttemptIndex])
+        }
+    }
+
+    if (!session || !firstPageResult) {
+        if (lastRecoverableSessionError) {
+            throw lastRecoverableSessionError
+        }
+
+        throw badGateway(
+            'GOOGLE_MAPS_REVIEW_FETCH_FAILED',
+            'Google Maps returned place metadata, but the initial review page could not be recovered',
+        )
+    }
+
+    const maxReviews = input.maxReviews ?? session.place.totalReviewCount ?? Number.POSITIVE_INFINITY
 
     while (fetchedPages < pageLimit && reviews.length < maxReviews) {
-        const page = await fetchGoogleMapsReviewPage({
-            client: session.client,
-            placeHexId: session.place.identifiers.placeHexId,
-            sessionToken: session.sessionToken,
-            sort: input.sort,
-            nextPageToken,
-            searchQuery: input.searchQuery,
-            pageSize: input.pageSize,
-            language: input.language,
-            region: input.region,
-        })
+        const pageNumber = fetchedPages + 1
+        let pageResult =
+            pageNumber === 1 && firstPageResult
+                ? firstPageResult
+                : await fetchGoogleMapsReviewPageWithRecovery(
+                      {
+                          client: session.client,
+                          placeHexId: session.place.identifiers.placeHexId,
+                          sessionToken: session.sessionToken,
+                          sort: input.sort,
+                          nextPageToken,
+                          searchQuery: input.searchQuery,
+                          pageSize: input.pageSize,
+                          language: input.language,
+                          region: input.region,
+                      },
+                      {
+                          reportedTotal: session.place.totalReviewCount ?? 0,
+                          searchQuery: input.searchQuery,
+                          extractedCount: reviews.length,
+                       },
+                   )
+
+        if (pageNumber > 1 && pageResult.suspiciousEmpty) {
+            const recoveredCursor = await recoverCursorWithFreshSessions({
+                session,
+                input,
+                nextPageToken,
+                extractedCount: reviews.length,
+                reportedTotal: session.place.totalReviewCount ?? 0,
+            })
+
+            if (recoveredCursor.recovered) {
+                session = recoveredCursor.session
+                pageResult = recoveredCursor.pageResult
+                warnings.push(
+                    `Recovered review cursor for page ${pageNumber} after ${recoveredCursor.attempts} fresh session attempt(s)`,
+                )
+            }
+        }
+
+        const page = pageResult.page
 
         fetchedPages += 1
+
+        if (pageNumber > 1 && pageResult.attempts > 1) {
+            warnings.push(
+                `Retried review page ${pageNumber} ${pageResult.attempts - 1} time(s) before accepting the response`,
+            )
+        }
 
         for (const review of page.reviews) {
             const dedupKey = buildReviewDedupKey(review)
@@ -413,6 +763,11 @@ async function crawlGoogleMapsReviews(input) {
 
         if (!page.nextPageToken || page.nextPageToken === nextPageToken) {
             exhaustedSource = true
+
+            if (pageResult.suspiciousEmpty) {
+                prematureExhaustionDetected = true
+            }
+
             break
         }
 
@@ -433,12 +788,13 @@ async function crawlGoogleMapsReviews(input) {
     const intake = buildValidatedIntakeItems(reviews)
     const pageLimitReached = fetchedPages >= pageLimit && !exhaustedSource
     const reviewLimitReached = reviews.length >= maxReviews && !exhaustedSource
-    const completeness =
-        reviews.length === 0
-            ? 'metadata_only'
-            : exhaustedSource
-              ? 'complete'
-              : 'partial'
+    const resumeCursor =
+        prematureExhaustionDetected && nextPageToken ? nextPageToken : undefined
+    const completeness = determineCrawlCompleteness({
+        extractedCount: reviews.length,
+        exhaustedSource,
+        prematureExhaustionDetected,
+    })
 
     if (pageLimitReached) {
         warnings.push('Review crawl stopped because the requested page limit was reached')
@@ -456,6 +812,12 @@ async function crawlGoogleMapsReviews(input) {
     ) {
         warnings.push(
             `Google Maps reported ${session.place.totalReviewCount} reviews, but only ${reviews.length} unique reviews were extracted`,
+        )
+    }
+
+    if (prematureExhaustionDetected) {
+        warnings.push(
+            'Google Maps stopped returning review pages before the reported total could be reached, so this crawl was marked as partial',
         )
     }
 
@@ -489,6 +851,8 @@ async function crawlGoogleMapsReviews(input) {
             fetchedPages,
             totalReviewsExtracted: reviews.length,
             exhaustedSource,
+            prematureExhaustionDetected,
+            resumeCursor,
             nextPageToken: exhaustedSource ? undefined : nextPageToken || undefined,
             pageLimitReached,
             reviewLimitReached,
@@ -502,8 +866,13 @@ module.exports = {
     buildIntakeCandidateFromReview,
     buildValidatedIntakeItems,
     crawlGoogleMapsReviews,
+    determineCrawlCompleteness,
     fetchGoogleMapsReviewPage,
+    fetchGoogleMapsReviewPageWithRecovery,
     initializeGoogleMapsReviewSession,
+    recoverCursorWithFreshSessions,
     resolveGoogleMapsSource,
+    shouldRetrySuspiciousEmptyPage,
     sleep,
+    validateReviewForIntake,
 }

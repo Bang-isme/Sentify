@@ -1,6 +1,6 @@
 # Sentify Backend Architecture
 
-Updated: 2026-03-24
+Updated: 2026-03-25
 
 This document describes the backend as it exists in the current codebase.
 It intentionally avoids future-only roles and flows that are not implemented yet.
@@ -30,9 +30,9 @@ Mounted route groups:
 
 The codebase is currently in a mixed state:
 
-- `admin-intake` already follows a feature-module pattern under `src/modules/admin-intake/`
-- `review-crawl` now also follows a feature-module pattern under `src/modules/review-crawl/`
-- that module now separates controller, service, repository, validation, and domain rules so batch-state logic and publish rules are not buried in HTTP handlers
+- `admin-intake` follows a feature-module pattern under `src/modules/admin-intake/`
+- `review-crawl` follows a feature-module pattern under `src/modules/review-crawl/`
+- `review-ops` now sits above those two modules as a backend-only orchestration layer
 - auth, restaurants, reviews, dashboard, and insights still use the older `routes/ + controllers/ + services/` layout
 
 This means the backend is already modular, but the refactor toward a fully feature-oriented structure is not finished yet.
@@ -80,6 +80,11 @@ backend-sentify/
         admin-intake.routes.js
         admin-intake.service.js
         admin-intake.validation.js
+      review-ops/
+        review-ops.controller.js
+        review-ops.routes.js
+        review-ops.service.js
+        review-ops.validation.js
       review-crawl/
         google-maps.parser.js
         google-maps.routes.js
@@ -172,6 +177,7 @@ Current ownership split:
 - `restaurants`, `reviews`, `dashboard`, `insights`: merchant-facing read/update surface
 - `admin-intake`: curation workflow before publishing to canonical reviews
 - `review-crawl`: ingestion bridge that turns external Google Maps place URLs into validated intake-ready JSON
+- `review-ops`: operator control plane that reduces crawl-to-draft steps and exposes readiness/health views
 - `Review`: canonical dataset used by merchant-facing reads
 - `ReviewIntakeBatch` and `ReviewIntakeItem`: staging and review workflow
 
@@ -188,6 +194,14 @@ Current Google Maps crawl architecture now has two lanes:
    - worker-side page-by-page persistence
    - optional materialization into draft intake batch
 
+On top of that, `review-ops` adds an operator lane:
+
+- one-click Google Maps URL to draft sync
+- source list with latest run and open draft batch summary
+- run detail with queue state
+- readiness checks before publish
+- bulk approve of only valid pending items
+
 Queued crawl flow:
 
 1. API resolves canonical source identity from the input URL
@@ -195,10 +209,11 @@ Queued crawl flow:
 3. API creates one `ReviewCrawlRun` with status `QUEUED`
 4. BullMQ enqueues the run into the `review-crawl` queue
 5. worker process claims the run lease and initializes a Google Maps review session
-6. worker fetches review pages sequentially and persists normalized raw reviews page-by-page
-7. worker checkpoints `nextPageToken`, counts, warnings, and known-review streak after each page
-8. worker finishes the run as `COMPLETED`, `PARTIAL`, `FAILED`, or `CANCELLED`
-9. admin may materialize the run into a draft intake batch
+6. worker fetches review pages sequentially, retries suspicious empty pages, and can recover later cursors through a fresh session
+7. worker persists normalized raw reviews page-by-page and checkpoints `nextPageToken`, counts, warnings, and known-review streak after each page
+8. premature backfill exhaustion can re-queue from the saved checkpoint cursor instead of starting again from page 1
+9. worker finishes the run as `COMPLETED`, `PARTIAL`, `FAILED`, or `CANCELLED`
+10. admin may materialize the run into a draft intake batch
 
 Why this matters:
 
@@ -206,6 +221,23 @@ Why this matters:
 - crawl progress survives process restarts through persisted run state
 - incremental syncs stop early when the worker hits already-known reviews
 - canonical `Review` still stays behind the admin-intake publish boundary
+- operators now get an explicit warning if Google-reported totals are larger than the public review rows the worker could actually exhaust
+
+## Review Ops Flow
+
+`review-ops` does not replace `review-crawl` or `admin-intake`.
+It composes them into a tighter operator workflow:
+
+1. operator sends one `sync-to-draft` request with `restaurantId` and Google Maps URL
+2. backend upserts the crawl source
+3. backend creates or reuses the active crawl run for that source
+4. backend marks the run for draft auto-materialization
+5. worker persists raw reviews page-by-page
+6. terminal `COMPLETED` or `PARTIAL` run appends valid new rows into the source's open draft batch
+7. operator uses readiness checks and bulk approval helpers
+8. publish still goes through the existing admin-intake publish transaction
+
+This keeps the publish boundary manual while removing most of the low-level operator choreography.
 
 ## Publish Flow
 

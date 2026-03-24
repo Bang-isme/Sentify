@@ -204,6 +204,7 @@ model ReviewIntakeBatch {
   id              String                      @id @default(uuid())
   restaurantId    String
   createdByUserId String
+  crawlSourceId   String?
   title           String?
   sourceType      ReviewIntakeBatchSourceType @default(MANUAL)
   status          ReviewIntakeBatchStatus    @default(DRAFT)
@@ -213,6 +214,7 @@ model ReviewIntakeBatch {
 
   restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   createdBy  User            @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  crawlSource ReviewCrawlSource? @relation(fields: [crawlSourceId], references: [id], onDelete: SetNull)
   items      ReviewIntakeItem[]
   crawlRuns  ReviewCrawlRun[]
 
@@ -220,6 +222,7 @@ model ReviewIntakeBatch {
   @@index([restaurantId, status, createdAt])
   @@index([restaurantId, updatedAt, createdAt])
   @@index([createdByUserId, createdAt])
+  @@index([crawlSourceId])
 }
 
 model ReviewIntakeItem {
@@ -280,6 +283,7 @@ model ReviewCrawlSource {
   restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   runs       ReviewCrawlRun[]
   rawReviews ReviewCrawlRawReview[]
+  intakeBatches ReviewIntakeBatch[]
 
   @@unique([restaurantId, provider, canonicalCid])
   @@index([restaurantId, status])

@@ -21,6 +21,7 @@ function restoreModules() {
     clearModule('../src/modules/review-crawl/review-crawl.runtime')
     clearModule('../src/modules/review-crawl/google-maps.service')
     clearModule('../src/services/restaurant-access.service')
+    clearModule('../src/modules/admin-intake/admin-intake.domain')
     clearModule('../src/modules/admin-intake/admin-intake.repository')
     clearModule('../src/config/env')
 }
@@ -302,8 +303,8 @@ test('review crawl service completes an incremental run when the known review st
                 },
             ],
         }),
-        buildValidatedIntakeItems: (reviews) => ({
-            items: reviews.map((review) => ({
+        validateReviewForIntake: (review) => ({
+            item: {
                 sourceProvider: 'GOOGLE_MAPS',
                 sourceExternalId: review.externalReviewKey,
                 sourceReviewUrl: review.reviewUrl,
@@ -311,7 +312,8 @@ test('review crawl service completes an incremental run when the known review st
                 rawRating: review.rating,
                 rawContent: null,
                 rawReviewDate: review.publishedAt,
-            })),
+            },
+            issues: [],
             warnings: [],
         }),
         sleep: async () => {},
@@ -371,6 +373,342 @@ test('review crawl service completes an incremental run when the known review st
     assert.equal(result.duplicateCount, 2)
     assert.equal(result.validCount, 2)
     assert.equal(result.metadata.stopReason, 'known_review_streak')
+
+    restoreModules()
+})
+
+test('review crawl service auto-resumes a premature backfill run from the saved checkpoint cursor', async () => {
+    restoreModules()
+
+    process.env.REVIEW_CRAWL_BACKFILL_AUTO_RESUME_MAX_CHAINS = '3'
+
+    let enqueuedRunId = null
+
+    const runState = {
+        id: 'run-auto',
+        sourceId: 'source-1',
+        restaurantId: 'restaurant-1',
+        requestedByUserId: 'user-1',
+        intakeBatchId: null,
+        strategy: 'BACKFILL',
+        status: 'QUEUED',
+        priority: 'NORMAL',
+        reportedTotal: 4746,
+        extractedCount: 20,
+        validCount: 20,
+        skippedCount: 0,
+        duplicateCount: 0,
+        warningCount: 0,
+        pagesFetched: 1,
+        pageSize: 20,
+        delayMs: 0,
+        maxPages: 250,
+        maxReviews: null,
+        checkpointCursor: 'cursor-page-2',
+        knownReviewStreak: 0,
+        cancelRequestedAt: null,
+        leaseToken: null,
+        leaseExpiresAt: null,
+        errorCode: null,
+        errorMessage: null,
+        warningsJson: [],
+        metadataJson: {},
+        queuedAt: new Date('2026-03-25T00:00:00Z'),
+        startedAt: null,
+        lastCheckpointAt: new Date('2026-03-25T00:01:00Z'),
+        finishedAt: null,
+        createdAt: new Date('2026-03-25T00:00:00Z'),
+        updatedAt: new Date('2026-03-25T00:00:00Z'),
+        source: {
+            id: 'source-1',
+            restaurantId: 'restaurant-1',
+            provider: 'GOOGLE_MAPS',
+            status: 'ACTIVE',
+            inputUrl: 'https://maps.app.goo.gl/abc',
+            resolvedUrl: null,
+            canonicalCid: 'cid-1',
+            placeHexId: 'hex-1',
+            googlePlaceId: 'place-1',
+            placeName: 'Quan Pho Hong',
+            language: 'en',
+            region: 'us',
+            syncEnabled: true,
+            syncIntervalMinutes: 1440,
+            lastReportedTotal: 4746,
+            lastSyncedAt: null,
+            lastSuccessfulRunAt: null,
+            nextScheduledAt: null,
+            createdAt: new Date('2026-03-25T00:00:00Z'),
+            updatedAt: new Date('2026-03-25T00:00:00Z'),
+        },
+        intakeBatch: null,
+    }
+
+    withMock('../src/services/restaurant-access.service', {
+        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
+    })
+    withMock('../src/modules/review-crawl/google-maps.service', {
+        initializeGoogleMapsReviewSession: async () => ({
+            place: {
+                totalReviewCount: 4746,
+                identifiers: {
+                    placeHexId: 'hex-1',
+                },
+            },
+            source: {
+                sourcePageUrl: 'https://maps.google.com/maps/place/hex-1',
+            },
+            client: {},
+            sessionToken: 'session-token',
+        }),
+        fetchGoogleMapsReviewPageWithRecovery: async () => ({
+            page: {
+                nextPageToken: null,
+                reviews: [],
+            },
+            attempts: 1,
+            suspiciousEmpty: true,
+        }),
+        recoverCursorWithFreshSessions: async () => ({
+            session: null,
+            pageResult: {
+                page: {
+                    nextPageToken: null,
+                    reviews: [],
+                },
+                attempts: 2,
+                suspiciousEmpty: true,
+            },
+            attempts: 2,
+            recovered: false,
+        }),
+        validateReviewForIntake: () => ({
+            item: null,
+            issues: [],
+            warnings: [],
+        }),
+        sleep: async () => {},
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        findRunById: async (runId, options = {}) => {
+            if (runId !== 'run-auto') {
+                return null
+            }
+
+            return {
+                ...runState,
+                ...(options.includeSource ? { source: runState.source } : {}),
+                ...(options.includeIntakeBatch ? { intakeBatch: runState.intakeBatch } : {}),
+            }
+        },
+        updateRunMany: async () => ({ count: 1 }),
+        updateRun: async (_runId, data, options = {}) => {
+            Object.assign(runState, data, { updatedAt: new Date('2026-03-25T00:05:00Z') })
+            return {
+                ...runState,
+                ...(options.includeSource ? { source: runState.source } : {}),
+                ...(options.includeIntakeBatch ? { intakeBatch: runState.intakeBatch } : {}),
+            }
+        },
+        updateSource: async (_sourceId, data) => {
+            Object.assign(runState.source, data)
+            return runState.source
+        },
+        findRawReviewsBySourceAndKeys: async () => [],
+        upsertRawReview: async () => null,
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        enqueueReviewCrawlRun: async (runId) => {
+            enqueuedRunId = runId
+            return { id: `job-${runId}` }
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        logReviewCrawlEvent: () => {},
+    })
+    withMock('../src/modules/admin-intake/admin-intake.repository', {})
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+    const result = await service.processReviewCrawlRun('run-auto', {
+        attemptsMade: 0,
+        opts: { attempts: 1 },
+    })
+
+    assert.equal(result.status, 'QUEUED')
+    assert.equal(result.checkpointCursor, 'cursor-page-2')
+    assert.equal(result.metadata.autoResumeChainCount, 1)
+    assert.equal(enqueuedRunId, 'run-auto')
+
+    restoreModules()
+})
+
+test('review crawl service keeps a reported-total mismatch warning when the source exhausts early', async () => {
+    restoreModules()
+
+    const runState = {
+        id: 'run-mismatch',
+        sourceId: 'source-1',
+        restaurantId: 'restaurant-1',
+        requestedByUserId: 'user-1',
+        intakeBatchId: null,
+        strategy: 'BACKFILL',
+        status: 'QUEUED',
+        priority: 'NORMAL',
+        reportedTotal: 5,
+        extractedCount: 0,
+        validCount: 0,
+        skippedCount: 0,
+        duplicateCount: 0,
+        warningCount: 0,
+        pagesFetched: 0,
+        pageSize: 20,
+        delayMs: 0,
+        maxPages: 250,
+        maxReviews: null,
+        checkpointCursor: null,
+        knownReviewStreak: 0,
+        cancelRequestedAt: null,
+        leaseToken: null,
+        leaseExpiresAt: null,
+        errorCode: null,
+        errorMessage: null,
+        warningsJson: [],
+        metadataJson: {},
+        queuedAt: new Date('2026-03-25T00:00:00Z'),
+        startedAt: null,
+        lastCheckpointAt: null,
+        finishedAt: null,
+        createdAt: new Date('2026-03-25T00:00:00Z'),
+        updatedAt: new Date('2026-03-25T00:00:00Z'),
+        source: {
+            id: 'source-1',
+            restaurantId: 'restaurant-1',
+            provider: 'GOOGLE_MAPS',
+            status: 'ACTIVE',
+            inputUrl: 'https://maps.app.goo.gl/abc',
+            resolvedUrl: null,
+            canonicalCid: 'cid-1',
+            placeHexId: 'hex-1',
+            googlePlaceId: 'place-1',
+            placeName: 'Quan Pho Hong',
+            language: 'en',
+            region: 'us',
+            syncEnabled: true,
+            syncIntervalMinutes: 1440,
+            lastReportedTotal: 5,
+            lastSyncedAt: null,
+            lastSuccessfulRunAt: null,
+            nextScheduledAt: null,
+            createdAt: new Date('2026-03-25T00:00:00Z'),
+            updatedAt: new Date('2026-03-25T00:00:00Z'),
+        },
+        intakeBatch: null,
+    }
+
+    withMock('../src/services/restaurant-access.service', {
+        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
+    })
+    withMock('../src/modules/review-crawl/google-maps.service', {
+        initializeGoogleMapsReviewSession: async () => ({
+            place: {
+                totalReviewCount: 5,
+                identifiers: {
+                    placeHexId: 'hex-1',
+                },
+            },
+            source: {
+                resolvedUrl: 'https://www.google.com/maps?cid=cid-1',
+            },
+            client: {},
+            sessionToken: 'session-token',
+        }),
+        fetchGoogleMapsReviewPageWithRecovery: async () => ({
+            page: {
+                nextPageToken: null,
+                reviews: [
+                    {
+                        reviewId: 'a',
+                        externalReviewKey: 'google-maps:review:a',
+                        rating: 5,
+                        author: { name: 'Ana' },
+                        publishedAt: '2026-03-24T00:00:00.000Z',
+                        reviewUrl: 'https://www.google.com/maps/review/a',
+                    },
+                ],
+            },
+            attempts: 1,
+            suspiciousEmpty: false,
+        }),
+        recoverCursorWithFreshSessions: async () => ({
+            recovered: false,
+        }),
+        validateReviewForIntake: (review) => ({
+            item: {
+                sourceProvider: 'GOOGLE_MAPS',
+                sourceExternalId: review.externalReviewKey,
+                sourceReviewUrl: review.reviewUrl,
+                rawAuthorName: review.author.name,
+                rawRating: review.rating,
+                rawContent: null,
+                rawReviewDate: review.publishedAt,
+            },
+            issues: [],
+            warnings: [],
+        }),
+        sleep: async () => {},
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        findRunById: async (runId, options = {}) => {
+            if (runId !== 'run-mismatch') {
+                return null
+            }
+
+            return {
+                ...runState,
+                ...(options.includeSource ? { source: runState.source } : {}),
+                ...(options.includeIntakeBatch ? { intakeBatch: runState.intakeBatch } : {}),
+            }
+        },
+        updateRunMany: async () => ({ count: 1 }),
+        updateRun: async (_runId, data, options = {}) => {
+            Object.assign(runState, data, { updatedAt: new Date('2026-03-25T00:05:00Z') })
+            return {
+                ...runState,
+                ...(options.includeSource ? { source: runState.source } : {}),
+                ...(options.includeIntakeBatch ? { intakeBatch: runState.intakeBatch } : {}),
+            }
+        },
+        updateSource: async (_sourceId, data) => {
+            Object.assign(runState.source, data)
+            return runState.source
+        },
+        findRawReviewsBySourceAndKeys: async () => [],
+        upsertRawReview: async (_sourceId, externalReviewKey, data) => ({
+            externalReviewKey,
+            ...data,
+        }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        enqueueReviewCrawlRun: async () => ({ id: 'job-run-mismatch' }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        logReviewCrawlEvent: () => {},
+    })
+    withMock('../src/modules/admin-intake/admin-intake.repository', {})
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+    const result = await service.processReviewCrawlRun('run-mismatch', {
+        attemptsMade: 0,
+        opts: { attempts: 1 },
+    })
+
+    assert.equal(result.status, 'COMPLETED')
+    assert.equal(result.extractedCount, 1)
+    assert.equal(result.warningCount, 1)
+    assert.match(
+        result.warnings[0],
+        /Google Maps reported 5 reviews, but only 1 unique reviews were extracted/,
+    )
 
     restoreModules()
 })
@@ -489,10 +827,12 @@ test('review crawl service materializes a completed run into a Google Maps draft
     })
     withMock('../src/modules/review-crawl/google-maps.service', {})
     withMock('../src/modules/admin-intake/admin-intake.repository', {
+        findOpenBatchByCrawlSourceId: async () => null,
         createBatch: async (data) => ({
             id: 'batch-1',
             restaurantId: data.restaurantId,
             createdByUserId: data.createdByUserId,
+            crawlSourceId: data.crawlSourceId,
             title: data.title,
             sourceType: data.sourceType,
             status: 'DRAFT',
@@ -547,9 +887,239 @@ test('review crawl service materializes a completed run into a Google Maps draft
     })
 
     assert.equal(result.batch.sourceType, 'GOOGLE_MAPS_CRAWL')
-    assert.equal(result.materializedCount, 2)
+    assert.equal(result.materializedCount, 1)
     assert.equal(createdChunks.length, 1)
-    assert.equal(createdChunks[0][0].sourceExternalId, 'google-maps:review:a')
+    assert.equal(createdChunks[0][0].sourceExternalId, 'google-maps:review:b')
+
+    restoreModules()
+})
+
+test('review crawl service reuses an open source draft batch and appends only unseen items', async () => {
+    restoreModules()
+
+    let createdItems = null
+    let updatedRunIntakeBatchId = null
+
+    withMock('../src/services/restaurant-access.service', {
+        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        findRunById: async (runId, options = {}) => {
+            if (runId !== 'run-2') {
+                return null
+            }
+
+            return {
+                id: 'run-2',
+                sourceId: 'source-1',
+                restaurantId: 'restaurant-1',
+                requestedByUserId: 'user-1',
+                intakeBatchId: null,
+                strategy: 'BACKFILL',
+                status: 'PARTIAL',
+                priority: 'NORMAL',
+                reportedTotal: 4743,
+                extractedCount: 40,
+                validCount: 2,
+                skippedCount: 0,
+                duplicateCount: 0,
+                warningCount: 0,
+                pagesFetched: 2,
+                pageSize: 20,
+                delayMs: 0,
+                maxPages: 2,
+                maxReviews: null,
+                checkpointCursor: 'next-page',
+                knownReviewStreak: 0,
+                cancelRequestedAt: null,
+                errorCode: null,
+                errorMessage: null,
+                warningsJson: [],
+                metadataJson: {},
+                queuedAt: new Date('2026-03-24T00:00:00Z'),
+                startedAt: new Date('2026-03-24T00:00:05Z'),
+                lastCheckpointAt: new Date('2026-03-24T00:03:00Z'),
+                finishedAt: new Date('2026-03-24T00:04:00Z'),
+                createdAt: new Date('2026-03-24T00:00:00Z'),
+                updatedAt: new Date('2026-03-24T00:04:00Z'),
+                ...(options.includeSource
+                    ? {
+                          source: {
+                              id: 'source-1',
+                              restaurantId: 'restaurant-1',
+                              provider: 'GOOGLE_MAPS',
+                              status: 'ACTIVE',
+                              inputUrl: 'https://maps.app.goo.gl/abc',
+                              resolvedUrl: null,
+                              canonicalCid: 'cid-1',
+                              placeHexId: 'hex-1',
+                              googlePlaceId: 'place-1',
+                              placeName: 'Quan Pho Hong',
+                              language: 'en',
+                              region: 'us',
+                              syncEnabled: true,
+                              syncIntervalMinutes: 1440,
+                              lastReportedTotal: 4743,
+                              lastSyncedAt: new Date('2026-03-24T00:04:00Z'),
+                              lastSuccessfulRunAt: new Date('2026-03-24T00:04:00Z'),
+                              nextScheduledAt: new Date('2026-03-25T00:04:00Z'),
+                              createdAt: new Date('2026-03-24T00:00:00Z'),
+                              updatedAt: new Date('2026-03-24T00:04:00Z'),
+                          },
+                      }
+                    : {}),
+                ...(options.includeIntakeBatch ? { intakeBatch: null } : {}),
+            }
+        },
+        listRunRawReviews: async () => [
+            {
+                id: 'raw-1',
+                validForIntake: true,
+                intakeItemPayload: {
+                    sourceProvider: 'GOOGLE_MAPS',
+                    sourceExternalId: 'google-maps:review:a',
+                    sourceReviewUrl: 'https://www.google.com/maps/review/a',
+                    rawAuthorName: 'Ana',
+                    rawRating: 5,
+                    rawContent: 'Great pho',
+                    rawReviewDate: '2026-03-20T00:00:00.000Z',
+                },
+            },
+            {
+                id: 'raw-2',
+                validForIntake: true,
+                intakeItemPayload: {
+                    sourceProvider: 'GOOGLE_MAPS',
+                    sourceExternalId: 'google-maps:review:b',
+                    sourceReviewUrl: 'https://www.google.com/maps/review/b',
+                    rawAuthorName: 'Bo',
+                    rawRating: 4,
+                    rawContent: 'Solid service',
+                    rawReviewDate: '2026-03-19T00:00:00.000Z',
+                },
+            },
+        ],
+        updateRun: async (_runId, data) => {
+            updatedRunIntakeBatchId = data.intakeBatchId ?? updatedRunIntakeBatchId
+            return {}
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        logReviewCrawlEvent: () => {},
+    })
+    withMock('../src/modules/review-crawl/google-maps.service', {})
+    withMock('../src/modules/admin-intake/admin-intake.repository', {
+        findOpenBatchByCrawlSourceId: async () => ({
+            id: 'batch-open',
+            restaurantId: 'restaurant-1',
+            createdByUserId: 'user-1',
+            crawlSourceId: 'source-1',
+            title: 'Google Maps crawl - Quan Pho Hong',
+            sourceType: 'GOOGLE_MAPS_CRAWL',
+            status: 'DRAFT',
+            publishedAt: null,
+            createdAt: new Date('2026-03-24T00:03:00Z'),
+            updatedAt: new Date('2026-03-24T00:03:00Z'),
+            items: [
+                {
+                    id: 'item-1',
+                    batchId: 'batch-open',
+                    restaurantId: 'restaurant-1',
+                    sourceProvider: 'GOOGLE_MAPS',
+                    sourceExternalId: 'google-maps:review:a',
+                    sourceReviewUrl: 'https://www.google.com/maps/review/a',
+                    rawAuthorName: 'Ana',
+                    rawRating: 5,
+                    rawContent: 'Great pho',
+                    rawReviewDate: new Date('2026-03-20T00:00:00.000Z'),
+                    normalizedAuthorName: 'Ana',
+                    normalizedRating: 5,
+                    normalizedContent: 'Great pho',
+                    normalizedReviewDate: new Date('2026-03-20T00:00:00.000Z'),
+                    approvalStatus: 'PENDING',
+                    reviewerNote: null,
+                    canonicalReviewId: null,
+                    createdAt: new Date('2026-03-24T00:03:00Z'),
+                    updatedAt: new Date('2026-03-24T00:03:00Z'),
+                },
+            ],
+        }),
+        createItems: async (_batchId, _restaurantId, items) => {
+            createdItems = items
+            return { count: items.length }
+        },
+        findBatchById: async () => ({
+            id: 'batch-open',
+            restaurantId: 'restaurant-1',
+            createdByUserId: 'user-1',
+            crawlSourceId: 'source-1',
+            title: 'Google Maps crawl - Quan Pho Hong',
+            sourceType: 'GOOGLE_MAPS_CRAWL',
+            status: 'DRAFT',
+            publishedAt: null,
+            createdAt: new Date('2026-03-24T00:03:00Z'),
+            updatedAt: new Date('2026-03-24T00:03:00Z'),
+            items: [
+                {
+                    id: 'item-1',
+                    batchId: 'batch-open',
+                    restaurantId: 'restaurant-1',
+                    sourceProvider: 'GOOGLE_MAPS',
+                    sourceExternalId: 'google-maps:review:a',
+                    sourceReviewUrl: 'https://www.google.com/maps/review/a',
+                    rawAuthorName: 'Ana',
+                    rawRating: 5,
+                    rawContent: 'Great pho',
+                    rawReviewDate: new Date('2026-03-20T00:00:00.000Z'),
+                    normalizedAuthorName: 'Ana',
+                    normalizedRating: 5,
+                    normalizedContent: 'Great pho',
+                    normalizedReviewDate: new Date('2026-03-20T00:00:00.000Z'),
+                    approvalStatus: 'PENDING',
+                    reviewerNote: null,
+                    canonicalReviewId: null,
+                    createdAt: new Date('2026-03-24T00:03:00Z'),
+                    updatedAt: new Date('2026-03-24T00:03:00Z'),
+                },
+                {
+                    id: 'item-2',
+                    batchId: 'batch-open',
+                    restaurantId: 'restaurant-1',
+                    sourceProvider: 'GOOGLE_MAPS',
+                    sourceExternalId: 'google-maps:review:b',
+                    sourceReviewUrl: 'https://www.google.com/maps/review/b',
+                    rawAuthorName: 'Bo',
+                    rawRating: 4,
+                    rawContent: 'Solid service',
+                    rawReviewDate: new Date('2026-03-19T00:00:00.000Z'),
+                    normalizedAuthorName: 'Bo',
+                    normalizedRating: 4,
+                    normalizedContent: 'Solid service',
+                    normalizedReviewDate: new Date('2026-03-19T00:00:00.000Z'),
+                    approvalStatus: 'PENDING',
+                    reviewerNote: null,
+                    canonicalReviewId: null,
+                    createdAt: new Date('2026-03-24T00:04:00Z'),
+                    updatedAt: new Date('2026-03-24T00:04:00Z'),
+                },
+            ],
+        }),
+    })
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+    const result = await service.materializeRunToIntake({
+        userId: 'user-1',
+        runId: 'run-2',
+    })
+
+    assert.equal(updatedRunIntakeBatchId, 'batch-open')
+    assert.equal(createdItems.length, 1)
+    assert.equal(createdItems[0].sourceExternalId, 'google-maps:review:b')
+    assert.equal(result.materializedCount, 1)
+    assert.equal(result.batch.id, 'batch-open')
 
     restoreModules()
 })

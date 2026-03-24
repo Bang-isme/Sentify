@@ -91,7 +91,7 @@ function clampRunBudget(strategy, input = {}) {
     if (strategy === 'BACKFILL') {
         return {
             pageSize: input.pageSize ?? 20,
-            delayMs: input.delayMs ?? 500,
+            delayMs: input.delayMs ?? 0,
             maxPages: Math.min(
                 input.maxPages ?? env.REVIEW_CRAWL_BACKFILL_MAX_PAGES,
                 env.REVIEW_CRAWL_BACKFILL_MAX_PAGES,
