@@ -43,6 +43,7 @@ export function AdminIntakePanel({
   onPublished,
 }: AdminIntakePanelProps) {
   const labels = getAdminIntakeLabels(language)
+  const creatableSourceTypes: ReviewIntakeBatch['sourceType'][] = ['MANUAL', 'BULK_PASTE', 'CSV']
   const batchTitleFieldId = 'admin-intake-batch-title'
   const batchSourceFieldId = 'admin-intake-batch-source'
   const [batches, setBatches] = useState<ReviewIntakeBatch[]>([])
@@ -286,9 +287,9 @@ export function AdminIntakePanel({
               onChange={(event) => setNewBatchSourceType(event.target.value as ReviewIntakeBatch['sourceType'])}
               className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
             >
-              {Object.entries(labels.sourceTypes).map(([value, label]) => (
+              {creatableSourceTypes.map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {labels.sourceTypes[value]}
                 </option>
               ))}
             </select>

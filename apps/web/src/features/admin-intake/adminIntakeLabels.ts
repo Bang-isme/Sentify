@@ -29,7 +29,7 @@ export interface AdminIntakeLabels {
   publishReady: string
   publishBlocked: string
   statuses: Record<'DRAFT' | 'IN_REVIEW' | 'READY_TO_PUBLISH' | 'PUBLISHED' | 'ARCHIVED', string>
-  sourceTypes: Record<'MANUAL' | 'BULK_PASTE' | 'CSV', string>
+  sourceTypes: Record<'MANUAL' | 'BULK_PASTE' | 'CSV' | 'GOOGLE_MAPS_CRAWL', string>
   approvalStatuses: Record<'PENDING' | 'APPROVED' | 'REJECTED', string>
 }
 
@@ -81,6 +81,7 @@ const labels = {
       MANUAL: 'Manual',
       BULK_PASTE: 'Bulk paste',
       CSV: 'CSV',
+      GOOGLE_MAPS_CRAWL: 'Google Maps crawl',
     },
     approvalStatuses: {
       PENDING: 'Pending',
@@ -135,6 +136,7 @@ const labels = {
       MANUAL: 'Nhập tay',
       BULK_PASTE: 'Dán nhiều dòng',
       CSV: 'CSV',
+      GOOGLE_MAPS_CRAWL: 'Google Maps crawl',
     },
     approvalStatuses: {
       PENDING: 'Chờ duyệt',
@@ -189,6 +191,7 @@ const labels = {
       MANUAL: '手動',
       BULK_PASTE: '一括貼り付け',
       CSV: 'CSV',
+      GOOGLE_MAPS_CRAWL: 'Google Maps crawl',
     },
     approvalStatuses: {
       PENDING: '保留',

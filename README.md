@@ -27,6 +27,7 @@ backend-sentify/docs/ Active backend and database documentation
 ## Local Setup
 
 Backend setup details live in [backend-sentify/docs/SETUP.md](backend-sentify/docs/SETUP.md).
+Frontend setup details live in [apps/web/README.md](apps/web/README.md).
 
 ## Runtime Docs
 
