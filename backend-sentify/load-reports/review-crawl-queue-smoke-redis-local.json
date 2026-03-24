@@ -1,0 +1,123 @@
+{
+  "redis": {
+    "url": "redis://127.0.0.1:52490",
+    "startedEmbeddedRedis": true,
+    "inlineQueueMode": false
+  },
+  "ownerContext": {
+    "userId": "9c8fefd5-a7db-4bac-90b2-050f67ab01b6",
+    "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a"
+  },
+  "source": {
+    "id": "c9df2154-c363-4c4a-a30d-caaec09cd564",
+    "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+    "provider": "GOOGLE_MAPS",
+    "status": "ACTIVE",
+    "inputUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+    "resolvedUrl": "https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US",
+    "canonicalCid": "4548797685071303380",
+    "placeHexId": "0x314219004bcdcae5:0x3f209364ddcb52d4",
+    "googlePlaceId": "ChIJ5crNSwAZQjER1FLL3WSTID8",
+    "placeName": "Quán Phở Hồng",
+    "language": "en",
+    "region": "us",
+    "syncEnabled": true,
+    "syncIntervalMinutes": 1440,
+    "lastReportedTotal": 4746,
+    "lastSyncedAt": "2026-03-20T08:10:00.000Z",
+    "lastSuccessfulRunAt": "2026-03-20T08:10:00.000Z",
+    "nextScheduledAt": "2026-03-25T08:10:00.000Z",
+    "createdAt": "2026-03-24T20:11:32.396Z",
+    "updatedAt": "2026-03-24T20:37:42.137Z"
+  },
+  "run": {
+    "id": "e22859e6-2d80-41b1-a267-e7ebe581c048",
+    "sourceId": "c9df2154-c363-4c4a-a30d-caaec09cd564",
+    "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+    "requestedByUserId": "9c8fefd5-a7db-4bac-90b2-050f67ab01b6",
+    "intakeBatchId": null,
+    "strategy": "INCREMENTAL",
+    "status": "PARTIAL",
+    "priority": "NORMAL",
+    "reportedTotal": 4746,
+    "extractedCount": 200,
+    "validCount": 200,
+    "skippedCount": 0,
+    "duplicateCount": 0,
+    "warningCount": 1,
+    "pagesFetched": 10,
+    "pageSize": 20,
+    "delayMs": 250,
+    "maxPages": 10,
+    "maxReviews": null,
+    "checkpointCursor": "CAESZENBRVF5QUVhUkVOcVJVbEJVa2x3UTJkdlFWQTNNa2RrZEdwc1VHeGZYMFZvUW10cmVrVndjMHBrTUVKWFpYZEVkemhCUVVGQlFVZG5iamt5WkRCRFdqSXlUMVV0VlZsQlEwbEI=",
+    "knownReviewStreak": 0,
+    "cancelRequestedAt": null,
+    "leaseExpiresAt": null,
+    "errorCode": null,
+    "errorMessage": null,
+    "warnings": [
+      "Run stopped because the configured page budget was reached"
+    ],
+    "metadata": {
+      "trigger": "manual"
+    },
+    "crawlCoverage": {
+      "completeness": "PARTIAL",
+      "reportedTotal": 4746,
+      "extractedCount": 200,
+      "reportedTotalDelta": 4546,
+      "mismatchStatus": "REPORTED_TOTAL_EXCEEDS_EXTRACTED",
+      "mismatchDetected": true,
+      "publicReviewChainExhausted": false,
+      "stopReason": null,
+      "operatorPolicy": {
+        "code": "REVIEW_PARTIAL_RUN",
+        "actionRequired": true,
+        "summary": "This crawl run ended partially. Review its warnings before deciding whether a larger budget or a resume action is needed."
+      }
+    },
+    "queuedAt": "2026-03-24T20:37:42.148Z",
+    "startedAt": "2026-03-24T20:37:42.263Z",
+    "lastCheckpointAt": "2026-03-24T20:37:50.079Z",
+    "finishedAt": "2026-03-24T20:37:50.338Z",
+    "createdAt": "2026-03-24T20:37:42.159Z",
+    "updatedAt": "2026-03-24T20:37:50.341Z",
+    "source": {
+      "id": "c9df2154-c363-4c4a-a30d-caaec09cd564",
+      "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+      "provider": "GOOGLE_MAPS",
+      "status": "ACTIVE",
+      "inputUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+      "resolvedUrl": "https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US",
+      "canonicalCid": "4548797685071303380",
+      "placeHexId": "0x314219004bcdcae5:0x3f209364ddcb52d4",
+      "googlePlaceId": "ChIJ5crNSwAZQjER1FLL3WSTID8",
+      "placeName": "Quán Phở Hồng",
+      "language": "en",
+      "region": "us",
+      "syncEnabled": true,
+      "syncIntervalMinutes": 1440,
+      "lastReportedTotal": 4746,
+      "lastSyncedAt": "2026-03-24T20:37:50.338Z",
+      "lastSuccessfulRunAt": "2026-03-24T20:37:50.338Z",
+      "nextScheduledAt": "2026-03-25T20:37:50.338Z",
+      "createdAt": "2026-03-24T20:11:32.396Z",
+      "updatedAt": "2026-03-24T20:37:50.339Z"
+    },
+    "intakeBatch": null
+  },
+  "benchmark": {
+    "totalWallClockMs": 13239,
+    "terminalSnapshot": {
+      "status": "PARTIAL",
+      "updatedAt": "2026-03-24T20:37:50.341Z",
+      "extractedCount": 200,
+      "pagesFetched": 10,
+      "warningCount": 1,
+      "autoResumeChainCount": 0,
+      "stopReason": null
+    }
+  },
+  "materialization": null
+}

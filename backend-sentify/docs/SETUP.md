@@ -90,6 +90,7 @@ If Windows does not have a Redis service, the smoke script can start a local Red
 ```bash
 set REVIEW_CRAWL_REDIS_BINARY=D:\tools\redis-server.exe
 node scripts/review-crawl-queue-smoke.js --url "https://maps.app.goo.gl/..." --strategy backfill --materialize
+node scripts/review-ops-sync-draft-smoke.js --url "https://maps.app.goo.gl/..." --strategy incremental
 ```
 
 If neither `REDIS_URL` nor a Redis binary is available, the smoke script now falls back to inline queue mode for local benchmarking only.
@@ -101,6 +102,12 @@ That local smoke flow will:
 - process the run until the terminal state is stable
 - follow auto-resume backfill chains when they occur
 - optionally materialize valid raw reviews into a draft intake batch
+
+The operator smoke additionally proves:
+
+- `review-ops sync-to-draft` queues through the operator service instead of the raw crawl service
+- `materializeMode: DRAFT` auto-materializes valid raw reviews into a draft intake batch
+- batch readiness can be read immediately after the queued operator run settles
 
 Production queued runs still require Redis.
 
@@ -123,6 +130,7 @@ Important behavior:
 - the merchant-read harness boots the real Express app and hits protected routes over HTTP
 - the worker harness queues real `ReviewCrawlRun` rows and persists synthetic raw-review checkpoints page by page
 - if Redis is unavailable, the worker harness falls back to inline queue mode and proves local worker orchestration plus database write pressure, but not Redis transport behavior
+- with `REVIEW_CRAWL_REDIS_BINARY` pointed at a local Memurai or Redis binary, the same worker harness exercises the real BullMQ queue transport and worker runtime
 
 ## 9. Review Ops CLI
 
@@ -177,6 +185,7 @@ npm run db:validate
 | `npm start` | Run the API in production mode |
 | `npm run worker:review-crawl` | Run the BullMQ worker and scheduler |
 | `npm run smoke:review-crawl-queue -- --url "<google-maps-url>"` | Run the queued crawl smoke harness |
+| `npm run smoke:review-ops-sync-draft -- --url "<google-maps-url>"` | Run the operator-triggered sync-to-draft smoke harness |
 | `npm run validate:review-crawl-scale -- --url "<google-maps-url>"` | Run repeated direct and queued scale validation plus a target-review estimate |
 | `npm run load:merchant-reads -- ...` | Run the local SMB merchant-read harness over real HTTP routes |
 | `npm run load:review-crawl-workers -- ...` | Run the local SMB worker-pressure harness and write a JSON report |
@@ -195,6 +204,7 @@ npm run db:validate
 - `npm run test:realdb` seeds the shared demo dataset and runs the real-DB smoke suite for publish plus merchant-read routes.
 - `npm run load:merchant-reads` writes a local SMB latency and throughput report for seeded merchant routes.
 - `npm run load:review-crawl-workers` writes a local worker-pressure report; without Redis it falls back to inline mode and should not be used to claim Redis transport proof.
+- `npm run smoke:review-ops-sync-draft` writes a local operator-path proof report and should be run with Redis or Memurai if you want real BullMQ transport evidence.
 - Preview crawl does not require Redis.
 - Queued crawl and queue health require Redis in production, but the local smoke harness can fall back to inline queue mode when Redis is unavailable.
 - Current live-source benchmarks show that Google preview metadata can be higher than the visible public review surface. Two important examples are `4527 / 4746` on `Quan Pho Hong` and `9744 / 15098` on `Cong Ca Phe`, where the user-confirmed public place card also showed `9744`. Operators should treat `reportedTotal` as a reference number, not a guaranteed extraction count.

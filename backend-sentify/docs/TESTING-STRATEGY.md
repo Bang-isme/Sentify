@@ -19,7 +19,7 @@ The backend is no longer mock-only. The test strategy now has six practical laye
 3. queued crawl runtime proof for background ingestion
 4. seeded HTTP smoke for merchant-read routes
 5. local SMB load proof for merchant-read latency and throughput
-6. local worker-pressure proof for crawl checkpoint persistence
+6. local worker-pressure and operator-path proof for crawl checkpoint persistence plus BullMQ transport
 
 ## 2. Current Test Layers
 
@@ -49,6 +49,7 @@ Unit tests                 Current baseline
 - `npm run test:realdb`
 - `npm run load:merchant-reads -- --extra-reviews 4000 --concurrency 8 --rounds 45 --output load-reports/merchant-reads-smb-local.json`
 - `npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-per-run 12 --reviews-per-page 20 --step-ms 40 --output load-reports/review-crawl-workers-smb-local.json`
+- `npm run smoke:review-ops-sync-draft -- --url "..."` for operator-triggered queue proof
 - `npm run smoke:review-crawl-queue -- --url "..."`
 - `test/merchant-read.realdb.test.js` for full HTTP merchant-read proof on seeded Postgres
 
@@ -138,6 +139,14 @@ set REVIEW_CRAWL_REDIS_BINARY=D:\tools\redis-server.exe
 npm run smoke:review-crawl-queue -- --url "https://maps.app.goo.gl/..."
 ```
 
+Operator-triggered queue smoke:
+
+```powershell
+cd "D:\Project 3\backend-sentify"
+set REVIEW_CRAWL_REDIS_BINARY=D:\tools\memurai.exe
+node scripts/review-ops-sync-draft-smoke.js --url "https://maps.app.goo.gl/..."
+```
+
 Local SMB load proof:
 
 ```powershell
@@ -163,7 +172,7 @@ npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-p
 
 The main testing gaps still left are:
 
-- Redis-backed queue transport proof under SMB concurrency
+- managed Redis or staging-backed queue proof beyond local Memurai compatibility
 - staging proof, backup, restore, and rollback
 
 ## 8. Merge Gate

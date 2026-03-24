@@ -18,14 +18,15 @@ The backend can already prove:
 The backend still cannot prove:
 
 - exact completeness on a live source with around `20,000` public reviews
-- multi-source SMB concurrency under real Redis worker pressure
+- managed Redis or staging-backed queue behavior beyond local Memurai compatibility
 - that preview metadata totals always equal the public review surface
 
 What the backend can now additionally prove in local development:
 
 - multi-run checkpoint persistence under synthetic SMB pressure
-- in-process worker orchestration up to observed concurrency `4`
+- Redis-backed BullMQ worker orchestration up to observed concurrency `4`
 - stable page-by-page raw-review writes without keeping the full run in memory
+- operator-triggered `sync-to-draft` runs can auto-materialize into a draft intake batch after the queued crawl settles
 
 ## Validation Checklist
 
@@ -81,6 +82,9 @@ Reports:
 - [scale-validation-kaFYtSNsriybyw6w7.json](D:/Project%203/backend-sentify/crawls/scale-validation-kaFYtSNsriybyw6w7.json)
 - [scale-validation-Uv2s78xsAD6DUsrL8.json](D:/Project%203/backend-sentify/crawls/scale-validation-Uv2s78xsAD6DUsrL8.json)
 - [review-crawl-workers-smb-local.json](D:/Project%203/backend-sentify/load-reports/review-crawl-workers-smb-local.json)
+- [review-crawl-workers-smb-redis-local.json](D:/Project%203/backend-sentify/load-reports/review-crawl-workers-smb-redis-local.json)
+- [review-crawl-queue-smoke-redis-local.json](D:/Project%203/backend-sentify/load-reports/review-crawl-queue-smoke-redis-local.json)
+- [review-ops-sync-draft-smoke-redis-local.json](D:/Project%203/backend-sentify/load-reports/review-ops-sync-draft-smoke-redis-local.json)
 
 ### Quan Pho Hong
 
@@ -116,23 +120,38 @@ Reports:
   - queued: about `199.7s`
 - estimated backfill legs for `20K` with `1000 pages/run`: `2`
 
-### Local Worker Pressure Snapshot
+### Local Redis Worker Pressure Snapshot
 
-- queue mode: `inline` fallback because Redis was unavailable locally
+- queue mode: `redis`
 - queued runs: `24`
 - configured concurrency: `4`
 - observed max running: `4`
 - persisted raw reviews: `5760`
 - throughput:
-  - about `4.99 runs/s`
-  - about `59.9 pages/s`
-  - about `1198.06 raw reviews/s`
+  - about `5.8 runs/s`
+  - about `69.59 pages/s`
+  - about `1391.71 raw reviews/s`
 - latency:
-  - processing about `775.54ms avg`, `880ms p95`
-  - total run about `2963.63ms avg`, `4892ms p95`
+  - processing about `701.88ms avg`, `790ms p95`
+  - total run about `2592.83ms avg`, `4221ms p95`
 - interpretation:
-  - this is useful local evidence for checkpoint pressure and in-process worker orchestration
-  - it is not evidence for Redis queue transport or multi-process BullMQ behavior
+  - this is now local evidence for checkpoint pressure plus real BullMQ queue transport
+  - it still does not replace managed Redis or staging evidence
+
+### Local Redis Operator Snapshot
+
+- entrypoint: `review-ops sync-to-draft`
+- queue mode: `redis`
+- trigger metadata: `trigger=review_ops`, `requestedVia=review_ops_sync_to_draft`, `materializeMode=DRAFT`
+- terminal run status: `PARTIAL`
+- extracted and valid raw reviews: `200`
+- pages fetched: `10`
+- auto-materialized draft batch: `200` pending items
+- publish blocker after auto-materialization: `NO_APPROVED_ITEMS`
+- total wall clock: about `14.21s`
+- interpretation:
+  - the operator surface now has direct local proof through the real BullMQ queue path
+  - the remaining question is no longer whether operator-triggered queueing works locally, but whether the same behavior is stable on managed Redis or staging
 
 ## What We Learned
 
@@ -149,7 +168,8 @@ The `Pizza 4P's Hoang Van Thu` benchmark strengthens that policy again:
 - direct and queued modes still converged to the same extracted-review ceiling
 - runtime for a `20K`-scale source still fits the current `1000 pages/run` budget in about `2` backfill legs
 
-The local worker-pressure snapshot is useful for a different claim:
+The local Redis snapshots are useful for a different claim:
 
-- the runtime can sustain repeated checkpoint writes and bounded concurrency on local Postgres
-- the remaining scale question is now specifically about Redis-backed queue transport, not whether checkpoint persistence works at all
+- the runtime can sustain repeated checkpoint writes and bounded concurrency on local Postgres while using BullMQ over a Redis-compatible transport
+- the operator-triggered queue path can auto-materialize a draft batch after the queued crawl run finishes
+- the remaining scale question is now about managed-environment proof and `20K`-class live-source completeness, not whether local queue transport works at all

@@ -1,0 +1,351 @@
+{
+  "generatedAt": "2026-03-24T20:38:18.522Z",
+  "queueMode": "redis",
+  "configuration": {
+    "sourceCount": 24,
+    "concurrency": 4,
+    "pagesPerRun": 12,
+    "reviewsPerPage": 20,
+    "stepMs": 40,
+    "sampleMs": 100
+  },
+  "execution": {
+    "enqueueDurationMs": 300.52,
+    "makespanMs": 4138.8,
+    "syntheticRawReviewsPersisted": 5760,
+    "runsPerSecond": 5.8,
+    "pagesPerSecond": 69.59,
+    "rawReviewsPerSecond": 1391.71
+  },
+  "observedConcurrency": {
+    "maxRunningObserved": 4,
+    "averageRunningObserved": 3.9,
+    "sampleCount": 40
+  },
+  "latencyMs": {
+    "queueWait": {
+      "count": 24,
+      "averageMs": 1890.96,
+      "p50Ms": 1614,
+      "p95Ms": 3542,
+      "p99Ms": 3580,
+      "maxMs": 3580,
+      "minMs": 105
+    },
+    "processing": {
+      "count": 24,
+      "averageMs": 701.88,
+      "p50Ms": 683,
+      "p95Ms": 790,
+      "p99Ms": 791,
+      "maxMs": 791,
+      "minMs": 673
+    },
+    "totalRun": {
+      "count": 24,
+      "averageMs": 2592.83,
+      "p50Ms": 2297,
+      "p95Ms": 4221,
+      "p99Ms": 4254,
+      "maxMs": 4254,
+      "minMs": 894
+    }
+  },
+  "statusSummary": {
+    "COMPLETED": 24
+  },
+  "runs": [
+    {
+      "id": "034d6796-4365-4fac-9af6-912d97236fe6",
+      "sourceId": "a5384832-c5ed-4f5c-8ee2-0b015d640e58",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 120,
+      "processingMs": 791,
+      "totalRunMs": 911
+    },
+    {
+      "id": "00c44738-8c8e-4678-ae20-1e9f6cc05b00",
+      "sourceId": "9de50010-6927-4e1e-b912-25c66435f15b",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 1614,
+      "processingMs": 683,
+      "totalRunMs": 2297
+    },
+    {
+      "id": "b142aaf2-264c-4c06-ab48-8b37d7ecbfc6",
+      "sourceId": "e986245b-4a82-4d8a-b471-7d4cf4579499",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 920,
+      "processingMs": 685,
+      "totalRunMs": 1605
+    },
+    {
+      "id": "526f6a46-2ead-42aa-a8dc-9aef5962f5a4",
+      "sourceId": "c0e83b72-8b9d-435d-b504-ddd4516800ed",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 1611,
+      "processingMs": 682,
+      "totalRunMs": 2293
+    },
+    {
+      "id": "20672ca6-628a-49af-a526-ce4113df6e15",
+      "sourceId": "02585bcb-7440-4d93-9fad-6fa50afe39ec",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 109,
+      "processingMs": 785,
+      "totalRunMs": 894
+    },
+    {
+      "id": "62184d98-d8aa-4943-b2f9-5958b76d5db2",
+      "sourceId": "a5e3498f-958b-4590-820e-99d68c170c33",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 107,
+      "processingMs": 790,
+      "totalRunMs": 897
+    },
+    {
+      "id": "2b7c38b2-a6d2-45ed-8b63-2fd26dbe676f",
+      "sourceId": "48092de1-5195-451a-ac70-0b92c60ee7b2",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 105,
+      "processingMs": 789,
+      "totalRunMs": 894
+    },
+    {
+      "id": "30691999-6837-4470-ac6f-3163a1d8585f",
+      "sourceId": "0df24929-aeb4-4e2b-b04a-e54bd9dec5a3",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 906,
+      "processingMs": 684,
+      "totalRunMs": 1590
+    },
+    {
+      "id": "f6047ba1-f6b5-45ad-8db2-6f1e7a0192d6",
+      "sourceId": "10a457a2-21b1-4999-9dfe-207f9a606356",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 906,
+      "processingMs": 686,
+      "totalRunMs": 1592
+    },
+    {
+      "id": "b1d8c526-e666-4811-8307-558017a317a2",
+      "sourceId": "c853d2cd-0664-4faf-9344-749e53145367",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 904,
+      "processingMs": 687,
+      "totalRunMs": 1591
+    },
+    {
+      "id": "64a3bad6-e760-40ee-8627-6ff677af7731",
+      "sourceId": "8a3bafea-09ef-4759-9fbe-fac082a29ef8",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 1597,
+      "processingMs": 683,
+      "totalRunMs": 2280
+    },
+    {
+      "id": "5792d570-e56d-4b61-a152-508636a5c5df",
+      "sourceId": "90c61744-0ba3-458b-9f1a-8b4022989ee0",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 2287,
+      "processingMs": 673,
+      "totalRunMs": 2960
+    },
+    {
+      "id": "4ec8d6e9-d478-4563-8f87-df6793ff434f",
+      "sourceId": "3c00cdc5-51da-43f8-88a8-fa0bc36d8dfc",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 2285,
+      "processingMs": 678,
+      "totalRunMs": 2963
+    },
+    {
+      "id": "e83d1960-a25e-42a6-9234-aa05c2d49428",
+      "sourceId": "f597c1e5-55df-42a1-a55f-a5e7954eeebd",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 1597,
+      "processingMs": 678,
+      "totalRunMs": 2275
+    },
+    {
+      "id": "364e7fa2-5801-4900-94b6-242a92d77175",
+      "sourceId": "d3e21499-06f4-4ac6-ab31-ed71c5d4837a",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 2967,
+      "processingMs": 703,
+      "totalRunMs": 3670
+    },
+    {
+      "id": "d9bcd3d8-ac2d-48f3-a029-cef47c3ad611",
+      "sourceId": "cb32ef23-2b4a-4935-adee-c023490d541c",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 2283,
+      "processingMs": 677,
+      "totalRunMs": 2960
+    },
+    {
+      "id": "e2de74a6-2389-4b74-99a6-20bac68f1592",
+      "sourceId": "83289462-75fe-4db0-a861-ec0ca9a93fa8",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 2966,
+      "processingMs": 704,
+      "totalRunMs": 3670
+    },
+    {
+      "id": "877c7fbe-68b7-4482-8711-046ad500ec4f",
+      "sourceId": "b6f1cb3f-ca72-43ac-8b67-23dbe83378c7",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 2282,
+      "processingMs": 675,
+      "totalRunMs": 2957
+    },
+    {
+      "id": "f306d001-8445-452d-9875-aefee86c76dd",
+      "sourceId": "6d6e56d5-12b1-47ad-af08-f3ccf0bbbfb4",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 3580,
+      "processingMs": 674,
+      "totalRunMs": 4254
+    },
+    {
+      "id": "9ac90973-5b09-4368-8329-0a6b35e1e7e8",
+      "sourceId": "31c695b0-e1d5-46aa-b182-0e71c7acbc2d",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 2869,
+      "processingMs": 704,
+      "totalRunMs": 3573
+    },
+    {
+      "id": "fa4f901a-806c-4215-ac8b-7acef62dae0a",
+      "sourceId": "b493d46c-f608-4efb-ba31-b33b31a5a1b0",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 2868,
+      "processingMs": 702,
+      "totalRunMs": 3570
+    },
+    {
+      "id": "b753b823-a7e7-4e21-9d0b-de75bb07c58b",
+      "sourceId": "56c5b4fd-446d-4f66-a2d3-62dc84ee3ae1",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 3542,
+      "processingMs": 679,
+      "totalRunMs": 4221
+    },
+    {
+      "id": "1efcbb2f-77e7-47c2-921a-db2f85c74bd4",
+      "sourceId": "5eeaf3f2-388d-446c-992d-07a674e77999",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 3496,
+      "processingMs": 676,
+      "totalRunMs": 4172
+    },
+    {
+      "id": "204e2995-fdbd-460e-9d7f-954f9d8bff84",
+      "sourceId": "bd2b2e36-dae5-44f4-8b8c-1968f54f22c6",
+      "status": "COMPLETED",
+      "extractedCount": 240,
+      "pagesFetched": 12,
+      "warningCount": 0,
+      "queueWaitMs": 3462,
+      "processingMs": 677,
+      "totalRunMs": 4139
+    }
+  ],
+  "queueHealth": {
+    "configured": true,
+    "counts": {
+      "waiting": 0,
+      "active": 0,
+      "completed": 24,
+      "failed": 0,
+      "delayed": 0,
+      "paused": 0
+    }
+  },
+  "workerHealth": {
+    "configured": true,
+    "scheduler": null,
+    "processors": [
+      {
+        "hostname": "Bangisme",
+        "pid": 90656,
+        "updatedAt": "2026-03-24T20:38:14.055Z",
+        "runtimeMode": "processor",
+        "trigger": "start"
+      }
+    ]
+  },
+  "notes": [
+    "This harness queues real ReviewCrawlRun rows and persists synthetic ReviewCrawlRawReview checkpoints page-by-page, so database write pressure is real.",
+    "Redis was available, so BullMQ transport and the real worker runtime were exercised."
+  ]
+}

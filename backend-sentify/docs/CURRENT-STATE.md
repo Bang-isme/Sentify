@@ -169,12 +169,15 @@ Current local SMB load evidence:
   - `360` successful requests, `0` errors
   - overall throughput about `186.32 requests/s`
   - overall latency about `42.87ms avg`, `63.63ms p95`, `188.21ms p99`
-- review crawl workers on seeded local Postgres with synthetic checkpoint writes:
+- review crawl workers on seeded local Postgres with synthetic checkpoint writes and local Memurai-backed BullMQ transport:
   - `24` queued runs at concurrency `4`
   - `5760` raw reviews persisted across `288` synthetic pages
-  - about `4.99 runs/s`, `59.9 pages/s`, `1198.06 raw reviews/s`
+  - about `5.8 runs/s`, `69.59 pages/s`, `1391.71 raw reviews/s`
   - observed max running concurrency `4`
-  - local environment had no Redis, so this proof used inline queue fallback and an in-process worker pool
+- operator-triggered `review-ops sync-to-draft` smoke with local Memurai-backed BullMQ transport:
+  - `INCREMENTAL` queued run reached terminal `PARTIAL` in about `14.21s`
+  - `200` extracted and valid raw reviews auto-materialized into a `DRAFT` intake batch
+  - batch readiness showed `200` pending items and the expected `NO_APPROVED_ITEMS` publish blocker
 
 ## 6. Seed And Demo Data
 
@@ -191,7 +194,7 @@ The shared seed dataset currently creates:
 
 The backend is still not fully release-ready. Main remaining gaps:
 
-- Redis-backed SMB load proof for queued crawl workers and operator-triggered queue paths
+- managed Redis or staging proof beyond local Memurai-backed queue evidence
 - staging evidence, backup, restore, and rollback drills
 - continued refactor of older auth and restaurant modules toward the same feature-module shape
 
@@ -209,4 +212,4 @@ It already has:
 - local SMB load proof for merchant reads and worker checkpoint pressure
 - real benchmark evidence that the crawler can handle larger sources operationally
 
-The remaining work is mostly about Redis-backed queue proof, staging evidence, and release discipline, not missing core business flow.
+The remaining work is mostly about managed-environment evidence, staging evidence, and release discipline, not missing core business flow.

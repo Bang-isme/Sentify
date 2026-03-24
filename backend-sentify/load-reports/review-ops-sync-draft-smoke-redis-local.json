@@ -1,0 +1,199 @@
+{
+  "redis": {
+    "url": "redis://127.0.0.1:52549",
+    "startedEmbeddedRedis": true,
+    "inlineQueueMode": false
+  },
+  "ownerContext": {
+    "userId": "9c8fefd5-a7db-4bac-90b2-050f67ab01b6",
+    "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a"
+  },
+  "request": {
+    "url": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+    "language": "en",
+    "region": "us",
+    "strategyOverride": "INCREMENTAL"
+  },
+  "syncResult": {
+    "sourceId": "d362323b-cd95-416c-8b56-6350785816b9",
+    "runId": "9be45c2c-bb9c-4352-aec2-285d5b6c16c9",
+    "initialRunStatus": "QUEUED",
+    "initialRunStrategy": "INCREMENTAL",
+    "draftPolicy": {
+      "mode": "DRAFT",
+      "publishMode": "MANUAL",
+      "appendToOpenDraft": true,
+      "activeDraftBatchId": null,
+      "sourceId": "d362323b-cd95-416c-8b56-6350785816b9",
+      "reusedActiveRun": false
+    }
+  },
+  "source": {
+    "id": "d362323b-cd95-416c-8b56-6350785816b9",
+    "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+    "provider": "GOOGLE_MAPS",
+    "status": "ACTIVE",
+    "inputUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+    "resolvedUrl": "https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US",
+    "canonicalCid": "4548797685071303380",
+    "placeHexId": "0x314219004bcdcae5:0x3f209364ddcb52d4",
+    "googlePlaceId": "ChIJ5crNSwAZQjER1FLL3WSTID8",
+    "placeName": "Quán Phở Hồng",
+    "language": "en",
+    "region": "us",
+    "syncEnabled": true,
+    "syncIntervalMinutes": 1440,
+    "lastReportedTotal": 4746,
+    "lastSyncedAt": "2026-03-20T08:10:00.000Z",
+    "lastSuccessfulRunAt": "2026-03-20T08:10:00.000Z",
+    "nextScheduledAt": "2026-03-25T08:10:00.000Z",
+    "createdAt": "2026-03-24T20:38:13.928Z",
+    "updatedAt": "2026-03-24T20:41:11.861Z"
+  },
+  "run": {
+    "id": "9be45c2c-bb9c-4352-aec2-285d5b6c16c9",
+    "sourceId": "d362323b-cd95-416c-8b56-6350785816b9",
+    "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+    "requestedByUserId": "9c8fefd5-a7db-4bac-90b2-050f67ab01b6",
+    "intakeBatchId": "4bd59d42-9dc0-4d34-9cd7-19e89a99bb3a",
+    "strategy": "INCREMENTAL",
+    "status": "PARTIAL",
+    "priority": "NORMAL",
+    "reportedTotal": 4746,
+    "extractedCount": 200,
+    "validCount": 200,
+    "skippedCount": 0,
+    "duplicateCount": 0,
+    "warningCount": 1,
+    "pagesFetched": 10,
+    "pageSize": 20,
+    "delayMs": 250,
+    "maxPages": 10,
+    "maxReviews": null,
+    "checkpointCursor": "CAESZENBRVF5QUVhUkVOcVJVbEJVa2x3UTJkdlFWQTNNa2RrZEdwc1VHeGZYMFZvUW10cmVrVndjMHBrTUVKWFpYZEVkemhCUVVGQlFVZG5iamt5WkRCRFdqSXlUMVV0VlZsQlEwbEI=",
+    "knownReviewStreak": 0,
+    "cancelRequestedAt": null,
+    "leaseExpiresAt": null,
+    "errorCode": null,
+    "errorMessage": null,
+    "warnings": [
+      "Run stopped because the configured page budget was reached"
+    ],
+    "metadata": {
+      "trigger": "review_ops",
+      "requestedVia": "review_ops_sync_to_draft",
+      "materializeMode": "DRAFT"
+    },
+    "crawlCoverage": {
+      "completeness": "PARTIAL",
+      "reportedTotal": 4746,
+      "extractedCount": 200,
+      "reportedTotalDelta": 4546,
+      "mismatchStatus": "REPORTED_TOTAL_EXCEEDS_EXTRACTED",
+      "mismatchDetected": true,
+      "publicReviewChainExhausted": false,
+      "stopReason": null,
+      "operatorPolicy": {
+        "code": "REVIEW_PARTIAL_RUN",
+        "actionRequired": true,
+        "summary": "This crawl run ended partially. Review its warnings before deciding whether a larger budget or a resume action is needed."
+      }
+    },
+    "queuedAt": "2026-03-24T20:41:11.877Z",
+    "startedAt": "2026-03-24T20:41:12.056Z",
+    "lastCheckpointAt": "2026-03-24T20:41:19.582Z",
+    "finishedAt": "2026-03-24T20:41:19.843Z",
+    "createdAt": "2026-03-24T20:41:11.882Z",
+    "updatedAt": "2026-03-24T20:41:20.061Z",
+    "source": {
+      "id": "d362323b-cd95-416c-8b56-6350785816b9",
+      "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+      "provider": "GOOGLE_MAPS",
+      "status": "ACTIVE",
+      "inputUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+      "resolvedUrl": "https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US",
+      "canonicalCid": "4548797685071303380",
+      "placeHexId": "0x314219004bcdcae5:0x3f209364ddcb52d4",
+      "googlePlaceId": "ChIJ5crNSwAZQjER1FLL3WSTID8",
+      "placeName": "Quán Phở Hồng",
+      "language": "en",
+      "region": "us",
+      "syncEnabled": true,
+      "syncIntervalMinutes": 1440,
+      "lastReportedTotal": 4746,
+      "lastSyncedAt": "2026-03-24T20:41:19.843Z",
+      "lastSuccessfulRunAt": "2026-03-24T20:41:19.843Z",
+      "nextScheduledAt": "2026-03-25T20:41:19.843Z",
+      "createdAt": "2026-03-24T20:38:13.928Z",
+      "updatedAt": "2026-03-24T20:41:19.844Z"
+    },
+    "intakeBatch": {
+      "id": "4bd59d42-9dc0-4d34-9cd7-19e89a99bb3a",
+      "status": "DRAFT",
+      "title": "Google Maps crawl - Quán Phở Hồng - incremental - 9be45c2c"
+    }
+  },
+  "draftBatch": {
+    "id": "4bd59d42-9dc0-4d34-9cd7-19e89a99bb3a",
+    "status": "DRAFT",
+    "title": "Google Maps crawl - Quán Phở Hồng - incremental - 9be45c2c"
+  },
+  "batchReadiness": {
+    "batch": {
+      "id": "4bd59d42-9dc0-4d34-9cd7-19e89a99bb3a",
+      "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+      "createdByUserId": "9c8fefd5-a7db-4bac-90b2-050f67ab01b6",
+      "crawlSourceId": "d362323b-cd95-416c-8b56-6350785816b9",
+      "title": "Google Maps crawl - Quán Phở Hồng - incremental - 9be45c2c",
+      "sourceType": "GOOGLE_MAPS_CRAWL",
+      "status": "DRAFT",
+      "publishedAt": null,
+      "createdAt": "2026-03-24T20:41:19.873Z",
+      "updatedAt": "2026-03-24T20:41:19.873Z",
+      "counts": {
+        "totalItems": 200,
+        "pendingItems": 200,
+        "approvedItems": 0,
+        "rejectedItems": 0,
+        "publishedItems": 0
+      }
+    },
+    "counts": {
+      "totalItems": 200,
+      "pendingItems": 200,
+      "approvedItems": 0,
+      "rejectedItems": 0,
+      "publishedItems": 0
+    },
+    "bulkApprovableCount": 200,
+    "publishAllowed": false,
+    "blockingReasons": [
+      {
+        "code": "NO_APPROVED_ITEMS",
+        "message": "Approve at least one valid review item before publishing"
+      }
+    ],
+    "crawlDiagnostics": {
+      "skippedInvalidCount": 0,
+      "topValidationIssues": []
+    }
+  },
+  "benchmark": {
+    "totalWallClockMs": 14206,
+    "terminalSnapshot": {
+      "status": "PARTIAL",
+      "updatedAt": "2026-03-24T20:41:20.061Z",
+      "extractedCount": 200,
+      "validCount": 200,
+      "pagesFetched": 10,
+      "warningCount": 1,
+      "intakeBatchId": "4bd59d42-9dc0-4d34-9cd7-19e89a99bb3a",
+      "autoResumeChainCount": 0,
+      "stopReason": null
+    }
+  },
+  "notes": [
+    "This smoke harness exercises the review-ops sync-to-draft entrypoint instead of creating a crawl run directly.",
+    "Redis was available, so the operator-triggered path used the real BullMQ queue transport and worker runtime."
+  ]
+}

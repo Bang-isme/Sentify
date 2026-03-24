@@ -25,11 +25,11 @@ The backend is no longer a mock-demo. It already behaves like a real product fou
 | Auth and security | Mostly done | JWT, refresh, cookies, CSRF, lockout, reset flow, service-level lifecycle proof for refresh rotation/reuse and forgot/reset password, controller proof for refresh and reset route contracts | Staging-style auth smoke if release confidence needs to go higher |
 | Merchant read APIs | Mostly done | Dashboard, reviews, sentiment, trend, complaints, top issue, seeded real-DB HTTP smoke, local SMB read-load proof | Staging-style soak and perf guardrails |
 | Admin intake | Mostly done | Create, edit, review, publish, canonical reuse | More multi-batch regression proof |
-| Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, repeated deep-crawl benchmarks to the same public ceiling, structured `crawlCoverage` diagnostics, local worker-pressure harness | Redis-backed SMB load proof and dedicated Redis ops evidence |
-| Review ops control plane | Mostly done | One-click draft sync, source list, run list, readiness, bulk approve valid, publish proxy, operator policy for `reportedTotal` mismatch | End-to-end queue proof through the operator surface |
+| Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, repeated deep-crawl benchmarks to the same public ceiling, structured `crawlCoverage` diagnostics, local Memurai-backed SMB worker load proof | Managed Redis or staging-backed queue evidence |
+| Review ops control plane | Mostly done | One-click draft sync, source list, run list, readiness, bulk approve valid, publish proxy, operator policy for `reportedTotal` mismatch, Redis-backed sync-to-draft smoke with auto-materialized draft batch proof | Staging-style operator smoke |
 | Publish integrity | Mostly done | Stable external review identity, canonical reuse, and real-DB duplicate publish regression | Keep widening edge-case coverage as source rules evolve |
 | Database | Mostly done | Runtime models, crawl invariants, seed dataset | Backup and restore evidence |
-| Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued crawl smoke, seeded merchant-read HTTP proof, local SMB load harnesses | Redis-backed queue load proof and staged smoke |
+| Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued crawl smoke, seeded merchant-read HTTP proof, local SMB load harnesses, Redis-backed operator and worker smoke on local Memurai | staged smoke and managed-environment proof |
 | Docs | Mostly done | Current-state docs match code more closely | Keep sync as code evolves |
 | Ops and release | Partial | Health endpoints, worker runtime, setup docs | Staging, backup, restore, rollback |
 
@@ -77,7 +77,7 @@ Done:
 
 Still missing:
 
-- Redis-backed queued-worker load proof
+- managed Redis or staging queued-worker proof
 
 ### Sprint 4 backend
 
@@ -104,11 +104,12 @@ Key backend milestones already achieved:
 9. Added a backend-only operator surface to cut down crawl-to-draft steps
 10. Benchmarked deep Google Maps crawl throughput and lowered default backfill delay without losing extracted review quality
 11. Added local SMB load harnesses for merchant reads and crawl worker checkpoint pressure
+12. Added local Memurai-backed Redis proof for worker pressure and operator-triggered sync-to-draft
 
 ## 5. Risk If Work Stops Here
 
 - confidence still lacks staging-style release proof
-- queue worker load behavior is still unmeasured under real Redis SMB concurrency
+- queue worker load behavior is now measured under local Memurai-backed Redis compatibility, but not yet under managed Redis or staging
 - Google-reported totals can still exceed the public review rows exposed through the unofficial RPC, even though operator surfaces now label that mismatch as advisory when the public chain is exhausted
 - release operations are not yet demonstrated in staging
 
@@ -116,8 +117,8 @@ Key backend milestones already achieved:
 
 The next backend priorities should be:
 
-1. run the new worker load harness against real Redis and the operator-triggered queue path
-2. prepare staging, backup, restore, and rollback evidence
+1. prepare staging, backup, restore, and rollback evidence
+2. rerun queue proof on managed Redis or staging infrastructure
 3. keep tightening staged auth and ops smoke as release confidence rises
 
 ## 7. Short Conclusion
@@ -127,7 +128,7 @@ The backend is already strong enough for FE to rely on later.
 What remains is mostly:
 
 - stronger evidence
-- Redis-backed queue proof
+- managed-environment queue proof
 - release discipline
 
 The missing work is no longer about whether a core backend exists. It is about proving that the backend can be trusted under more realistic operating conditions and being explicit about the limits of unofficial Google review completeness.
