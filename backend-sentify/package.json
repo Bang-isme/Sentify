@@ -12,6 +12,7 @@
     "start": "node src/server.js",
     "worker:review-crawl": "node src/review-crawl-worker.js",
     "smoke:review-crawl-queue": "node scripts/review-crawl-queue-smoke.js",
+    "validate:review-crawl-scale": "node scripts/review-crawl-scale-validate.js",
     "crawl:google-reviews": "node scripts/crawl-google-reviews.js",
     "ops:review": "node scripts/review-ops.js",
     "db:seed": "node prisma/seed.js",

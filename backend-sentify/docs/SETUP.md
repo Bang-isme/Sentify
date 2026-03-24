@@ -144,6 +144,7 @@ npm run db:validate
 | `npm start` | Run the API in production mode |
 | `npm run worker:review-crawl` | Run the BullMQ worker and scheduler |
 | `npm run smoke:review-crawl-queue -- --url "<google-maps-url>"` | Run the queued crawl smoke harness |
+| `npm run validate:review-crawl-scale -- --url "<google-maps-url>"` | Run repeated direct and queued scale validation plus a target-review estimate |
 | `npm run ops:review -- <subcommand>` | Run the review ops CLI |
 | `npm test` | Fast day-to-day backend suite |
 | `npm run test:realdb` | Real Postgres publish smoke |
@@ -159,4 +160,4 @@ npm run db:validate
 - `npm run test:realdb` creates temporary publish-smoke data and cleans it up after the test completes.
 - Preview crawl does not require Redis.
 - Queued crawl and queue health require Redis in production, but the local smoke harness can fall back to inline queue mode when Redis is unavailable.
-- Current live-source benchmarks show a stable ceiling of `4527` extracted public reviews on a place where Google reports `4746`, so operators should treat `reportedTotal` as a reference number, not a guaranteed extraction count.
+- Current live-source benchmarks show that Google preview metadata can be higher than the visible public review surface. Two important examples are `4527 / 4746` on `Quan Pho Hong` and `9744 / 15098` on `Cong Ca Phe`, where the user-confirmed public place card also showed `9744`. Operators should treat `reportedTotal` as a reference number, not a guaranteed extraction count.

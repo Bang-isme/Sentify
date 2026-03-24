@@ -1,0 +1,119 @@
+{
+  "generatedAt": "2026-03-24T18:16:02.935Z",
+  "targetUrl": "https://maps.app.goo.gl/kaFYtSNsriybyw6w7",
+  "targetReviews": 20000,
+  "validationChecklist": [
+    "Run repeated direct full crawls and verify extractedCount converges.",
+    "Run at least one queued backfill and compare extractedCount to direct mode.",
+    "Check reportedTotal versus extractedCount and keep mismatch warnings visible.",
+    "Estimate target pages, duration, and backfill legs for the desired review count.",
+    "Do not claim completeness proof for target scale until a comparable live source is benchmarked."
+  ],
+  "runtimeBudgets": {
+    "backfillMaxPagesPerRun": 1000,
+    "incrementalMaxPagesPerRun": 10,
+    "autoResumeMaxChains": 25,
+    "maxDurationMsPerRun": 600000,
+    "workerConcurrency": 2
+  },
+  "observed": {
+    "reportedTotal": 15098,
+    "direct": {
+      "runs": [
+        {
+          "iteration": 1,
+          "mode": "direct",
+          "durationMs": 63664,
+          "extractedCount": 9744,
+          "pagesFetched": 488,
+          "completeness": "complete",
+          "reportedTotal": 15098,
+          "warningCount": 1,
+          "warnings": [
+            "Google Maps reported 15098 reviews, but only 9744 unique reviews were extracted"
+          ]
+        }
+      ],
+      "summary": {
+        "runCount": 1,
+        "extractedCounts": [
+          9744
+        ],
+        "pagesFetched": [
+          488
+        ],
+        "durationMs": [
+          63664
+        ],
+        "averageDurationMs": 63664,
+        "averageExtractedCount": 9744,
+        "averagePagesFetched": 488,
+        "averageReviewsPerSecond": 153.05,
+        "averagePagesPerSecond": 7.665,
+        "averageReviewsPerPage": 19.967,
+        "convergedExtractedCount": 9744
+      }
+    },
+    "queued": {
+      "runs": [
+        {
+          "iteration": 1,
+          "mode": "queued",
+          "durationMs": 92939,
+          "extractedCount": 9744,
+          "pagesFetched": 488,
+          "completeness": "COMPLETED",
+          "reportedTotal": 15098,
+          "warningCount": 1,
+          "warnings": [
+            "Google Maps reported 15098 reviews, but only 9744 unique reviews were extracted"
+          ],
+          "benchmarkWallClockMs": 90377,
+          "inlineQueueMode": true
+        }
+      ],
+      "summary": {
+        "runCount": 1,
+        "extractedCounts": [
+          9744
+        ],
+        "pagesFetched": [
+          488
+        ],
+        "durationMs": [
+          92939
+        ],
+        "averageDurationMs": 92939,
+        "averageExtractedCount": 9744,
+        "averagePagesFetched": 488,
+        "averageReviewsPerSecond": 104.84,
+        "averagePagesPerSecond": 5.251,
+        "averageReviewsPerPage": 19.967,
+        "convergedExtractedCount": 9744
+      }
+    }
+  },
+  "estimateForTargetReviews": {
+    "direct": {
+      "targetReviews": 20000,
+      "estimatedPages": 1002,
+      "estimatedDurationMs": 130677,
+      "estimatedBackfillLegs": 2,
+      "backfillLegCapacity": 26,
+      "fitsCurrentLegBudget": true
+    },
+    "queued": {
+      "targetReviews": 20000,
+      "estimatedPages": 1002,
+      "estimatedDurationMs": 190767,
+      "estimatedBackfillLegs": 2,
+      "backfillLegCapacity": 26,
+      "fitsCurrentLegBudget": true
+    }
+  },
+  "conclusion": {
+    "singleSourceRuntimeLooksCapable": true,
+    "completenessProvenAtTargetScale": false,
+    "note": "Current evidence can estimate runtime and run-budget fit for a 20K-review source, but it does not prove 20K review completeness until a comparable live source is benchmarked."
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-03-24T18:06:27.571Z",
+  "targetUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+  "targetReviews": 20000,
+  "validationChecklist": [
+    "Run repeated direct full crawls and verify extractedCount converges.",
+    "Run at least one queued backfill and compare extractedCount to direct mode.",
+    "Check reportedTotal versus extractedCount and keep mismatch warnings visible.",
+    "Estimate target pages, duration, and backfill legs for the desired review count.",
+    "Do not claim completeness proof for target scale until a comparable live source is benchmarked."
+  ],
+  "runtimeBudgets": {
+    "backfillMaxPagesPerRun": 250,
+    "incrementalMaxPagesPerRun": 10,
+    "autoResumeMaxChains": 25,
+    "maxDurationMsPerRun": 600000,
+    "workerConcurrency": 2
+  },
+  "observed": {
+    "reportedTotal": 4746,
+    "direct": {
+      "runs": [
+        {
+          "iteration": 1,
+          "mode": "direct",
+          "durationMs": 34439,
+          "extractedCount": 4527,
+          "pagesFetched": 227,
+          "completeness": "complete",
+          "reportedTotal": 4746,
+          "warningCount": 1,
+          "warnings": [
+            "Google Maps reported 4746 reviews, but only 4527 unique reviews were extracted"
+          ]
+        },
+        {
+          "iteration": 2,
+          "mode": "direct",
+          "durationMs": 32874,
+          "extractedCount": 4527,
+          "pagesFetched": 227,
+          "completeness": "complete",
+          "reportedTotal": 4746,
+          "warningCount": 1,
+          "warnings": [
+            "Google Maps reported 4746 reviews, but only 4527 unique reviews were extracted"
+          ]
+        }
+      ],
+      "summary": {
+        "runCount": 2,
+        "extractedCounts": [
+          4527,
+          4527
+        ],
+        "pagesFetched": [
+          227,
+          227
+        ],
+        "durationMs": [
+          34439,
+          32874
+        ],
+        "averageDurationMs": 33656.5,
+        "averageExtractedCount": 4527,
+        "averagePagesFetched": 227,
+        "averageReviewsPerSecond": 134.58,
+        "averagePagesPerSecond": 6.748,
+        "averageReviewsPerPage": 19.943,
+        "convergedExtractedCount": 4527
+      }
+    },
+    "queued": {
+      "runs": [
+        {
+          "iteration": 1,
+          "mode": "queued",
+          "durationMs": 52130,
+          "extractedCount": 4527,
+          "pagesFetched": 227,
+          "completeness": "COMPLETED",
+          "reportedTotal": 4746,
+          "warningCount": 1,
+          "warnings": [
+            "Google Maps reported 4746 reviews, but only 4527 unique reviews were extracted"
+          ],
+          "benchmarkWallClockMs": 48610,
+          "inlineQueueMode": true
+        }
+      ],
+      "summary": {
+        "runCount": 1,
+        "extractedCounts": [
+          4527
+        ],
+        "pagesFetched": [
+          227
+        ],
+        "durationMs": [
+          52130
+        ],
+        "averageDurationMs": 52130,
+        "averageExtractedCount": 4527,
+        "averagePagesFetched": 227,
+        "averageReviewsPerSecond": 86.84,
+        "averagePagesPerSecond": 4.354,
+        "averageReviewsPerPage": 19.943,
+        "convergedExtractedCount": 4527
+      }
+    }
+  },
+  "estimateForTargetReviews": {
+    "direct": {
+      "targetReviews": 20000,
+      "estimatedPages": 1003,
+      "estimatedDurationMs": 148611,
+      "estimatedBackfillLegs": 5,
+      "backfillLegCapacity": 26,
+      "fitsCurrentLegBudget": true
+    },
+    "queued": {
+      "targetReviews": 20000,
+      "estimatedPages": 1003,
+      "estimatedDurationMs": 230309,
+      "estimatedBackfillLegs": 5,
+      "backfillLegCapacity": 26,
+      "fitsCurrentLegBudget": true
+    }
+  },
+  "conclusion": {
+    "singleSourceRuntimeLooksCapable": true,
+    "completenessProvenAtTargetScale": false,
+    "note": "Current evidence can estimate runtime and run-budget fit for a 20K-review source, but it does not prove 20K review completeness until a comparable live source is benchmarked."
+  }
+}

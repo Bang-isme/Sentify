@@ -4,56 +4,38 @@ Updated: 2026-03-25
 
 ## Purpose
 
-This module adds a backend-side Google Maps review crawler that does not use Playwright or browser automation.
+This module gives Sentify a backend-side Google Maps review crawler without Playwright or browser automation.
 
-It exists for one reason: give the backend a stable way to extract review data from a Google Maps place URL, normalize the output, and prepare intake-ready JSON that can be validated before it reaches the manual curation flow.
+Its job is simple:
 
-The newest layer on top of this is `review-ops`, a backend-only control plane that turns the low-level crawl primitives into a one-click draft workflow for internal operators.
+- accept a Google Maps place URL
+- resolve the place identity
+- crawl public review rows
+- normalize them into clean JSON
+- prepare intake-ready payloads that can be validated before publish
+
+The backend-only `review-ops` layer sits on top of this and turns the low-level crawl primitives into a one-click draft workflow for internal operators.
 
 ## What It Does
 
-- accepts a Google Maps place URL
 - accepts `google.com/maps/...` URLs and `maps.app.goo.gl/...` short URLs
-- resolves the place metadata from the Google Maps preview payload
-- extracts the reported total review count for that place
-- fetches paginated review rows through the Google Maps review RPC endpoint
-- normalizes review data into clean JSON
-- generates a second `intake.items` array that already matches the backend manual-intake schema
-- canonicalizes URLs to a stable `cid` route when a place hex id is present, so long nested Maps URLs do not need manual cleanup first
-- supports a queued crawl model for deeper runs that should not block the HTTP app
-- persists crawl sources, crawl runs, and normalized raw reviews in Postgres
-- preserves `sourceExternalId` so canonical publish dedupe stays stable across repeated crawls
-- keeps a mismatch warning when Google reports more reviews than the public review RPC actually returns
+- resolves metadata from the Google Maps preview payload
+- extracts the preview-reported review total
+- fetches paginated public review rows through `listugcposts`
+- normalizes review rows into clean JSON
+- generates `intake.items` that already match the manual intake schema
+- persists crawl sources, crawl runs, and raw normalized reviews in Postgres
+- supports queued deep crawls so large backfills stay outside the request path
+- preserves source identity fields so publish dedupe stays stable across repeated crawls
+- keeps mismatch warnings when Google reports more reviews than the crawler can actually extract
 
-## API Endpoint
+## API Surface
 
-`POST /api/admin/review-crawl/google-maps`
+Preview lane:
 
-Authenticated restaurant editors can use it with:
+- `POST /api/admin/review-crawl/google-maps`
 
-```json
-{
-  "restaurantId": "restaurant-uuid",
-  "url": "https://www.google.com/maps/place/...",
-  "language": "en",
-  "region": "us",
-  "sort": "newest",
-  "pages": 5,
-  "pageSize": 20,
-  "maxReviews": 100,
-  "delayMs": 0
-}
-```
-
-The response contains:
-
-- `source`: crawl input and fetch metadata
-- `place`: normalized place metadata and identifiers
-- `reviews`: normalized review rows
-- `intake.items`: validated review items shaped for the existing admin-intake flow
-- `crawl`: extraction summary, completeness, warnings, and pagination state
-
-For production-style syncs, the queue-backed flow is:
+Queue-backed lane:
 
 - `POST /api/admin/review-crawl/sources`
 - `POST /api/admin/review-crawl/sources/:sourceId/runs`
@@ -62,128 +44,121 @@ For production-style syncs, the queue-backed flow is:
 - `POST /api/admin/review-crawl/runs/:runId/resume`
 - `POST /api/admin/review-crawl/runs/:runId/materialize-intake`
 
-This lets the API create work quickly while a dedicated worker process crawls page-by-page in the background.
-
-## Review Ops API
-
-The recommended operator surface for day-to-day internal use is:
+Operator lane:
 
 - `POST /api/admin/review-ops/google-maps/sync-to-draft`
 - `GET /api/admin/review-ops/sources?restaurantId=...`
 - `GET /api/admin/review-ops/sources/:sourceId/runs`
 - `GET /api/admin/review-ops/runs/:runId`
-- `POST /api/admin/review-ops/sources/:sourceId/disable`
-- `POST /api/admin/review-ops/sources/:sourceId/enable`
 - `GET /api/admin/review-ops/batches/:batchId/readiness`
 - `POST /api/admin/review-ops/batches/:batchId/approve-valid`
 - `POST /api/admin/review-ops/batches/:batchId/publish`
 
-What this adds:
-
-- one-click draft sync from Google Maps URL to draft intake batch
-- source inventory with latest run and open draft summary
-- enriched run status with queue state
-- publish-readiness diagnostics before publish
-- bulk assistance without bypassing manual publish
-
 ## CLI
 
-The same service can be run directly:
+Direct crawl:
 
 ```bash
-npm run crawl:google-reviews -- --url="https://www.google.com/maps/place/..." --pages=1 --output="./tmp/reviews.json"
+npm run crawl:google-reviews -- --url="https://www.google.com/maps/place/..." --pages=max --delay-ms=0 --output="./crawls/reviews.json"
 ```
 
-Supported flags:
-
-- `--url`
-- `--language`
-- `--region`
-- `--sort`
-- `--pages`
-- `--page-size`
-- `--max-reviews`
-- `--delay-ms`
-- `--search-query`
-- `--output`
-
-For a queued end-to-end proof that exercises Redis, BullMQ, the worker, Postgres state, and optional intake materialization:
+Queued smoke:
 
 ```bash
-set REVIEW_CRAWL_REDIS_BINARY=D:\tools\redis-server.exe
-node scripts/review-crawl-queue-smoke.js --url "https://maps.app.goo.gl/..." --strategy backfill --max-pages 1 --materialize --output "./crawls/queue-smoke.json"
+npm run smoke:review-crawl-queue -- --url "https://maps.app.goo.gl/..." --strategy backfill --output "./crawls/queue-smoke.json"
 ```
 
-This script is intended for local validation. It will:
+If local Windows has no Redis service and no Redis binary, the smoke script can fall back to inline queue mode for local benchmarking only.
 
-- start a local Redis process when `REDIS_URL` is not already set
-- start the worker runtime in-process
-- upsert the crawl source
-- enqueue a queued run
-- poll until the run reaches a terminal state
-- optionally create a `GOOGLE_MAPS_CRAWL` draft intake batch from valid raw reviews
-
-If no Redis server or local Redis binary is available, the smoke script now falls back to an inline queue mode for local benchmarking. That fallback is only for local proof and developer diagnostics. Production queued runs still require Redis.
-
-For internal operator actions without touching SQL directly:
+Scale validation:
 
 ```bash
-npm run ops:review -- sync-draft --user-id="<user-uuid>" --restaurant-id="<restaurant-uuid>" --url="https://maps.app.goo.gl/..."
-npm run ops:review -- sources --user-id="<user-uuid>" --restaurant-id="<restaurant-uuid>"
-npm run ops:review -- run-status --user-id="<user-uuid>" --run-id="<run-uuid>"
-npm run ops:review -- batch-readiness --user-id="<user-uuid>" --batch-id="<batch-uuid>"
-npm run ops:review -- approve-valid --user-id="<user-uuid>" --batch-id="<batch-uuid>" --reviewer-note="Bulk approved after readiness review"
+npm run validate:review-crawl-scale -- --url="https://maps.app.goo.gl/..." --target-reviews=20000 --output="./crawls/scale-validation.json"
 ```
 
-The CLI prints JSON only and still routes through service-layer permission checks.
+## Runtime Notes
 
-## Architecture Notes
-
-- place metadata and total review count come from the Google Maps `preview/place` payload
-- paginated review rows come from the Google Maps `listugcposts` RPC endpoint
-- the crawler uses a browser-like HTTP client (`impit`) for review pages because plain `fetch` was returning empty review payloads
-- output normalization is isolated in `src/modules/review-crawl/google-maps.parser.js`
-- request validation is isolated in `src/modules/review-crawl/google-maps.validation.js`
-- Google Maps provider logic lives in `src/modules/review-crawl/google-maps.service.js`
-- queue orchestration, run lifecycle, materialization, and scheduling live in `src/modules/review-crawl/review-crawl.service.js`
-- operator orchestration, readiness, and bulk-assist logic live in `src/modules/review-ops/`
+- output normalization lives in `src/modules/review-crawl/google-maps.parser.js`
+- request validation lives in `src/modules/review-crawl/google-maps.validation.js`
+- provider logic lives in `src/modules/review-crawl/google-maps.service.js`
+- queue orchestration and run lifecycle live in `src/modules/review-crawl/review-crawl.service.js`
 - BullMQ transport lives in `src/modules/review-crawl/review-crawl.queue.js`
 - worker startup lives in `src/review-crawl-worker.js`
-- deep crawl now uses fresh-session cursor recovery, same-session empty-page retries, and backfill auto-resume from persisted checkpoint cursors
+- deep crawl now uses same-session empty-page retry, fresh-session cursor recovery, and backfill auto-resume from persisted checkpoint cursors
 
 ## Benchmark Snapshot
 
-Observed on 2026-03-25 with the live Google Maps short URL `https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8` for `Quán Phở Hồng`:
+### Source 1: Quan Pho Hong
 
-- direct full crawl, `delayMs=0`: `4527` unique reviews, `227` pages, ~`33-36s`
-- queued backfill smoke, default backfill delay `0`: `4527` unique reviews, `227` pages, ~`50.3s`
-- Google Maps reported total for this place: `4746`
+Live URL:
 
-Committed benchmark artifacts:
+- `https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8`
+
+Observed on 2026-03-25:
+
+- direct full crawl, `delayMs=0`: `4527` unique reviews, `227` pages, about `33-36s`
+- queued backfill smoke, default backfill delay `0`: `4527` unique reviews, `227` pages, about `50.3s`
+- preview metadata reported total: `4746`
+
+Artifacts:
 
 - [benchmark-direct-delay0.json](D:/Project%203/backend-sentify/crawls/benchmark-direct-delay0.json)
 - [benchmark-direct-delay0-run2.json](D:/Project%203/backend-sentify/crawls/benchmark-direct-delay0-run2.json)
 - [benchmark-direct-delay0-vi-vn.json](D:/Project%203/backend-sentify/crawls/benchmark-direct-delay0-vi-vn.json)
 - [benchmark-queue-default-backfill-inline-final.json](D:/Project%203/backend-sentify/crawls/benchmark-queue-default-backfill-inline-final.json)
 
-The important conclusion is not “Google reported `4746`, so the crawler is broken at `4527`”. The stronger evidence is that multiple runs, locales, and runtime modes converge to the same `4527` ceiling. For this source, the backend now appears to exhaust the public review pagination chain consistently, while still preserving a warning that the reported total is larger than the crawlable total.
+### Source 2: Cong Ca Phe
+
+Live URL:
+
+- `https://maps.app.goo.gl/kaFYtSNsriybyw6w7`
+
+Observed on 2026-03-25:
+
+- direct full crawl, `delayMs=0`: `9744` unique reviews, `488` pages
+- queued backfill with `maxPages=1000`: `9744` unique reviews, `488` pages
+- preview metadata reported total: `15098`
+- the visible Google Maps place card shown by the user also displayed `9744` reviews
+
+Artifacts:
+
+- [link-test-kaFYtSNsriybyw6w7-direct.json](D:/Project%203/backend-sentify/crawls/link-test-kaFYtSNsriybyw6w7-direct.json)
+- [link-test-kaFYtSNsriybyw6w7-queued-max1000.json](D:/Project%203/backend-sentify/crawls/link-test-kaFYtSNsriybyw6w7-queued-max1000.json)
+- [scale-validation-kaFYtSNsriybyw6w7.json](D:/Project%203/backend-sentify/crawls/scale-validation-kaFYtSNsriybyw6w7.json)
+
+## What These Benchmarks Mean
+
+Two strong patterns now appear:
+
+- repeated runs converge to the same extracted-review ceiling for a given place
+- that ceiling can be lower than the preview metadata total
+
+The `Cong Ca Phe` case is especially important:
+
+- preview metadata said `15098`
+- both direct and queued runs converged at `9744`
+- the public Google Maps place card also showed `9744`
+
+That strongly suggests the crawler is matching the public review surface, while preview metadata may include a larger opaque total that is not fully reachable through the public review pagination chain.
 
 ## Limits
 
-- this is an unofficial Google Maps integration and can break if Google changes payload structure
-- exact completeness depends on Google continuing to expose the expected preview and review RPC formats
-- when a crawl is intentionally capped by `pages` or `maxReviews`, the response marks the result as `partial`
-- queued runs require Redis via `REDIS_URL` in production
-- local proof runs may also use `REVIEW_CRAWL_REDIS_BINARY` to spawn a temporary Redis process
-- `totalReviewCount` is a reported reference number, not a guaranteed extraction SLA
-- `COMPLETED` means the currently exposed public review page chain was exhausted; it does not guarantee `extractedCount === reportedTotal`
+- this is still an unofficial Google Maps integration
+- Google can change payload shape or pagination behavior at any time
+- `totalReviewCount` should be treated as a reference number, not a guaranteed extraction SLA
+- `COMPLETED` means the currently exposed public review page chain was exhausted
+- `COMPLETED` does not guarantee `extractedCount === preview metadata total`
+- some places appear to expose two counters:
+  - a larger preview metadata total
+  - a smaller public review surface count
+- current crawler behavior appears to align with the public review surface when the two diverge
 
 ## Why This Matters For Sentify
 
-This module gives the backend a real ingestion bridge:
+This module gives Sentify a practical ingestion bridge:
 
 - crawl raw review evidence
-- convert it into valid intake items
-- keep admin curation in control before publish
+- validate it before it becomes intake
+- keep publish behind manual curation
 
-That fits the current manual-first backend direction much better than rebuilding a browser-driven scraper.
+That matches the current manual-first backend direction much better than browser-driven scraping.

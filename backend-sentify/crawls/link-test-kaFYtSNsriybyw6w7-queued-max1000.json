@@ -1,0 +1,109 @@
+{
+  "redis": {
+    "url": null,
+    "startedEmbeddedRedis": false,
+    "inlineQueueMode": true
+  },
+  "ownerContext": {
+    "userId": "85e0d1b0-ffa5-4085-a7e8-80c9c9eee0b3",
+    "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1"
+  },
+  "source": {
+    "id": "9861d629-1117-40d5-a167-ece4fb944727",
+    "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1",
+    "provider": "GOOGLE_MAPS",
+    "status": "ACTIVE",
+    "inputUrl": "https://maps.app.goo.gl/kaFYtSNsriybyw6w7",
+    "resolvedUrl": "https://www.google.com/maps?cid=9168270420797327174&hl=en&gl=US",
+    "canonicalCid": "9168270420797327174",
+    "placeHexId": "0x314218321ae9468b:0x7f3c3d5f44588746",
+    "googlePlaceId": "ChIJi0bpGjIYQjERRodYRF89PH8",
+    "placeName": "Cộng Cà Phê",
+    "language": "en",
+    "region": "us",
+    "syncEnabled": true,
+    "syncIntervalMinutes": 1440,
+    "lastReportedTotal": 15098,
+    "lastSyncedAt": "2026-03-24T18:11:23.260Z",
+    "lastSuccessfulRunAt": "2026-03-24T18:11:23.260Z",
+    "nextScheduledAt": "2026-03-25T18:11:23.260Z",
+    "createdAt": "2026-03-24T18:08:51.227Z",
+    "updatedAt": "2026-03-24T18:11:43.703Z"
+  },
+  "run": {
+    "id": "ba25410a-1979-43da-b837-300a2b8a4986",
+    "sourceId": "9861d629-1117-40d5-a167-ece4fb944727",
+    "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1",
+    "requestedByUserId": "85e0d1b0-ffa5-4085-a7e8-80c9c9eee0b3",
+    "intakeBatchId": null,
+    "strategy": "BACKFILL",
+    "status": "COMPLETED",
+    "priority": "NORMAL",
+    "reportedTotal": 15098,
+    "extractedCount": 9744,
+    "validCount": 9744,
+    "skippedCount": 0,
+    "duplicateCount": 5000,
+    "warningCount": 1,
+    "pagesFetched": 488,
+    "pageSize": 20,
+    "delayMs": 0,
+    "maxPages": 1000,
+    "maxReviews": null,
+    "checkpointCursor": null,
+    "knownReviewStreak": 0,
+    "cancelRequestedAt": null,
+    "leaseExpiresAt": null,
+    "errorCode": null,
+    "errorMessage": null,
+    "warnings": [
+      "Google Maps reported 15098 reviews, but only 9744 unique reviews were extracted"
+    ],
+    "metadata": {
+      "trigger": "manual",
+      "stopReason": "exhausted_source"
+    },
+    "queuedAt": "2026-03-24T18:11:43.724Z",
+    "startedAt": "2026-03-24T18:11:43.840Z",
+    "lastCheckpointAt": "2026-03-24T18:13:04.807Z",
+    "finishedAt": "2026-03-24T18:13:04.812Z",
+    "createdAt": "2026-03-24T18:11:43.746Z",
+    "updatedAt": "2026-03-24T18:13:04.815Z",
+    "source": {
+      "id": "9861d629-1117-40d5-a167-ece4fb944727",
+      "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1",
+      "provider": "GOOGLE_MAPS",
+      "status": "ACTIVE",
+      "inputUrl": "https://maps.app.goo.gl/kaFYtSNsriybyw6w7",
+      "resolvedUrl": "https://www.google.com/maps?cid=9168270420797327174&hl=en&gl=US",
+      "canonicalCid": "9168270420797327174",
+      "placeHexId": "0x314218321ae9468b:0x7f3c3d5f44588746",
+      "googlePlaceId": "ChIJi0bpGjIYQjERRodYRF89PH8",
+      "placeName": "Cộng Cà Phê",
+      "language": "en",
+      "region": "us",
+      "syncEnabled": true,
+      "syncIntervalMinutes": 1440,
+      "lastReportedTotal": 15098,
+      "lastSyncedAt": "2026-03-24T18:13:04.812Z",
+      "lastSuccessfulRunAt": "2026-03-24T18:13:04.812Z",
+      "nextScheduledAt": "2026-03-25T18:13:04.812Z",
+      "createdAt": "2026-03-24T18:08:51.227Z",
+      "updatedAt": "2026-03-24T18:13:04.813Z"
+    },
+    "intakeBatch": null
+  },
+  "benchmark": {
+    "totalWallClockMs": 89294,
+    "terminalSnapshot": {
+      "status": "COMPLETED",
+      "updatedAt": "2026-03-24T18:13:04.815Z",
+      "extractedCount": 9744,
+      "pagesFetched": 488,
+      "warningCount": 1,
+      "autoResumeChainCount": 0,
+      "stopReason": "exhausted_source"
+    }
+  },
+  "materialization": null
+}

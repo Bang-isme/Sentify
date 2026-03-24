@@ -15,11 +15,12 @@ Recommended reading order:
 7. `DATABASE.md`
 8. `TESTING-STRATEGY.md`
 9. `REVIEW-CRAWLER.md`
-10. `SCRUM-PLAN.md`
-11. `BACKEND-STAGE-A-BACKLOG.md`
-12. `STAGE-A-BACKLOG.md`
-13. `CODING-CONVENTIONS.md`
-14. `CHANGELOG.md`
+10. `REVIEW-CRAWLER-SCALE.md`
+11. `SCRUM-PLAN.md`
+12. `BACKEND-STAGE-A-BACKLOG.md`
+13. `STAGE-A-BACKLOG.md`
+14. `CODING-CONVENTIONS.md`
+15. `CHANGELOG.md`
 
 Notes:
 
@@ -28,7 +29,8 @@ Notes:
 - `CURRENT-STATE.md` is the fastest way to understand what the codebase already has today
 - `PROJECT-STATUS.md` is the fastest way to understand progress, remaining gaps, and next priorities
 - `PROPOSAL.md` is the concise project proposal aligned to the current manual-first direction
-- `REVIEW-CRAWLER.md` documents the non-browser Google Maps review crawler, queued run model, benchmark evidence, mismatch semantics for reported totals, and the backend-only `review-ops` control plane
+- `REVIEW-CRAWLER.md` documents the non-browser Google Maps review crawler, queued run model, benchmark evidence, mismatch semantics for reported totals, and the backend-only `review-ops` control plane; it also records the important `Cong Ca Phe` case where preview metadata reported `15098` but the visible public review surface converged at `9744`
+- `REVIEW-CRAWLER-SCALE.md` documents the scale-validation checklist and the harness used to estimate larger-source runtime
 - `SETUP.md` includes `db:seed`, `test:realdb`, the local queued crawl smoke commands, and the inline-queue fallback for local benchmarking
 - `BACKEND-STAGE-A-BACKLOG.md` is the backend-only execution slice
 - `STAGE-A-BACKLOG.md` is the broader Stage A delivery view when cross-functional context is needed

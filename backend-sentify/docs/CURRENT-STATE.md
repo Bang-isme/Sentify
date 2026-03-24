@@ -2,19 +2,19 @@
 
 Updated: 2026-03-25
 
-This document describes the backend and database as they exist in the current codebase. It is intentionally grounded in live code, not in retired design documents.
+This document describes the backend and database as they exist in the current codebase.
 
 ## 1. Current Product Direction
 
-The backend is now firmly aligned to a:
+The backend is firmly aligned to:
 
-- manual-first workflow
-- admin-curated intake model
-- merchant read surface backed only by canonical published data
+- a manual-first workflow
+- admin-curated intake
+- merchant reads backed only by canonical published data
 
-In practical terms:
+In practice:
 
-- crawl and manual entry only create intake evidence
+- crawl and manual entry create intake evidence
 - publish is the only step that moves data into canonical `Review`
 - merchant dashboard and review APIs read from curated, stable data
 
@@ -24,10 +24,10 @@ In practical terms:
 - Express 5
 - PostgreSQL
 - Prisma 7
-- BullMQ + Redis for queued crawl jobs
+- BullMQ plus Redis for queued crawl jobs
 - CommonJS runtime
 
-The backend is a modular monolith. `admin-intake`, `review-crawl`, and now `review-ops` have clearer feature boundaries than the legacy route/controller/service areas.
+The backend is a modular monolith. `admin-intake`, `review-crawl`, and `review-ops` now have clearer feature boundaries than the older route-controller-service areas.
 
 ## 3. What The Backend Already Has
 
@@ -72,8 +72,8 @@ The backend is a modular monolith. `admin-intake`, `review-crawl`, and now `revi
 - raw review persistence
 - draft materialization into intake batches
 - fresh-session cursor recovery for suspicious empty pages
-- backfill auto-resume from persisted checkpoint cursor
-- warning preservation when Google reports more reviews than the crawler can actually extract
+- backfill auto-resume from persisted checkpoint cursors
+- mismatch warnings when preview metadata totals exceed extracted public reviews
 
 ### Review ops control plane
 
@@ -85,8 +85,6 @@ The backend is a modular monolith. `admin-intake`, `review-crawl`, and now `revi
 - batch readiness summary before publish
 - bulk approve of only currently publishable pending items
 - thin publish proxy that still uses the existing admin-intake publish path
-
-This operator layer is backend-only. It exists to reduce the number of manual steps a developer or internal operator must execute behind the scenes.
 
 ## 4. Current Database Shape
 
@@ -113,7 +111,7 @@ Data layers are clearly separated:
 - `ReviewCrawlSource`, `ReviewCrawlRun`, and `ReviewCrawlRawReview` are crawl runtime and audit state
 - `InsightSummary` and `ComplaintKeyword` are dashboard read models
 
-Two database invariants were added for safer crawl operations:
+Important crawl invariants:
 
 - only one active crawl run per source (`QUEUED` or `RUNNING`)
 - only one open crawl-backed intake batch per crawl source
@@ -126,7 +124,8 @@ Current verification evidence includes:
 - `npm run db:validate`
 - `npm run db:seed`
 - `npm run test:realdb`
-- queued crawl smoke with local Redis
+- queued crawl smoke
+- review crawl scale-validation harness
 
 Important proof points already exist:
 
@@ -135,13 +134,20 @@ Important proof points already exist:
 - shared seed dataset for demo and regression work
 - real Postgres publish smoke
 - operator orchestration tests for `review-ops`
-- repeated live Google Maps crawl benchmarks that converge to the same public review ceiling
+- repeated live Google Maps crawl benchmarks that converge to stable public review ceilings
 
-Current crawl evidence on the live `Quán Phở Hồng` source:
+Current crawl evidence on the live `Quan Pho Hong` source:
 
-- direct full crawl, `delayMs=0`: `4527 / 4746` reviews in roughly `33-36s`
-- queued backfill smoke, default backfill delay `0`: `4527 / 4746` reviews in roughly `50.3s`
-- completed runs now keep a warning when `reportedTotal > extractedCount`
+- direct full crawl, `delayMs=0`: `4527 / 4746` in about `33-36s`
+- queued backfill smoke, default backfill delay `0`: `4527 / 4746` in about `50.3s`
+- completed runs keep a mismatch warning when `reportedTotal > extractedCount`
+
+Current crawl evidence on the larger live `Cong Ca Phe` source:
+
+- preview metadata reported `15098`
+- direct and queued runs both converged at `9744`
+- the user-confirmed Google Maps place card also showed `9744`
+- this strongly suggests the crawler matched the visible public review surface
 
 ## 6. Seed And Demo Data
 
@@ -154,30 +160,29 @@ The shared seed dataset currently creates:
 - a crawl source, a crawl run, and raw review audit rows
 - at least one invalid raw review example to exercise readiness diagnostics
 
-This gives FE, QA, and backend work a common baseline without hand-editing the database each time.
-
 ## 7. What Is Still Missing
 
-The backend is not fully release-ready yet. The main remaining gaps are:
+The backend is still not fully release-ready. Main remaining gaps:
 
 - deeper auth lifecycle proof for refresh and password reset
 - broader seeded read-path smoke for `reviews`, `sentiment`, `trend`, `complaints`, and `top issue`
 - real-DB duplicate publish regression across multiple batches
 - SMB load testing for queue workers and merchant reads
 - staging evidence, backup, restore, and rollback drills
-- continued refactor of the older auth and restaurant modules toward the same feature-module shape
-- a clear product policy for places where Google-reported totals stay above the public crawl ceiling
+- continued refactor of older auth and restaurant modules toward the same feature-module shape
+- a clear product policy for places where preview metadata totals stay above the public crawl ceiling
 
 ## 8. Short Conclusion
 
-The backend is well past the "demo only" stage.
+The backend is well past the demo-only stage.
 
 It already has:
 
 - a sound manual-first data model
 - a controlled publish boundary
-- queue-based crawl infrastructure that runs outside the request path
+- queue-based crawl infrastructure outside the request path
 - a backend-only operator layer that reduces internal crawl-to-draft work
 - seed and real-database proof for core publish behavior
+- real benchmark evidence that the crawler can handle larger sources operationally
 
-The remaining work is mostly about stronger evidence, scale proof, and release discipline, not missing core business flow.
+The remaining work is mostly about stronger evidence, scale proof under concurrency, and release discipline, not missing core business flow.
