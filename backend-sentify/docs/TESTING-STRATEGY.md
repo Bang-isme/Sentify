@@ -78,6 +78,7 @@ Meaning:
 
 Current real-DB suite:
 
+- `auth.realdb.test.js`: register -> session cookie -> refresh rotation -> logout proof on real Postgres
 - `duplicate-publish.realdb.test.js`: same source review across multiple batches must reuse canonical review rows and keep insight totals stable
 - `publish.realdb.test.js`: publish -> canonical review -> dashboard refresh
 - `merchant-read.realdb.test.js`: route -> auth -> service -> Prisma proof for merchant reads

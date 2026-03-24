@@ -22,7 +22,7 @@ The backend is no longer a mock-demo. It already behaves like a real product fou
 |---|---|---|---|
 | Product direction | Done | Manual-first, canonical merchant reads, admin-curated publish boundary | Keep scope stable |
 | Core architecture | Mostly done | Modular monolith, feature modules for `admin-intake`, `review-crawl`, `review-ops` | Continue refactor for auth and restaurant areas |
-| Auth and security | Mostly done | JWT, refresh, cookies, CSRF, lockout, reset flow, service-level lifecycle proof for refresh rotation/reuse and forgot/reset password, controller proof for refresh and reset route contracts | Staging-style auth smoke if release confidence needs to go higher |
+| Auth and security | Mostly done | JWT, refresh, cookies, CSRF, lockout, reset flow, service-level lifecycle proof for refresh rotation/reuse and forgot/reset password, controller proof for refresh and reset route contracts, real-DB auth smoke for register and refresh-token persistence | Staging-style auth smoke if release confidence needs to go higher |
 | Merchant read APIs | Mostly done | Dashboard, reviews, sentiment, trend, complaints, top issue, seeded real-DB HTTP smoke, local SMB read-load proof | Staging-style soak and perf guardrails |
 | Admin intake | Mostly done | Create, edit, review, publish, canonical reuse | More multi-batch regression proof |
 | Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, repeated deep-crawl benchmarks to the same public ceiling, structured `crawlCoverage` diagnostics, local Memurai-backed SMB worker load proof | Managed Redis or staging-backed queue evidence |
@@ -96,17 +96,18 @@ Key backend milestones already achieved:
 1. Fully moved to manual-first admin intake
 2. Separated canonical dataset from intake workflow
 3. Closed the cookie auth and CSRF contract
-4. Hardened publish invariants and canonical review reuse
-5. Moved review crawl to queue and worker processing
-6. Added shared seed data for demos and regression
-7. Added real Postgres publish smoke
-8. Added queued crawl smoke with local Redis
-9. Added a backend-only operator surface to cut down crawl-to-draft steps
-10. Benchmarked deep Google Maps crawl throughput and lowered default backfill delay without losing extracted review quality
-11. Added local SMB load harnesses for merchant reads and crawl worker checkpoint pressure
-12. Added local Memurai-backed Redis proof for worker pressure and operator-triggered sync-to-draft
-13. Added a local logical recovery drill for seeded restaurant-state restore proof
-14. Added a local shadow-database restore plus rollback rehearsal for staging-compatible backend smoke
+4. Backfilled the missing auth-token migration so runtime auth tables now match the live Prisma schema
+5. Hardened publish invariants and canonical review reuse
+6. Moved review crawl to queue and worker processing
+7. Added shared seed data for demos and regression
+8. Added real Postgres publish smoke
+9. Added queued crawl smoke with local Redis
+10. Added a backend-only operator surface to cut down crawl-to-draft steps
+11. Benchmarked deep Google Maps crawl throughput and lowered default backfill delay without losing extracted review quality
+12. Added local SMB load harnesses for merchant reads and crawl worker checkpoint pressure
+13. Added local Memurai-backed Redis proof for worker pressure and operator-triggered sync-to-draft
+14. Added a local logical recovery drill for seeded restaurant-state restore proof
+15. Added a local shadow-database restore plus rollback rehearsal for staging-compatible backend smoke
 
 Current local shadow-database proof:
 

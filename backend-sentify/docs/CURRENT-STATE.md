@@ -129,11 +129,13 @@ Current verification evidence includes:
 
 Important proof points already exist:
 
+- migration-backed auth token tables now match the live Prisma schema on fresh and existing local databases
 - BullMQ-safe queued crawl runtime
 - worker heartbeat and scheduler lock behavior
 - shared seed dataset for demo and regression work
 - service-level auth lifecycle proof for refresh rotation, refresh-token reuse detection, forgot-password issuance, and reset-password invalidation
 - controller-level auth route proof for body-token refresh, cookie clearing on failed refresh, and reset-password cookie cleanup
+- real Postgres auth smoke for register, session cookie issuance, refresh rotation, and logout revocation
 - real Postgres publish smoke
 - real Postgres HTTP smoke for merchant read routes
 - local SMB load proof for merchant read routes over seeded HTTP + Prisma paths
