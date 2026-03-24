@@ -423,7 +423,7 @@ Architecture decision record, capacity model, storage lifecycle plan, and a cost
 - Priority: P0
 - Estimate: M, 5 points
 - Dependencies: S4-T01
-- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\README.md`
+- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\README.md`
 - Input: current runbook, current environment variables, and current health endpoints
 - Output: one documented staging deployment path with HTTPS, app startup, migrations, health checks, and rollback steps
 - Verify: deployed `/health` and `/api/health` return healthy responses; smoke walkthrough succeeds
@@ -435,7 +435,7 @@ Architecture decision record, capacity model, storage lifecycle plan, and a cost
 - Priority: P0
 - Estimate: S, 3 points
 - Dependencies: S4-T02
-- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`, `D:\Project 3\backend-sentify\prisma`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\README.md`
+- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`, `D:\Project 3\backend-sentify\prisma`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\README.md`
 - Input: deployed environment, Postgres instance, and release candidate dataset
 - Output: repeatable backup, restore, and rollback procedure with time-to-recover evidence
 - Verify: restore produces expected dashboard and review data; rollback returns the app to last healthy release
@@ -471,7 +471,7 @@ Architecture decision record, capacity model, storage lifecycle plan, and a cost
 - Priority: P1
 - Estimate: M, 5 points
 - Dependencies: S5-T01
-- Files: `D:\Project 3\backend-sentify\src\middleware\rate-limit.js`, `D:\Project 3\backend-sentify\src\config\env.js`, `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\backend-sentify\docs\ARCHITECTURE.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`
+- Files: `D:\Project 3\backend-sentify\src\middleware\rate-limit.js`, `D:\Project 3\backend-sentify\src\config\env.js`, `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\backend-sentify\docs\ARCHITECTURE.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`
 - Input: single-instance assumptions in current middleware and deployment flow
 - Output: central cache or coordination layer for rate limiting and multi-instance operation
 - Verify: staging smoke passes with more than one app instance behind the same proxy
@@ -495,7 +495,7 @@ Architecture decision record, capacity model, storage lifecycle plan, and a cost
 - Priority: P1
 - Estimate: M, 5 points
 - Dependencies: S5-T03
-- Files: `D:\Project 3\backend-sentify\docs\ARCHITECTURE.md`, `D:\Project 3\backend-sentify\docs\DATABASE.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`, `D:\Project 3\backend-sentify\src\app.js`
+- Files: `D:\Project 3\backend-sentify\docs\ARCHITECTURE.md`, `D:\Project 3\backend-sentify\docs\DATABASE.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`, `D:\Project 3\backend-sentify\src\app.js`
 - Input: staging environment, seeded dataset, and monitored app metrics
 - Output: documented thresholds for concurrent dashboard reads, publish throughput, and acceptable latency and failure rate
 - Verify: `cd "D:\Project 3" ; k6 run .\load\dashboard.js` and `cd "D:\Project 3" ; k6 run .\load\publish.js`
@@ -507,7 +507,7 @@ Architecture decision record, capacity model, storage lifecycle plan, and a cost
 - Priority: P2
 - Estimate: M, 5 points
 - Dependencies: S5-T04
-- Files: `D:\Project 3\backend-sentify\docs\SCRUM-PLAN.md`, `D:\Project 3\backend-sentify\docs\ARCHITECTURE.md`, `D:\Project 3\backend-sentify\docs\DATABASE.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`
+- Files: `D:\Project 3\backend-sentify\docs\SCRUM-PLAN.md`, `D:\Project 3\backend-sentify\docs\ARCHITECTURE.md`, `D:\Project 3\backend-sentify\docs\DATABASE.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`
 - Input: measured load thresholds, known bottlenecks, and cost constraints
 - Output: architecture decision record for moving from medium-scale to large-scale operation
 - Verify: the team can explain when to split read models, when to add workers, and what storage lifecycle policy keeps costs controlled

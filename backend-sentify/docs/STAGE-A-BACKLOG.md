@@ -375,7 +375,7 @@ Stage A is considered delivered when:
 - Domain: backend
 - Estimate: 5 points
 - Dependencies: A7-S1
-- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\README.md`
+- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\README.md`
 - Acceptance Criteria:
   - staging has a documented deploy path
   - app startup, migrations, and health endpoints work in staging
@@ -392,7 +392,7 @@ Stage A is considered delivered when:
 - Domain: backend
 - Estimate: 3 points
 - Dependencies: A7-S2
-- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`, `D:\Project 3\backend-sentify\prisma`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\README.md`
+- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`, `D:\Project 3\backend-sentify\prisma`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\README.md`
 - Acceptance Criteria:
   - backup drill is executed and recorded
   - restore drill rebuilds expected dashboard and review state

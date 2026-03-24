@@ -1,0 +1,266 @@
+{
+  "backup": {
+    "sourceDigest": "b9f3f764ff5c12a5cc815b118f2a64a5cd5ccf74d3b425951d5679825a3b7e71",
+    "sourceState": [
+      {
+        "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+        "state": {
+          "complaintKeywords": 7,
+          "crawlRuns": 1,
+          "crawlSources": 1,
+          "insightRows": 1,
+          "intakeItems": 13,
+          "openBatches": 1,
+          "publishedBatches": 1,
+          "rawReviews": 4,
+          "reviews": 10
+        }
+      },
+      {
+        "restaurantId": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+        "state": {
+          "complaintKeywords": 1,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightRows": 1,
+          "intakeItems": 6,
+          "openBatches": 0,
+          "publishedBatches": 1,
+          "rawReviews": 0,
+          "reviews": 6
+        }
+      }
+    ],
+    "summary": {
+      "batches": 3,
+      "complaintKeywords": 8,
+      "insightRows": 2,
+      "items": 19,
+      "memberships": 3,
+      "openBatches": 1,
+      "rawReviews": 4,
+      "restaurants": 2,
+      "reviews": 16,
+      "runs": 1,
+      "sources": 1,
+      "users": 3
+    },
+    "targetDigest": "b9f3f764ff5c12a5cc815b118f2a64a5cd5ccf74d3b425951d5679825a3b7e71",
+    "targetState": [
+      {
+        "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+        "state": {
+          "complaintKeywords": 7,
+          "crawlRuns": 1,
+          "crawlSources": 1,
+          "insightRows": 1,
+          "intakeItems": 13,
+          "openBatches": 1,
+          "publishedBatches": 1,
+          "rawReviews": 4,
+          "reviews": 10
+        }
+      },
+      {
+        "restaurantId": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+        "state": {
+          "complaintKeywords": 1,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightRows": 1,
+          "intakeItems": 6,
+          "openBatches": 0,
+          "publishedBatches": 1,
+          "rawReviews": 0,
+          "reviews": 6
+        }
+      }
+    ]
+  },
+  "benchmark": {
+    "createdShadowDatabase": true,
+    "durationMs": 8145,
+    "finishedAt": "2026-03-24T21:15:43.134Z",
+    "keepTargetDatabase": false,
+    "mode": "shadow_database_staging_recovery_drill",
+    "sourceDatabase": "sentify",
+    "startedAt": "2026-03-24T21:15:34.989Z",
+    "targetDatabase": "sentify_stage_recovery_20260324211536",
+    "targetDatabaseUrlProvided": false
+  },
+  "healthAndSmoke": {
+    "rollback": {
+      "apiHealth": {
+        "body": {
+          "db": "up",
+          "status": "ok"
+        },
+        "status": 200
+      },
+      "detail": {
+        "body": {
+          "data": {
+            "address": "10 Ly Tu Trong, Hai Chau, Da Nang",
+            "datasetStatus": {
+              "approvedItemCount": 1,
+              "lastPublishedAt": "2026-03-24T21:15:35.543Z",
+              "lastPublishedSourceType": "GOOGLE_MAPS_CRAWL",
+              "pendingBatchCount": 1,
+              "pendingItemCount": 1,
+              "readyBatchCount": 0,
+              "rejectedItemCount": 1,
+              "sourcePolicy": "ADMIN_CURATED"
+            },
+            "googleMapUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+            "id": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+            "insightSummary": {
+              "averageRating": 3.3,
+              "negativePercentage": 40,
+              "neutralPercentage": 10,
+              "positivePercentage": 50,
+              "totalReviews": 10
+            },
+            "name": "Demo Quan Pho Hong",
+            "permission": "OWNER",
+            "slug": "demo-quan-pho-hong"
+          }
+        },
+        "status": 200
+      },
+      "kpi": {
+        "body": {
+          "data": {
+            "averageRating": 3.3,
+            "negativePercentage": 40,
+            "neutralPercentage": 10,
+            "positivePercentage": 50,
+            "totalReviews": 10
+          }
+        },
+        "status": 200
+      },
+      "restaurants": {
+        "body": {
+          "data": [
+            {
+              "googleMapUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+              "id": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+              "name": "Demo Quan Pho Hong",
+              "permission": "OWNER",
+              "slug": "demo-quan-pho-hong",
+              "totalReviews": 10
+            },
+            {
+              "googleMapUrl": "https://www.google.com/maps?cid=12075628976512600470&hl=en&gl=US",
+              "id": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+              "name": "Demo Tacombi",
+              "permission": "OWNER",
+              "slug": "demo-tacombi",
+              "totalReviews": 6
+            }
+          ]
+        },
+        "status": 200
+      },
+      "rootHealth": {
+        "body": {
+          "status": "ok"
+        },
+        "status": 200
+      }
+    },
+    "target": {
+      "apiHealth": {
+        "body": {
+          "db": "up",
+          "status": "ok"
+        },
+        "status": 200
+      },
+      "detail": {
+        "body": {
+          "data": {
+            "address": "10 Ly Tu Trong, Hai Chau, Da Nang",
+            "datasetStatus": {
+              "approvedItemCount": 1,
+              "lastPublishedAt": "2026-03-24T21:15:35.543Z",
+              "lastPublishedSourceType": "GOOGLE_MAPS_CRAWL",
+              "pendingBatchCount": 1,
+              "pendingItemCount": 1,
+              "readyBatchCount": 0,
+              "rejectedItemCount": 1,
+              "sourcePolicy": "ADMIN_CURATED"
+            },
+            "googleMapUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+            "id": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+            "insightSummary": {
+              "averageRating": 3.3,
+              "negativePercentage": 40,
+              "neutralPercentage": 10,
+              "positivePercentage": 50,
+              "totalReviews": 10
+            },
+            "name": "Demo Quan Pho Hong",
+            "permission": "OWNER",
+            "slug": "demo-quan-pho-hong"
+          }
+        },
+        "status": 200
+      },
+      "kpi": {
+        "body": {
+          "data": {
+            "averageRating": 3.3,
+            "negativePercentage": 40,
+            "neutralPercentage": 10,
+            "positivePercentage": 50,
+            "totalReviews": 10
+          }
+        },
+        "status": 200
+      },
+      "restaurants": {
+        "body": {
+          "data": [
+            {
+              "googleMapUrl": "https://www.google.com/maps?cid=12075628976512600470&hl=en&gl=US",
+              "id": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+              "name": "Demo Tacombi",
+              "permission": "OWNER",
+              "slug": "demo-tacombi",
+              "totalReviews": 6
+            },
+            {
+              "googleMapUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+              "id": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+              "name": "Demo Quan Pho Hong",
+              "permission": "OWNER",
+              "slug": "demo-quan-pho-hong",
+              "totalReviews": 10
+            }
+          ]
+        },
+        "status": 200
+      },
+      "rootHealth": {
+        "body": {
+          "status": "ok"
+        },
+        "status": 200
+      }
+    }
+  },
+  "notes": [
+    "This drill restores a seeded demo backup slice into a separately migrated Postgres database and verifies backend health plus authenticated read routes there.",
+    "Rollback in this drill means falling back to the original source database URL after the target smoke completes. It is a shadow-database rollback rehearsal, not an infrastructure deploy rollback.",
+    "Real deployed staging proof and managed backup or rollback controls are still required separately."
+  ],
+  "restore": {
+    "migrationsApplied": true,
+    "prismaMigrateDeploy": {
+      "stderr": "Loaded Prisma config from prisma.config.ts.\n\nPrisma schema loaded from prisma\\schema.prisma.",
+      "stdout": "Datasource \"db\": PostgreSQL database \"sentify_stage_recovery_20260324211536\", schema \"public\" at \"127.0.0.1:5432\"\n\n15 migrations found in prisma/migrations\n\nApplying migration `20260306175515_init`\nApplying migration `20260306190150_auth_hardening`\nApplying migration `20260308185026_add_import_runs`\nApplying migration `20260308185821_add_import_run_progress`\nApplying migration `20260309035500_add_review_keywords_cache`\nApplying migration `20260310053500_add_restaurant_import_state`\nApplying migration `20260312184500_add_review_intake`\nApplying migration `20260312223000_add_intake_indexes`\nApplying migration `20260312224500_remove_auto_import`\nApplying migration `20260312231500_remove_google_assisted_source_type`\nApplying migration `20260313080856_add_review_updated_at_and_intake_batch_index`\nApplying migration `20260316155639_sprint1_foundation`\nApplying migration `20260324004500_allow_multiple_intake_items_per_review`\nApplying migration `20260324120000_add_review_crawl_jobs`\nApplying migration `20260324173000_add_review_ops_draft_controls`\n\nThe following migration(s) have been applied:\n\nmigrations/\n  └─ 20260306175515_init/\n    └─ migration.sql\n  └─ 20260306190150_auth_hardening/\n    └─ migration.sql\n  └─ 20260308185026_add_import_runs/\n    └─ migration.sql\n  └─ 20260308185821_add_import_run_progress/\n    └─ migration.sql\n  └─ 20260309035500_add_review_keywords_cache/\n    └─ migration.sql\n  └─ 20260310053500_add_restaurant_import_state/\n    └─ migration.sql\n  └─ 20260312184500_add_review_intake/\n    └─ migration.sql\n  └─ 20260312223000_add_intake_indexes/\n    └─ migration.sql\n  └─ 20260312224500_remove_auto_import/\n    └─ migration.sql\n  └─ 20260312231500_remove_google_assisted_source_type/\n    └─ migration.sql\n  └─ 20260313080856_add_review_updated_at_and_intake_batch_index/\n    └─ migration.sql\n  └─ 20260316155639_sprint1_foundation/\n    └─ migration.sql\n  └─ 20260324004500_allow_multiple_intake_items_per_review/\n    └─ migration.sql\n  └─ 20260324120000_add_review_crawl_jobs/\n    └─ migration.sql\n  └─ 20260324173000_add_review_ops_draft_controls/\n    └─ migration.sql\n\nAll migrations have been successfully applied."
+    },
+    "restoredMatchesSource": true
+  }
+}

@@ -19,7 +19,7 @@ The backend is no longer mock-only. The test strategy now has six practical laye
 3. queued crawl runtime proof for background ingestion
 4. seeded HTTP smoke for merchant-read routes
 5. local SMB load proof for merchant-read latency and throughput
-6. local worker-pressure and operator-path proof for crawl checkpoint persistence plus BullMQ transport
+6. local worker-pressure, operator-path, and shadow-database recovery proof for crawl checkpoint persistence plus rollback-oriented ops evidence
 
 ## 2. Current Test Layers
 
@@ -50,6 +50,7 @@ Unit tests                 Current baseline
 - `npm run load:merchant-reads -- --extra-reviews 4000 --concurrency 8 --rounds 45 --output load-reports/merchant-reads-smb-local.json`
 - `npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-per-run 12 --reviews-per-page 20 --step-ms 40 --output load-reports/review-crawl-workers-smb-local.json`
 - `npm run smoke:review-ops-sync-draft -- --url "..."` for operator-triggered queue proof
+- `npm run smoke:staging-recovery-drill` for shadow-database restore plus rollback rehearsal
 - `npm run smoke:review-crawl-queue -- --url "..."`
 - `test/merchant-read.realdb.test.js` for full HTTP merchant-read proof on seeded Postgres
 
@@ -162,6 +163,19 @@ cd "D:\Project 3\backend-sentify"
 npm run smoke:recovery-drill
 ```
 
+Local staging-compatible recovery drill:
+
+```powershell
+cd "D:\Project 3\backend-sentify"
+npm run smoke:staging-recovery-drill
+```
+
+Current local baseline:
+
+- about `8.15s` wall clock
+- exact digest match between source and restored target
+- target and rollback both passed health plus authenticated merchant-read smoke
+
 ## 6. Minimum Evidence
 
 | Area | Minimum expected evidence |
@@ -173,14 +187,14 @@ npm run smoke:recovery-drill
 | Admin intake | create, add, update, delete, publish, duplicate reuse |
 | Review crawl | source upsert, queued run, worker processing, materialize-intake |
 | Performance | local SMB read-load report and worker-pressure report for high-risk backend changes |
-| Ops | `/health`, `/api/health`, migrations, seed, worker startup, local logical recovery drill |
+| Ops | `/health`, `/api/health`, migrations, seed, worker startup, local logical recovery drill, shadow-database restore plus rollback rehearsal |
 
 ## 7. Remaining Gaps
 
 The main testing gaps still left are:
 
 - managed Redis or staging-backed queue proof beyond local Memurai compatibility
-- staging proof and managed-environment backup, restore, and rollback beyond the local logical recovery drill
+- real staging proof and managed-environment backup, restore, and rollback beyond the local logical and shadow-database recovery drills
 
 ## 8. Merge Gate
 

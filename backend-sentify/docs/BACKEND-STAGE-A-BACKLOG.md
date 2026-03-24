@@ -25,7 +25,7 @@ Source-of-truth inputs:
 - `D:\Project 3\backend-sentify\docs\DATABASE.md`
 - `D:\Project 3\backend-sentify\docs\TESTING-STRATEGY.md`
 - `D:\Project 3\output\doc\11-merchant-first-plan.md`
-- `D:\Project 3\output\doc\12-minimal-ops-runbook.md`
+- `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`
 
 ## Success Criteria
 
@@ -309,7 +309,7 @@ This artifact is successful as a sprint backlog when:
 - Priority: P0
 - Estimate: 5 points
 - Dependencies: B3-S2, B3-S3
-- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\README.md`
+- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\README.md`
 - Input: current runbook, env config, health endpoints
 - Output: one documented backend staging deploy path
 - Acceptance Criteria:
@@ -328,7 +328,7 @@ This artifact is successful as a sprint backlog when:
 - Priority: P0
 - Estimate: 4 points
 - Dependencies: B4-S1
-- Files: `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\backend-sentify\src\middleware\request-logger.js`, `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`, `D:\Project 3\backend-stage-a-backlog.md`
+- Files: `D:\Project 3\backend-sentify\src\app.js`, `D:\Project 3\backend-sentify\src\middleware\request-logger.js`, `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`, `D:\Project 3\backend-stage-a-backlog.md`
 - Input: staging deployment, request logging, health endpoints
 - Output: one backend smoke routine for pre-release validation
 - Acceptance Criteria:
@@ -347,7 +347,7 @@ This artifact is successful as a sprint backlog when:
 - Priority: P0
 - Estimate: 3 points
 - Dependencies: B4-S2
-- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\output\doc\12-minimal-ops-runbook.md`, `D:\Project 3\backend-sentify\prisma`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\README.md`
+- Files: `D:\Project 3\backend-sentify\docs\SETUP.md`, `D:\Project 3\backend-sentify\docs\OPS-RUNBOOK.md`, `D:\Project 3\backend-sentify\prisma`, `D:\Project 3\backend-sentify\src\server.js`, `D:\Project 3\README.md`
 - Input: staging database, release candidate data, deploy flow
 - Output: recovery proof for Stage A backend release
 - Acceptance Criteria:

@@ -182,6 +182,11 @@ Current local SMB load evidence:
   - `2` seeded restaurants were snapshotted, damaged, and restored in about `1.96s`
   - the restored semantic digest matched the baseline digest exactly
   - the drill preserved canonical reviews, intake batches and items, crawl runtime rows, and dashboard aggregates
+- local staging-compatible recovery rehearsal on a separately migrated shadow database:
+  - `npm run smoke:staging-recovery-drill`
+  - latest local run restored `2` restaurants, `3` users, `16` canonical reviews, `3` batches, `19` intake items, `1` crawl source, `1` crawl run, and `4` raw reviews in about `8.15s`
+  - source and target semantic digests matched exactly
+  - target and rollback smoke both returned `200` for `/health`, `/api/health`, `GET /api/restaurants`, `GET /api/restaurants/:id`, and `GET /api/restaurants/:id/dashboard/kpi`
 
 ## 6. Seed And Demo Data
 
@@ -199,7 +204,7 @@ The shared seed dataset currently creates:
 The backend is still not fully release-ready. Main remaining gaps:
 
 - managed Redis or staging proof beyond local Memurai-backed queue evidence
-- staging evidence and managed-environment backup, restore, and rollback drills beyond the local logical recovery harness
+- real deployed staging evidence and managed-environment backup, restore, and rollback drills beyond the current local shadow-database rehearsal
 - continued refactor of older auth and restaurant modules toward the same feature-module shape
 
 ## 8. Short Conclusion
@@ -215,6 +220,7 @@ It already has:
 - seed and real-database proof for core publish behavior
 - local SMB load proof for merchant reads and worker checkpoint pressure
 - a local logical recovery drill for seeded restaurant state
+- a local shadow-database recovery rehearsal that proves restore plus app-level rollback smoke on a separately migrated target database
 - real benchmark evidence that the crawler can handle larger sources operationally
 
 The remaining work is mostly about managed-environment evidence, staging evidence, and release discipline, not missing core business flow.

@@ -150,7 +150,42 @@ That drill will:
 
 This is local logical recovery evidence. It does not replace managed Postgres backup, restore, or rollback drills for staging or production.
 
-## 10. Review Ops CLI
+## 10. Staging-Compatible Recovery Drill
+
+Shadow-database recovery rehearsal on the shared demo dataset:
+
+```bash
+npm run smoke:staging-recovery-drill
+```
+
+That drill will:
+
+- seed the shared demo dataset in the source database
+- capture a logical backup slice for the seeded restaurants and related runtime rows
+- create a separately migrated temporary target database unless `--target-db-url` is provided
+- verify the target database is empty before restore
+- restore the backup slice into the target database
+- boot the backend against the restored target and run `/health`, `/api/health`, and authenticated merchant-read smoke
+- rehearse rollback by booting the backend against the original source database again
+- write a proof report to `load-reports/staging-recovery-drill-local.json`
+
+Latest local baseline proof:
+
+- duration about `8.15s`
+- restored slice: `2` restaurants, `3` users, `16` canonical reviews, `3` batches, `19` intake items, `1` crawl source, `1` crawl run, `4` raw reviews
+- target and rollback both passed `/health`, `/api/health`, restaurant list, restaurant detail, and dashboard KPI smoke
+
+Useful flags:
+
+- `--target-db-url "<postgres-url>"`
+- `--target-database "<database-name>"`
+- `--keep-target-database`
+- `--restaurant-slug "<slug>"`
+- `--output "<file>"`
+
+This is still local evidence. It is stronger than the purely logical recovery drill because it proves a migrated restore target plus app-level rollback smoke, but it is still not a substitute for managed backup or real staging rollback proof.
+
+## 11. Review Ops CLI
 
 The backend-only review ops CLI lets developers or operators drive the system without touching SQL:
 
@@ -162,7 +197,7 @@ npm run ops:review -- batch-readiness --user-id="<user-uuid>" --batch-id="<batch
 npm run ops:review -- approve-valid --user-id="<user-uuid>" --batch-id="<batch-uuid>" --reviewer-note="Bulk approved after readiness review"
 ```
 
-## 11. Tests And Validation
+## 12. Tests And Validation
 
 Fast suite:
 
@@ -195,7 +230,7 @@ Schema validation:
 npm run db:validate
 ```
 
-## 12. Important Scripts
+## 13. Important Scripts
 
 | Script | Purpose |
 |---|---|
@@ -205,6 +240,7 @@ npm run db:validate
 | `npm run smoke:review-crawl-queue -- --url "<google-maps-url>"` | Run the queued crawl smoke harness |
 | `npm run smoke:review-ops-sync-draft -- --url "<google-maps-url>"` | Run the operator-triggered sync-to-draft smoke harness |
 | `npm run smoke:recovery-drill` | Run the local logical backup and restore drill on the shared demo dataset |
+| `npm run smoke:staging-recovery-drill` | Run the local shadow-database restore, health-smoke, and rollback rehearsal |
 | `npm run validate:review-crawl-scale -- --url "<google-maps-url>"` | Run repeated direct and queued scale validation plus a target-review estimate |
 | `npm run load:merchant-reads -- ...` | Run the local SMB merchant-read harness over real HTTP routes |
 | `npm run load:review-crawl-workers -- ...` | Run the local SMB worker-pressure harness and write a JSON report |
@@ -217,7 +253,7 @@ npm run db:validate
 | `npm run db:validate` | Validate Prisma schema |
 | `npm run db:studio` | Open Prisma Studio |
 
-## 13. Notes
+## 14. Notes
 
 - `npm run db:seed` is idempotent within the Sentify demo dataset scope; it does not reset the whole database.
 - `npm run test:realdb` seeds the shared demo dataset and runs the real-DB smoke suite for publish plus merchant-read routes.
@@ -225,6 +261,7 @@ npm run db:validate
 - `npm run load:review-crawl-workers` writes a local worker-pressure report; without Redis it falls back to inline mode and should not be used to claim Redis transport proof.
 - `npm run smoke:review-ops-sync-draft` writes a local operator-path proof report and should be run with Redis or Memurai if you want real BullMQ transport evidence.
 - `npm run smoke:recovery-drill` writes a local logical recovery report and proves snapshot plus restore of seeded restaurant state, but it is not a substitute for managed Postgres backup or rollback evidence.
+- `npm run smoke:staging-recovery-drill` writes a local shadow-database recovery report and proves target migration, restore isolation, app health, merchant-read smoke, and source rollback rehearsal, but it is still not managed-environment proof.
 - Preview crawl does not require Redis.
 - Queued crawl and queue health require Redis in production, but the local smoke harness can fall back to inline queue mode when Redis is unavailable.
 - Current live-source benchmarks show that Google preview metadata can be higher than the visible public review surface. Two important examples are `4527 / 4746` on `Quan Pho Hong` and `9744 / 15098` on `Cong Ca Phe`, where the user-confirmed public place card also showed `9744`. Operators should treat `reportedTotal` as a reference number, not a guaranteed extraction count.

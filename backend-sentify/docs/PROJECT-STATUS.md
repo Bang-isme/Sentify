@@ -28,8 +28,8 @@ The backend is no longer a mock-demo. It already behaves like a real product fou
 | Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, repeated deep-crawl benchmarks to the same public ceiling, structured `crawlCoverage` diagnostics, local Memurai-backed SMB worker load proof | Managed Redis or staging-backed queue evidence |
 | Review ops control plane | Mostly done | One-click draft sync, source list, run list, readiness, bulk approve valid, publish proxy, operator policy for `reportedTotal` mismatch, Redis-backed sync-to-draft smoke with auto-materialized draft batch proof | Staging-style operator smoke |
 | Publish integrity | Mostly done | Stable external review identity, canonical reuse, and real-DB duplicate publish regression | Keep widening edge-case coverage as source rules evolve |
-| Database | Mostly done | Runtime models, crawl invariants, seed dataset, local logical recovery drill | Managed backup and rollback evidence |
-| Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued crawl smoke, seeded merchant-read HTTP proof, local SMB load harnesses, Redis-backed operator and worker smoke on local Memurai, local logical recovery drill | staged smoke and managed-environment proof |
+| Database | Mostly done | Runtime models, crawl invariants, seed dataset, local logical recovery drill, local shadow-database restore rehearsal | Managed backup and rollback evidence |
+| Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued crawl smoke, seeded merchant-read HTTP proof, local SMB load harnesses, Redis-backed operator and worker smoke on local Memurai, local logical recovery drill, local shadow-database recovery smoke | staged smoke and managed-environment proof |
 | Docs | Mostly done | Current-state docs match code more closely | Keep sync as code evolves |
 | Ops and release | Partial | Health endpoints, worker runtime, setup docs, local logical recovery drill | Staging and managed-environment rollback proof |
 
@@ -86,8 +86,8 @@ Release evidence is still incomplete.
 Still missing:
 
 - staging deployment proof
-- near-production health smoke
-- managed-environment backup, restore, and rollback drills beyond the local logical recovery harness
+- near-production health smoke outside local restore targets
+- managed-environment backup, restore, and rollback drills beyond the local logical recovery and shadow-database harnesses
 
 ## 4. Milestones Already Reached
 
@@ -106,13 +106,21 @@ Key backend milestones already achieved:
 11. Added local SMB load harnesses for merchant reads and crawl worker checkpoint pressure
 12. Added local Memurai-backed Redis proof for worker pressure and operator-triggered sync-to-draft
 13. Added a local logical recovery drill for seeded restaurant-state restore proof
+14. Added a local shadow-database restore plus rollback rehearsal for staging-compatible backend smoke
+
+Current local shadow-database proof:
+
+- restore slice: `2` restaurants, `3` users, `16` reviews, `3` batches, `19` intake items, `1` source, `1` run, `4` raw reviews
+- duration: about `8.15s`
+- result: source and target semantic digests matched exactly
+- smoke: target and rollback both returned `200` on health plus merchant-read routes
 
 ## 5. Risk If Work Stops Here
 
 - confidence still lacks staging-style release proof
 - queue worker load behavior is now measured under local Memurai-backed Redis compatibility, but not yet under managed Redis or staging
 - Google-reported totals can still exceed the public review rows exposed through the unofficial RPC, even though operator surfaces now label that mismatch as advisory when the public chain is exhausted
-- release operations are not yet demonstrated in staging or against managed backup and rollback workflows
+- release operations are not yet demonstrated in a real staging deployment or against managed backup and rollback workflows
 
 ## 6. Recommended Next Order
 
