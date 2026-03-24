@@ -2,6 +2,7 @@ const { z } = require('zod')
 
 const { clearAuthCookie, clearRefreshCookie, readRefreshCookie, setAuthCookie, setRefreshCookie } = require('../lib/auth-cookie')
 const { handleControllerError } = require('../lib/controller-error')
+const { clearCsrfCookie, setCsrfCookie } = require('../middleware/csrf')
 const authService = require('../services/auth.service')
 const passwordResetService = require('../services/password-reset.service')
 const refreshTokenService = require('../services/refresh-token.service')
@@ -45,6 +46,8 @@ function setTokenCookies(res, result) {
     if (result.refreshToken) {
         setRefreshCookie(res, result.refreshToken)
     }
+
+    setCsrfCookie(res)
 }
 
 async function register(req, res) {
@@ -86,6 +89,7 @@ async function getSession(req, res) {
         const result = await authService.getSession({
             userId: req.user.userId,
         })
+        setCsrfCookie(res)
 
         return res.status(200).json({
             data: result,
@@ -103,6 +107,7 @@ async function logout(req, res) {
         })
         clearAuthCookie(res)
         clearRefreshCookie(res)
+        clearCsrfCookie(res)
 
         return res.status(200).json({
             data: result,
@@ -155,6 +160,7 @@ async function refresh(req, res) {
 
         setAuthCookie(res, accessToken, authService.ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1000)
         setRefreshCookie(res, newRawToken)
+        setCsrfCookie(res)
 
         return res.status(200).json({
             data: {
@@ -165,6 +171,16 @@ async function refresh(req, res) {
         // On any refresh error, clear cookies so the user is forced to re-login
         clearAuthCookie(res)
         clearRefreshCookie(res)
+        clearCsrfCookie(res)
+        return handleControllerError(req, res, error)
+    }
+}
+
+async function issueCsrfToken(req, res) {
+    try {
+        setCsrfCookie(res)
+        return res.status(204).end()
+    } catch (error) {
         return handleControllerError(req, res, error)
     }
 }
@@ -189,6 +205,7 @@ async function resetPassword(req, res) {
 
         clearAuthCookie(res)
         clearRefreshCookie(res)
+        clearCsrfCookie(res)
 
         return res.status(200).json({
             data: result,
@@ -200,6 +217,7 @@ async function resetPassword(req, res) {
 
 module.exports = {
     getSession,
+    issueCsrfToken,
     register,
     login,
     logout,

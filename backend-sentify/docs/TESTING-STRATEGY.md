@@ -1,176 +1,146 @@
-# 🧪 Sentify Backend — Testing Strategy
+# Sentify Backend Testing Strategy
 
-> Chiến lược testing để đảm bảo chất lượng nhất quán qua mọi sprint.
+Updated: 2026-03-24
 
----
+Tài liệu này bám theo trạng thái backend hiện tại và bộ docs đang còn hiệu lực:
 
-## Test Stack
+- `D:\Project 3\backend-sentify\docs\CURRENT-STATE.md`
+- `D:\Project 3\backend-sentify\docs\PROJECT-STATUS.md`
+- `D:\Project 3\backend-sentify\docs\SCRUM-PLAN.md`
 
-| Tool | Purpose |
-|---|---|
-| `node --test` | Built-in test runner (Node.js 18+) |
-| `node:assert` | Built-in assertions |
-| `test-helpers.js` | Mock setup, HTTP client, app bootstrap |
+## 1. Mục tiêu
 
-Không dùng external test framework (Jest, Mocha) — giữ zero-dependency testing.
+Backend hiện không còn ở mức demo mock-only. Chiến lược test bây giờ có 3 tầng rõ ràng:
 
----
+1. suite nhanh để dev hằng ngày
+2. smoke trên Postgres thật để khóa publish contract
+3. proof vận hành queue/worker cho review crawl
 
-## Test Pyramid
+## 2. Tầng Test Hiện Có
 
+```text
+Browser E2E                Planned later
+Seeded read-path smoke     Next expansion
+Real Postgres smoke        Implemented
+Queued crawl smoke         Implemented
+Mocked integration         Current baseline
+Unit tests                 Current baseline
 ```
-        ╱ ╲
-       ╱ E2E╲          ← Sprint 5+ (real DB + browser)
-      ╱───────╲
-     ╱  Integ  ╲       ← Current: controller + routes (mocked DB)
-    ╱───────────╲
-   ╱    Unit     ╲     ← Current: service logic, helpers
-  ╱───────────────╲
-```
 
-**Hiện tại**: Unit + Integration (mocked Prisma)
-**Sprint 5**: Thêm real DB integration tests
+### Current baseline
 
----
+- Unit tests cho service, domain helpers, parser, validation
+- Mocked integration tests cho controller và request/response behavior
+- Auth integration cho cookie + CSRF handshake
+- Publish-path coverage cho canonical review reuse
+- Queue/runtime coverage cho BullMQ-safe job id và worker lifecycle
 
-## File Naming & Location
+### Real-data coverage đã có
 
-```
+- `npm run db:seed`
+- `npm run test:realdb`
+- `npm run smoke:review-crawl-queue -- --url "..."`
+
+## 3. File Pattern
+
+```text
 test/
-├── <module>.service.test.js        # Unit: service business logic
-├── <module>.controller.test.js     # Unit: controller validation + error handling
-├── <module>.integration.test.js    # Integration: full request → response
-├── test-helpers.js                 # Shared utilities
-└── integration/                    # Future: real DB tests
-    └── setup.js
+  *.service.test.js
+  *.controller.test.js
+  *.integration.test.js
+  *.realdb.test.js
+  test-helpers.js
+
+prisma/
+  seed.js
+  seed-data.js
 ```
 
----
+Ý nghĩa:
 
-## Mock Strategy
+- `*.service.test.js`: logic nghiệp vụ
+- `*.controller.test.js`: validation và error mapping
+- `*.integration.test.js`: mocked request-to-response behavior
+- `*.realdb.test.js`: smoke hoặc integration trên Postgres thật
 
-### Prisma Client
-Toàn bộ Prisma được mock qua `test-helpers.js`:
+## 4. Dataset Dùng Chung
 
-```js
-const { startApp, stopApp, request, createTestToken } = require('./test-helpers')
+Seed baseline hiện có:
 
-// startApp() mocks:
-// - prisma (all models)
-// - rate-limit middleware (pass through)
-// - security-event logger (noop)
-```
+- 2 restaurants
+- owner, manager, outsider
+- 2 published baseline batches
+- 1 open Google Maps curation batch
+- 1 queued-crawl audit trail với raw reviews
+- 1 invalid raw review example
 
-Override specific Prisma methods per test:
-```js
-const { server } = await startApp({
-    user: {
-        findUnique: async () => ({ id: 'user-1', tokenVersion: 0 }),
-    },
-    review: {
-        groupBy: async () => [
-            { sentiment: 'POSITIVE', _count: { _all: 28 } },
-        ],
-    },
-})
-```
+Dataset này phải đủ để:
 
-### Auth Token
-```js
-const token = createTestToken({ userId: 'user-1' })
-const expired = createExpiredToken()
-const invalid = createInvalidToken()
-```
+- demo dashboard
+- demo review evidence
+- demo admin curation
+- chạy publish smoke
+- support FE fix sau này
 
----
+## 5. Commands
 
-## Test Structure
+Suite mặc định:
 
-Mỗi test file follow pattern:
-
-```js
-const { describe, it, before, after } = require('node:test')
-const assert = require('node:assert/strict')
-const { startApp, stopApp, request, createTestToken } = require('./test-helpers')
-
-describe('Module: <name>', () => {
-    let server, token
-
-    before(async () => {
-        const app = await startApp({ /* prisma overrides */ })
-        server = app.server
-        token = createTestToken()
-    })
-
-    after(async () => {
-        await stopApp(server)
-    })
-
-    describe('POST /api/<path>', () => {
-        it('should create resource with valid input', async () => {
-            const res = await request(server, 'POST', '/api/path', {
-                token,
-                body: { name: 'test' },
-            })
-            assert.equal(res.status, 201)
-            assert.ok(res.body.data.id)
-        })
-
-        it('should return 400 for invalid input', async () => { ... })
-        it('should return 401 without auth', async () => { ... })
-        it('should return 403 without permission', async () => { ... })
-    })
-})
-```
-
----
-
-## What to Test per endpoint
-
-| Case | Mức độ | Ví dụ |
-|---|---|---|
-| Happy path | Bắt buộc | Create thành công → 201 + data |
-| Validation error | Bắt buộc | Missing required field → 400 |
-| Auth missing | Bắt buộc | No token → 401 |
-| Auth expired | Nên có | Expired token → 401 |
-| Permission denied | Nên có (nếu có permission) | VIEWER gọi OWNER endpoint → 403 |
-| Not found | Nên có | Invalid ID → 404 |
-| Conflict | Nên có (nếu unique constraint) | Duplicate email → 409 |
-| Edge cases | Nice-to-have | Empty array, null fields, boundary values |
-
----
-
-## Running Tests
-
-```bash
-# Run all tests
+```powershell
+cd "D:\Project 3\backend-sentify"
 npm test
-
-# Run specific test file
-node --test test/dashboard.integration.test.js
-
-# Run with verbose output
-node --test --test-reporter spec test/auth.integration.test.js
 ```
 
----
+Seed local database:
 
-## Coverage Targets
+```powershell
+cd "D:\Project 3\backend-sentify"
+npm run db:seed
+```
 
-| Sprint | Target | Focus |
-|---|---|---|
-| S1 | Existing tests pass + test new changes | Dashboard, UUID validation |
-| S2 | Auth flow fully covered | Refresh token, reset password |
-| S3 | Team management covered | Invite, permission, transfer |
-| S4 | Review features covered | Search, export, archive |
-| S5 | Real DB integration | Full stack tests |
+Smoke trên Postgres thật:
 
----
+```powershell
+cd "D:\Project 3\backend-sentify"
+npm run db:validate
+npm run db:seed
+npm run test:realdb
+```
 
-## Checklist trước khi merge
+Queued crawl smoke:
 
-- [ ] `npm test` — tất cả test pass
-- [ ] Thêm test cho mỗi endpoint mới
-- [ ] Test cả happy path và error cases
-- [ ] Không hardcode IDs / secrets trong test (dùng test-helpers)
-- [ ] Mock cleanup trong `after()` hook
+```powershell
+cd "D:\Project 3\backend-sentify"
+set REVIEW_CRAWL_REDIS_BINARY=D:\tools\redis-server.exe
+npm run smoke:review-crawl-queue -- --url "https://maps.app.goo.gl/..."
+```
+
+## 6. Minimum Evidence
+
+| Area | Minimum evidence hiện mong đợi |
+|---|---|
+| Auth | register, login, logout, session, invalid token, expired token, permission denial |
+| CSRF | issue cookie, missing token -> `403`, correct token -> success |
+| Restaurant access | owner, manager, non-member behavior |
+| Admin intake | create, add, update, delete, publish, duplicate reuse |
+| Dashboard | KPI, sentiment, trend, complaints, top issue |
+| Review crawl | source upsert, queued run, worker processing, materialize-intake |
+| Ops | `/health`, `/api/health`, migrations, seed, worker startup |
+
+## 7. Gaps Còn Lại
+
+Những gì vẫn chưa đủ:
+
+- read-path smoke rộng hơn trên seeded data cho toàn bộ merchant APIs
+- real DB smoke cho duplicate publish xuyên batch
+- auth lifecycle depth cho refresh và password reset
+- load test SMB cho queue worker và dashboard reads
+- staging proof, backup, restore, rollback
+
+## 8. Merge Gate
+
+- `npm test` pass
+- `npm run db:validate` pass
+- high-risk backend change có test hoặc smoke proof đi kèm
+- nếu đụng publish path hoặc crawl runtime thì phải có evidence thật, không chỉ mock
+- docs public contract phải sync khi behavior đổi

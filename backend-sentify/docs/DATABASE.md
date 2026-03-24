@@ -1,256 +1,257 @@
-# 🗄️ Sentify Database Schema
+# Sentify Database
 
-> PostgreSQL + Prisma ORM
-> Last updated: 2026-03-16
+Updated: 2026-03-24
 
----
+This document reflects the current Prisma schema in `prisma/schema.prisma`.
 
-## Entity Relationship Diagram
+## Stack
 
-```mermaid
-erDiagram
-    User ||--o{ RestaurantUser : "has memberships"
-    User ||--o{ ReviewIntakeBatch : "creates batches"
-    Restaurant ||--o{ RestaurantUser : "has members"
-    Restaurant ||--o{ Review : "has reviews"
-    Restaurant ||--|| InsightSummary : "has insight"
-    Restaurant ||--o{ ComplaintKeyword : "has keywords"
-    Restaurant ||--o{ ReviewIntakeBatch : "has batches"
-    Restaurant ||--o{ ReviewIntakeItem : "has items"
-    ReviewIntakeBatch ||--o{ ReviewIntakeItem : "contains items"
-    Review ||--o| ReviewIntakeItem : "linked from item"
+- PostgreSQL
+- Prisma 7
+- Prisma adapter: `@prisma/adapter-pg`
 
-    User {
-        uuid id PK
-        string email UK
-        string fullName
-        string passwordHash
-        int tokenVersion
-        int failedLoginCount
-        datetime lockedUntil
-        datetime lastLoginAt
-        datetime createdAt
-        datetime updatedAt
-    }
+## Current Schema Summary
 
-    Restaurant {
-        uuid id PK
-        string name
-        string slug UK
-        string address
-        string googleMapUrl
-        datetime createdAt
-        datetime updatedAt
-    }
+Current schema has 10 models and 5 enums.
 
-    RestaurantUser {
-        uuid id PK
-        uuid userId FK
-        uuid restaurantId FK
-        enum permission
-        datetime createdAt
-    }
+Models:
 
-    Review {
-        uuid id PK
-        uuid restaurantId FK
-        string externalId
-        string authorName
-        int rating
-        string content
-        enum sentiment
-        string_array keywords
-        datetime reviewDate
-        datetime createdAt
-        datetime updatedAt
-    }
+1. `User`
+2. `RefreshToken`
+3. `PasswordResetToken`
+4. `Restaurant`
+5. `RestaurantUser`
+6. `Review`
+7. `InsightSummary`
+8. `ComplaintKeyword`
+9. `ReviewIntakeBatch`
+10. `ReviewIntakeItem`
 
-    InsightSummary {
-        uuid id PK
-        uuid restaurantId FK_UK
-        float averageRating
-        int totalReviews
-        float positivePercentage
-        float neutralPercentage
-        float negativePercentage
-        datetime lastCalculatedAt
-    }
+Enums:
 
-    ComplaintKeyword {
-        uuid id PK
-        uuid restaurantId FK
-        string keyword
-        int count
-        float percentage
-        datetime lastUpdatedAt
-    }
+1. `RestaurantPermission`
+2. `ReviewSentiment`
+3. `ReviewIntakeBatchSourceType`
+4. `ReviewIntakeBatchStatus`
+5. `ReviewIntakeItemApprovalStatus`
 
-    ReviewIntakeBatch {
-        uuid id PK
-        uuid restaurantId FK
-        uuid createdByUserId FK
-        string title
-        enum sourceType
-        enum status
-        datetime publishedAt
-        datetime createdAt
-        datetime updatedAt
-    }
+## Core Relationships
 
-    ReviewIntakeItem {
-        uuid id PK
-        uuid batchId FK
-        uuid restaurantId FK
-        string rawAuthorName
-        int rawRating
-        string rawContent
-        datetime rawReviewDate
-        string normalizedAuthorName
-        int normalizedRating
-        string normalizedContent
-        datetime normalizedReviewDate
-        enum approvalStatus
-        string reviewerNote
-        uuid canonicalReviewId FK_UK
-        datetime createdAt
-        datetime updatedAt
-    }
-```
+- `User` to `Restaurant` is many-to-many through `RestaurantUser`
+- `Restaurant` to `Review` is one-to-many
+- `Restaurant` to `InsightSummary` is one-to-one
+- `Restaurant` to `ComplaintKeyword` is one-to-many
+- `User` to `ReviewIntakeBatch` is one-to-many through `createdByUserId`
+- `ReviewIntakeBatch` to `ReviewIntakeItem` is one-to-many
+- `ReviewIntakeItem` to `Review` is optional many-to-one through `canonicalReviewId`
+- `User` to `RefreshToken` is one-to-many
+- `User` to `PasswordResetToken` is one-to-many
 
----
-
-## Models
+## Model Notes
 
 ### User
-Tài khoản người dùng. Mỗi user có thể thuộc nhiều restaurant.
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | UUID | Primary key |
-| `email` | String | Unique, normalized lowercase |
-| `fullName` | String | Display name |
-| `passwordHash` | String | bcrypt hash (12 rounds) |
-| `tokenVersion` | Int | Incremented on logout/password change → invalidates all tokens |
-| `failedLoginCount` | Int | Reset on success, locks account at threshold |
-| `lockedUntil` | DateTime? | Account lock expiry |
-| `lastLoginAt` | DateTime? | Last successful login |
+Purpose:
+
+- account identity
+- login lockout state
+- JWT revocation state
+
+Key fields:
+
+- `email` unique
+- `passwordHash`
+- `tokenVersion`
+- `failedLoginCount`
+- `lockedUntil`
+- `lastLoginAt`
+
+### RefreshToken
+
+Purpose:
+
+- long-lived refresh session
+- token family rotation
+- reuse detection
+
+Key fields:
+
+- `tokenHash` unique
+- `familyId`
+- `expiresAt`
+- `revokedAt`
+
+### PasswordResetToken
+
+Purpose:
+
+- single-use password reset flow
+
+Key fields:
+
+- `tokenHash` unique
+- `expiresAt`
+- `usedAt`
 
 ### Restaurant
-Nhà hàng / quán ăn. Hub chính cho reviews và insights.
 
-| Field | Type | Notes |
-|---|---|---|
-| `slug` | String | Unique, auto-generated from name, stable after creation |
-| `googleMapUrl` | String? | Link Google Maps |
+Purpose:
+
+- merchant-facing entity that owns reviews and insights
+
+Key fields:
+
+- `name`
+- `slug` unique
+- `address`
+- `googleMapUrl`
 
 ### RestaurantUser
-Bảng trung gian user ↔ restaurant (many-to-many + permission).
 
-| Field | Type | Notes |
-|---|---|---|
-| `permission` | Enum | `OWNER` hoặc `MANAGER` |
+Purpose:
 
-**Indexes**: `@@unique([userId, restaurantId])`, `@@index([restaurantId])`, `@@index([userId])`
+- membership and permission binding between user and restaurant
+
+Key fields:
+
+- `userId`
+- `restaurantId`
+- `permission`
+
+Constraints:
+
+- unique membership per `(userId, restaurantId)`
 
 ### Review
-Review đã được canonical hoá — nguồn duy nhất cho dashboard/insights.
 
-| Field | Type | Notes |
-|---|---|---|
-| `externalId` | String | Format: `manual-intake:<itemId>` cho manual reviews |
-| `rating` | Int | 1-5 |
-| `sentiment` | Enum? | `POSITIVE`, `NEUTRAL`, `NEGATIVE` — computed by sentiment analyzer |
-| `keywords` | String[] | Extracted complaint keywords (for NEGATIVE reviews) |
-| `reviewDate` | DateTime? | Original review date |
+Purpose:
 
-**Indexes**:
-- `@@unique([restaurantId, externalId])` — prevent duplicates
-- `@@index([restaurantId, rating])` — filter by rating
-- `@@index([restaurantId, reviewDate])` — date range queries
-- `@@index([restaurantId, sentiment])` — sentiment filter
+- canonical merchant-facing review dataset
+
+Key fields:
+
+- `externalId`
+- `rating`
+- `content`
+- `sentiment`
+- `keywords`
+- `reviewDate`
+- `updatedAt`
+
+Constraints and indexes:
+
+- unique `(restaurantId, externalId)`
+- indexes on `restaurantId`
+- indexes on `(restaurantId, createdAt)`
+- indexes on `(restaurantId, rating)`
+- indexes on `(restaurantId, reviewDate)`
+- indexes on `(restaurantId, sentiment)`
+
+Operational note:
+
+- manual intake publish uses stable derived ids in the form `manual-intake:v1:*` so the same source review can be updated across batches instead of duplicated
 
 ### InsightSummary
-Cache tính toán sẵn cho dashboard KPI. 1:1 với Restaurant.
 
-Được recalculate mỗi lần publish batch qua `recalculateRestaurantInsights()`.
+Purpose:
+
+- cached KPI snapshot for one restaurant
+
+Key fields:
+
+- `averageRating`
+- `totalReviews`
+- `positivePercentage`
+- `neutralPercentage`
+- `negativePercentage`
+- `lastCalculatedAt`
+
+Constraint:
+
+- unique `restaurantId`
 
 ### ComplaintKeyword
-Top complaint keywords extracted từ negative reviews. Tối đa 10 keywords per restaurant.
 
-**Indexes**: `@@unique([restaurantId, keyword])`, `@@index([restaurantId, count])`
+Purpose:
+
+- cached complaint keyword aggregates per restaurant
+
+Key fields:
+
+- `keyword`
+- `count`
+- `percentage`
+- `lastUpdatedAt`
+
+Constraint:
+
+- unique `(restaurantId, keyword)`
 
 ### ReviewIntakeBatch
-Batch chứa các review items chờ duyệt trước khi publish.
 
-| Field | Type | Notes |
-|---|---|---|
-| `sourceType` | Enum | `MANUAL`, `BULK_PASTE`, `CSV` |
-| `status` | Enum | `DRAFT` → `IN_REVIEW` → `READY_TO_PUBLISH` → `PUBLISHED` / `ARCHIVED` |
+Purpose:
 
-**Status flow**:
-```
-DRAFT ──> IN_REVIEW ──> READY_TO_PUBLISH ──> PUBLISHED
-  │           │              │
-  └───────────┴──────────────┘ (can be DELETED if not PUBLISHED)
-```
+- staging batch for curated review intake before publish
+
+Key fields:
+
+- `restaurantId`
+- `createdByUserId`
+- `title`
+- `sourceType`
+- `status`
+- `publishedAt`
+
+Indexes:
+
+- `(restaurantId)`
+- `(restaurantId, status, createdAt)`
+- `(restaurantId, updatedAt, createdAt)`
+- `(createdByUserId, createdAt)`
 
 ### ReviewIntakeItem
-Một review item trong batch. Có raw fields (input gốc) và normalized fields (đã chỉnh sửa).
 
-| Field | Type | Notes |
-|---|---|---|
-| `approvalStatus` | Enum | `PENDING`, `APPROVED`, `REJECTED` |
-| `canonicalReviewId` | UUID? | Link tới Review sau khi publish |
+Purpose:
 
----
+- raw and normalized review row inside an intake batch
 
-## Enums
+Key fields:
 
-| Enum | Values | Used by |
-|---|---|---|
-| `RestaurantPermission` | `OWNER`, `MANAGER` | RestaurantUser |
-| `ReviewSentiment` | `POSITIVE`, `NEUTRAL`, `NEGATIVE` | Review |
-| `ReviewIntakeBatchSourceType` | `MANUAL`, `BULK_PASTE`, `CSV` | ReviewIntakeBatch |
-| `ReviewIntakeBatchStatus` | `DRAFT`, `IN_REVIEW`, `READY_TO_PUBLISH`, `PUBLISHED`, `ARCHIVED` | ReviewIntakeBatch |
-| `ReviewIntakeItemApprovalStatus` | `PENDING`, `APPROVED`, `REJECTED` | ReviewIntakeItem |
+- raw fields: `rawAuthorName`, `rawRating`, `rawContent`, `rawReviewDate`
+- normalized fields: `normalizedAuthorName`, `normalizedRating`, `normalizedContent`, `normalizedReviewDate`
+- `approvalStatus`
+- `reviewerNote`
+- `canonicalReviewId`
 
----
+Indexes:
 
-## Index Strategy
+- `(batchId, approvalStatus)`
+- `(batchId, createdAt)`
+- `(canonicalReviewId)`
+- `(restaurantId, approvalStatus)`
 
-| Model | Index | Purpose |
-|---|---|---|
-| RestaurantUser | `[userId, restaurantId]` UNIQUE | Prevent duplicate memberships |
-| RestaurantUser | `[restaurantId]` | Lookup members of a restaurant |
-| RestaurantUser | `[userId]` | Lookup restaurants of a user |
-| Review | `[restaurantId, externalId]` UNIQUE | Prevent duplicate reviews per restaurant |
-| Review | `[restaurantId, rating]` | Dashboard rating filter |
-| Review | `[restaurantId, reviewDate]` | Date range queries |
-| Review | `[restaurantId, sentiment]` | Sentiment breakdown |
-| ComplaintKeyword | `[restaurantId, keyword]` UNIQUE | Prevent duplicate keywords |
-| ComplaintKeyword | `[restaurantId, count]` | Sorted complaint list |
-| ReviewIntakeBatch | `[restaurantId]` | List batches by restaurant |
-| ReviewIntakeBatch | `[restaurantId, status, createdAt]` | Filtered batch list |
-| ReviewIntakeBatch | `[restaurantId, updatedAt, createdAt]` | Sorted batch list |
-| ReviewIntakeBatch | `[createdByUserId, createdAt]` | User's batches |
-| ReviewIntakeItem | `[batchId, approvalStatus]` | Items by status in batch |
-| ReviewIntakeItem | `[batchId, createdAt]` | Sorted items in batch |
-| ReviewIntakeItem | `[restaurantId, approvalStatus]` | Cross-batch item status |
+Operational note:
 
----
+- `canonicalReviewId` is intentionally not unique; multiple intake items from different batches may point to the same canonical review after dedupe or correction
 
-## Migration History
+## Operational Meaning
 
-| Migration | Description |
-|---|---|
-| `20260306175515_init` | Initial schema: User, Restaurant, RestaurantUser, Review, InsightSummary, ComplaintKeyword |
-| `20260306190150_auth_hardening` | Add tokenVersion, failedLoginCount, lockedUntil |
-| `20260308185026_add_import_runs` | Import run tables (later removed) |
-| `20260308185821_add_import_run_progress` | Import progress tracking (later removed) |
-| `20260309035500_add_review_keywords_cache` | Add keywords array to Review |
-| `20260310053500_add_restaurant_import_state` | Restaurant import state (later removed) |
-| `20260312184500_add_review_intake` | ReviewIntakeBatch + ReviewIntakeItem tables |
-| `20260312223000_add_intake_indexes` | Performance indexes for intake tables |
-| `20260312224500_remove_auto_import` | Remove import run tables + related fields |
-| `20260312231500_remove_google_assisted_source_type` | Clean up enum values |
-| `20260313080856_add_review_updated_at_and_intake_batch_index` | Review updatedAt + batch index |
+Current write model:
+
+- admins or restaurant members curate data into `ReviewIntakeBatch` and `ReviewIntakeItem`
+- publish creates or updates canonical `Review` rows using stable derived external ids
+- insights are recalculated into `InsightSummary` and `ComplaintKeyword`
+
+Current read model:
+
+- merchant dashboard reads canonical `Review`, `InsightSummary`, and `ComplaintKeyword`
+
+## Migration Direction Visible in History
+
+Migration history shows a clear product shift:
+
+- early migrations introduced import-run automation tables
+- later migrations removed automated import state
+- newer migrations introduced manual intake tables and indexes
+
+So the current database direction is manual-first curation, not automated import runtime.

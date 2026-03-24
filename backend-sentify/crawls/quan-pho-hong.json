@@ -1,0 +1,2458 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "provider": "google_maps",
+    "inputUrl": "https://www.google.com/maps?cid=4548797685071303380&hl=vi&gl=VN",
+    "resolvedUrl": "https://www.google.com/maps?cid=4548797685071303380&hl=vi&gl=VN",
+    "previewUrl": "https://www.google.com/maps/preview/place?authuser=0&hl=vi&pb=%211m14%211s0x0%3A0x3f209364ddcb52d4%213m12%211m3%211d15337.141688100386%212d108.2261504%213d16.05066605%212m3%211f0.0%212f0.0%213f0.0%213m2%211i1024%212i768%214f13.1%2112m4%212m3%211i360%212i120%214i8%2113m57%212m2%211i203%212i100%213m2%212i4%215b1%216m6%211m2%211i86%212i86%211m2%211i408%212i240%217m33%211m3%211e1%212b0%213e3%211m3%211e2%212b1%213e2%211m3%211e2%212b0%213e3%211m3%211e8%212b0%213e3%211m3%211e10%212b0%213e3%211m3%211e10%212b1%213e2%211m3%211e10%212b0%213e4%211m3%211e9%212b1%213e2%212b1%219b0%2115m8%211m7%211m2%211m1%211e2%212m2%211i195%212i195%213i20%2114m3%211s9I_BaftVvdLaug_Ujo3QBQ%217e81%2115i10112%2115m106%211m26%2113m9%212b1%213b1%214b1%216i1%218b1%219b1%2114b1%2120b1%2125b1%2118m15%213b1%214b1%215b1%216b1%2113b1%2114b1%2117b1%2121b1%2122b1%2130b1%2132b1%2133m1%211b1%2134b1%2136e2%2110m1%218e3%2111m1%213e1%2117b1%2120m2%211e3%211e6%2124b1%2125b1%2126b1%2127b1%2129b1%2130m1%212b1%2136b1%2137b1%2139m3%212m2%212i1%213i1%2143b1%2152b1%2155b1%2156m1%211b1%2161m2%211m1%211e1%2165m5%213m4%211m3%211m2%211i224%212i298%2172m22%211m8%212b1%215b1%217b1%2112m4%211b1%212b1%214m1%211e1%214b1%218m10%211m6%214m1%211e1%214m1%211e3%214m1%211e4%213sother_user_google_review_posts__and__hotel_and_vr_partner_review_posts%216m1%211e1%219b1%2189b1%2190m2%211m1%211e2%2198m3%211b1%212b1%213b1%21103b1%21113b1%21114m3%211b1%212m1%211b1%21117b1%21122m1%211b1%21126b1%21127b1%21128m1%211b0%2121m0%2122m1%211e81%2130m8%213b1%216m2%211b1%212b1%217m2%211e3%212b1%219b1%2134m5%217b1%2110b1%2114b1%2115m1%211b0%2137i771",
+    "sourcePageUrl": "https://maps.google.com/maps/place/0x314219004bcdcae5:0x3f209364ddcb52d4?hl=en&gl=US",
+    "fetchedAt": "2026-03-23T19:09:43.997Z",
+    "language": "en",
+    "region": "us",
+    "sort": "newest",
+    "requestedPages": 3,
+    "pageSize": 20
+  },
+  "place": {
+    "name": "Quán Phở Hồng",
+    "formattedAddress": "Quán Phở Hồng, 10 Lý Tự Trọng, Thạch Thang, Hải Châu, Đà Nẵng 550000, Việt Nam",
+    "addressLines": [
+      "10 Lý Tự Trọng",
+      "Thạch Thang",
+      "Hải Châu",
+      "Đà Nẵng 550000, Việt Nam"
+    ],
+    "categories": [
+      "Nhà hàng phở",
+      "Nhà hàng"
+    ],
+    "rating": 4.3,
+    "totalReviewCount": 4743,
+    "coordinates": {
+      "latitude": 16.077659,
+      "longitude": 108.22191649999999
+    },
+    "identifiers": {
+      "placeHexId": "0x314219004bcdcae5:0x3f209364ddcb52d4",
+      "googlePlaceId": "ChIJ5crNSwAZQjER1FLL3WSTID8",
+      "cid": "4548797685071303380"
+    },
+    "googleMapsUrl": "https://www.google.com/maps/preview/place/Qu%C3%A1n+Ph%E1%BB%9F+H%E1%BB%93ng,+10+L%C3%BD+T%E1%BB%B1+Tr%E1%BB%8Dng,+Th%E1%BA%A1ch+Thang,+H%E1%BA%A3i+Ch%C3%A2u,+%C4%90%C3%A0+N%E1%BA%B5ng+550000,+Vi%E1%BB%87t+Nam/@16.077659,108.2219165,3834a,13.1y/data=!4m2!3m1!1s0x314219004bcdcae5:0x3f209364ddcb52d4"
+  },
+  "reviews": [
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2xwYU0yMVBUa1JQVEZOMVQwNHlaR2x4UkhKSFUxRRAB",
+      "publishedAt": "2026-03-23T11:21:10.206Z",
+      "updatedAt": "2026-03-23T11:21:10.206Z",
+      "relativePublishedAt": "7 hours ago",
+      "author": {
+        "name": "HSFi",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUkWoHnvnT9PyJQUDRblPQdYjxF5p8Ji9FKtEDlyPVLoif63gf_JQ=s120-c-rp-mo-ba5-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/107246561137088227899?hl=en",
+        "contributorId": "107246561137088227899",
+        "reviewCountLabel": "Local Guide · 489 reviews",
+        "reviewCount": 489
+      },
+      "rating": 2,
+      "text": "그냥저냥... 맛이 너무 없었습니다",
+      "language": "ko",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25WRmRITjBObFYzUzFGUU1qTnRlVzlhVHpWbVowRRAB",
+      "publishedAt": "2026-03-22T14:43:42.397Z",
+      "updatedAt": "2026-03-22T14:43:42.397Z",
+      "relativePublishedAt": "a day ago",
+      "author": {
+        "name": "Thomas Nguyen",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWzdPpaOt7pEIojbh48UNbhQVOaEloWBahIMc0NEVyKK7hxOCRb=s120-c-rp-mo-ba6-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/108832609755387562697?hl=en",
+        "contributorId": "108832609755387562697",
+        "reviewCountLabel": "Local Guide · 413 reviews",
+        "reviewCount": 413
+      },
+      "rating": 3,
+      "text": "cũng được, giá cao",
+      "language": "vi",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhDlXdoGatie3ewEt-uVCKbX",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psUDsMHL2otwe_eJm00yVFMo1L-geFo373LWYLhOX-LCGcwBCBuF3qqbDEZskLSjipSEdgEokLZ67QLJGLh2zS2aLKQd4wItDzD_mm5c2tk_2AdA5Poo4n_7Slzr-yE-xy6JhKjIOKTNvIo",
+          "size": {
+            "width": 2992,
+            "height": 2992
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2t3M2RGTnBja0UwUW14T2JGVTJWbGh1WlZsRWRVRRAB",
+      "publishedAt": "2026-03-21T16:03:03.846Z",
+      "updatedAt": "2026-03-21T16:03:03.846Z",
+      "relativePublishedAt": "2 days ago",
+      "author": {
+        "name": "Wannipha C.",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWcqF7VQhoJtmbXFi1Kp5KdFSd96Cigo6IGHCjPf6Dc7mxK3QUh=s120-c-rp-mo-ba2-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/109470042523441808768?hl=en",
+        "contributorId": "109470042523441808768",
+        "reviewCountLabel": "Local Guide · 9 reviews",
+        "reviewCount": 9
+      },
+      "rating": 5,
+      "text": "น้ำซุปสดชื่นมาก ต้องลองค่ะ",
+      "language": "th",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhAdCyCAqMTUiDqiC9SMSDQb",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psVlFaLiBk9q6Yq4JzjnGBgGrDKbTMShqnrMuiIdlSmwr4hFHh_IY7GIZEdU6MJI7FLM4tVEoGpd99frODhhHgdbxnBD3nl943pd57A6f9KBhiUySKsBXHRk8UrexlPMfk6EHVMcv3Qo-cb",
+          "size": {
+            "width": 4284,
+            "height": 5712
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2tGU2FWTmpNamRpTVhoZllWRnFURk42VFRGbGRXYxAB",
+      "publishedAt": "2026-03-20T15:27:04.893Z",
+      "updatedAt": "2026-03-20T15:27:04.893Z",
+      "relativePublishedAt": "3 days ago",
+      "author": {
+        "name": "Chanphasouk Chounthavong",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocI7sh7Bn4hh10Hq04HC4p_4paISYsec1qqFT0USex_SDT_rRg=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/106473056515708025339?hl=en",
+        "contributorId": "106473056515708025339",
+        "reviewCountLabel": "5 reviews",
+        "reviewCount": 5
+      },
+      "rating": 1,
+      "text": "Food was normal, not bad but nothing special. An older man (not sure if owner or staff) asked me where I was from in a rude way, which made me feel uncomfortable. Customers should be treated politely regardless of nationality.",
+      "language": "en",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2xjMVJtRkxPRmRDYjJGUFNuVmxYM0JrUmxCM01sRRAB",
+      "publishedAt": "2026-03-20T07:49:51.438Z",
+      "updatedAt": "2026-03-20T07:49:51.438Z",
+      "relativePublishedAt": "3 days ago",
+      "author": {
+        "name": "정현영",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocKVM2F6ImR4zBp2gUDLiApsCF5kS7C9i9igUA1XG1HuzNm54Q=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/111648303768978713756?hl=en",
+        "contributorId": "111648303768978713756",
+        "reviewCountLabel": "Local Guide · 30 reviews",
+        "reviewCount": 30
+      },
+      "rating": 5,
+      "text": "다낭여행에서 먹은 쌀국수 중에 제일 맛있었어요.\n안토이.포박하이.이름모를 로컬.배달 다 합쳐 1등\n마지막날이 아니였음 한번 더 가고 싶을만한 집입니다.\n위치가 좀 애매한게 아쉽\n쌀국수 보다 짜조가 비싸지만 값을 합니다.",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhCnmXa4MRA-SRI_nJnuWzp_",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvJDGPC-mh3AycLCdWmmKQfLHyYfYa7jZ9kdLt_XKI9cQfXYnLNO0veNIYqLVwRONx96XVxwASPZbqgrquXq7nWOGCUHMQh-tONnbafxvxx0u68a9PUbLrOSZgN2e7QEhMz7QsyOKc19jEZ",
+          "size": {
+            "width": 4000,
+            "height": 3000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25JdFUyMXZNbm96YVdWcFZ6aFZiRTlUUkhsR05IYxAB",
+      "publishedAt": "2026-03-19T11:49:37.783Z",
+      "updatedAt": "2026-03-19T11:49:37.783Z",
+      "relativePublishedAt": "4 days ago",
+      "author": {
+        "name": "Ольга Рощина",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVMmv7FJDm_wWTv5lcyBFwepdRR_KThC-hpmqz5H3_raRIuTlA0=s120-c-rp-mo-ba2-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/109162273296571496271?hl=en",
+        "contributorId": "109162273296571496271",
+        "reviewCountLabel": "Local Guide · 13 reviews",
+        "reviewCount": 13
+      },
+      "rating": 5,
+      "text": "Прекрасное локальное место\nСупер вкус и подача",
+      "language": "ru",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhCexgjwf-DuNh9-EcdcwA50",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptdfYKcZJWcwS7l0EU2Mepck498rJkNL8cM5I3eI15rhMH74zhjUVidAiGClLVQ-wnuh633Aw8_Mxh0DKqI-dQCKtWk_3MslS04SVkIxUEE5rQ2hyVegnlPeu5Z32ir5z_KafskNR0GKco",
+          "size": {
+            "width": 4096,
+            "height": 3072
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhCEHkJqtmnwy2CXl217fa7r",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psYktsZeJrWWvIJbumBqAcA-0Td0MiHxt2FNnFGG98VRB2Tb81l-0kAwR7S7aPGB2KWXM9JkSXxXjjwq83IL3JtCbZnDdOKMKiNvGajLJ4ssWTVz8wiILJlyAdruK-GGWF5hUUAZq9eGSA",
+          "size": {
+            "width": 4096,
+            "height": 3072
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2tvNVIwbG5Ra0ZEUjNveFlsQjVVVU5PTjNkVWFuYxAB",
+      "publishedAt": "2026-03-16T03:45:27.184Z",
+      "updatedAt": "2026-03-16T03:45:27.184Z",
+      "relativePublishedAt": "a week ago",
+      "author": {
+        "name": "ฮัทตุ้งพาเพลิน",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWQmEk-OJ42D3TvK_MJoaRX-7A0TYqRpbhOah5xuubCbETLNCnx=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/100293736432180973253?hl=en",
+        "contributorId": "100293736432180973253",
+        "reviewCountLabel": "6 reviews",
+        "reviewCount": 6
+      },
+      "rating": 5,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21wUlpYUkdURlUxUkhKdmNtcEJkbWxvUWpOTFFrRRAB",
+      "publishedAt": "2026-03-16T03:38:22.591Z",
+      "updatedAt": "2026-03-16T03:38:22.591Z",
+      "relativePublishedAt": "a week ago",
+      "author": {
+        "name": "Amy Kim",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocIhSEmnw7HZ7cO7DefuLY4_fr86chjuznX0CQ4Dec4DcL6Duw=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/106071725965096506001?hl=en",
+        "contributorId": "106071725965096506001",
+        "reviewCountLabel": "5 reviews",
+        "reviewCount": 5
+      },
+      "rating": 5,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21oaGVYa3pkekZ2U2xKRE4wOWFRekZDTUhCSVpWRRAB",
+      "publishedAt": "2026-03-15T12:27:08.784Z",
+      "updatedAt": "2026-03-15T12:27:08.784Z",
+      "relativePublishedAt": "a week ago",
+      "author": {
+        "name": "Lea",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocKvCCx1CDYNVCk9e8pcZwyjkzYYX3RJpMcZww5TDzKEJuTvAgUW=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/115617561518553706713?hl=en",
+        "contributorId": "115617561518553706713",
+        "reviewCountLabel": "Local Guide · 36 reviews",
+        "reviewCount": 36
+      },
+      "rating": 5,
+      "text": "Ich war hier soeben einen Pho für 65k Dong essen, den auf der Seite 😂 ich wurde sehr schnell und nett bedient, das Essen kam ebenfalls zügig und war sehr, sehr lecker. In der Nähe des Hafens. Sehr zu empfehlen.",
+      "language": "de",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhAzAY1xW5whSubRv4wFVa4c",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puCu1mArx3BaPVnQkWyt0eKp0HuPV7QArVoDSNGr2DseoZ9t_z4SbvnesHdAaho9-ANCtBMlp57PXhmo4xQ3xycU7xHOPX5vcwQmCv-rLPm8cEP3G8NfVCRKnFim6-1LnbCkwzy2DECqHKz",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21KQ2RHbGxjbTlVYURSMmNqRnVTRWwzTFhOTVIwRRAB",
+      "publishedAt": "2026-03-14T17:55:16.858Z",
+      "updatedAt": "2026-03-14T17:55:16.858Z",
+      "relativePublishedAt": "a week ago",
+      "author": {
+        "name": "Jac Jac",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocJB4T7lQ85Wp6X0oT5Z3zAaoVJxrPEzRlS83ZF6eiOV-C1PNg=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/113453248572580162441?hl=en",
+        "contributorId": "113453248572580162441",
+        "reviewCountLabel": "Local Guide · 21 reviews",
+        "reviewCount": 21
+      },
+      "rating": 5,
+      "text": "Local Grab driver refers us this Pho place! It’s very local and delicious, love it! We order both raw beef pho and cooked beef pho, both are delicious but cooked beef pho is much more impressed. Give a visit if you are looking for local Pho in Da Nang.",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhC6PMUAyLezX2qoziSFdx6G",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puluoDuXh438zj7Z37xMO5eRUcGSKLZSu8uY7GMFy-EexA2qe8eOwCEjOG5aXCWAmpDrn9zO5r9d1iCm1Qo2w7tKqlVf0RHeBG3tAIIfaDpUJqEA6H0cbXW7YDsWYE4zSz3hNEx21Wdi2kJ",
+          "size": {
+            "width": 3024,
+            "height": 3260
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2pad2VtWmhUVGt0Ym1SQlNHb3ROQzB5V0ZGeVoxRRAB",
+      "publishedAt": "2026-03-11T04:43:02.470Z",
+      "updatedAt": "2026-03-11T04:43:02.470Z",
+      "relativePublishedAt": "a week ago",
+      "author": {
+        "name": "Hai Phạm",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocJj3w0nhEDrLnsv7Qqfk7oQYykcIXzCyjEyfaRwUMoHyBKcjA=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/100497367837115623892?hl=en",
+        "contributorId": "100497367837115623892",
+        "reviewCountLabel": "3 reviews",
+        "reviewCount": 3
+      },
+      "rating": 1,
+      "text": "Chặt chém khách. 1 đĩa cơm rang chém 150k",
+      "language": "vi",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21GRWVuUkVNbEUxZUdOR01sQk5jM0ZOTkhOUGNXYxAB",
+      "publishedAt": "2026-03-09T10:31:57.505Z",
+      "updatedAt": "2026-03-10T21:53:10.601Z",
+      "relativePublishedAt": "Edited a week ago",
+      "author": {
+        "name": "신일곱",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUg3G_44lSy4XIzzkA2RRz1psuEs0-tus5GGkh8bDV-0KD012Y=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/101412503670450459856?hl=en",
+        "contributorId": "101412503670450459856",
+        "reviewCountLabel": "6 reviews",
+        "reviewCount": 6
+      },
+      "rating": 1,
+      "text": "여기는 비추천(관광지 물가!!!)\n어찌 평점이 높을까요??\n쌀국수는 그냥저냥\n스프링롤은 15,000원(한국돈)\n\n엄청 비싼거임(2배)\n처음 쌀국수 가격만 보고 시켰다 한국돈으로 계산하고 깜짝놀람\n첫날 먹어 잘 모르다가\n\n목식당, 안토이 에서 실컷 먹고도\n2만원인데 동네서 대충먹고도 그가격이라 차후 배신감 듦\n\n여기 가격 확인해 보시고 비교해보삼 ㅠㅠ\n\n참고하삼\n즐거운 여행이 되기를...",
+      "language": "ko",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2kwNE1XSlhRMjlmZEdjemNqSlBNSEU0TVhvdFdHYxAB",
+      "publishedAt": "2026-03-09T06:42:39.963Z",
+      "updatedAt": "2026-03-09T06:42:39.963Z",
+      "relativePublishedAt": "2 weeks ago",
+      "author": {
+        "name": "Kritsana Chimsuk",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWlJWMC3uURYGKQ1YN9uoZYAiImJIfiCCKp2EiAPkS8wU_PSpnIjw=s120-c-rp-mo-ba4-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/112419449003174496186?hl=en",
+        "contributorId": "112419449003174496186",
+        "reviewCountLabel": "Local Guide · 106 reviews",
+        "reviewCount": 106
+      },
+      "rating": 5,
+      "text": "Delicious and big portion",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhBP1__KHB0gTfwemHYBDWyD",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pve24I2VjYEmg8kYRCjh9sFKUuk3GT5uUiKo56UHfBjI8fJsmYHcFusZCxpXgI4mI2ZiJFSeCK9AUk6pcEiqfLIVLPw_IDejGVqc0BcWJaM4D4x9g0lwJriqYwUpCf6pn70m2e_nhHHzWr_",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2twU1FTMDNiRlZuU1VsT1RVOVlaRTV3UkZoMFlsRRAB",
+      "publishedAt": "2026-03-08T16:50:14.944Z",
+      "updatedAt": "2026-03-08T16:50:14.944Z",
+      "relativePublishedAt": "2 weeks ago",
+      "author": {
+        "name": "런던통",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXOlE-axkQCzWb8gvpPGPjPhS9CsaiW96ygICCH8JF0xQJdEiJD=s120-c-rp-mo-ba4-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/106562316475235748483?hl=en",
+        "contributorId": "106562316475235748483",
+        "reviewCountLabel": "Local Guide · 39 reviews",
+        "reviewCount": 39
+      },
+      "rating": 4,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2paQlNtSlZWelp1ZW1aRGNtbFNUVkJOU0ZsT2JHYxAB",
+      "publishedAt": "2026-03-08T01:51:41.421Z",
+      "updatedAt": "2026-03-08T06:57:50.786Z",
+      "relativePublishedAt": "2 weeks ago",
+      "author": {
+        "name": "MJ S",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWqW_f1Zm-7itIN2nyXxsy-G8r1hWOxmG0ki1p4GVstey3xePY=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/111567731328014972726?hl=en",
+        "contributorId": "111567731328014972726",
+        "reviewCountLabel": "2 reviews",
+        "reviewCount": 2
+      },
+      "rating": 1,
+      "text": "현지 느낌 느끼고 싶어\n노보텔 옆 가까운데서 먹고 싶어 방문\n쌀국수, 고기.새우롤 시켰는데\n\n고기.새우롤 가격이 사악했음\n야채 썩은것 투성의 것을 내놓기에 황당(가격 비싸고, 야채상태 엉망)\n\n다낭에서 제일 비싼집",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhBVKVrrQTWnwc5aVFCMlzFZ",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puUfNcXRVZQrXH1fr1tQmnHy4iwItH8dHjd_zIYe0TNXwSgsFSIzfub-lXu3P4XTkSNP3ZMSloWJnIE_cU_lGt0YucPIMToSqemXaVrhZlSb5TOXfRZQHqdVaP47jV25xjX-1wS2GTYNLld",
+          "size": {
+            "width": 1052,
+            "height": 1518
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21GRGFYVmFNREYwZEZSRFZtdFlaa1pJYUV0RFlsRRAB",
+      "publishedAt": "2026-03-07T08:06:52.686Z",
+      "updatedAt": "2026-03-07T08:06:52.686Z",
+      "relativePublishedAt": "2 weeks ago",
+      "author": {
+        "name": "안재숭",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocLuxhiIcGBc8ZYZZCg9SsgwvavuVHKorpgjIOcJgAnT4U440OBj=s120-c-rp-mo-ba4-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/112033039347908915989?hl=en",
+        "contributorId": "112033039347908915989",
+        "reviewCountLabel": "Local Guide · 87 reviews",
+        "reviewCount": 87
+      },
+      "rating": 4,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21SQ1pGVm1aMlptVUZSM1JuQXhPVVJFZURFM05uYxAB",
+      "publishedAt": "2026-03-06T23:57:55.987Z",
+      "updatedAt": "2026-03-06T23:57:55.987Z",
+      "relativePublishedAt": "2 weeks ago",
+      "author": {
+        "name": "우야네",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocKmJsUpL7x4kkqpVtjZXoZeOjrnOhsfIxHvaL0EEp72hTE0Rw=s120-c-rp-mo-ba2-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/109180633138309019590?hl=en",
+        "contributorId": "109180633138309019590",
+        "reviewCountLabel": "Local Guide · 16 reviews",
+        "reviewCount": 16
+      },
+      "rating": 5,
+      "text": "쌀국수 싸고 맛있어요 넷이서 쌀국수 3 튀김2 시켜서 많이 남겼어요 ㅜㅜ아까워~~밖에서 먹는데 갑자기 쓰레기차가 쓰레기를 치우고있어서 웩 했지만 로컬감성에 맛은있습니다",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhDDqYpcNTY3mToVwagi5DeY",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psUIh-zDbq6OLEoD8holneBLAjQli0dICWL1y-bxyvt1EA-FR4RfTfIUt_Vk914RmqSFM_d4Hkp_KAgnhJzY1R605v5zi0I-h0eQAbWnnEWv8ImP2ZtjMQDMmzUmVS9zYUSqBd40xO0COM8",
+          "size": {
+            "width": 4284,
+            "height": 5712
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDwO4v0ZSWRl4LlqxTGKM6e",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psi8HG6HL_jG5-Rsux9je3Xo2z3qbBHgI2b6cosucQx_1biHr7h2Ngt0Kwfbm_kj6P60ORRql-QrzC6U_AhbP_TH59PoPkAgEyp5csczJvGEZnngHitgPqjxzG1nAydf4cjN5Zzh_hBRNw",
+          "size": {
+            "width": 3213,
+            "height": 5712
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2pkTlNVTm5SelJ4VHpsM2FHWnNPSHBRZDJOWmRFRRAB",
+      "publishedAt": "2026-03-05T14:10:42.761Z",
+      "updatedAt": "2026-03-05T14:10:42.761Z",
+      "relativePublishedAt": "2 weeks ago",
+      "author": {
+        "name": "nuji kim",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocLgjs35H8yqRmMo69BBYraoixyPAAgy5CKG_Uw8Q0l6UsKLaQ=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/117531767287614489336?hl=en",
+        "contributorId": "117531767287614489336",
+        "reviewCountLabel": "7 reviews",
+        "reviewCount": 7
+      },
+      "rating": 2,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25wbVJFUTFZVFZOYzFablZHZFZPVEZyTUU0eE9VRRAB",
+      "publishedAt": "2026-03-05T08:03:53.304Z",
+      "updatedAt": "2026-03-05T08:03:53.304Z",
+      "relativePublishedAt": "2 weeks ago",
+      "author": {
+        "name": "Dale M",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVRbtKzt0Flxa3b799LwgcKMaCCK474GrjFTRqL_couHedwbMLI=s120-c-rp-mo-ba4-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/111487969015157090911?hl=en",
+        "contributorId": "111487969015157090911",
+        "reviewCountLabel": "Local Guide · 80 reviews",
+        "reviewCount": 80
+      },
+      "rating": 5,
+      "text": "Delicious pho",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhBkzdG-yOLwb17lngnQXwly",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psbdFXREjqIXiOLQiC6pWd0VFda0AYlJ8eSwTKbE5c5j4Yk_vOGz3m07kc-8CSg5j3VqzHqr10Paf00qaQTUB5hx354RwN0Di5zFGaVeJBc3WR-n24VfA3tiJ32EE_fC3EBjPfh5jylQIo_",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21kTlpuQTVWRTVVVlhNNGVqWmtkbmcwTkV3d1ZIYxAB",
+      "publishedAt": "2026-03-05T06:38:29.199Z",
+      "updatedAt": "2026-03-05T06:40:49.643Z",
+      "relativePublishedAt": "2 weeks ago",
+      "author": {
+        "name": "Yonghee Jo",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUQ2-ALC5AMA933_tdtfzCCh9cxt5roXUkVPDsyhmli_xPuaQ=s120-c-rp-mo-ba6-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/115760430712916501319?hl=en",
+        "contributorId": "115760430712916501319",
+        "reviewCountLabel": "Local Guide · 253 reviews",
+        "reviewCount": 253
+      },
+      "rating": 2,
+      "text": "평이 좋아서 방문했다. 쌀국수 맛있다고 리뷰 남긴 사람 입맛은 제각각이지만 맛이 없는 건 아니고 기본 정도입니다. 찾아갈 정도는 아니고요. 짜죠? 맛있네요. 하지만 작은 사이즈도 양이 많고 비싸네요 쌀국수 작은 거(65000동, 짜죠 작은 거(270000동) 시켜서 335000동 나왔습니다. 이건 좀.. 짜죠 1인분 작은 걸 만들던지. 저는 메뉴 구성과 금액에 실망했습니다.\n보니까 한국 관광버스 단체로 오던데 신경 좀 써주셨으면 합니다.",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhBvKpIRx6CxMxSbis9FGejO",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvvQLWB8ku5yG9CYFu_6V0qDl4XZE3WjjLsoA9dWmL934IHvNkyDmfCF2RGC2rIV6tVB6Mq70xln6wGrOxtIzqIsJFQh6f29fVkmChUEQouE2txqgRMTPHo-4n2AROcd-eWCEeORFA-4GQ",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDA77YPCw7Z-ujuiFsYyu44",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psgKy_rZWB4Ld3jhSKSDCfzTTWPnlE7_onJ6G2Gm4zK1Kii07lfgQTNu4d3yWKh4Jipvyb69mORbKApZFi5jrcjCw3kWEWUoNscT6aAVI-N8mIR9l1FTDvZq966QYfC09PzeYpu_G_LCwKc",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhBiZw4LQMpufiu0LJWAMGUZ",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psYabMfKiSdoh-BGJEKKV_ZR_OFIR-ig_kjeZgCIWUVWuwUqoHh8nV7J-RilXp9jFzVM8zIsJZiuYLfyxtaxLTTH6mkhfUJzLs1hWqxDKueQPEPFnPMXybnTPacSaBAFg2dlqe504UJcn8b",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhCqtmdvyZepls5RjEU_vB8H",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pupd-tWD91oSIkr9NIB-zj2xEJlk3kLeOwK7EZRdlMXlY0x09bPT1dMF00ktON5CBp2EzHPV3StbBQ6S6T8QOXoycfIxa4DPbeehp9b6tJmoFtnKaThSeH654-5Mem_b3jVrl4CwzAL6-uk",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhAHqVye1mCGz1mlGvDBHg44",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvS0B6LDfq7sPQKQ0sdhGB5Kt5vXA0ceAu4SBG8jo72OWqDpeKelp7924Fc5eoiByu0GybFW9TYOa_3-Rp8BS1Osl-2HEHDDklFKTXkEmFcLTzylhj073k5_iB245z7UsDY8iIiBpnAxHDx",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhC2U_ySJIBZppojpYNpoTnt",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puOVUCS18jGMktGXIaF7dtyEzCrooQL7iopus6j-x4z8TJ0kBmxc-nWkWHz7yzltmATbb1Vs4wQh4in3vyXwviclh7ojMNn9bvgdFyANlC8PFWhNf03sOheLAVntc_bRoLquSi3HWoqwkUW",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDCo-CRo-wZPki8R67EiAtq",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puXcHMfmti-5xujdknxvhO4_A7rfk7WKWSMMiq2xhO9HyWDNH4nmBbNCROmVV1tp-zrJOFBsHYGJFlN2r40A2Qpe_hrQQNVvVxfkrg5DQbb5_koEtNcWAnPxXOKDZLd2CJ2De0zuy14504",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDQPp2_n0PgKGRUY_JbKlaT",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puSlf-0MXoNxPMlGZbCaSdNPZIjy5UB36YoTew23EzhwpO9X03PptBl9tBcSAOoevD43IR4B18NUi0iGKIJQ0A1v4M6wqA9Ji0pkH3Bv4Zo78zhTWXxG5ai0nQFeB4A0JzXuFS9-16rRpbM",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhAwWAvLl3HYE2B3DXRYLQsn",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pv1YIwhANDbO98pyMwDCLuyIOfFztrTquQdgI7dW1WEsRMlI4RgxgplqolBfuvCh0JdBWggG8FiJm37tdz5rRdE8nPuLeYkAT9SAi9Yit5OI8tSPJopXxgZP5B_0pp47OP4nCoLjLw2hMSi",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2pOUFRqaG5WakYzVkVkck5FZFJXSGRDYms5M1EzYxAB",
+      "publishedAt": "2026-02-25T10:22:10.697Z",
+      "updatedAt": "2026-02-25T10:22:10.697Z",
+      "relativePublishedAt": "3 weeks ago",
+      "author": {
+        "name": "강신호",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUGMvCQwW4ekJuHFl3o27pK88B1uoEm2u5N4zxSCjn0IEFZTbxp=s120-c-rp-mo-ba4-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/112374925964012902684?hl=en",
+        "contributorId": "112374925964012902684",
+        "reviewCountLabel": "Local Guide · 95 reviews",
+        "reviewCount": 95
+      },
+      "rating": 5,
+      "text": "퍼 보 추천\n닭은 노계인듯한 향 남\n새우 스프링롤은 비추",
+      "language": "ko",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT214M2REUjZOV2xoUzNoNU1ISXlVblE1UWxadmNuYxAB",
+      "publishedAt": "2026-02-23T13:54:02.684Z",
+      "updatedAt": "2026-02-23T13:54:02.684Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Julia Lin",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocLR8V2eowLaNLKSp79h4wqmswrz1cKheB05Lsd8XO0fD-2qtEQ=s120-c-rp-mo-ba6-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/115990087500619730246?hl=en",
+        "contributorId": "115990087500619730246",
+        "reviewCountLabel": "Local Guide · 407 reviews",
+        "reviewCount": 407
+      },
+      "rating": 4,
+      "text": "肉很嫩！算好吃的河粉🍲ㄚ炸春捲我沒有印象了XDDDD",
+      "language": "zh-Hant",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhAOf9OnQYFO1YS-jdYaLGE8",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puV1iCHuGP_p_8765wXehZ7E-LMzUlpDAzJSM4WQjEnhtInobc3BUZl3rlVFsCXn7HkNrhMJoURJ2YFJzF-yJkqJeMyGzHZOcY4kl5YaJN3w9PcQUNvM4Aq2HMA6tdjH8_RfbJ9OwKQ3Aw",
+          "size": {
+            "width": 4284,
+            "height": 5712
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhD8BulIa-rvJtjThI0LTXxU",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ps-NB-ANCznpoIMZAs7lRe_UB6y9rV5u9C2N4ZLrSgUiaJ1kxocK-Az1Hr1Mab9xU010z6c6YVOnBCA9C4QQOgf06QotC1y4sH15AHRLBYFSsd7eFYVJPAYXhg6ZeCs8eyT53Hly9KzkEE",
+          "size": {
+            "width": 1108,
+            "height": 1477
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhBn9SqXoFG2OMQOqocYyH7H",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptwBmy6yF6XvG4ItloLSdNiXB7lNSmbwnl36NHVf2SSuTg8DWQrQV4WUD1ucBpv-6RIr6Mv_-0Jb93aZe63hzT7Zhu8ZY57L-9hB8W8yYALWIHJKs03IlPQ1dIoFnDpcVAOg6Vl8k0KdOf0",
+          "size": {
+            "width": 1108,
+            "height": 1477
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhBgx5awGLr0mu5lmf8Ncb5a",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psTJ12S5JySzvuWQotPHkYKLdoJQzqE9obdj3eSIypw9rNub1eqhDiiLipZZNn7jx1SCiPTZt7uE0mV0AqxJfnrp6HJvvXwsXH8DyW15E8RVlQxqPsFEcodBUNW8tyAsDErrRyOwTuotAVg",
+          "size": {
+            "width": 1108,
+            "height": 1477
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhBwqFFQPLps_e045CSq56bv",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psxRCxSIfrPTVDemKuyI2aT3UZ-ieya5NuDFewIqEZjJ_SuEUBTc355aq8NvyUsRKuRSKC8Q_MWVOiqu2Lkm2_coVgsCTSgwBRRY9uxkGM2aTFtsDac0beiawlsj-_qfayKIcbz7-mIUaQ",
+          "size": {
+            "width": 1108,
+            "height": 1477
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2t0R1dGOUZPRU51WW5OU1lWTnpORkEyZFhKT09HYxAB",
+      "publishedAt": "2026-02-21T05:08:56.667Z",
+      "updatedAt": "2026-02-21T05:08:56.667Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "정철환",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocI8qMu7VvfT1NcRSJrEW56Mtl0_iNoleB9bR2orGoWNFFIGYw=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/110498609250508704866?hl=en",
+        "contributorId": "110498609250508704866",
+        "reviewCountLabel": "Local Guide · 18 reviews",
+        "reviewCount": 18
+      },
+      "rating": 5,
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhABtndQ-ofiaoxX6xAweCtD",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvnxgEEPPWzi3aaLrF5M27DrovpJq8LL2-ldf0v20jp3oIHZuPLZcD3fbkpPfcitIZ_OQYcfwXRlEE7afr-opXcLVdB1PoCeX2uowqSMlWR4OCuw_RkS7Qd44Rag8dzr_HjU0Fhu2omdtop",
+          "size": {
+            "width": 4000,
+            "height": 3000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhCLuXTw4l50UeB48opqYneC",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptqK9nIOQpjMTwqMqSFskH-S2LBOQjtTfQZLQcgn1Hh9IbZo_F5_6NJIWfWxa9-MtjeU-OIuCggiEI3NOr8YuwyJkljm51PoGg3_yuFGSprse8Z6vLrH9NlmjiCsr5hEofZyYoWgEg6EscP",
+          "size": {
+            "width": 3000,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25vNWFuSkhUWEJvTlhoRlpWRTFjMDVmT0dJd2RYYxAB",
+      "publishedAt": "2026-02-20T07:21:45.796Z",
+      "updatedAt": "2026-02-20T07:21:45.796Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Mandy Li",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjW8BMaCCQZ4yT6UedtFDxbXlZEeA1jw_9MtCTv98luVQplxupAtCA=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/101318487846497073196?hl=en",
+        "contributorId": "101318487846497073196",
+        "reviewCountLabel": "Local Guide · 22 reviews",
+        "reviewCount": 22
+      },
+      "rating": 2,
+      "text": "遊客餐廳 蝦春卷比其他地方貴2-3倍\nPho Ok 不算貴",
+      "language": "zh-Hant",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2xKSWNsOXJPR2RLUWtSWGFuUnpNV2wwUkhwdVdrRRAB",
+      "publishedAt": "2026-02-20T01:32:12.235Z",
+      "updatedAt": "2026-02-20T01:32:12.235Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Jirapong Sriwat",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjU7PNWh15UUXSvJZIgMgKq5vof06w_yOas9NdLx59pGYuFzKmM=s120-c-rp-mo-ba4-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/101167777097870649236?hl=en",
+        "contributorId": "101167777097870649236",
+        "reviewCountLabel": "Local Guide · 63 reviews",
+        "reviewCount": 63
+      },
+      "rating": 5,
+      "text": "One of the best Pho restaurants in town. The spring rolls are also very delicious.",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhBiy72SWM2xuMc2w2IaQxOJ",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvDkAC0oJDIimQjYQQAjzPng_mCnXVDDX8yGWE4-EBdxdPOj-MNYfsK6KwnsBMQeSZnf5pOWqU2rZ_7cq3U07vljo6EnIeBHx_GeE_fK2cu6UD-rUdCytGZyDMznd3Er6TLTfvns7SKlKhu",
+          "size": {
+            "width": 1477,
+            "height": 1108
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDAzjnQCGxBb_9uYBawrFnM",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puytyzjw65jFSaZN60IHxhHmgZw4zNux1d2hz3KL-AqgoK2UaFKFWm1sjyox8YInTccH2-NGzR3zW3zOK6UlggG64OZfhCH1GHOdt2TmjzmlGNYnGfHHnsrjVp0vbfmcd9xWZYST3x91pBz",
+          "size": {
+            "width": 1108,
+            "height": 623
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDN6PWfXAzwo9jL6t9iX_B7",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptXgPt5Aqe6bxnn2IphIGUeJhrwWVPQVoTUaPWjzuUx5qatElMDs5amZBI4T-fXowy-kJgxUQPzJJ1J7r7_nohP6R_x4k5gk-bJh6ghT8b7UhHk7siDHXa4fUDgUzrdirCYwdrNkaDw5nP2",
+          "size": {
+            "width": 1108,
+            "height": 1477
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2xOelRsZEpSVmxvT1VveWRYSlljWEJVVm5CQlEzYxAB",
+      "publishedAt": "2026-02-17T11:13:39.279Z",
+      "updatedAt": "2026-02-17T11:13:39.279Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Nuch",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVvSsrs4H4ooBhUhDKHTSrQHIqeW8K6KXxzsAr00sPhASiRthZX=s120-c-rp-mo-ba2-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/113014129800187350173?hl=en",
+        "contributorId": "113014129800187350173",
+        "reviewCountLabel": "Local Guide · 13 reviews",
+        "reviewCount": 13
+      },
+      "rating": 5,
+      "text": "Lunar new year are you open?",
+      "language": "en",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2twa2NWOHRiVlpoYUZObFV6VnVNRmRQV0dSWWJXYxAB",
+      "publishedAt": "2026-02-15T08:16:18.678Z",
+      "updatedAt": "2026-02-15T08:16:18.678Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Win Sitti",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocJ36lV-YZq5Vo2trD4VN95WmLkyJQateXCe06DPvhuimxGAGSk=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/116113478223028412173?hl=en",
+        "contributorId": "116113478223028412173",
+        "reviewCountLabel": "4 reviews",
+        "reviewCount": 4
+      },
+      "rating": 1,
+      "text": "เจ้าของร้านผู้ชายหัวขาวขาว ไม่มีมารยาท เรากำลังนับเงินจะจ่าย เขายื่นมือมาดึงจากในกระเป๋าสตางค์ เฝอก็ไม่อร่อย แค่มีนักท่องเที่ยวเยอะ ไม่แนะนำ ร้านอื่นอร่อยกว่าเยอะ",
+      "language": "th",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2tFeWFXRnlPVVZxTlhkRlNGSlpVa050Tm0xVlVYYxAB",
+      "publishedAt": "2026-02-15T03:12:15.077Z",
+      "updatedAt": "2026-02-15T03:12:15.077Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Harry",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWWSF-G0vtPiTGA6XFooIhF29iXg4-5gcYPx5V4sDVvKmXnUec=s120-c-rp-mo-ba4-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/110324620747950939482?hl=en",
+        "contributorId": "110324620747950939482",
+        "reviewCountLabel": "Local Guide · 119 reviews",
+        "reviewCount": 119
+      },
+      "rating": 1,
+      "text": "Soup tasty is good but with 75k look at the portion of beef. It’s a joke. Don’t come here if you are lover of beef.",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhAsvIHKqmGEGauPDGrP3g0w",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptumicgGaTuubYDo2_O0NoCAq1QFW88J5ATlcqwjUSkvRbqqmBP1AMnP5oqHhd1XV9j4zdEed3Ih1ZPBUK_QWykCOr25CGZAz4YRFlcv9sIE4OaO9LRZurz1nNLZXq9CO8NF36tQTcMjr2r",
+          "size": {
+            "width": 4284,
+            "height": 5712
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25FeVJuQlFkMUpNZFY5S1QweFJlVkJHWW5ONFdtYxAB",
+      "publishedAt": "2026-02-14T15:39:16.854Z",
+      "updatedAt": "2026-02-14T15:39:16.854Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "neo han",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUArlqopcUnzyUFO9-BRtzavP2E7A4DbpmC5DbMSNXF4HY2o9Fm=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/118244858569797941157?hl=en",
+        "contributorId": "118244858569797941157",
+        "reviewCountLabel": "2 reviews",
+        "reviewCount": 2
+      },
+      "rating": 5,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21odFZURlVkRXByUVVGc2NtZDJVR016V0hOV05tYxAB",
+      "publishedAt": "2026-02-13T06:59:08.158Z",
+      "updatedAt": "2026-02-13T06:59:08.158Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Sheldon SU",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXFmccmJiEQwhd9-_AM7rth7irazMSs3j7r6RFYZWZQyp3-qqLF=s120-c-rp-mo-ba5-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/103804922784719354368?hl=en",
+        "contributorId": "103804922784719354368",
+        "reviewCountLabel": "Local Guide · 415 reviews",
+        "reviewCount": 415
+      },
+      "rating": 5,
+      "text": "Worth a try, a cool version of fried spring rolls that I’ve not seen in Hanoi",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhDqYgmIaf6ICgklGD-OVf16",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ps-dXLR3L0qd3jF2KvYJl_iV0F7gk1fYbczh7qID0mUoMOgNMhPr7dtLgtIm4NNoGW4gz1_0Y48MKyPMNPu5HJDFKgLuTEOxXjJzs4hBAVCdvn0kuIHzVW4Ey8SIG2cFeJYMXRzFM-MSv3D",
+          "size": {
+            "width": 4284,
+            "height": 5712
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhBjEaMoAlMWC4Cj4tcTTOFg",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puIcadr4C9eVXxXsDG0nXRZvwPXITtmf33GL8r6vNiTa0xiBAFbKIMZpvQoZHQaQLutErUPfCd2_ZANoT4VTVUS51-NkkBR8f2QwjxeenvMTjOTE2JTaHJjA4g989wyxh6m4rj6UrRs_zSr",
+          "size": {
+            "width": 8042,
+            "height": 6032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21aaGVXMXphRU0yUkdZMGNHZFRaR05ZUVcxZlJHYxAB",
+      "publishedAt": "2026-02-12T11:45:58.765Z",
+      "updatedAt": "2026-02-12T11:45:58.765Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Hk Utsey",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUg7HqHgT6mh3hMHZpRUGNf0ZVnwQsutWlhklw0Ss5HHQiVxGko=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/104280621296207577230?hl=en",
+        "contributorId": "104280621296207577230",
+        "reviewCountLabel": "Local Guide · 51 reviews",
+        "reviewCount": 51
+      },
+      "rating": 5,
+      "text": "너무 맛있는 쌀국수집이고 가격도 3000원 정도밖에 안해서 너무 좋았어요. 남편이랑 갔는데 남편도 너무 맛있다고 하고 거기에서 파는 돼지고기랑 같이 주는 음식도 너무 너무 맛있었습니다.",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhBWhv0sNx8Q9WAs_V2zagob",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ps0xUWfRHw3RaFcSYy2NgNGVfWzaiRy52rJ30ipW1l7Rt5K1mNoEM7fcJraQVJ-sJIE5hNvOdnBix2Agv3t-5QTfBOSYlW8cNYEhYnFIT6gusIQPlfXpjSuWUSo5YchMnwe-d3RQfnjcl0t",
+          "size": {
+            "width": 2992,
+            "height": 2992
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2xRd1ZYbGpUbDlNWTBKMmRHSkpTbXhMZVhWU1VtYxAB",
+      "publishedAt": "2026-02-12T10:47:06.880Z",
+      "updatedAt": "2026-02-12T10:47:06.880Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Dongsuk Shin",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocKIs8uKQPpQzhqVlP0yWazMvcmYdbSkLtbQ8V6hN_zE7_067A=s120-c-rp-mo-ba2-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/114161203218853741064?hl=en",
+        "contributorId": "114161203218853741064",
+        "reviewCountLabel": "Local Guide · 11 reviews",
+        "reviewCount": 11
+      },
+      "rating": 5,
+      "text": "다낭에서 먹은 쌀국수중에 제일 맛난곳\n스프링롤은 진짜 맛있어서 꼭 드셔야함\n삼겹살도 잡내 없고 맛있어요~",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhAQM9MSuRJ5jiuGnkbZnjFn",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvgrWra0vHsOcTb3MdQup4gs-9epMzQ1EBp8OGOvFmwROVmXew4pHPGbD09nfUInqVcyEi7JbYfI-OMyKjofY4st1LAVWzW1abL1k0xE4UGa16nLeELruS2nptLFWm0ws3IGqPm0UQVEdw",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDoJKM15LzekQxujlbuKwcU",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvr92S4S-bXyabiVw-GgI8aG8QS18Ava2fo-7lvPtJnXEHj3UfmPVora2ASN1Ow4O2gglMIda334Hr8shRLnzP4ZojowtiYRau51zTixdU_DpoTQ42BRAuSWoK5FUHvgjzA2do7i3Wlf2g",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhBlUL9gzmPyDNBQ10hzPs0j",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptDHotU4NL4yu6N4Brhk3RyRggDfxYlyHxpbZfanuyEsivM6ZlXIMxuyOUpNYepIECrGJ_01Oaq_sCxu-1b3SO5PQp-mswa6Vl4Wh_liUIwnuJMHMPjKQ8WSd2h3fkIKW-GHhiN-0PwdW5n",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25jeFdHRnBZWGxGWm5SdVJIWm1ZelF0UlVkWWJuYxAB",
+      "publishedAt": "2026-02-11T08:11:57.402Z",
+      "updatedAt": "2026-02-11T08:11:57.402Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "노은서",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocKQml4rUoIGPVI_5MWtPry-YXLxtcQ2Rq5OmJHFPLx2Gnf3KQ=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/118129731256770077407?hl=en",
+        "contributorId": "118129731256770077407",
+        "reviewCount": 0
+      },
+      "rating": 5,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25wcU5XZzFkakZhZEZOdGVVUldjazFDVEVSd2VFRRAB",
+      "publishedAt": "2026-02-11T01:55:20.276Z",
+      "updatedAt": "2026-02-11T01:55:20.276Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "ราเมน พุงโต",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjV4LaWjhSIHqkJ5l4xkAUD-q04JJ5mTX7ZnbO8s0aWm7GwISNA=s120-c-rp-mo-ba2-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/112407628278299774587?hl=en",
+        "contributorId": "112407628278299774587",
+        "reviewCountLabel": "Local Guide · 5 reviews",
+        "reviewCount": 5
+      },
+      "rating": 5,
+      "text": "คือ ดีครับ",
+      "language": "th",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhAv1f1gxHJXVvmQNRr9mcss",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptZhcl3Zf6rPE444az8BdU2xEj80qA4D0gmUt10zjmjTongfWqYiQrhUFAv3fnYlROF4UC-nJ5Kmd1N78DC3m7e2BdNsW95yhypA29H8A4R49-xCurlnVtIo3OL-I29vq5sPIUIrvVr1sU",
+          "size": {
+            "width": 4032,
+            "height": 3024
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhCLn0ftrXovRtkJg3A--lxK",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptj9PmIb2OpwMJaBX7zpZa2V7RXWnEFYXCYojCqd98GZ7xSeSQzPM9vXUu7c8d34_-fl8CZu7YCAxaKQbmuLRnQqqqY2QYvdDO-Q21owCrHi53UgztxtAvzwCKAcoOr0AklA9-7rTeSk_3L",
+          "size": {
+            "width": 5712,
+            "height": 4284
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhAJCWlk722lT82JSzp3UxO7",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pv5JDYadiqsRO4Hc1uowy_dauLt8mNaoyG2m2WUr4bXxrrIXVR3wJQfERb8BHdq5Le8Bz3KWmLvdAQIpxk8Ce5OquBEwPzIipyea1EnOHFfsrXf4HZ-HPwzH9YBeG1-CHViOAQ7xGZQ0DEG",
+          "size": {
+            "width": 5712,
+            "height": 4284
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2tvd1J6SXhUR0pZTFdoTUxXUXdjRnBHVldGNFgyYxAB",
+      "publishedAt": "2026-02-10T10:37:00.511Z",
+      "updatedAt": "2026-02-10T10:37:34.185Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Remus R",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjX1mv-qpT-Io7QfZ748tBv8bYnAOy7-tiISVtHHIoJugYHyZ6w=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/105347179471095142648?hl=en",
+        "contributorId": "105347179471095142648",
+        "reviewCountLabel": "Local Guide · 43 reviews",
+        "reviewCount": 43
+      },
+      "rating": 5,
+      "text": "Authentic pho bo place",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhBVAdQKmRz2ST871ywHe-Jp",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvqewnUcF-b_f9fTNykVHI0ggiigCx8x7NgwcUn_wP80NvbCSEtSeQmgvL1siRkWSE7LzRsza6jVmt_SoDHHLKfcfFUDsQBS1ectT5BqxQWXyD-JHmwveenRRxLAsrzqZioLnhCg_ZPOCw",
+          "size": {
+            "width": 2160,
+            "height": 3840
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2kxT0xUTk9lRGhrU0VzdGIyUTVibTFUZURJdFEzYxAB",
+      "publishedAt": "2026-02-09T10:59:02.468Z",
+      "updatedAt": "2026-02-09T10:59:02.468Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "백종선",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocKM-sr69yMNTM7T-VjOba2RvKXhJM_x8s0865EZgssDEojqIw=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/117410723926872955699?hl=en",
+        "contributorId": "117410723926872955699",
+        "reviewCountLabel": "Local Guide · 6 reviews",
+        "reviewCount": 6
+      },
+      "rating": 5,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT210d2FreGZSSEJyU1VWbU1GRkVTWEZITm5kQmRrRRAB",
+      "publishedAt": "2026-02-09T05:43:58.407Z",
+      "updatedAt": "2026-02-09T05:43:58.407Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "serra sebastien",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocLWq_mi4omYieJVo8Nu7qxspdUkr3R44bq1KjaNSnEmTQXwzA=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/108641923105712983039?hl=en",
+        "contributorId": "108641923105712983039",
+        "reviewCountLabel": "Local Guide · 53 reviews",
+        "reviewCount": 53
+      },
+      "rating": 5,
+      "text": "Restaurant\nJe recommande ce restaurant pour les amateur de soupe pho\nSpecialite soupe pho.et autre\nRapport qualite prix imbattable\nService au top et rapide\nLieu assez calme et avec un brise qui vous raffraichie .",
+      "language": "fr",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2tscGNuTmlkVlp6YzNnemJtWTBRa2R3VnpsUVZXYxAB",
+      "publishedAt": "2026-02-08T13:49:20.461Z",
+      "updatedAt": "2026-02-08T13:49:20.461Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "신이즈나상혁",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocICEwsKOVBFos7-e6xCXRM6Oe3tr8z7JzXeSMWX8ZLr_G_Zzg=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/105988278409982009422?hl=en",
+        "contributorId": "105988278409982009422",
+        "reviewCountLabel": "3 reviews",
+        "reviewCount": 3
+      },
+      "rating": 5,
+      "text": "모든게 베리굿 퍼펙트",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhC_w7C4TK0inv-CAl_1G4Qd",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pu7a_RwXdxUbeJFpUdMf7IiSyDlBOk76_vzPJ_ET646bJdA7QobIOebuvcs_DKMALvvkmiLvXjwoplHSsKA-lLtq08uybjby78iB6eNz3khSThsiRJv3gflEGjQCxUapmN6xxSsrB55Hwk",
+          "size": {
+            "width": 4000,
+            "height": 3000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2taUGJURlVSemM0VUZoMVRUY3liRzF0VEdwRVpWRRAB",
+      "publishedAt": "2026-02-08T09:57:31.284Z",
+      "updatedAt": "2026-02-08T09:57:31.284Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Supaporn Thampanya",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWl7wFi6yhhjU-8UJ2xUvYXEbh2vm0NKum0fIZ1yULjDiW0XRPO=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/102698219945157119312?hl=en",
+        "contributorId": "102698219945157119312",
+        "reviewCountLabel": "1 photo",
+        "reviewCount": 0
+      },
+      "rating": 5,
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhAyklvAHwZFYbI-jfV-AASo",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvH4uW03Qp7rh4nc74cR76apVY-qqs523HY0LT_tnKD_SFDOjqK44ZhsgisT_zQi9Y-eEinazik1IFvl-KEfr1ZXyGY1El6hdrRGK3bAulVcBeGcX8D0LXpvUdh2lWEkfjXtJ5jIj2O8V8",
+          "size": {
+            "width": 1477,
+            "height": 1108
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25CSGRtcGFlakpTVVdSVGJrbHhOR04xYlhOMVdYYxAB",
+      "publishedAt": "2026-02-07T14:46:16.869Z",
+      "updatedAt": "2026-02-07T14:46:16.869Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Hung Huynh",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVaXY2kgijTBHkK5QptlPdlQ-J1SQWpXQyfOK3ilug4g-uXRbfu=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/117991839700597108461?hl=en",
+        "contributorId": "117991839700597108461",
+        "reviewCountLabel": "1 review",
+        "reviewCount": 1
+      },
+      "rating": 1,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25Rd1dqWkxPVkZ4YmxkMmNUZDZRVVpzY0ZOdVpHYxAB",
+      "publishedAt": "2026-02-07T07:13:35.856Z",
+      "updatedAt": "2026-02-07T07:13:35.856Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "YTPT",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocJlsobLseEGImVMPnSv5GnoH7PfsIhwakBtpUJ3VxNyOwvY8A=s120-c-rp-mo-ba6-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/107037419242826927611?hl=en",
+        "contributorId": "107037419242826927611",
+        "reviewCountLabel": "Local Guide · 431 reviews",
+        "reviewCount": 431
+      },
+      "rating": 4,
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhA_xHhczVokeFLlcI5Vt7KZ",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvs-cKgbjaRYeP5Tw6UVeZnfbXwAHyleuG9wfzugjgytQzmRhPLZQpOYgn3EtTN8NUXDP0CJsEFwcdpUJrSWlEwLy6Pj7UKqrKSd9gpAnSzCJ7Oq6iqkeo6m1WRo897joYccPS1Ocbb7TY",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDgRdH3BoElAIzg6Zy3kRBO",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pv38RsIALA0_WlVAoH1N0GVIM-OYClM-QKTIaAHPhaLIwpA0S5B97DF3PxZjFYM5iM-WuP1Wrq2nv9LSsnLd6sVqF_rdj_MtpAzWFLwEQhCR0d4qwpYNU6wKb6KxWSVZ7iIKulhfhkH9iA",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhBSiqfNaFuesQiL0MEgho15",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptP7DNiBHCxSnxIz90bqLR8zzyjTOtw5rPV5S4OyDiJN2BMQ36qcnGa_ozsRFBJL75niu3CRMZWtCEnyi1TqfoaLoakNcVhtJAmVB6ekiFaXN3xKCEWviXksFURCiB0tG1l7FlAddcoGRgV",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2psNFYwdDJibmQ0V0VkVVRqUmFRVlV3WldjNVNWRRAB",
+      "publishedAt": "2026-02-06T03:23:32.881Z",
+      "updatedAt": "2026-02-06T03:23:32.881Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Angel Love",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXBURRSTJvyczxjEQyQfW2XZkdMDYNUDb2NbWftPG8H0ME1N3XW=s120-c-rp-mo-ba4-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/108631649995995831641?hl=en",
+        "contributorId": "108631649995995831641",
+        "reviewCountLabel": "Local Guide · 85 reviews",
+        "reviewCount": 85
+      },
+      "rating": 5,
+      "text": "Ok 👍",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhDbm1wpscI_O8sXG-RkroXK",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pv5vZD7GSXFb-zG9wp4SfjoqVG2aVmuUacmoZAPiEgsLmWiNAQeP33gcYHQ1hPcAmsoMev8cGTDMY_s965uvcI2O644iaq9H_DtHLXl4B9zBJ9lKmAhW3aEgDbFD3tC1uFS4kuHIxAFgMwd",
+          "size": {
+            "width": 3000,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21acmNteGhRekZ2ZFZsYVQyVnZRVWRYTUdOMmNGRRAB",
+      "publishedAt": "2026-02-04T06:34:46.552Z",
+      "updatedAt": "2026-02-04T06:34:46.552Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "หวัดดีฉันชื่อโอลาฟ",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVpd0wZpsyW_B4jKaplLZAyDQDE8pCbnJyCA3zbZ4o6mr_owks=s120-c-rp-mo-ba2-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/101186515593169061282?hl=en",
+        "contributorId": "101186515593169061282",
+        "reviewCountLabel": "Local Guide · 12 reviews",
+        "reviewCount": 12
+      },
+      "rating": 4,
+      "text": "เค้าแนะนำมาต้องมาลอง",
+      "language": "th",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhDrL7se1HDTHRavXak47joh",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psJbUEA621rJOjkjAXaH-BQfkYhf3CrbPRL0eb-Vd3YI3apBJNC9IT9RhSgYR_T81yIxP7KwtFU9cH-8LLzswzk-O1A1nqwgzZrMS-Ee_0Bsmlcxforl5MwV2GxNOI9myobKytI7xG0MX4",
+          "size": {
+            "width": 1080,
+            "height": 1920
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2xadU9IWTNXRUpNWDBsVFVXcHBhM2w2UzI1R1FWRRAB",
+      "publishedAt": "2026-02-03T15:23:56.054Z",
+      "updatedAt": "2026-02-03T15:23:56.054Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Mynameis",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVmhRGuFoMzkXUUVbJSkljyNEmoXDyfjKInZXqqcmDbe6GRIPk=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/112337529513743957904?hl=en",
+        "contributorId": "112337529513743957904",
+        "reviewCountLabel": "10 reviews",
+        "reviewCount": 10
+      },
+      "rating": 5,
+      "text": "อร่อยทุกอย่างฉันชอบมากตอนนี้ฉันกลับประเทศแล้วแต่อยากกลับไปกินอีกครั้งถ้ามีโอกาส!!",
+      "language": "th",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhAbk9mHX8OPdXV8-3ytusu2",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pv9ak1wODEWvcew7JPFJPQukZXdJgs14-j1eRzb_PGP4O7P0V11LRqu0wFXLumJ0Ec2aPlfQmAK09g3KxhkHgBzgRLQKoz17OqzbxboyIjEH8q3d2HIc8qtk6f5h13CtAzTdLTE5M3QrC4",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25oR1oxWTBZMFpWZG1nNVlUTTFZMGc1WlV4UFRXYxAB",
+      "publishedAt": "2026-02-03T14:44:27.313Z",
+      "updatedAt": "2026-02-03T14:44:27.313Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "남유리",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocKXEGgNUngpHmzvYbPa83k5N6_QX69k6FQhXKJY5yVcSmnOYA=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/116518769090476339046?hl=en",
+        "contributorId": "116518769090476339046",
+        "reviewCountLabel": "8 reviews",
+        "reviewCount": 8
+      },
+      "rating": 4,
+      "text": "근처 쌀국수 집 갔다가 문 닫아서 급히 간 곳인데 맛있게 잘 먹고 왔네요.",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhDTiq0PYqcwJeH32zItoYA0",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvXpoaZ1U2AUZEdO5P8utdRix_zQAn01Cd0SrKHVBTMurcfzT515JQgj9Annstz_mDYUJjQl3ujebOc5Q7Rr5JGAmoYln875Vm7uuZQVuGeODdEOuU6ogBrtR2FpP-qwBEkj8S42J5UeNk",
+          "size": {
+            "width": 2252,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2w5RVJWcElVMlpNY2xjNFowZG5lRkJ4TW14SWIzYxAB",
+      "publishedAt": "2026-02-03T05:30:06.086Z",
+      "updatedAt": "2026-02-03T05:30:06.086Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "ApplePS",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjVlvKUWeQH7QrJ5sjchDq0rbYpOqUWt-8hhoG1iy1FNznQnudY=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/103290104264845180401?hl=en",
+        "contributorId": "103290104264845180401",
+        "reviewCountLabel": "Local Guide · 39 reviews",
+        "reviewCount": 39
+      },
+      "rating": 5,
+      "text": "อาหารอร่อยมาก ราคาไม่แรง ร้านสะอาด มีห้องน้ำสะอาด\nพนักงานพูดภาษาไทยได้ด้วยเก่งมากๆ\nVery good food and Delicious.\nStaff are also being friendly and can speak Thai very good",
+      "language": "th",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhC0Zx3fP0qXJhgknUyUjj_K",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ps0CKPBFL8rDGf5l2nhgxTVMXCS7GeQqqS0xId3T-t5q-UaAEhLJIsF4FqiHMDKZhjnDhX1L_6u3Qi74LLOX8VQfQgrGPGtTc9TM5Mo15Jw6b0h6TviSzZCbpBE-M8QjQR--RugHOJu0bEo",
+          "size": {
+            "width": 4284,
+            "height": 5712
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25OSFpsaHJkRzQzWmpKa1FrOTJZVVZNTWtOUVNIYxAB",
+      "publishedAt": "2026-02-02T07:01:38.762Z",
+      "updatedAt": "2026-02-02T07:01:38.762Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "KINGFUNG LEUNG",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocIIYQvJwDuci2uhyxgXZVdee6CCWhp6N_aoyrgp_tfM5_613A=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/102564425067416622182?hl=en",
+        "contributorId": "102564425067416622182",
+        "reviewCountLabel": "5 reviews",
+        "reviewCount": 5
+      },
+      "rating": 5,
+      "text": "湯底清甜，開胃，亦點了蝦春卷，非常脆口，及蝦肉彈牙",
+      "language": "zh-Hant",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhCNO48BJFriQz9Kf6iPIMdc",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psSVgdv2JNrabJoIAS-XdQxaE-LR-QP1dauJNR4br4xFxLnGYgAcx9NU9Wl6KRyoU3KYP1abavWwpjlqaNSBnWUuFEEcISQcI6js9jPBtiu8juiqdSqIHk6xr5SjSvK06WKl1Qb8KAFUwqK",
+          "size": {
+            "width": 1320,
+            "height": 2868
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25WVWJYVlBUMEZZUnpkWVJ6UTVjM1J2WkdJeGEzYxAB",
+      "publishedAt": "2026-02-01T08:38:37.425Z",
+      "updatedAt": "2026-02-01T08:38:37.425Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "GoldenSUN Hwang",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXa0JzAv3alF0txID9igk8DqOUrNq9TVfoQ78nmEVE6ClBO5ZrM=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/105534877859910710738?hl=en",
+        "contributorId": "105534877859910710738",
+        "reviewCountLabel": "2 reviews",
+        "reviewCount": 2
+      },
+      "rating": 4,
+      "text": "맛있지만, 노상같은 느낌, 현지인 같은 맛\n볶음밥은 기름졌지만 맛있었음",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhBi4kN4kYqgqMxcFIaDZ-wn",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pupCSi_C6wwyMfTyylBFL6EnfQCqa8eI-HjmpP00ilaapnC4PIrl41ak3gRls0053qgvOhupJH7uGVZ0VDxuTag09AlDIhuCt5DksMhxksF0fX4eJDyUlZOQJZxj7HXNtbgG4iZJOm-02js",
+          "size": {
+            "width": 3240,
+            "height": 2252
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2pSMllUSXRhMWgwZGpkVlozRnNZblpqZGpCTlEwRRAB",
+      "publishedAt": "2026-02-01T03:19:59.330Z",
+      "updatedAt": "2026-02-01T03:19:59.330Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "พงศ์เทพ กรีเดช",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjU6Zaq31indq5IMGUbQKHVq9k29qGQsD9joQGYVew6Vz8u70Rg=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/111563207198274820594?hl=en",
+        "contributorId": "111563207198274820594",
+        "reviewCountLabel": "Local Guide · 24 reviews",
+        "reviewCount": 24
+      },
+      "rating": 5,
+      "text": "รสชาติอาหารก็ถือว่าดีถ้าชอบกินจืด คนไทยอาจจะต้องปรุง หมูกรอบก็โอเค เปี้ยกุ้งอร่อยดีตัวใหญ่",
+      "language": "th",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhDWeAzlbtsVbKmp5qjtI0Dg",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptMgNVm2DvAD0p65Q7VRtRS_X1szaev7Qg7ao2hODbLSLwK9ZLi5ixkD9aE-96ZcdfAkFdgR2R2N1ezecYcTNuKElhN64RXPmS4p8Oi8UkJJh9LXfgThhz1RKX-11eB5z41qdxEq6qG_McP",
+          "size": {
+            "width": 4284,
+            "height": 5712
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDTTN-3c4PS3yuUNsdjgK7k",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psRAG72VR8YtaB5efPNwpBOzFvP1tE6zyAkVVJauk8ezM5z-7bnyTjcr2NAIeqYdT2pyxdD0m8RXaeIE6jmzdSSKLBTvOy225g-kukWHEPwpzw0kt1tc2raCiBn7bQlhAugTu4PSpukS8Y",
+          "size": {
+            "width": 4284,
+            "height": 5712
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2xWRFNsaGljMWhJZFVkM1pVcEpNbWd5U1ZwR2RsRRAB",
+      "publishedAt": "2026-01-31T16:09:08.426Z",
+      "updatedAt": "2026-01-31T16:09:08.426Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "T KG",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjUNMxOgPFHCn5GV50loctIYAquqzX_g-OaL9EDqgkPiOEJhRNA=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/103171137388468492411?hl=en",
+        "contributorId": "103171137388468492411",
+        "reviewCountLabel": "2 reviews",
+        "reviewCount": 2
+      },
+      "rating": 5,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2xwUVZuRjNjbmhUUlhZME5rcE1NWGgwYlhGd01HYxAB",
+      "publishedAt": "2026-01-29T14:13:09.987Z",
+      "updatedAt": "2026-01-29T14:13:09.987Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "신혜민",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWTq8mmLo_iazaCodiKLlfSND6CROQKXhSejOOQP_2XF4uJQUM2=s120-c-rp-mo-ba4-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/100408713518187114709?hl=en",
+        "contributorId": "100408713518187114709",
+        "reviewCountLabel": "Local Guide · 34 reviews",
+        "reviewCount": 34
+      },
+      "rating": 5,
+      "text": "다낭3년차사는 교민입니다.\n안트엉쌀국수가 최고였다고생각했는데\n이곳은 국물에 깊이가있어요\n깔끔하고~ 퍼틴은 밀가루빵 시켜야주는데 이곳은 셋트바리라 좋아요\n스프링롤은 맛대비 가격이비싸다고생각됩니다.\n이곳은 쌀국수가 따봉이예요~ 해장으로도 굳굳👍",
+      "language": "ko",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25aRGIwd3RMVVV6VEVJd1ZFOVBkRkUxTURGRVNWRRAB",
+      "publishedAt": "2026-01-29T07:53:42.443Z",
+      "updatedAt": "2026-01-29T07:53:42.443Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "pt d",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocIjc-3HaLrhw89nmZe2NTY0MwcNz1u7MFMylhdx9ZvQxGsTcA=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/115291461312214164482?hl=en",
+        "contributorId": "115291461312214164482",
+        "reviewCountLabel": "2 reviews",
+        "reviewCount": 2
+      },
+      "rating": 5,
+      "text": "Đồ ăn thức uống rất ngon, trình bày đẹp mắt, view tuyệt vời và thái độ phục vụ siêu dễ thương ưng ý",
+      "language": "vi",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2pKSVQwVjVXRWgzVFUxUk1EbGpaRFZoVDFGdmFXYxAB",
+      "publishedAt": "2026-01-24T06:17:44.207Z",
+      "updatedAt": "2026-01-28T10:43:16.840Z",
+      "relativePublishedAt": "Edited a month ago",
+      "author": {
+        "name": "Alina Batmanova",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocJOndHNZHMu4N92gPJWWMNDWJpoFttnK5_WTNX_dB0j5E-W1A=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/106747180892443520213?hl=en",
+        "contributorId": "106747180892443520213",
+        "reviewCountLabel": "Local Guide · 18 reviews",
+        "reviewCount": 18
+      },
+      "rating": 2,
+      "text": "Не лучший фо, зелени мало, лайм один кусочек, а бульон вообще странный, ненаваристый, будто водой залили. Наверное, для туристов это подходит. В остальном хорошо, курица на удивление хорошо сварена, но в сумме получается невкусно. Сервис хороший и расположение удачное",
+      "language": "ru",
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25GVk4xWjRabTFHTUdveVFXWlFlV3BVVjFWT2MwRRAB",
+      "publishedAt": "2026-01-28T01:15:10.540Z",
+      "updatedAt": "2026-01-28T01:15:10.540Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Harry Chiem",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXiIlK6W13Zhk_geNEvnhX99Zfc7qRn0TohTe9EUcDP9uqNmfZ6Xw=s120-c-rp-mo-ba5-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/100724440673746634455?hl=en",
+        "contributorId": "100724440673746634455",
+        "reviewCountLabel": "Local Guide · 402 reviews",
+        "reviewCount": 402
+      },
+      "rating": 5,
+      "text": "Simply a great Pho place in Da Nang. A great recommendation from our Airport Driver. The even have Yau Char Kwai too! Delicious, strong broth with some great depth and great service. Highly recommend!",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhBwHzSbPW_p2XRvEDv6R-oK",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9ptqYVZtX3V0-a-986_KCf64QJOjnn0ia4Pjq86lfiylz3dIz860t9jdJW2X1Xzjg0LENJPMfeWFHt6X84IyvgyH20oErkcbpCmRvAo-JNFUMGazR7CkAv0ElQdzOgMvJU70tk6PS4EMzQ1U",
+          "size": {
+            "width": 3072,
+            "height": 4080
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhAE5zUR-ziUM1ccGLTXgXfE",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psEnKBw4AfwKwC4N9g2STHCdb99U7Oqo8Lnj7gLkzdtHoMu7Rz9MxPzeuctCCttuuyP26EuiCqukLVJrESXfa8JNQDI8qvOMu25UZo_PD7e_LAMqmeKJ45XYwrK797FdltzbJ4f1BztGOGU",
+          "size": {
+            "width": 2268,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2pZd1pYSkZNR1ZFYkVkSlEwaHhTR2R0VkZKMmFsRRAB",
+      "publishedAt": "2026-01-26T08:23:57.529Z",
+      "updatedAt": "2026-01-26T08:23:57.529Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Wai Ting WONG",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjU7zet1Pii4PxRimiOMG8ZjYy5gtlItACwHGeep6LzP2ftB5cAEFg=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/112617932277521271269?hl=en",
+        "contributorId": "112617932277521271269",
+        "reviewCountLabel": "12 reviews",
+        "reviewCount": 12
+      },
+      "rating": 3,
+      "text": "食物質素非常普通\n有其他更好的選擇",
+      "language": "zh-Hant",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhDMx8sVozAKFD5qptgB07Z0",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvqsQ9rFEe9HNXDEtgYibe8Z18E8pCXk6XLftQWAFVPSYkmWpI-RSIiNT9ksc76EX52FCHuDzeCDeP1JdAI6DjT9rRd39JpMmqc0AQ8gdXdWSOGdymaeyGa1eIX1Ex24dj5g5Tp6WdHSVg",
+          "size": {
+            "width": 3024,
+            "height": 4032
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2tkWWNXWm1SMGs1V0ZBMVR6Um5Oamw1UW5aaExWRRAB",
+      "publishedAt": "2026-01-26T01:33:51.435Z",
+      "updatedAt": "2026-01-26T01:33:51.435Z",
+      "relativePublishedAt": "a month ago",
+      "author": {
+        "name": "Pichapong Teerawajee",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXWEPRfAKCvvdgs0vk7_hdvvH6HZKshmzjayBqo8E-A72ZGb0Gy=s120-c-rp-mo-ba6-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/106877842998002822117?hl=en",
+        "contributorId": "106877842998002822117",
+        "reviewCountLabel": "Local Guide · 440 reviews",
+        "reviewCount": 440
+      },
+      "rating": 5,
+      "source": "Google"
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT2toSFRuaFRjbVZNUkRkbWRXNXBNRW8wVmpsSVQxRRAB",
+      "publishedAt": "2026-01-19T16:25:26.465Z",
+      "updatedAt": "2026-01-19T16:25:26.465Z",
+      "relativePublishedAt": "2 months ago",
+      "author": {
+        "name": "김선미",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocIYuX2k2PpzuPhywxzJ5UZy34TTA-mc7ZozdfdyK2JzV_v85A=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/102291583065715739701?hl=en",
+        "contributorId": "102291583065715739701",
+        "reviewCountLabel": "Local Guide · 36 reviews",
+        "reviewCount": 36
+      },
+      "rating": 5,
+      "text": "쌀국수 한국인 입맛에 딱이에요!",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhCHaeLjmhx8DSiSCHtgJ3bO",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pv5NZ8Rv_oq-XhxtOtE9_2ZbNR1h6-t2LCSmKm7e-7fRoCd5M-R_k86Vf6W8YjcFwmOc2cAXSJDHoiJzBAA78hyxlqC3ZzDdGQCRJVQIG5rU2dDDV6eNVfUJYC_Ntq7xTnvAwiGDaruPcs",
+          "size": {
+            "width": 4000,
+            "height": 3000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhAfbcLmUXg1BVPsYGrAThvm",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pv2xemcbouDmGjMA855k9tSPipPxJD6IGGqy0_zU7IG7Rb0rSqpcxQvORqtuWF8Z1Tz49CdVu1DTBgvscDqyh7vNJ6vtAKrW1DW8zbgeQOpGvM3AL3UCYPbjO1zFoDc_ZZBBMHrLJpvM8qy",
+          "size": {
+            "width": 4000,
+            "height": 3000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21keE16RlhRMlpzYjIxbk1HSmFNMVZaVW1aTFgwRRAB",
+      "publishedAt": "2026-01-18T13:53:39.646Z",
+      "updatedAt": "2026-01-18T13:53:39.646Z",
+      "relativePublishedAt": "2 months ago",
+      "author": {
+        "name": "Prasitchai Boonserm",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjWRxc0rIS6oq0WbBC7LeyC81XboYUdEthNACWFoj7lr2FwWAsOuRw=s120-c-rp-mo-ba3-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/118033370613033871644?hl=en",
+        "contributorId": "118033370613033871644",
+        "reviewCountLabel": "Local Guide · 23 reviews",
+        "reviewCount": 23
+      },
+      "rating": 5,
+      "text": "An Authentic Gem with Standout Pork: Quan Pho Hong\n\nIf you are hunting for an authentic local dining experience in Vietnam that balances great flavor with a welcoming atmosphere, Quan Pho Hong is a spot that absolutely deserves a visit. It captures the essence of a traditional Vietnamese eatery—bustling, unpretentious, and focused entirely on the quality of the food.\n\nThe Food and Drink While the restaurant’s name suggests a focus on noodles, and indeed the pho is tasty with a rich, aromatic broth that hits all the right notes, the menu has a hidden superstar. The crispy pork is delicious—perfectly seasoned with a satisfying crunch that complements the softer textures of the noodle soups.\n\nTrue to local hospitality, the meal comes with plenty of complimentary sides. You are served free vegetables to add freshness to your bowl, and free tea is readily available to wash it all down. For those looking to unwind after a long day of sightseeing, beer is available as well, making it a great spot to relax.\n\nAtmosphere and Service The vibe is distinctively casual and open. It is important to note that there is no air conditioning, so it can get a bit warm, but the ceiling fans and open front keep the air moving. This is very much a part of the authentic street-food style experience. Despite the lack of A/C, the environment is very family-friendly, making it a safe choice for travelers with children.\n\nA unique and helpful touch for tourists from Thailand or those familiar with the language is that the owner speaks Thai. This makes communication significantly easier and adds a personal layer of hospitality that is hard to find elsewhere.\n\nGetting There Logistics are straightforward, provided you plan ahead. There is no parking available at the restaurant, so driving a rental car or scooter can be a hassle. However, it’s easy to get there using Grab. I highly recommend booking a ride to drop you right at the front door to avoid the stress of finding a spot for your vehicle.\n\nVerdict Quan Pho Hong offers a delicious, genuine meal with fantastic crispy pork and a friendly owner. Just call a Grab, dress for the warm weather, and bring your appetite!",
+      "language": "en",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhAEKe7W0L_N0H1nVX4ZIu8y",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puGtIVHvchLBMLhbFwekGqr4_L5_W1SKOczZKJfyPOl4kqNaVz2qHB0vmS49nFevOBCf2q3CNXzeGwX0YICrMAG_g8hlxuh_vKCmq4HgSCZZk_3yKrxUiT_WuEA-IHKiB1m10o67NBuH_Ev",
+          "size": {
+            "width": 1013,
+            "height": 1800
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhBg2PJWzDYVRoeYayjg4dQ3",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pug6X5zLquRZ2lLEYUM_ARdjZE_t8RBX2l7Obzih16ZcNuyKMBtlS9yQdcqG9QZUGqPeWkyGoFG3RZfURxQG79RR4fXYaMYN8yjc-G1_NXdOE1tHlCVcT7NiC35bDel2LnuYSDCBh32pL_1",
+          "size": {
+            "width": 1013,
+            "height": 1800
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDbq5CbSnLCpzUfHc6RNhW8",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvBxNs_WhAvx__mi6quH0ovG9EIL_vqSkjXChzq-GdYn_V_8_ZaQffbZS2GpgoumwdkOYty8Npqx1_FZVMDjwe4BH4qYkibibtYHMGp0tnmXEx7YKVqXlT2Q-JDcJsEAp1ts3N3mztEILY",
+          "size": {
+            "width": 1013,
+            "height": 1800
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhC63sr6_3pqVNs9oLfd7Az-",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9psGNMFhT75d7rzMdirzaahfdgZUEpcFeT-5V3UAHLn9N1gauki3b5GQ3UPHBog5qttVTZcgU0ZSo57TMssvEcKvbTTIR6DTXAAJYF7_-0Aeya2XyYyKK6xMNdegWrzWZH7Efy8ITPmOZbyr",
+          "size": {
+            "width": 1013,
+            "height": 1800
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT21KWVluVnJaV3BmYVdsa09UQlpZVFpLWWpOYVVHYxAB",
+      "publishedAt": "2026-01-18T07:49:59.838Z",
+      "updatedAt": "2026-01-18T07:49:59.838Z",
+      "relativePublishedAt": "2 months ago",
+      "author": {
+        "name": "상민김",
+        "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocI2PmzU3_rr-TYofWJ01S9uYpI-PXl4RL2Vrl5bhbmuVxn7og=s120-c-rp-mo-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/111256179370774580787?hl=en",
+        "contributorId": "111256179370774580787",
+        "reviewCountLabel": "6 reviews",
+        "reviewCount": 6
+      },
+      "rating": 4,
+      "text": "다낭여행 4일중 젤 나은\n식당. 국물이 깔끔하고\n서비스로 김치도 줌.\n새우튀김은 먹을만한데\n8개,10개로만 판매.\n두명이서 4개만 시켜서\n두개씩만 먹으면 될듯",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhDLkrUWRpNhDlJqVESbxcM8",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvohu7O7-3NtrnGDm2OB_roohmbxVWt-hRJgxrPwg-fPsHw3DFgoD3KZZ3VFIPMzpvs61xTriDOhweXKZRlOqKfneq9GX0RfU7y_NvNEUcrCH9k8KumcJ6COp50hhIVn5VIMVNknpK7NJ0",
+          "size": {
+            "width": 2296,
+            "height": 4080
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhCd01_ydmG0jCbDn9d2hfuY",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvzNrSLNW56WnSyWcm21mLVB4j9aKzcGRJ0HVQw0iHCIhhEegrW2xenMyH7txZ63IG54MfRJPN6TmW2Q3CV5n4QRzaaanH3Nmna3nJ8wlhnLbwaO9RUylcVS1fxCuKMsis3s5yG1VKAKYM",
+          "size": {
+            "width": 2296,
+            "height": 4080
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    },
+    {
+      "reviewId": "Ci9DQUlRQUNvZENodHljRjlvT25GV2FWYzRTVUZyVjNCM1RVZFlSa0p3U2pKTWJtYxAB",
+      "publishedAt": "2026-01-17T02:00:11.468Z",
+      "updatedAt": "2026-01-17T02:00:11.468Z",
+      "relativePublishedAt": "2 months ago",
+      "author": {
+        "name": "이종휘",
+        "avatarUrl": "https://lh3.googleusercontent.com/a-/ALV-UjXGTaTOY9nuX84ReP_yi267QRD_p6Op9ruflUF6DbfdyJTBtSKBqQ=s120-c-rp-mo-ba6-br100",
+        "profileUrl": "https://www.google.com/maps/contrib/107283146184787205643?hl=en",
+        "contributorId": "107283146184787205643",
+        "reviewCountLabel": "Local Guide · 861 reviews",
+        "reviewCount": 861
+      },
+      "rating": 4,
+      "text": "씰국수 외 다른 음식이 다 맛있어요.",
+      "language": "ko",
+      "source": "Google",
+      "images": [
+        {
+          "id": "CIABIhChZwr5uN-NnX9BdV79vMmN",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvFFA1LHAX5Y-bUTF2RBpXXyodRzRkKUEORmE__3kKHkNu-dQLgIzURkDKakMmftRPbbuR4qX9Yikxf0_vxic7LsJGsOHQvBwcDigvjubPxMJrLvCKE1QCqx7QzdHcp9C39mlWWrDloDnI",
+          "size": {
+            "width": 4000,
+            "height": 3000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhD3pLIs_KL2cFjwMtRkyQ7b",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9pvrkF3JGkDdMaxYHL53ZuRLAOFVxFGXA4hKCVsisqaJ37rEtYSVk-zRCztUq00LFQ_Xx6GUnj6thWYJApPsgOZ6RQsEswhOc2mWoAnrbmClbY688AbujS5hsUmHxAA87VAjMhwTqy3-ccMI",
+          "size": {
+            "width": 3000,
+            "height": 4000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhBKN78bsc_il8z6TldsugBS",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puHUNeYv8I-zN9hPm9lqSZSMfI_TwzIfLGI_C8I1eyBnJz15txx6N7iIZ9mllxXzMeP9nm7wLNoHoq2jPGR9cUKb8b14NZRfeVxP2h65hlfAlbOEgecQNOFX42t72ptoK2ykOcAtNLkVPCs",
+          "size": {
+            "width": 4000,
+            "height": 3000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        },
+        {
+          "id": "CIABIhDbD72-eBhUk7k0if1fNFzK",
+          "url": "https://lh3.googleusercontent.com/geougc-cs/ABOP9puYZ4h0yKJX8CV9rZG1w480XgM1SRosYI7FFmjnZCxxL-esABbftbRTec7vRnpgiWwET7g3hcwXHtRp04zeof-l71U6PE3OcZ9lW_MWUN6trRaCpKCLrDwq-tuEKlwuHHajKv_XiI9j12A",
+          "size": {
+            "width": 4000,
+            "height": 3000
+          },
+          "location": {
+            "latitude": 16.077658995868862,
+            "longitude": 108.22191651406231,
+            "friendlyName": "Quán Phở Hồng"
+          }
+        }
+      ]
+    }
+  ],
+  "intake": {
+    "items": [
+      {
+        "rawAuthorName": "HSFi",
+        "rawRating": 2,
+        "rawContent": "그냥저냥... 맛이 너무 없었습니다",
+        "rawReviewDate": "2026-03-23T11:21:10.206Z"
+      },
+      {
+        "rawAuthorName": "Thomas Nguyen",
+        "rawRating": 3,
+        "rawContent": "cũng được, giá cao",
+        "rawReviewDate": "2026-03-22T14:43:42.397Z"
+      },
+      {
+        "rawAuthorName": "Wannipha C.",
+        "rawRating": 5,
+        "rawContent": "น้ำซุปสดชื่นมาก ต้องลองค่ะ",
+        "rawReviewDate": "2026-03-21T16:03:03.846Z"
+      },
+      {
+        "rawAuthorName": "Chanphasouk Chounthavong",
+        "rawRating": 1,
+        "rawContent": "Food was normal, not bad but nothing special. An older man (not sure if owner or staff) asked me where I was from in a rude way, which made me feel uncomfortable. Customers should be treated politely regardless of nationality.",
+        "rawReviewDate": "2026-03-20T15:27:04.893Z"
+      },
+      {
+        "rawAuthorName": "정현영",
+        "rawRating": 5,
+        "rawContent": "다낭여행에서 먹은 쌀국수 중에 제일 맛있었어요.\n안토이.포박하이.이름모를 로컬.배달 다 합쳐 1등\n마지막날이 아니였음 한번 더 가고 싶을만한 집입니다.\n위치가 좀 애매한게 아쉽\n쌀국수 보다 짜조가 비싸지만 값을 합니다.",
+        "rawReviewDate": "2026-03-20T07:49:51.438Z"
+      },
+      {
+        "rawAuthorName": "Ольга Рощина",
+        "rawRating": 5,
+        "rawContent": "Прекрасное локальное место\nСупер вкус и подача",
+        "rawReviewDate": "2026-03-19T11:49:37.783Z"
+      },
+      {
+        "rawAuthorName": "ฮัทตุ้งพาเพลิน",
+        "rawRating": 5,
+        "rawReviewDate": "2026-03-16T03:45:27.184Z"
+      },
+      {
+        "rawAuthorName": "Amy Kim",
+        "rawRating": 5,
+        "rawReviewDate": "2026-03-16T03:38:22.591Z"
+      },
+      {
+        "rawAuthorName": "Lea",
+        "rawRating": 5,
+        "rawContent": "Ich war hier soeben einen Pho für 65k Dong essen, den auf der Seite 😂 ich wurde sehr schnell und nett bedient, das Essen kam ebenfalls zügig und war sehr, sehr lecker. In der Nähe des Hafens. Sehr zu empfehlen.",
+        "rawReviewDate": "2026-03-15T12:27:08.784Z"
+      },
+      {
+        "rawAuthorName": "Jac Jac",
+        "rawRating": 5,
+        "rawContent": "Local Grab driver refers us this Pho place! It’s very local and delicious, love it! We order both raw beef pho and cooked beef pho, both are delicious but cooked beef pho is much more impressed. Give a visit if you are looking for local Pho in Da Nang.",
+        "rawReviewDate": "2026-03-14T17:55:16.858Z"
+      },
+      {
+        "rawAuthorName": "Hai Phạm",
+        "rawRating": 1,
+        "rawContent": "Chặt chém khách. 1 đĩa cơm rang chém 150k",
+        "rawReviewDate": "2026-03-11T04:43:02.470Z"
+      },
+      {
+        "rawAuthorName": "신일곱",
+        "rawRating": 1,
+        "rawContent": "여기는 비추천(관광지 물가!!!)\n어찌 평점이 높을까요??\n쌀국수는 그냥저냥\n스프링롤은 15,000원(한국돈)\n\n엄청 비싼거임(2배)\n처음 쌀국수 가격만 보고 시켰다 한국돈으로 계산하고 깜짝놀람\n첫날 먹어 잘 모르다가\n\n목식당, 안토이 에서 실컷 먹고도\n2만원인데 동네서 대충먹고도 그가격이라 차후 배신감 듦\n\n여기 가격 확인해 보시고 비교해보삼 ㅠㅠ\n\n참고하삼\n즐거운 여행이 되기를...",
+        "rawReviewDate": "2026-03-09T10:31:57.505Z"
+      },
+      {
+        "rawAuthorName": "Kritsana Chimsuk",
+        "rawRating": 5,
+        "rawContent": "Delicious and big portion",
+        "rawReviewDate": "2026-03-09T06:42:39.963Z"
+      },
+      {
+        "rawAuthorName": "런던통",
+        "rawRating": 4,
+        "rawReviewDate": "2026-03-08T16:50:14.944Z"
+      },
+      {
+        "rawAuthorName": "MJ S",
+        "rawRating": 1,
+        "rawContent": "현지 느낌 느끼고 싶어\n노보텔 옆 가까운데서 먹고 싶어 방문\n쌀국수, 고기.새우롤 시켰는데\n\n고기.새우롤 가격이 사악했음\n야채 썩은것 투성의 것을 내놓기에 황당(가격 비싸고, 야채상태 엉망)\n\n다낭에서 제일 비싼집",
+        "rawReviewDate": "2026-03-08T01:51:41.421Z"
+      },
+      {
+        "rawAuthorName": "안재숭",
+        "rawRating": 4,
+        "rawReviewDate": "2026-03-07T08:06:52.686Z"
+      },
+      {
+        "rawAuthorName": "우야네",
+        "rawRating": 5,
+        "rawContent": "쌀국수 싸고 맛있어요 넷이서 쌀국수 3 튀김2 시켜서 많이 남겼어요 ㅜㅜ아까워~~밖에서 먹는데 갑자기 쓰레기차가 쓰레기를 치우고있어서 웩 했지만 로컬감성에 맛은있습니다",
+        "rawReviewDate": "2026-03-06T23:57:55.987Z"
+      },
+      {
+        "rawAuthorName": "nuji kim",
+        "rawRating": 2,
+        "rawReviewDate": "2026-03-05T14:10:42.761Z"
+      },
+      {
+        "rawAuthorName": "Dale M",
+        "rawRating": 5,
+        "rawContent": "Delicious pho",
+        "rawReviewDate": "2026-03-05T08:03:53.304Z"
+      },
+      {
+        "rawAuthorName": "Yonghee Jo",
+        "rawRating": 2,
+        "rawContent": "평이 좋아서 방문했다. 쌀국수 맛있다고 리뷰 남긴 사람 입맛은 제각각이지만 맛이 없는 건 아니고 기본 정도입니다. 찾아갈 정도는 아니고요. 짜죠? 맛있네요. 하지만 작은 사이즈도 양이 많고 비싸네요 쌀국수 작은 거(65000동, 짜죠 작은 거(270000동) 시켜서 335000동 나왔습니다. 이건 좀.. 짜죠 1인분 작은 걸 만들던지. 저는 메뉴 구성과 금액에 실망했습니다.\n보니까 한국 관광버스 단체로 오던데 신경 좀 써주셨으면 합니다.",
+        "rawReviewDate": "2026-03-05T06:38:29.199Z"
+      },
+      {
+        "rawAuthorName": "강신호",
+        "rawRating": 5,
+        "rawContent": "퍼 보 추천\n닭은 노계인듯한 향 남\n새우 스프링롤은 비추",
+        "rawReviewDate": "2026-02-25T10:22:10.697Z"
+      },
+      {
+        "rawAuthorName": "Julia Lin",
+        "rawRating": 4,
+        "rawContent": "肉很嫩！算好吃的河粉🍲ㄚ炸春捲我沒有印象了XDDDD",
+        "rawReviewDate": "2026-02-23T13:54:02.684Z"
+      },
+      {
+        "rawAuthorName": "정철환",
+        "rawRating": 5,
+        "rawReviewDate": "2026-02-21T05:08:56.667Z"
+      },
+      {
+        "rawAuthorName": "Mandy Li",
+        "rawRating": 2,
+        "rawContent": "遊客餐廳 蝦春卷比其他地方貴2-3倍\nPho Ok 不算貴",
+        "rawReviewDate": "2026-02-20T07:21:45.796Z"
+      },
+      {
+        "rawAuthorName": "Jirapong Sriwat",
+        "rawRating": 5,
+        "rawContent": "One of the best Pho restaurants in town. The spring rolls are also very delicious.",
+        "rawReviewDate": "2026-02-20T01:32:12.235Z"
+      },
+      {
+        "rawAuthorName": "Nuch",
+        "rawRating": 5,
+        "rawContent": "Lunar new year are you open?",
+        "rawReviewDate": "2026-02-17T11:13:39.279Z"
+      },
+      {
+        "rawAuthorName": "Win Sitti",
+        "rawRating": 1,
+        "rawContent": "เจ้าของร้านผู้ชายหัวขาวขาว ไม่มีมารยาท เรากำลังนับเงินจะจ่าย เขายื่นมือมาดึงจากในกระเป๋าสตางค์ เฝอก็ไม่อร่อย แค่มีนักท่องเที่ยวเยอะ ไม่แนะนำ ร้านอื่นอร่อยกว่าเยอะ",
+        "rawReviewDate": "2026-02-15T08:16:18.678Z"
+      },
+      {
+        "rawAuthorName": "Harry",
+        "rawRating": 1,
+        "rawContent": "Soup tasty is good but with 75k look at the portion of beef. It’s a joke. Don’t come here if you are lover of beef.",
+        "rawReviewDate": "2026-02-15T03:12:15.077Z"
+      },
+      {
+        "rawAuthorName": "neo han",
+        "rawRating": 5,
+        "rawReviewDate": "2026-02-14T15:39:16.854Z"
+      },
+      {
+        "rawAuthorName": "Sheldon SU",
+        "rawRating": 5,
+        "rawContent": "Worth a try, a cool version of fried spring rolls that I’ve not seen in Hanoi",
+        "rawReviewDate": "2026-02-13T06:59:08.158Z"
+      },
+      {
+        "rawAuthorName": "Hk Utsey",
+        "rawRating": 5,
+        "rawContent": "너무 맛있는 쌀국수집이고 가격도 3000원 정도밖에 안해서 너무 좋았어요. 남편이랑 갔는데 남편도 너무 맛있다고 하고 거기에서 파는 돼지고기랑 같이 주는 음식도 너무 너무 맛있었습니다.",
+        "rawReviewDate": "2026-02-12T11:45:58.765Z"
+      },
+      {
+        "rawAuthorName": "Dongsuk Shin",
+        "rawRating": 5,
+        "rawContent": "다낭에서 먹은 쌀국수중에 제일 맛난곳\n스프링롤은 진짜 맛있어서 꼭 드셔야함\n삼겹살도 잡내 없고 맛있어요~",
+        "rawReviewDate": "2026-02-12T10:47:06.880Z"
+      },
+      {
+        "rawAuthorName": "노은서",
+        "rawRating": 5,
+        "rawReviewDate": "2026-02-11T08:11:57.402Z"
+      },
+      {
+        "rawAuthorName": "ราเมน พุงโต",
+        "rawRating": 5,
+        "rawContent": "คือ ดีครับ",
+        "rawReviewDate": "2026-02-11T01:55:20.276Z"
+      },
+      {
+        "rawAuthorName": "Remus R",
+        "rawRating": 5,
+        "rawContent": "Authentic pho bo place",
+        "rawReviewDate": "2026-02-10T10:37:00.511Z"
+      },
+      {
+        "rawAuthorName": "백종선",
+        "rawRating": 5,
+        "rawReviewDate": "2026-02-09T10:59:02.468Z"
+      },
+      {
+        "rawAuthorName": "serra sebastien",
+        "rawRating": 5,
+        "rawContent": "Restaurant\nJe recommande ce restaurant pour les amateur de soupe pho\nSpecialite soupe pho.et autre\nRapport qualite prix imbattable\nService au top et rapide\nLieu assez calme et avec un brise qui vous raffraichie .",
+        "rawReviewDate": "2026-02-09T05:43:58.407Z"
+      },
+      {
+        "rawAuthorName": "신이즈나상혁",
+        "rawRating": 5,
+        "rawContent": "모든게 베리굿 퍼펙트",
+        "rawReviewDate": "2026-02-08T13:49:20.461Z"
+      },
+      {
+        "rawAuthorName": "Supaporn Thampanya",
+        "rawRating": 5,
+        "rawReviewDate": "2026-02-08T09:57:31.284Z"
+      },
+      {
+        "rawAuthorName": "Hung Huynh",
+        "rawRating": 1,
+        "rawReviewDate": "2026-02-07T14:46:16.869Z"
+      },
+      {
+        "rawAuthorName": "YTPT",
+        "rawRating": 4,
+        "rawReviewDate": "2026-02-07T07:13:35.856Z"
+      },
+      {
+        "rawAuthorName": "Angel Love",
+        "rawRating": 5,
+        "rawContent": "Ok 👍",
+        "rawReviewDate": "2026-02-06T03:23:32.881Z"
+      },
+      {
+        "rawAuthorName": "หวัดดีฉันชื่อโอลาฟ",
+        "rawRating": 4,
+        "rawContent": "เค้าแนะนำมาต้องมาลอง",
+        "rawReviewDate": "2026-02-04T06:34:46.552Z"
+      },
+      {
+        "rawAuthorName": "Mynameis",
+        "rawRating": 5,
+        "rawContent": "อร่อยทุกอย่างฉันชอบมากตอนนี้ฉันกลับประเทศแล้วแต่อยากกลับไปกินอีกครั้งถ้ามีโอกาส!!",
+        "rawReviewDate": "2026-02-03T15:23:56.054Z"
+      },
+      {
+        "rawAuthorName": "남유리",
+        "rawRating": 4,
+        "rawContent": "근처 쌀국수 집 갔다가 문 닫아서 급히 간 곳인데 맛있게 잘 먹고 왔네요.",
+        "rawReviewDate": "2026-02-03T14:44:27.313Z"
+      },
+      {
+        "rawAuthorName": "ApplePS",
+        "rawRating": 5,
+        "rawContent": "อาหารอร่อยมาก ราคาไม่แรง ร้านสะอาด มีห้องน้ำสะอาด\nพนักงานพูดภาษาไทยได้ด้วยเก่งมากๆ\nVery good food and Delicious.\nStaff are also being friendly and can speak Thai very good",
+        "rawReviewDate": "2026-02-03T05:30:06.086Z"
+      },
+      {
+        "rawAuthorName": "KINGFUNG LEUNG",
+        "rawRating": 5,
+        "rawContent": "湯底清甜，開胃，亦點了蝦春卷，非常脆口，及蝦肉彈牙",
+        "rawReviewDate": "2026-02-02T07:01:38.762Z"
+      },
+      {
+        "rawAuthorName": "GoldenSUN Hwang",
+        "rawRating": 4,
+        "rawContent": "맛있지만, 노상같은 느낌, 현지인 같은 맛\n볶음밥은 기름졌지만 맛있었음",
+        "rawReviewDate": "2026-02-01T08:38:37.425Z"
+      },
+      {
+        "rawAuthorName": "พงศ์เทพ กรีเดช",
+        "rawRating": 5,
+        "rawContent": "รสชาติอาหารก็ถือว่าดีถ้าชอบกินจืด คนไทยอาจจะต้องปรุง หมูกรอบก็โอเค เปี้ยกุ้งอร่อยดีตัวใหญ่",
+        "rawReviewDate": "2026-02-01T03:19:59.330Z"
+      },
+      {
+        "rawAuthorName": "T KG",
+        "rawRating": 5,
+        "rawReviewDate": "2026-01-31T16:09:08.426Z"
+      },
+      {
+        "rawAuthorName": "신혜민",
+        "rawRating": 5,
+        "rawContent": "다낭3년차사는 교민입니다.\n안트엉쌀국수가 최고였다고생각했는데\n이곳은 국물에 깊이가있어요\n깔끔하고~ 퍼틴은 밀가루빵 시켜야주는데 이곳은 셋트바리라 좋아요\n스프링롤은 맛대비 가격이비싸다고생각됩니다.\n이곳은 쌀국수가 따봉이예요~ 해장으로도 굳굳👍",
+        "rawReviewDate": "2026-01-29T14:13:09.987Z"
+      },
+      {
+        "rawAuthorName": "pt d",
+        "rawRating": 5,
+        "rawContent": "Đồ ăn thức uống rất ngon, trình bày đẹp mắt, view tuyệt vời và thái độ phục vụ siêu dễ thương ưng ý",
+        "rawReviewDate": "2026-01-29T07:53:42.443Z"
+      },
+      {
+        "rawAuthorName": "Alina Batmanova",
+        "rawRating": 2,
+        "rawContent": "Не лучший фо, зелени мало, лайм один кусочек, а бульон вообще странный, ненаваристый, будто водой залили. Наверное, для туристов это подходит. В остальном хорошо, курица на удивление хорошо сварена, но в сумме получается невкусно. Сервис хороший и расположение удачное",
+        "rawReviewDate": "2026-01-24T06:17:44.207Z"
+      },
+      {
+        "rawAuthorName": "Harry Chiem",
+        "rawRating": 5,
+        "rawContent": "Simply a great Pho place in Da Nang. A great recommendation from our Airport Driver. The even have Yau Char Kwai too! Delicious, strong broth with some great depth and great service. Highly recommend!",
+        "rawReviewDate": "2026-01-28T01:15:10.540Z"
+      },
+      {
+        "rawAuthorName": "Wai Ting WONG",
+        "rawRating": 3,
+        "rawContent": "食物質素非常普通\n有其他更好的選擇",
+        "rawReviewDate": "2026-01-26T08:23:57.529Z"
+      },
+      {
+        "rawAuthorName": "Pichapong Teerawajee",
+        "rawRating": 5,
+        "rawReviewDate": "2026-01-26T01:33:51.435Z"
+      },
+      {
+        "rawAuthorName": "김선미",
+        "rawRating": 5,
+        "rawContent": "쌀국수 한국인 입맛에 딱이에요!",
+        "rawReviewDate": "2026-01-19T16:25:26.465Z"
+      },
+      {
+        "rawAuthorName": "Prasitchai Boonserm",
+        "rawRating": 5,
+        "rawContent": "An Authentic Gem with Standout Pork: Quan Pho Hong\n\nIf you are hunting for an authentic local dining experience in Vietnam that balances great flavor with a welcoming atmosphere, Quan Pho Hong is a spot that absolutely deserves a visit. It captures the essence of a traditional Vietnamese eatery—bustling, unpretentious, and focused entirely on the quality of the food.\n\nThe Food and Drink While the restaurant’s name suggests a focus on noodles, and indeed the pho is tasty with a rich, aromatic broth that hits all the right notes, the menu has a hidden superstar. The crispy pork is delicious—perfectly seasoned with a satisfying crunch that complements the softer textures of the noodle soups.\n\nTrue to local hospitality, the meal comes with plenty of complimentary sides. You are served free vegetables to add freshness to your bowl, and free tea is readily available to wash it all down. For those looking to unwind after a long day of sightseeing, beer is available as well, making it a great spot to relax.\n\nAtmosphere and Service The vibe is distinctively casual and open. It is important to note that there is no air conditioning, so it can get a bit warm, but the ceiling fans and open front keep the air moving. This is very much a part of the authentic street-food style experience. Despite the lack of A/C, the environment is very family-friendly, making it a safe choice for travelers with children.\n\nA unique and helpful touch for tourists from Thailand or those familiar with the language is that the owner speaks Thai. This makes communication significantly easier and adds a personal layer of hospitality that is hard to find elsewhere.\n\nGetting There Logistics are straightforward, provided you plan ahead. There is no parking available at the restaurant, so driving a rental car or scooter can be a hassle. However, it’s easy to get there using Grab. I highly recommend booking a ride to drop you right at the front door to avoid the stress of finding a spot for your vehicle.\n\nVerdict Quan Pho Hong offers a delicious, genuine meal with fantastic crispy pork and a friendly owner. Just call a Grab, dress for the warm weather, and bring your appetite!",
+        "rawReviewDate": "2026-01-18T13:53:39.646Z"
+      },
+      {
+        "rawAuthorName": "상민김",
+        "rawRating": 4,
+        "rawContent": "다낭여행 4일중 젤 나은\n식당. 국물이 깔끔하고\n서비스로 김치도 줌.\n새우튀김은 먹을만한데\n8개,10개로만 판매.\n두명이서 4개만 시켜서\n두개씩만 먹으면 될듯",
+        "rawReviewDate": "2026-01-18T07:49:59.838Z"
+      },
+      {
+        "rawAuthorName": "이종휘",
+        "rawRating": 4,
+        "rawContent": "씰국수 외 다른 음식이 다 맛있어요.",
+        "rawReviewDate": "2026-01-17T02:00:11.468Z"
+      }
+    ],
+    "validItemCount": 60,
+    "droppedReviewCount": 0,
+    "warnings": []
+  },
+  "crawl": {
+    "status": "ok",
+    "completeness": "partial",
+    "fetchedPages": 3,
+    "totalReviewsExtracted": 60,
+    "exhaustedSource": false,
+    "nextPageToken": "CAESY0NBRVFQQnBFUTJwRlNVRlNTWEJEWjI5QlVEY3lSMUV5VlZrMGVsOWZSV2hCVTFaYU1FdEtibFZKV0c5TFdEbGZhMEZCUVVGQlIyZHVPVEl6UVVOYVJGcFNhbXBOV1VGRFNVRQ==",
+    "pageLimitReached": true,
+    "reviewLimitReached": false,
+    "warnings": [
+      "Review crawl stopped because the requested page limit was reached"
+    ]
+  }
+}

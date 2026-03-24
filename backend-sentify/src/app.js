@@ -5,6 +5,7 @@ const helmet = require('helmet')
 const env = require('./config/env')
 const authRoutes = require('./routes/auth')
 const adminIntakeRoutes = require('./modules/admin-intake/admin-intake.routes')
+const reviewCrawlRoutes = require('./modules/review-crawl/google-maps.routes')
 const { sendError } = require('./lib/controller-error')
 const prisma = require('./lib/prisma')
 const { csrfProtection } = require('./middleware/csrf')
@@ -63,6 +64,7 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/restaurants', restaurantRoutes)
 app.use('/api/admin', authMiddleware, adminIntakeRoutes)
+app.use('/api/admin', authMiddleware, reviewCrawlRoutes)
 
 app.use((req, res) => {
     return sendError(req, res, 404, 'NOT_FOUND', 'Resource not found')

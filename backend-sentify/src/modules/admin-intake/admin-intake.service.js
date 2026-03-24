@@ -1,211 +1,18 @@
-const { badRequest, conflict, notFound } = require('../../lib/app-error')
+const { badRequest, notFound } = require('../../lib/app-error')
 const { getRestaurantAccess } = require('../../services/restaurant-access.service')
-const { analyzeReviewSync } = require('../../services/sentiment-analyzer.service')
 const { recalculateRestaurantInsights } = require('../../services/insight.service')
+const {
+    buildReviewPayload,
+    buildRawItemKey,
+    deriveBatchStatus,
+    mapBatch,
+    normalizeIncomingItem,
+    pickDefined,
+    resolveDeletableBatch,
+    resolveEditableBatch,
+    summarizeBatchItems,
+} = require('./admin-intake.domain')
 const repository = require('./admin-intake.repository')
-
-function summarizeBatchItems(items) {
-    return items.reduce(
-        (summary, item) => {
-            summary.totalItems += 1
-
-            if (item.approvalStatus === 'APPROVED') {
-                summary.approvedItems += 1
-            } else if (item.approvalStatus === 'REJECTED') {
-                summary.rejectedItems += 1
-            } else {
-                summary.pendingItems += 1
-            }
-
-            if (item.canonicalReviewId) {
-                summary.publishedItems += 1
-            }
-
-            return summary
-        },
-        {
-            totalItems: 0,
-            pendingItems: 0,
-            approvedItems: 0,
-            rejectedItems: 0,
-            publishedItems: 0,
-        },
-    )
-}
-
-function deriveBatchStatus(batch, items) {
-    if (!items.length) {
-        return 'DRAFT'
-    }
-
-    if (batch.status === 'PUBLISHED') {
-        return 'PUBLISHED'
-    }
-
-    const summary = summarizeBatchItems(items)
-
-    if (summary.approvedItems > 0 && summary.pendingItems === 0) {
-        return 'READY_TO_PUBLISH'
-    }
-
-    if (summary.approvedItems > 0 || summary.rejectedItems > 0) {
-        return 'IN_REVIEW'
-    }
-
-    return 'DRAFT'
-}
-
-function mapBatch(batch, options = {}) {
-    const items = Array.isArray(batch.items) ? batch.items : []
-    const counts = summarizeBatchItems(items)
-
-    return {
-        id: batch.id,
-        restaurantId: batch.restaurantId,
-        createdByUserId: batch.createdByUserId,
-        title: batch.title ?? null,
-        sourceType: batch.sourceType,
-        status: batch.status,
-        publishedAt: batch.publishedAt,
-        createdAt: batch.createdAt,
-        updatedAt: batch.updatedAt,
-        counts,
-        ...(options.includeItems
-            ? {
-                  items: items.map((item) => ({
-                      id: item.id,
-                      batchId: item.batchId,
-                      restaurantId: item.restaurantId,
-                      rawAuthorName: item.rawAuthorName ?? null,
-                      rawRating: item.rawRating ?? null,
-                      rawContent: item.rawContent ?? null,
-                      rawReviewDate: item.rawReviewDate ?? null,
-                      normalizedAuthorName: item.normalizedAuthorName ?? null,
-                      normalizedRating: item.normalizedRating ?? null,
-                      normalizedContent: item.normalizedContent ?? null,
-                      normalizedReviewDate: item.normalizedReviewDate ?? null,
-                      approvalStatus: item.approvalStatus,
-                      reviewerNote: item.reviewerNote ?? null,
-                      canonicalReviewId: item.canonicalReviewId ?? null,
-                      createdAt: item.createdAt,
-                      updatedAt: item.updatedAt,
-                  })),
-              }
-            : {}),
-    }
-}
-
-function resolveEditableBatch(batch) {
-    if (!batch) {
-        throw notFound('NOT_FOUND', 'Review batch not found')
-    }
-
-    if (batch.status === 'PUBLISHED' || batch.status === 'ARCHIVED') {
-        throw conflict(
-            'INTAKE_BATCH_LOCKED',
-            'This review batch is already published or archived',
-        )
-    }
-}
-
-function stripHtmlTags(value) {
-    if (typeof value !== 'string') {
-        return value
-    }
-
-    return value.replace(/<[^>]*>/g, '')
-}
-
-function normalizeIncomingItem(item) {
-    const rawContent = stripHtmlTags(item.rawContent ?? null)
-
-    return {
-        rawAuthorName: item.rawAuthorName ?? null,
-        rawRating: item.rawRating,
-        rawContent,
-        rawReviewDate: item.rawReviewDate ?? null,
-        normalizedAuthorName: item.rawAuthorName ?? null,
-        normalizedRating: item.rawRating,
-        normalizedContent: rawContent,
-        normalizedReviewDate: item.rawReviewDate ?? null,
-    }
-}
-
-function buildRawItemKey(item) {
-    const dateValue =
-        item.rawReviewDate instanceof Date
-            ? item.rawReviewDate.toISOString()
-            : item.rawReviewDate || ''
-
-    return [
-        item.rawAuthorName ?? '',
-        item.rawRating ?? '',
-        item.rawContent ?? '',
-        dateValue,
-    ].join('|')
-}
-
-function resolveDeletableBatch(batch) {
-    if (!batch) {
-        throw notFound('NOT_FOUND', 'Review batch not found')
-    }
-
-    if (!['DRAFT', 'IN_REVIEW'].includes(batch.status)) {
-        throw conflict(
-            'INTAKE_BATCH_NOT_DELETABLE',
-            'Only draft or in-review batches can be deleted',
-        )
-    }
-}
-
-function resolvePublishedField(preferredValue, fallbackValue = null) {
-    if (preferredValue === undefined || preferredValue === null) {
-        return fallbackValue
-    }
-
-    return preferredValue
-}
-
-function pickDefined(input, fieldMap) {
-    return Object.entries(fieldMap).reduce((accumulator, [field, mapper]) => {
-        if (Object.prototype.hasOwnProperty.call(input, field)) {
-            const value = input[field]
-            accumulator[field] = typeof mapper === 'function' ? mapper(value, input) : value
-        }
-
-        return accumulator
-    }, {})
-}
-
-function buildReviewPayload(restaurantId, item) {
-    const rating = resolvePublishedField(item.normalizedRating, item.rawRating)
-
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-        throw badRequest(
-            'INTAKE_REVIEW_INVALID_RATING',
-            'Each approved review item must have a rating between 1 and 5',
-        )
-    }
-
-    const content = resolvePublishedField(item.normalizedContent, item.rawContent)
-    const authorName = resolvePublishedField(item.normalizedAuthorName, item.rawAuthorName)
-    const reviewDate = resolvePublishedField(item.normalizedReviewDate, item.rawReviewDate)
-    const analysis = analyzeReviewSync({
-        content,
-        rating,
-    })
-
-    return {
-        restaurantId,
-        externalId: `manual-intake:${item.id}`,
-        authorName,
-        rating,
-        content,
-        sentiment: analysis.label,
-        keywords: analysis.keywords,
-        reviewDate,
-    }
-}
 
 async function ensureRestaurantEditorAccess(userId, restaurantId) {
     return getRestaurantAccess({
@@ -348,6 +155,16 @@ async function updateReviewItem({ userId, itemId, input }) {
         approvalStatus: (value) => value,
         reviewerNote: (value) => value ?? null,
     })
+
+    const candidateItem = {
+        ...item,
+        ...updates,
+    }
+    const nextApprovalStatus = updates.approvalStatus ?? item.approvalStatus
+
+    if (nextApprovalStatus === 'APPROVED') {
+        buildReviewPayload(item.restaurantId, candidateItem)
+    }
 
     await repository.updateItem(itemId, updates)
 

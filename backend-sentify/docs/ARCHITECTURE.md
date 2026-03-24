@@ -1,290 +1,245 @@
-# 🏗️ Sentify Backend Architecture
+# Sentify Backend Architecture
 
-> Project structure, request lifecycle, module boundaries, and design patterns.
-> Last updated: 2026-03-17
->
-> **Xem thêm**: [MVP-FLOW.md](./MVP-FLOW.md) — luồng sử dụng từ góc nhìn người dùng.
+Updated: 2026-03-24
 
----
+This document describes the backend as it exists in the current codebase.
+It intentionally avoids future-only roles and flows that are not implemented yet.
 
-## Mô hình vận hành
+## Runtime Shape
 
-Sentify là **managed platform**, không phải self-service tool.
+Sentify backend is a modular monolith built with:
 
-- **User (OWNER/MANAGER)**: Chủ nhà hàng — chỉ xem dashboard, insights, quản lý team. **Không import data.**
-- **Operator (SYSTEM_ADMIN)**: Đội vận hành Sentify — thu thập, xác minh, import, publish reviews cho nhà hàng.
+- Node.js + Express 5
+- PostgreSQL + Prisma 7
+- CommonJS runtime
 
-> Endpoints `/api/admin/*` dành cho Operator. Endpoints `/api/restaurants/*` dành cho User.
+Entry points:
 
----
+- `src/server.js`: process lifecycle, startup, graceful shutdown
+- `src/app.js`: Express middleware and route mounting
 
-## Directory Structure
+Mounted route groups:
 
-```
+- `/api/auth`
+- `/api/restaurants`
+- `/api/admin`
+- `/health`
+- `/api/health`
+
+## Current Module Layout
+
+The codebase is currently in a mixed state:
+
+- `admin-intake` already follows a feature-module pattern under `src/modules/admin-intake/`
+- `review-crawl` now also follows a feature-module pattern under `src/modules/review-crawl/`
+- that module now separates controller, service, repository, validation, and domain rules so batch-state logic and publish rules are not buried in HTTP handlers
+- auth, restaurants, reviews, dashboard, and insights still use the older `routes/ + controllers/ + services/` layout
+
+This means the backend is already modular, but the refactor toward a fully feature-oriented structure is not finished yet.
+
+## Directory Map
+
+```text
 backend-sentify/
-├── prisma/
-│   ├── schema.prisma          # Database schema (7 models, 5 enums)
-│   ├── migrations/            # Prisma migration history
-│   └── prisma.config.ts       # Prisma datasource config
-├── src/
-│   ├── server.js              # Entry point — start, shutdown, process handlers
-│   ├── app.js                 # Express app — middleware + route mounting
-│   ├── config/
-│   │   └── env.js             # Zod-validated env vars
-│   ├── controllers/           # Request handling + Zod validation
-│   │   ├── auth.controller.js
-│   │   ├── dashboard.controller.js
-│   │   ├── restaurants.controller.js
-│   │   └── reviews.controller.js
-│   ├── routes/                # Express Router definitions
-│   │   ├── auth.js
-│   │   └── restaurants.js     # Restaurants + Dashboard + Reviews routes
-│   ├── services/              # Business logic layer
-│   │   ├── auth.service.js
-│   │   ├── dashboard.service.js
-│   │   ├── insight.service.js
-│   │   ├── restaurant.service.js
-│   │   ├── restaurant-access.service.js
-│   │   ├── review.service.js
-│   │   └── sentiment-analyzer.service.js
-│   ├── middleware/
-│   │   ├── auth.js            # JWT verify + DB lookup + cookie fallback
-│   │   ├── error-handler.js   # Express error handler (last middleware)
-│   │   ├── rate-limit.js      # API + auth rate limiters
-│   │   ├── request-id.js      # UUID per request (X-Request-Id header)
-│   │   ├── request-logger.js  # Structured JSON / pretty dev logs
-│   │   └── require-permission.js  # Restaurant permission check
-│   ├── lib/                   # Shared utilities
-│   │   ├── app-error.js       # AppError class + factory functions
-│   │   ├── auth-cookie.js     # Cookie read/write/clear helpers
-│   │   ├── controller-error.js # Unified error → response mapping
-│   │   ├── math.js            # roundNumber, toPercentage
-│   │   ├── prisma.js          # Prisma client singleton
-│   │   └── security-event.js  # Structured security event logging
-│   ├── modules/               # Feature modules (self-contained)
-│   │   └── admin-intake/
-│   │       ├── admin-intake.routes.js
-│   │       ├── admin-intake.controller.js
-│   │       ├── admin-intake.service.js
-│   │       ├── admin-intake.validation.js
-│   │       └── admin-intake.repository.js
-│   └── generated/             # Prisma client output (gitignored)
-├── test/                      # Node.js built-in test runner
-│   ├── test-helpers.js        # Mock setup, HTTP client, app bootstrap
-│   └── *.test.js              # 9 test files
-├── docs/                      # Documentation (you are here)
-├── .env.example
-├── .gitignore
-└── package.json
+  prisma/
+    schema.prisma
+    migrations/
+    prisma.config.ts
+  src/
+    app.js
+    server.js
+    config/
+      constants.js
+      env.js
+    controllers/
+      auth.controller.js
+      dashboard.controller.js
+      restaurants.controller.js
+      reviews.controller.js
+    lib/
+      app-error.js
+      auth-cookie.js
+      controller-error.js
+      math.js
+      prisma.js
+      security-event.js
+    middleware/
+      auth.js
+      csrf.js
+      error-handler.js
+      rate-limit.js
+      request-id.js
+      request-logger.js
+      require-permission.js
+      validate-uuid.js
+    modules/
+      admin-intake/
+        admin-intake.controller.js
+        admin-intake.domain.js
+        admin-intake.repository.js
+        admin-intake.routes.js
+        admin-intake.service.js
+        admin-intake.validation.js
+      review-crawl/
+        google-maps.parser.js
+        google-maps.routes.js
+        google-maps.service.js
+        google-maps.validation.js
+        review-crawl.controller.js
+        review-crawl.domain.js
+        review-crawl.queue.js
+        review-crawl.repository.js
+        review-crawl.runtime.js
+        review-crawl.service.js
+    routes/
+      auth.js
+      restaurants.js
+    services/
+      auth.service.js
+      dashboard.service.js
+      email.service.js
+      insight.service.js
+      password-reset.service.js
+      refresh-token.service.js
+      restaurant-access.service.js
+      restaurant.service.js
+      review.service.js
+      sentiment-analyzer.service.js
+  test/
 ```
 
----
+## Request Flow
 
-## Request Lifecycle
+Typical request lifecycle:
 
-```
-Client Request
-    │
-    ▼
-┌─────────────────────┐
-│   request-id.js     │  Assign UUID → req.requestId, X-Request-Id header
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│  request-logger.js  │  Start timer, log on response finish/close
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│      cors()         │  CORS_ORIGINS validation
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│     helmet()        │  Security headers
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│  express.json()     │  Parse JSON body (limit: BODY_LIMIT)
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│    apiLimiter       │  Rate limit: /api/* (500 req / 15 min)
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│     Router          │  Route matching
-└──────────┬──────────┘
-           │
-    ┌──────┴──────┐
-    │  Protected? │
-    └──────┬──────┘
-           │ Yes
-┌──────────▼──────────┐
-│    auth.js          │  Extract token → verify JWT → DB lookup → req.user
-└──────────┬──────────┘
-           │
-    ┌──────┴──────────────┐
-    │  Need permission?   │
-    └──────┬──────────────┘
-           │ Yes (admin routes)
-┌──────────▼──────────────┐
-│  require-permission.js  │  Lookup RestaurantUser → check permission
-└──────────┬──────────────┘
-           │
-┌──────────▼──────────┐
-│    Controller       │  Zod validate → call Service → format response
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│    Service          │  Business logic → call Prisma/Repository
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│  error-handler.js   │  Catch unhandled → map to JSON error response
-└──────────┬──────────┘
-           │
-           ▼
-     JSON Response
-```
+1. `request-id` assigns `req.requestId`
+2. `request-logger` measures and logs the request
+3. `cors`, `helmet`, body parsers
+4. global `/api` rate limit
+5. `csrfProtection`
+6. route matching
+7. optional `auth` middleware
+8. optional `require-permission`
+9. controller validation with Zod
+10. service execution
+11. Prisma / repository access
+12. JSON response or mapped error
 
----
+## Auth and Session Model
 
-## Module Pattern
+Current auth implementation supports both:
 
-### Flat services (hiện tại: auth, restaurant, dashboard, review, insight)
+- Bearer token via `Authorization: Bearer ...`
+- cookie-based session via `sentify_access_token`
 
-```
-routes/restaurants.js  →  controllers/restaurants.controller.js  →  services/restaurant.service.js  →  prisma
-```
-- Controller: validate input (Zod) + format response
-- Service: business logic + access control
-- Access control qua `restaurant-access.service.js` (shared)
+Additional auth features already implemented:
 
-### Feature module (hiện tại: admin-intake — **Operator-facing**)
+- refresh token rotation
+- password reset tokens
+- login lockout after repeated failures
+- token revocation through `tokenVersion`
+- fallback verification with `JWT_SECRET_PREVIOUS`
 
-```
-modules/admin-intake/
-├── admin-intake.routes.js       # Express Router
-├── admin-intake.controller.js   # Validate + delegate
-├── admin-intake.service.js      # Business logic
-├── admin-intake.validation.js   # Zod schemas (separated)
-└── admin-intake.repository.js   # Data access layer
-```
-- Repository pattern: tách Prisma queries khỏi business logic
-- Self-contained: tất cả trong 1 folder
-- **Đây là module dùng bởi Operator** (đội vận hành), không phải User (chủ nhà hàng)
-- **Recommended pattern cho Sprint 3+**: Mọi feature mới nên follow pattern này
+Important implementation notes:
 
----
+- `csrf.js` enforces double-submit protection for cookie-authenticated write requests
+- the CSRF contract now covers both access-cookie and refresh-cookie write paths
+- auth controllers issue `XSRF-TOKEN` on register, login, session refresh, password change, refresh, and explicit `GET /api/auth/csrf`
+- auth controllers clear `XSRF-TOKEN` on logout, refresh failure, and password reset
+- Bearer-token requests bypass CSRF validation because the browser cannot inject the bearer token from another origin
 
-## Authentication Flow
+This means the cookie-based auth path is now fully wired end-to-end for browser writes.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     LOGIN FLOW                           │
-│                                                          │
-│  1. Client POST /api/auth/login { email, password }     │
-│  2. Validate Zod schema                                  │
-│  3. Lookup user (include restaurants)                    │
-│  4. Check account lock (lockedUntil)                    │
-│  5. bcrypt.compare(password, passwordHash)              │
-│  6. On success:                                          │
-│     - Reset failedLoginCount                             │
-│     - Build JWT (userId, tokenVersion, 15min)           │
-│     - Create refresh token (7 days, token rotation)     │
-│     - Set HttpOnly access cookie + refresh cookie       │
-│     - Set CSRF cookie (non-HttpOnly, for frontend)      │
-│     - Return { user, restaurants, expiresIn }           │
-│  7. On failure:                                          │
-│     - Increment failedLoginCount                         │
-│     - Lock account if threshold reached                 │
-│     - Log security event                                 │
-└─────────────────────────────────────────────────────────┘
+## Authorization Model
 
-┌─────────────────────────────────────────────────────────┐
-│                  AUTH MIDDLEWARE                          │
-│                                                          │
-│  1. Extract token (Bearer header → Cookie fallback)     │
-│  2. jwt.verify(token, JWT_SECRET)                        │
-│     → on fail: try JWT_SECRET_PREVIOUS (rotation)       │
-│  3. DB lookup: user.findUnique({ id, tokenVersion })    │
-│     (with 2s timeout safeguard)                          │
-│  4. Compare payload.tokenVersion === user.tokenVersion  │
-│  5. Set req.user = { userId, tokenVersion, jti }        │
-└─────────────────────────────────────────────────────────┘
+There is no global `SYSTEM_ADMIN` role in the current schema.
 
-┌─────────────────────────────────────────────────────────┐
-│                  REFRESH TOKEN FLOW                       │
-│                                                          │
-│  1. POST /api/auth/refresh (cookie or body)             │
-│  2. Hash token → lookup in DB                            │
-│  3. If already revoked → REUSE DETECTED                 │
-│     → Revoke entire token family (stolen token defense) │
-│  4. If valid → revoke old token + create new pair       │
-│  5. Set new access + refresh cookies                     │
-└─────────────────────────────────────────────────────────┘
-```
+Current authorization is restaurant-scoped:
 
-**Token Revocation**: `logout()` và `changePassword()` increment `tokenVersion` + revoke tất cả refresh tokens.
+- `RestaurantUser.permission` can be `OWNER` or `MANAGER`
+- access checks are resolved through membership in `RestaurantUser`
 
----
+Admin-intake routes are not global operator routes yet. They are protected by:
 
-## Error Handling Pipeline
+- authenticated user
+- restaurant membership
+- `OWNER` or `MANAGER` permission for the target restaurant
 
-```
-Error Source          Handler                    Response
-─────────────        ───────────                ────────
-Zod validation    →  controller-error.js     →  400 VALIDATION_FAILED + details
-AppError          →  controller-error.js     →  4xx/5xx with code + message
-Prisma P2002      →  controller-error.js     →  409 UNIQUE_CONSTRAINT_FAILED
-Prisma validation →  controller-error.js     →  400 INVALID_REQUEST
-JSON parse        →  error-handler.js        →  400 INVALID_JSON
-Payload too large →  error-handler.js        →  413 PAYLOAD_TOO_LARGE
-Unhandled         →  error-handler.js        →  500 INTERNAL_SERVER_ERROR (logged)
-```
+## Data Ownership Boundaries
 
----
+Current ownership split:
 
-## Data Flow: Review Intake → Insights
+- `restaurants`, `reviews`, `dashboard`, `insights`: merchant-facing read/update surface
+- `admin-intake`: curation workflow before publishing to canonical reviews
+- `review-crawl`: ingestion bridge that turns external Google Maps place URLs into validated intake-ready JSON
+- `Review`: canonical dataset used by merchant-facing reads
+- `ReviewIntakeBatch` and `ReviewIntakeItem`: staging and review workflow
 
-```
-1. CREATE BATCH
-   POST /api/admin/review-batches → ReviewIntakeBatch (status: DRAFT)
+## Review Crawl Flow
 
-2. ADD ITEMS
-   POST .../items → ReviewIntakeItem (approvalStatus: PENDING)
-   Status auto-transitions: DRAFT → IN_REVIEW → READY_TO_PUBLISH
+Current Google Maps crawl architecture now has two lanes:
 
-3. REVIEW ITEMS
-   PATCH /api/admin/review-items/:id → approvalStatus: APPROVED/REJECTED
-   Normalized fields override raw fields
+1. preview lane:
+   - `POST /api/admin/review-crawl/google-maps`
+   - synchronous, small, used for diagnostics and sampling
+2. job lane:
+   - source upsert
+   - queued crawl run
+   - worker-side page-by-page persistence
+   - optional materialization into draft intake batch
 
-4. PUBLISH
-   POST .../publish →
-   ├── Filter approved items
-   ├── Build canonical Review per item (run sentiment analysis)
-   ├── Upsert Reviews (skip duplicates by externalId)
-   ├── Link intake items (canonicalReviewId)
-   ├── Set batch status = PUBLISHED
-   └── recalculateRestaurantInsights()
-       ├── Aggregate: totalReviews, averageRating
-       ├── Group: sentiment percentages
-       ├── Extract: top 10 complaint keywords
-       └── Upsert InsightSummary + ComplaintKeyword (in transaction)
+Queued crawl flow:
 
-5. DASHBOARD READS
-   GET .../dashboard/* → reads InsightSummary cache (cheap)
-   GET .../reviews → reads canonical Review table (paginated)
-```
+1. API resolves canonical source identity from the input URL
+2. API creates or upserts one `ReviewCrawlSource`
+3. API creates one `ReviewCrawlRun` with status `QUEUED`
+4. BullMQ enqueues the run into the `review-crawl` queue
+5. worker process claims the run lease and initializes a Google Maps review session
+6. worker fetches review pages sequentially and persists normalized raw reviews page-by-page
+7. worker checkpoints `nextPageToken`, counts, warnings, and known-review streak after each page
+8. worker finishes the run as `COMPLETED`, `PARTIAL`, `FAILED`, or `CANCELLED`
+9. admin may materialize the run into a draft intake batch
 
----
+Why this matters:
 
-## Logging Strategy
+- the HTTP app is no longer responsible for long-running deep crawls
+- crawl progress survives process restarts through persisted run state
+- incremental syncs stop early when the worker hits already-known reviews
+- canonical `Review` still stays behind the admin-intake publish boundary
 
-| Event type | Logger | Format |
-|---|---|---|
-| HTTP requests | `request-logger.js` | JSON (prod) / Pretty colored (dev) |
-| Security events | `security-event.js` | JSON `{ type: "security_event", event: "auth.login.success", ... }` |
-| Runtime events | `server.js` | JSON `{ type: "runtime_event", event: "server.started", ... }` |
-| Errors | `error-handler.js` | JSON `{ type: "error_log", event: "middleware.unhandled_error", ... }` |
+## Publish Flow
 
-All logs include `requestId` for tracing. Dev mode supports `LOG_FORMAT=pretty` with ANSI colors.
+Current publish flow in `admin-intake.service.js`:
+
+1. load batch and verify it is editable
+2. filter approved intake items
+3. validate that each approved item is publishable and build canonical `Review` payload from normalized-or-raw values
+4. derive a stable manual external id from source review identity
+5. create new canonical reviews or update existing canonical reviews with the same `(restaurantId, externalId)` inside one transaction
+6. link intake items to `canonicalReviewId`, allowing multiple intake rows from different batches to reference one canonical review
+7. mark batch as `PUBLISHED`
+8. recalculate `InsightSummary` and `ComplaintKeyword`
+
+This is synchronous in the request path today.
+
+## Dashboard Read Model
+
+Current dashboard behavior:
+
+- KPI reads from cached `InsightSummary`
+- complaint keywords read from cached `ComplaintKeyword`
+- trend is aggregated from `Review`
+- sentiment breakdown is grouped from `Review`
+- review evidence reads from canonical `Review`
+
+## Testing Posture
+
+The project has a solid mocked test layer:
+
+- controller tests
+- service tests
+- route-level integration tests with mocked Prisma
+- auth integration coverage for cookie plus CSRF handshake
+- repository coverage for cross-batch canonical review reuse on publish
+
+The current suite is good for business logic verification, but it is not yet a full real-database integration setup.

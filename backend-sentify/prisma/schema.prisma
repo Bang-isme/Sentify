@@ -17,11 +17,40 @@ enum ReviewSentiment {
   NEGATIVE
 }
 
+enum ReviewCrawlProvider {
+  GOOGLE_MAPS
+}
+
+enum ReviewCrawlSourceStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ReviewCrawlRunStrategy {
+  INCREMENTAL
+  BACKFILL
+}
+
+enum ReviewCrawlRunStatus {
+  QUEUED
+  RUNNING
+  PARTIAL
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ReviewCrawlRunPriority {
+  HIGH
+  NORMAL
+  LOW
+}
 
 enum ReviewIntakeBatchSourceType {
   MANUAL
   BULK_PASTE
   CSV
+  GOOGLE_MAPS_CRAWL
 }
 
 enum ReviewIntakeBatchStatus {
@@ -52,6 +81,7 @@ model User {
 
   restaurants       RestaurantUser[]
   intakeBatches     ReviewIntakeBatch[]
+  requestedCrawlRuns ReviewCrawlRun[]
   refreshTokens     RefreshToken[]
   passwordResetTokens PasswordResetToken[]
 }
@@ -100,6 +130,8 @@ model Restaurant {
   keywords   ComplaintKeyword[]
   intakeBatches ReviewIntakeBatch[]
   intakeItems ReviewIntakeItem[]
+  reviewCrawlSources ReviewCrawlSource[]
+  reviewCrawlRuns ReviewCrawlRun[]
 }
 
 model RestaurantUser {
@@ -182,6 +214,7 @@ model ReviewIntakeBatch {
   restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   createdBy  User            @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
   items      ReviewIntakeItem[]
+  crawlRuns  ReviewCrawlRun[]
 
   @@index([restaurantId])
   @@index([restaurantId, status, createdAt])
@@ -193,6 +226,9 @@ model ReviewIntakeItem {
   id                    String                        @id @default(uuid())
   batchId               String
   restaurantId          String
+  sourceProvider        ReviewCrawlProvider?
+  sourceExternalId      String?
+  sourceReviewUrl       String?
   rawAuthorName         String?
   rawRating             Int?
   rawContent            String?
@@ -204,8 +240,7 @@ model ReviewIntakeItem {
   approvalStatus        ReviewIntakeItemApprovalStatus @default(PENDING)
   reviewerNote          String?
   /// Links intake items to the canonical Review created or updated at publish time.
-  /// TODO(2026-04): Revisit @unique if we allow bulk imports that re-link multiple items.
-  canonicalReviewId     String?                       @unique
+  canonicalReviewId     String?
   createdAt             DateTime                      @default(now())
   updatedAt             DateTime                      @updatedAt
 
@@ -215,5 +250,115 @@ model ReviewIntakeItem {
 
   @@index([batchId, approvalStatus])
   @@index([batchId, createdAt])
+  @@index([canonicalReviewId])
   @@index([restaurantId, approvalStatus])
+  @@index([sourceProvider, sourceExternalId])
+}
+
+model ReviewCrawlSource {
+  id                  String                  @id @default(uuid())
+  restaurantId        String
+  provider            ReviewCrawlProvider     @default(GOOGLE_MAPS)
+  status              ReviewCrawlSourceStatus @default(ACTIVE)
+  inputUrl            String
+  resolvedUrl         String?
+  canonicalCid        String
+  placeHexId          String?
+  googlePlaceId       String?
+  placeName           String?
+  language            String                  @default("en")
+  region              String                  @default("us")
+  syncEnabled         Boolean                 @default(true)
+  syncIntervalMinutes Int                     @default(1440)
+  lastReportedTotal   Int?
+  lastSyncedAt        DateTime?
+  lastSuccessfulRunAt DateTime?
+  nextScheduledAt     DateTime?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  runs       ReviewCrawlRun[]
+  rawReviews ReviewCrawlRawReview[]
+
+  @@unique([restaurantId, provider, canonicalCid])
+  @@index([restaurantId, status])
+  @@index([status, nextScheduledAt])
+  @@index([restaurantId, provider, status])
+}
+
+model ReviewCrawlRun {
+  id                String                 @id @default(uuid())
+  sourceId          String
+  restaurantId      String
+  requestedByUserId String?
+  intakeBatchId     String?
+  strategy          ReviewCrawlRunStrategy @default(INCREMENTAL)
+  status            ReviewCrawlRunStatus   @default(QUEUED)
+  priority          ReviewCrawlRunPriority @default(NORMAL)
+  reportedTotal     Int?
+  extractedCount    Int                    @default(0)
+  validCount        Int                    @default(0)
+  skippedCount      Int                    @default(0)
+  duplicateCount    Int                    @default(0)
+  warningCount      Int                    @default(0)
+  pagesFetched      Int                    @default(0)
+  pageSize          Int                    @default(20)
+  delayMs           Int                    @default(500)
+  maxPages          Int?
+  maxReviews        Int?
+  checkpointCursor  String?
+  knownReviewStreak Int                    @default(0)
+  cancelRequestedAt DateTime?
+  leaseToken        String?
+  leaseExpiresAt    DateTime?
+  errorCode         String?
+  errorMessage      String?
+  warningsJson      Json?
+  metadataJson      Json?
+  queuedAt          DateTime               @default(now())
+  startedAt         DateTime?
+  lastCheckpointAt  DateTime?
+  finishedAt        DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  source      ReviewCrawlSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  restaurant  Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  requestedBy User?              @relation(fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  intakeBatch ReviewIntakeBatch? @relation(fields: [intakeBatchId], references: [id], onDelete: SetNull)
+
+  @@index([sourceId, status, queuedAt])
+  @@index([restaurantId, status, queuedAt])
+  @@index([status, leaseExpiresAt])
+  @@index([intakeBatchId])
+}
+
+model ReviewCrawlRawReview {
+  id                String   @id @default(uuid())
+  sourceId          String
+  firstSeenRunId    String
+  lastSeenRunId     String
+  externalReviewKey String
+  providerReviewId  String?
+  reviewUrl         String?
+  authorName        String?
+  rating            Int?
+  content           String?
+  reviewDate        DateTime?
+  language          String?
+  ownerResponseText String?
+  validForIntake    Boolean  @default(false)
+  validationIssues  Json?
+  intakeItemPayload Json?
+  payload           Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  source ReviewCrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, externalReviewKey])
+  @@index([lastSeenRunId])
+  @@index([sourceId, reviewDate])
+  @@index([sourceId, updatedAt])
 }

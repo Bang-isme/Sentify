@@ -7,10 +7,13 @@ import {
   createRestaurant,
   getComplaintKeywords,
   getDashboardKpi,
+  getLatestImportRun,
   getSession,
   getRestaurantDetail,
   getSentimentBreakdown,
   getTrend,
+  importReviews,
+  listImportRuns,
   listRestaurants,
   listReviewEvidence,
   login,
@@ -23,6 +26,8 @@ import {
   type RestaurantDetail,
   type RestaurantMembership,
   type ReviewListResponse,
+  type QueueImportResult,
+  type ImportRunSummary,
   type SentimentBreakdownRow,
   type TrendPoint,
 } from '../src/lib/api'
@@ -35,10 +40,13 @@ vi.mock('../src/lib/api', async () => {
     createRestaurant: vi.fn(),
     getComplaintKeywords: vi.fn(),
     getDashboardKpi: vi.fn(),
+    getLatestImportRun: vi.fn(),
     getSession: vi.fn(),
     getRestaurantDetail: vi.fn(),
     getSentimentBreakdown: vi.fn(),
     getTrend: vi.fn(),
+    importReviews: vi.fn(),
+    listImportRuns: vi.fn(),
     listRestaurants: vi.fn(),
     listReviewEvidence: vi.fn(),
     login: vi.fn(),
@@ -51,16 +59,19 @@ vi.mock('../src/lib/api', async () => {
 const listRestaurantsMock = vi.mocked(listRestaurants)
 const getRestaurantDetailMock = vi.mocked(getRestaurantDetail)
 const getDashboardKpiMock = vi.mocked(getDashboardKpi)
+const getLatestImportRunMock = vi.mocked(getLatestImportRun)
 const getSessionMock = vi.mocked(getSession)
 const getSentimentBreakdownMock = vi.mocked(getSentimentBreakdown)
 const getTrendMock = vi.mocked(getTrend)
 const getComplaintKeywordsMock = vi.mocked(getComplaintKeywords)
+const listImportRunsMock = vi.mocked(listImportRuns)
 const listReviewEvidenceMock = vi.mocked(listReviewEvidence)
 const loginMock = vi.mocked(login)
 const logoutMock = vi.mocked(logout)
 const registerMock = vi.mocked(register)
 const createRestaurantMock = vi.mocked(createRestaurant)
 const updateRestaurantMock = vi.mocked(updateRestaurant)
+const importReviewsMock = vi.mocked(importReviews)
 
 function createMembership(overrides: Partial<RestaurantMembership> = {}): RestaurantMembership {
   return {
@@ -84,16 +95,6 @@ function createDetail(
     address: overrides.address ?? '123 Market Street',
     googleMapUrl:
       overrides.googleMapUrl === undefined ? membership.googleMapUrl ?? null : overrides.googleMapUrl,
-    datasetStatus: overrides.datasetStatus ?? {
-      sourcePolicy: 'UNCONFIGURED',
-      lastPublishedAt: null,
-      lastPublishedSourceType: null,
-      pendingBatchCount: 0,
-      readyBatchCount: 0,
-      pendingItemCount: 0,
-      approvedItemCount: 0,
-      rejectedItemCount: 0,
-    },
     permission: overrides.permission ?? membership.permission,
     insightSummary: overrides.insightSummary ?? {
       totalReviews: 24,
@@ -114,6 +115,49 @@ function createReviewsResponse(overrides: Partial<ReviewListResponse> = {}): Rev
       total: 0,
       totalPages: 0,
     },
+  }
+}
+
+function createImportRunSummary(overrides: Partial<ImportRunSummary> = {}): ImportRunSummary {
+  return {
+    id: overrides.id ?? 'run-1',
+    restaurantId: overrides.restaurantId ?? 'rest-1',
+    status: overrides.status ?? 'COMPLETED',
+    phase: overrides.phase ?? 'COMPLETED',
+    progressPercent: overrides.progressPercent ?? 100,
+    imported: overrides.imported ?? 10,
+    skipped: overrides.skipped ?? 0,
+    total: overrides.total ?? 10,
+    scrape: overrides.scrape ?? {
+      source: 'google-maps-browser',
+      advertisedTotalReviews: null,
+      collectedReviewCount: 10,
+      targetReviewCount: 320,
+      explicitTarget: null,
+      hardMaxReviews: 320,
+      reachedRequestedTarget: false,
+      reachedEndOfFeed: true,
+      coveragePercentage: null,
+      isCompleteSync: true,
+    },
+    message: overrides.message ?? 'done',
+    errorCode: overrides.errorCode ?? null,
+    errorMessage: overrides.errorMessage ?? null,
+    errorDetails: overrides.errorDetails,
+    startedAt: overrides.startedAt ?? null,
+    completedAt: overrides.completedAt ?? null,
+    failedAt: overrides.failedAt ?? null,
+    createdAt: overrides.createdAt ?? '2026-03-09T00:00:00.000Z',
+    updatedAt: overrides.updatedAt ?? '2026-03-09T00:00:00.000Z',
+  }
+}
+
+function createQueuedImportResult(overrides: Partial<QueueImportResult> = {}): QueueImportResult {
+  return {
+    queued: overrides.queued ?? true,
+    alreadyActive: overrides.alreadyActive ?? false,
+    run: overrides.run ?? createImportRunSummary(),
+    message: overrides.message ?? 'done',
   }
 }
 
@@ -183,6 +227,9 @@ beforeEach(() => {
   })
   createRestaurantMock.mockResolvedValue(membership)
   updateRestaurantMock.mockResolvedValue(detail)
+  importReviewsMock.mockResolvedValue(createQueuedImportResult())
+  getLatestImportRunMock.mockResolvedValue(createImportRunSummary())
+  listImportRunsMock.mockResolvedValue([createImportRunSummary()])
 })
 
 describe('Sentify app shell', () => {
@@ -194,7 +241,7 @@ describe('Sentify app shell', () => {
     await waitFor(() => {
       expect(window.location.hash).toBe('#/login')
     })
-    expect(screen.getAllByRole('button', { name: /login/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: /log in/i }).length).toBeGreaterThan(0)
   })
 
   it('routes the hero dashboard CTA through auth for guest users', async () => {
@@ -293,7 +340,7 @@ describe('Sentify app shell', () => {
     expect(screen.queryByText('Restaurant setup')).not.toBeInTheDocument()
   })
 
-  it('guides the user to admin intake when the selected restaurant is missing a source URL', async () => {
+  it('guides the user to settings when the selected restaurant is missing a source URL', async () => {
     const membership = createMembership({ googleMapUrl: null })
     mockAuthenticatedSession({ restaurants: [membership] })
     listRestaurantsMock.mockResolvedValue([membership])
@@ -302,56 +349,57 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect(await screen.findByText('Add a source URL before intake.')).toBeInTheDocument()
-    expect(screen.getAllByText('Admin intake').length).toBeGreaterThan(0)
-    expect(screen.queryByText('Open settings')).not.toBeInTheDocument()
+    expect(await screen.findByText('Add a source URL before running import.')).toBeInTheDocument()
+    expect(screen.getAllByText('Open settings').length).toBeGreaterThan(0)
   })
 
-  it('renders dataset status on the dashboard instead of sync history', async () => {
+  it('renders a compact sync status on the dashboard instead of full import history', async () => {
     mockAuthenticatedSession({ restaurants: [createMembership()] })
+    listImportRunsMock.mockResolvedValue([
+      createImportRunSummary({
+        imported: 18,
+        skipped: 4,
+        scrape: {
+          source: 'google-maps-browser',
+          advertisedTotalReviews: 286,
+          collectedReviewCount: 22,
+          targetReviewCount: 286,
+          explicitTarget: null,
+          hardMaxReviews: 640,
+          reachedRequestedTarget: false,
+          reachedEndOfFeed: true,
+          coveragePercentage: 76.9,
+          isCompleteSync: false,
+        },
+        message: 'Import completed.',
+      }),
+    ])
     window.location.hash = '#/app'
 
     render(<App />)
 
-    expect(await screen.findByText('Dataset status')).toBeInTheDocument()
-    expect(screen.getAllByText('Admin intake').length).toBeGreaterThan(0)
-    expect(screen.getByText('Open admin intake')).toBeInTheDocument()
-    expect(screen.queryByText('Sync status')).not.toBeInTheDocument()
+    expect(await screen.findByText('Sync status')).toBeInTheDocument()
+    expect(screen.getByText('Latest sync completed and added new reviews.')).toBeInTheDocument()
+    expect(screen.getByText('New reviews')).toBeInTheDocument()
     expect(screen.queryByText('Import history')).not.toBeInTheDocument()
   })
 
-  it('summarizes the top issue and next action on the dashboard', async () => {
+  it('keeps detailed import history in settings behind a toggle', async () => {
     mockAuthenticatedSession({ restaurants: [createMembership()] })
-    window.location.hash = '#/app'
+    listImportRunsMock.mockResolvedValue([createImportRunSummary()])
+    window.location.hash = '#/app/settings'
+    const user = userEvent.setup()
 
     render(<App />)
 
-    expect(await screen.findByText('Top issue and next action')).toBeInTheDocument()
-    expect(screen.getAllByText('Wait time').length).toBeGreaterThan(0)
-    expect(
-      screen.getByText(/Review 5 reviews mentioning/i),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Open review evidence' })).toBeInTheDocument()
-  })
+    expect(await screen.findByText('Import history')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'View sync details' })).toBeInTheDocument()
+    expect(screen.queryByText('Collected')).not.toBeInTheDocument()
 
-  it('shows the empty top-issue state when no complaints exist', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    getDashboardKpiMock.mockResolvedValue({
-      totalReviews: 0,
-      averageRating: 0,
-      positivePercentage: 0,
-      neutralPercentage: 0,
-      negativePercentage: 0,
-    })
-    getComplaintKeywordsMock.mockResolvedValue([])
-    window.location.hash = '#/app'
+    await user.click(screen.getByRole('button', { name: 'View sync details' }))
 
-    render(<App />)
-
-    expect(await screen.findByText('Top issue and next action')).toBeInTheDocument()
-    expect(
-      screen.getByText('No dominant complaint signal yet. Publish more reviews to surface the top issue.'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Collected')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hide sync details' })).toBeInTheDocument()
   })
 
   it('shows the localized empty state for review evidence', async () => {
@@ -371,9 +419,9 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Original reviews')).length).toBeGreaterThan(0)
     expect(
-      screen.getByText('No reviews published yet. Add reviews in admin intake.'),
+      screen.getByText('No reviews imported yet. Save the source URL and run the first import.'),
     ).toBeInTheDocument()
   })
 
@@ -417,7 +465,7 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Original reviews')).length).toBeGreaterThan(0)
 
     listReviewEvidenceMock.mockClear()
     await user.click(screen.getByRole('button', { name: 'From' }))
@@ -427,7 +475,7 @@ describe('Sentify app shell', () => {
     await user.click(screen.getByRole('button', { name: 'Apply filters' }))
 
     expect(listReviewEvidenceMock).not.toHaveBeenCalled()
-    expect(screen.getByText('`From` must be before or equal to `To`.')).toBeInTheDocument()
+    expect(screen.getByText('The start date must be on or before the end date.')).toBeInTheDocument()
   })
 
   it('switches restaurant context through the custom switcher', async () => {
@@ -477,9 +525,8 @@ describe('Sentify app shell', () => {
 
     await user.click(screen.getAllByRole('button', { name: /reviews/i })[0])
 
-    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Original reviews')).length).toBeGreaterThan(0)
     expect(getRestaurantDetailMock).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('Loading restaurant...')).not.toBeInTheDocument()
   })
-
 })

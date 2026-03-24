@@ -77,9 +77,16 @@ function buildJsonRequestBody(body) {
 }
 
 async function request(server, method, path, options = {}) {
-    const { body, token } = options
+    const { body, token, headers: extraHeaders = {}, cookies = null } = options
     const { payload, headers } = buildJsonRequestBody(body)
     const address = server.address()
+
+    const requestHeaders = {
+        ...headers,
+        ...extraHeaders,
+        ...(cookies ? { Cookie: cookies } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }
 
     return new Promise((resolve, reject) => {
         const req = http.request(
@@ -88,10 +95,7 @@ async function request(server, method, path, options = {}) {
                 port: address.port,
                 path,
                 method,
-                headers: {
-                    ...headers,
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
+                headers: requestHeaders,
             },
             (res) => {
                 let responseData = ''
@@ -107,7 +111,7 @@ async function request(server, method, path, options = {}) {
                             parsed = responseData
                         }
                     }
-                    resolve({ status: res.statusCode, body: parsed })
+                    resolve({ status: res.statusCode, body: parsed, headers: res.headers })
                 })
             },
         )
@@ -122,7 +126,9 @@ async function request(server, method, path, options = {}) {
     })
 }
 
-async function startApp(prismaOverrides = {}) {
+async function startApp(prismaOverrides = {}, options = {}) {
+    const { mockCsrf = true } = options
+
     process.env.NODE_ENV = 'test'
     process.env.JWT_SECRET =
         process.env.JWT_SECRET || randomBytes(32).toString('hex')
@@ -148,6 +154,9 @@ async function startApp(prismaOverrides = {}) {
         complaintKeyword: {},
         review: {},
         reviewIntakeBatch: {},
+        reviewCrawlSource: {},
+        reviewCrawlRun: {},
+        reviewCrawlRawReview: {},
         refreshToken: {},
         passwordResetToken: {},
     }
@@ -163,11 +172,13 @@ async function startApp(prismaOverrides = {}) {
         passwordChangeLimiter: (req, res, next) => next(),
         registerLimiter: (req, res, next) => next(),
     })
-    withMock('../src/middleware/csrf', {
-        csrfProtection: (req, res, next) => next(),
-        setCsrfCookie: () => 'mock-csrf-token',
-        clearCsrfCookie: () => {},
-    })
+    if (mockCsrf) {
+        withMock('../src/middleware/csrf', {
+            csrfProtection: (req, res, next) => next(),
+            setCsrfCookie: () => 'mock-csrf-token',
+            clearCsrfCookie: () => {},
+        })
+    }
     withMock('../src/lib/security-event', {
         logSecurityEvent: () => {},
     })

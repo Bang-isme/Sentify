@@ -1,0 +1,99 @@
+{
+  "redis": {
+    "url": "redis://127.0.0.1:50986",
+    "startedEmbeddedRedis": true
+  },
+  "ownerContext": {
+    "userId": "85e0d1b0-ffa5-4085-a7e8-80c9c9eee0b3",
+    "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1"
+  },
+  "source": {
+    "id": "5085a230-dd39-4dee-88bf-d0f275da1c18",
+    "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1",
+    "provider": "GOOGLE_MAPS",
+    "status": "ACTIVE",
+    "inputUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+    "resolvedUrl": "https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US",
+    "canonicalCid": "4548797685071303380",
+    "placeHexId": "0x314219004bcdcae5:0x3f209364ddcb52d4",
+    "googlePlaceId": "ChIJ5crNSwAZQjER1FLL3WSTID8",
+    "placeName": "Quán Phở Hồng",
+    "language": "en",
+    "region": "us",
+    "syncEnabled": true,
+    "syncIntervalMinutes": 1440,
+    "lastReportedTotal": 4743,
+    "lastSyncedAt": null,
+    "lastSuccessfulRunAt": null,
+    "nextScheduledAt": "2026-03-24T20:06:25.924Z",
+    "createdAt": "2026-03-23T20:06:25.934Z",
+    "updatedAt": "2026-03-23T20:07:12.558Z"
+  },
+  "run": {
+    "id": "38311035-d072-4236-911a-fe29671e731f",
+    "sourceId": "5085a230-dd39-4dee-88bf-d0f275da1c18",
+    "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1",
+    "requestedByUserId": "85e0d1b0-ffa5-4085-a7e8-80c9c9eee0b3",
+    "intakeBatchId": null,
+    "strategy": "BACKFILL",
+    "status": "PARTIAL",
+    "priority": "NORMAL",
+    "reportedTotal": 4743,
+    "extractedCount": 20,
+    "validCount": 20,
+    "skippedCount": 0,
+    "duplicateCount": 0,
+    "warningCount": 0,
+    "pagesFetched": 1,
+    "pageSize": 20,
+    "delayMs": 100,
+    "maxPages": 1,
+    "maxReviews": null,
+    "checkpointCursor": "CAESY0NBRVFGQnBFUTJwRlNVRlNTWEJEWjI5QlVEY3lSMDVFVW1KM1ZWOWZSV2hDYjJZeFYxUlJaekpoT1ZrNGF6WlJiMEZCUVVGQlIyZHVPVEpRTUVOWk1FNUdka0pSV1VGRFNVRQ==",
+    "knownReviewStreak": 0,
+    "cancelRequestedAt": null,
+    "leaseExpiresAt": null,
+    "errorCode": null,
+    "errorMessage": null,
+    "warnings": [
+      "Run stopped because the configured page budget was reached"
+    ],
+    "metadata": {
+      "trigger": "manual"
+    },
+    "queuedAt": "2026-03-23T20:07:12.584Z",
+    "startedAt": "2026-03-23T20:07:12.778Z",
+    "lastCheckpointAt": "2026-03-23T20:07:16.184Z",
+    "finishedAt": "2026-03-23T20:07:16.303Z",
+    "createdAt": "2026-03-23T20:07:12.589Z",
+    "updatedAt": "2026-03-23T20:07:16.307Z",
+    "source": {
+      "id": "5085a230-dd39-4dee-88bf-d0f275da1c18",
+      "restaurantId": "1eaa2f93-d056-48e6-a033-491f786330f1",
+      "provider": "GOOGLE_MAPS",
+      "status": "ACTIVE",
+      "inputUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+      "resolvedUrl": "https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US",
+      "canonicalCid": "4548797685071303380",
+      "placeHexId": "0x314219004bcdcae5:0x3f209364ddcb52d4",
+      "googlePlaceId": "ChIJ5crNSwAZQjER1FLL3WSTID8",
+      "placeName": "Quán Phở Hồng",
+      "language": "en",
+      "region": "us",
+      "syncEnabled": true,
+      "syncIntervalMinutes": 1440,
+      "lastReportedTotal": 4743,
+      "lastSyncedAt": "2026-03-23T20:07:16.303Z",
+      "lastSuccessfulRunAt": "2026-03-23T20:07:16.303Z",
+      "nextScheduledAt": "2026-03-24T20:07:16.303Z",
+      "createdAt": "2026-03-23T20:06:25.934Z",
+      "updatedAt": "2026-03-23T20:07:16.304Z"
+    },
+    "intakeBatch": null
+  },
+  "materialization": {
+    "batchId": "623741bb-65d2-4870-860c-b5c7716a8f2e",
+    "batchStatus": "DRAFT",
+    "materializedCount": 20
+  }
+}

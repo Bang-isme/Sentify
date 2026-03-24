@@ -1,6 +1,7 @@
 const { randomBytes } = require('crypto')
 
 const env = require('../config/env')
+const { parseCookieHeader, REFRESH_COOKIE_NAME } = require('../lib/auth-cookie')
 
 const CSRF_COOKIE_NAME = 'XSRF-TOKEN'
 const CSRF_HEADER_NAME = 'x-csrf-token'
@@ -29,14 +30,15 @@ function csrfProtection(req, res, next) {
         return next()
     }
 
-    // If there's no auth cookie, skip (public endpoints like login/register).
-    const cookieHeader = req.headers.cookie || ''
-    if (!cookieHeader.includes(env.AUTH_COOKIE_NAME)) {
+    const cookies = parseCookieHeader(req.headers.cookie || '')
+
+    // If there is no session cookie, skip public endpoints like login/register.
+    if (!cookies[env.AUTH_COOKIE_NAME] && !cookies[REFRESH_COOKIE_NAME]) {
         return next()
     }
 
     // Validate double-submit: header must match cookie.
-    const csrfCookie = extractCookieValue(cookieHeader, CSRF_COOKIE_NAME)
+    const csrfCookie = cookies[CSRF_COOKIE_NAME]
     const csrfHeader = req.headers[CSRF_HEADER_NAME]
 
     if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
@@ -50,11 +52,6 @@ function csrfProtection(req, res, next) {
     }
 
     return next()
-}
-
-function extractCookieValue(cookieHeader, name) {
-    const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))
-    return match ? decodeURIComponent(match[1]) : null
 }
 
 /**
@@ -85,6 +82,8 @@ function clearCsrfCookie(res) {
 }
 
 module.exports = {
+    CSRF_COOKIE_NAME,
+    CSRF_HEADER_NAME,
     csrfProtection,
     setCsrfCookie,
     clearCsrfCookie,

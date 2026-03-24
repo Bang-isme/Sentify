@@ -1,5 +1,7 @@
 const env = require('../config/env')
 
+const REFRESH_COOKIE_NAME = 'sentify_refresh_token'
+
 function parseCookieHeader(headerValue) {
     if (!headerValue) {
         return {}
@@ -46,7 +48,6 @@ function setAuthCookie(res, token, maxAgeMs) {
     })
 }
 
-const REFRESH_COOKIE_NAME = 'sentify_refresh_token'
 const REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 function setRefreshCookie(res, token) {
@@ -76,8 +77,10 @@ function clearAuthCookie(res) {
 module.exports = {
     clearAuthCookie,
     clearRefreshCookie,
+    parseCookieHeader,
     readAuthCookie,
     readRefreshCookie,
+    REFRESH_COOKIE_NAME,
     setAuthCookie,
     setRefreshCookie,
 }

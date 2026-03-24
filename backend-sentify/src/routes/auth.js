@@ -6,6 +6,7 @@ const { loginLimiter, passwordChangeLimiter, registerLimiter } = require('../mid
 
 const router = express.Router()
 
+router.get('/csrf', authController.issueCsrfToken)
 router.post('/register', registerLimiter, authController.register)
 router.post('/login', loginLimiter, authController.login)
 router.get('/session', authMiddleware, authController.getSession)

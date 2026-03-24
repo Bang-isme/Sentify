@@ -36,16 +36,6 @@ export interface RestaurantDetail {
   slug: string
   address: string | null
   googleMapUrl: string | null
-  datasetStatus: {
-    sourcePolicy: 'ADMIN_CURATED' | 'UNCONFIGURED'
-    lastPublishedAt: string | null
-    lastPublishedSourceType: ReviewIntakeBatchSourceType | null
-    pendingBatchCount: number
-    readyBatchCount: number
-    pendingItemCount: number
-    approvedItemCount: number
-    rejectedItemCount: number
-  }
   permission: string
   insightSummary: InsightSummary
 }
@@ -127,82 +117,52 @@ export interface ReviewListResponse {
   }
 }
 
-export type ReviewIntakeBatchSourceType = 'MANUAL' | 'BULK_PASTE' | 'CSV'
-export type ReviewIntakeBatchStatus =
-  | 'DRAFT'
-  | 'IN_REVIEW'
-  | 'READY_TO_PUBLISH'
-  | 'PUBLISHED'
-  | 'ARCHIVED'
-export type ReviewIntakeItemApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
-
-export interface ReviewIntakeBatchCounts {
-  totalItems: number
-  pendingItems: number
-  approvedItems: number
-  rejectedItems: number
-  publishedItems: number
+export interface ImportResult {
+  imported: number
+  skipped: number
+  total: number
+  message: string
 }
 
-export interface ReviewIntakeItem {
+export type ImportRunStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED'
+
+export interface ImportRunSummary {
   id: string
-  batchId: string
   restaurantId: string
-  rawAuthorName: string | null
-  rawRating: number | null
-  rawContent: string | null
-  rawReviewDate: string | null
-  normalizedAuthorName: string | null
-  normalizedRating: number | null
-  normalizedContent: string | null
-  normalizedReviewDate: string | null
-  approvalStatus: ReviewIntakeItemApprovalStatus
-  reviewerNote: string | null
-  canonicalReviewId: string | null
+  status: ImportRunStatus
+  phase: string | null
+  progressPercent: number
+  imported: number
+  skipped: number
+  total: number
+  scrape: {
+    source: string | null
+    advertisedTotalReviews: number | null
+    collectedReviewCount: number | null
+    targetReviewCount: number | null
+    explicitTarget: number | null
+    hardMaxReviews: number | null
+    reachedRequestedTarget: boolean | null
+    reachedEndOfFeed: boolean | null
+    coveragePercentage: number | null
+    isCompleteSync: boolean | null
+  }
+  message: string | null
+  errorCode: string | null
+  errorMessage: string | null
+  errorDetails: unknown
+  startedAt: string | null
+  completedAt: string | null
+  failedAt: string | null
   createdAt: string
   updatedAt: string
 }
 
-export interface ReviewIntakeBatch {
-  id: string
-  restaurantId: string
-  createdByUserId: string
-  title: string | null
-  sourceType: ReviewIntakeBatchSourceType
-  status: ReviewIntakeBatchStatus
-  publishedAt: string | null
-  createdAt: string
-  updatedAt: string
-  counts: ReviewIntakeBatchCounts
-  items?: ReviewIntakeItem[]
-}
-
-export interface CreateReviewIntakeBatchInput {
-  restaurantId: string
-  sourceType?: ReviewIntakeBatchSourceType
-  title?: string
-}
-
-export interface CreateReviewIntakeItemInput {
-  rawAuthorName?: string
-  rawRating: number
-  rawContent?: string | null
-  rawReviewDate?: string | null
-}
-
-export interface UpdateReviewIntakeItemInput {
-  normalizedAuthorName?: string | null
-  normalizedRating?: number | null
-  normalizedContent?: string | null
-  normalizedReviewDate?: string | null
-  approvalStatus?: ReviewIntakeItemApprovalStatus
-  reviewerNote?: string | null
-}
-
-export interface PublishReviewIntakeBatchResult {
-  batch: ReviewIntakeBatch
-  publishedCount: number
-  publishedReviewIds: string[]
+export interface QueueImportResult {
+  queued: boolean
+  alreadyActive: boolean
+  run: ImportRunSummary | null
+  message: string
 }
 
 export interface ApiErrorPayload {
@@ -357,6 +317,20 @@ export function updateRestaurant(restaurantId: string, input: UpdateRestaurantIn
   })
 }
 
+export function importReviews(restaurantId: string) {
+  return request<QueueImportResult>(`/restaurants/${restaurantId}/import`, {
+    method: 'POST',
+  })
+}
+
+export function getLatestImportRun(restaurantId: string) {
+  return request<ImportRunSummary | null>(`/restaurants/${restaurantId}/import/latest`)
+}
+
+export function listImportRuns(restaurantId: string, limit = 6) {
+  return request<ImportRunSummary[]>(`/restaurants/${restaurantId}/import/runs?limit=${limit}`)
+}
+
 export function getDashboardKpi(restaurantId: string) {
   return request<InsightSummary>(`/restaurants/${restaurantId}/dashboard/kpi`)
 }
@@ -386,40 +360,5 @@ export function listReviewEvidence(restaurantId: string, query: ReviewsQuery) {
 
   return request<ReviewListResponse>(`/restaurants/${restaurantId}/reviews${suffix}`, {
     unwrapData: false,
-  })
-}
-
-export function createReviewIntakeBatch(input: CreateReviewIntakeBatchInput) {
-  return request<ReviewIntakeBatch>('/admin/review-batches', {
-    method: 'POST',
-    body: input,
-  })
-}
-
-export function listReviewIntakeBatches(restaurantId: string) {
-  return request<ReviewIntakeBatch[]>(`/admin/review-batches?restaurantId=${encodeURIComponent(restaurantId)}`)
-}
-
-export function getReviewIntakeBatch(batchId: string) {
-  return request<ReviewIntakeBatch>(`/admin/review-batches/${batchId}`)
-}
-
-export function addReviewIntakeItems(batchId: string, items: CreateReviewIntakeItemInput[]) {
-  return request<ReviewIntakeBatch>(`/admin/review-batches/${batchId}/items`, {
-    method: 'POST',
-    body: { items },
-  })
-}
-
-export function updateReviewIntakeItem(itemId: string, input: UpdateReviewIntakeItemInput) {
-  return request<ReviewIntakeBatch>(`/admin/review-items/${itemId}`, {
-    method: 'PATCH',
-    body: input,
-  })
-}
-
-export function publishReviewIntakeBatch(batchId: string) {
-  return request<PublishReviewIntakeBatchResult>(`/admin/review-batches/${batchId}/publish`, {
-    method: 'POST',
   })
 }

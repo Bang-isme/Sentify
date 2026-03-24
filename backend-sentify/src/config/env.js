@@ -65,6 +65,21 @@ const envSchema = z.object({
     EMAIL_PROVIDER: z.enum(['console', 'resend']).default('console'),
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
+    REDIS_URL: z.string().optional(),
+    REVIEW_CRAWL_QUEUE_NAME: z.string().min(1).default('review-crawl'),
+    REVIEW_CRAWL_WORKER_CONCURRENCY: z.coerce.number().int().positive().max(20).default(2),
+    REVIEW_CRAWL_JOB_TIMEOUT_MS: z.coerce.number().int().positive().default(10 * 60 * 1000),
+    REVIEW_CRAWL_MAX_RETRIES: z.coerce.number().int().min(0).max(10).default(3),
+    REVIEW_CRAWL_RETRY_BASE_DELAY_MS: z.coerce.number().int().positive().default(5 * 1000),
+    REVIEW_CRAWL_LEASE_SECONDS: z.coerce.number().int().positive().default(90),
+    REVIEW_CRAWL_HEARTBEAT_INTERVAL_MS: z.coerce.number().int().positive().default(20 * 1000),
+    REVIEW_CRAWL_INCREMENTAL_MAX_PAGES: z.coerce.number().int().positive().default(10),
+    REVIEW_CRAWL_BACKFILL_MAX_PAGES: z.coerce.number().int().positive().default(250),
+    REVIEW_CRAWL_MAX_DURATION_MS: z.coerce.number().int().positive().default(10 * 60 * 1000),
+    REVIEW_CRAWL_KNOWN_REVIEW_STREAK_LIMIT: z.coerce.number().int().positive().default(25),
+    REVIEW_CRAWL_FAILURE_COOLDOWN_MINUTES: z.coerce.number().int().positive().default(30),
+    REVIEW_CRAWL_SCHEDULER_INTERVAL_MS: z.coerce.number().int().positive().default(60 * 1000),
+    REVIEW_CRAWL_SCHEDULER_BATCH_SIZE: z.coerce.number().int().positive().default(20),
 })
 
 const parsedEnv = envSchema.parse(process.env)

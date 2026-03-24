@@ -15,6 +15,7 @@ function withMock(modulePath, exports) {
 }
 
 function restoreModules() {
+    clearModule('../src/modules/admin-intake/admin-intake.domain')
     clearModule('../src/modules/admin-intake/admin-intake.service')
     clearModule('../src/modules/admin-intake/admin-intake.repository')
     clearModule('../src/services/restaurant-access.service')
@@ -192,6 +193,14 @@ test('admin intake service updates an item and refreshes batch status', async ()
             id: 'item-1',
             batchId: 'batch-1',
             restaurantId: 'restaurant-1',
+            rawAuthorName: 'Ana',
+            rawRating: 4,
+            rawContent: 'Good',
+            rawReviewDate: new Date('2026-03-01T00:00:00Z'),
+            normalizedAuthorName: 'Ana',
+            normalizedRating: 4,
+            normalizedContent: 'Good',
+            normalizedReviewDate: new Date('2026-03-01T00:00:00Z'),
             approvalStatus: 'PENDING',
             batch: {
                 ...baseBatch,
@@ -278,6 +287,62 @@ test('admin intake service updates an item and refreshes batch status', async ()
     assert.equal(updateStatus, 'READY_TO_PUBLISH')
     assert.equal(result.status, 'READY_TO_PUBLISH')
     assert.equal(result.counts.approvedItems, 1)
+
+    restoreModules()
+})
+
+test('admin intake service rejects approval when the item has no usable review evidence', async () => {
+    restoreModules()
+
+    withMock('../src/services/restaurant-access.service', {
+        getRestaurantAccess: async () => ({ restaurant: { id: 'restaurant-1' } }),
+    })
+    withMock('../src/services/sentiment-analyzer.service', {
+        analyzeReviewSync: () => ({
+            label: 'NEUTRAL',
+            keywords: [],
+        }),
+    })
+    withMock('../src/modules/admin-intake/admin-intake.repository', {
+        findItemById: async () => ({
+            id: 'item-1',
+            batchId: 'batch-1',
+            restaurantId: 'restaurant-1',
+            rawAuthorName: null,
+            rawRating: 4,
+            rawContent: null,
+            rawReviewDate: null,
+            normalizedAuthorName: null,
+            normalizedRating: null,
+            normalizedContent: null,
+            normalizedReviewDate: null,
+            approvalStatus: 'PENDING',
+            canonicalReviewId: null,
+            batch: {
+                id: 'batch-1',
+                restaurantId: 'restaurant-1',
+                status: 'DRAFT',
+                items: [],
+            },
+        }),
+    })
+
+    const { updateReviewItem } = require('../src/modules/admin-intake/admin-intake.service')
+
+    await assert.rejects(
+        () =>
+            updateReviewItem({
+                userId: 'user-1',
+                itemId: 'item-1',
+                input: {
+                    approvalStatus: 'APPROVED',
+                },
+            }),
+        (error) => {
+            assert.equal(error.code, 'INTAKE_REVIEW_INSUFFICIENT_EVIDENCE')
+            return true
+        },
+    )
 
     restoreModules()
 })
@@ -412,7 +477,10 @@ test('admin intake service publishes approved items and rebuilds insights', asyn
     assert.equal(publishArgs.batchStatus, 'PUBLISHED')
     assert.equal(publishArgs.items.length, 1)
     assert.equal(publishArgs.items[0].reviewPayload.restaurantId, 'restaurant-1')
-    assert.equal(publishArgs.items[0].reviewPayload.externalId, 'manual-intake:item-1')
+    assert.match(
+        publishArgs.items[0].reviewPayload.externalId,
+        /^manual-intake:v1:[a-f0-9]{40}$/,
+    )
     assert.equal(publishArgs.items[0].reviewPayload.sentiment, 'POSITIVE')
     assert.equal(publishArgs.items[0].reviewPayload.content, 'Friendly staff')
     assert.equal(recalculatedRestaurantId, 'restaurant-1')
@@ -443,6 +511,71 @@ test('admin intake review payload rejects invalid ratings', async () => {
             }),
         (error) => {
             assert.equal(error.code, 'INTAKE_REVIEW_INVALID_RATING')
+            return true
+        },
+    )
+
+    restoreModules()
+})
+
+test('admin intake review payload uses a stable external id for matching source reviews', async () => {
+    restoreModules()
+
+    withMock('../src/services/sentiment-analyzer.service', {
+        analyzeReviewSync: () => ({
+            label: 'POSITIVE',
+            keywords: [],
+        }),
+    })
+
+    const { __private } = require('../src/modules/admin-intake/admin-intake.service')
+    const firstExternalId = __private.buildReviewPayload('restaurant-1', {
+        id: 'item-1',
+        rawAuthorName: 'Ana',
+        rawRating: 5,
+        rawContent: 'Great food',
+        rawReviewDate: new Date('2026-03-01T00:00:00Z'),
+    }).externalId
+    const secondExternalId = __private.buildReviewPayload('restaurant-1', {
+        id: 'item-2',
+        rawAuthorName: 'Ana',
+        rawRating: 5,
+        rawContent: 'Great food',
+        rawReviewDate: new Date('2026-03-01T00:00:00Z'),
+    }).externalId
+
+    assert.equal(firstExternalId, secondExternalId)
+
+    restoreModules()
+})
+
+test('admin intake review payload rejects approved items without source evidence', async () => {
+    restoreModules()
+
+    withMock('../src/services/sentiment-analyzer.service', {
+        analyzeReviewSync: () => ({
+            label: 'POSITIVE',
+            keywords: [],
+        }),
+    })
+
+    const { __private } = require('../src/modules/admin-intake/admin-intake.service')
+
+    assert.throws(
+        () =>
+            __private.buildReviewPayload('restaurant-1', {
+                id: 'item-1',
+                rawRating: 4,
+                normalizedRating: 4,
+                rawAuthorName: null,
+                rawContent: null,
+                rawReviewDate: null,
+                normalizedAuthorName: null,
+                normalizedContent: null,
+                normalizedReviewDate: null,
+            }),
+        (error) => {
+            assert.equal(error.code, 'INTAKE_REVIEW_INSUFFICIENT_EVIDENCE')
             return true
         },
     )

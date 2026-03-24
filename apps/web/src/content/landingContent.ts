@@ -3,7 +3,7 @@ export type Language = 'en' | 'vi' | 'ja'
 export const landingContent = {
   en: {
     meta: {
-      title: 'Sentify | Review Insight For Restaurants',
+      title: 'Sentify | Review Insights for Restaurants',
       description:
         'Sentify helps restaurant owners turn Google Maps reviews into complaint patterns, sentiment signals, and clear operational action.',
     },
@@ -15,7 +15,6 @@ export const landingContent = {
         { label: 'Workflow', href: '#workflow' },
         { label: 'Dashboard', href: '#dashboard' },
         { label: 'Signals', href: '#signals' },
-        { label: 'Focus', href: '#sprint-1' },
       ],
       workflowCta: 'How It Works',
       dashboardCta: 'View Dashboard',
@@ -23,15 +22,15 @@ export const landingContent = {
       themeLabel: 'Toggle theme',
     },
     hero: {
-      badge: 'Sprint 1 MVP',
-      titleLine1: 'Reviews in.',
-      titleLine2: 'Action out.',
+      badge: '',
+      titleLine1: 'Sentify',
+      titleLine2: 'Turn reviews into action.',
       description:
-        'Sentify exists to answer one operating question: what should this restaurant fix first? Connect one review source, detect the complaint pattern, and surface one next action the owner can trust.',
+        'Sentify pulls Google Maps reviews into one place, surfaces repeated complaints, tracks sentiment, and shows what to fix first.',
       highlights: [
-        'One review source enters the loop',
-        'One triage engine turns noise into a priority',
-        'One next action leaves the dashboard',
+        'Pull reviews into one view',
+        'Group repeated complaints',
+        'Choose the next fix',
       ],
       primaryCta: 'See How It Works',
       secondaryCta: 'View Dashboard',
@@ -68,7 +67,7 @@ export const landingContent = {
       titleLine1: 'One focused loop.',
       titleLine2: 'One useful outcome.',
       description:
-        'Sprint 1 stays deliberately narrow so the product promise stays sharp: one source enters, one decision engine processes, and one action comes out for the owner to execute next.',
+        'This release stays intentionally narrow so the product promise stays clear: one source comes in, one dashboard organizes the signal, and one next action comes out for the owner.',
       steps: [
         {
           step: '01',
@@ -78,21 +77,21 @@ export const landingContent = {
         },
         {
           step: '02',
-          title: 'Bring recent feedback into one place',
+          title: 'Bring reviews into one place',
           description:
-            'Admins curate reviews from that source, keeping the dataset tidy and easy to audit.',
+            'Sentify pulls reviews from that source, keeps the dataset tidy, and skips duplicates.',
         },
         {
           step: '03',
-          title: 'Separate praise from recurring complaints',
+          title: 'Group praise and repeated complaints',
           description:
             'Positive, neutral, and negative patterns are grouped so the owner can see what guests appreciate and what keeps hurting the experience.',
         },
         {
           step: '04',
-          title: 'Review one dashboard and decide next action',
+          title: 'Choose the next fix from one dashboard',
           description:
-            'The dashboard turns raw comments into ratings, trends, complaint keywords, and review evidence the team can actually act on.',
+            'The dashboard turns comments into ratings, trends, complaint keywords, and original reviews the team can use right away.',
         },
       ],
     },
@@ -105,7 +104,7 @@ export const landingContent = {
       overview: {
         title: 'A dashboard that starts with the signal',
         description:
-          'Sentify does not bury the owner in raw text. It opens with the numbers, themes, and review evidence that explain where attention should go next.',
+          'Sentify does not bury the owner in raw text. It opens with the numbers, themes, and original reviews that show where attention should go next.',
         kpis: [
           ['124', 'Reviews'],
           ['4.2', 'Avg rating'],
@@ -129,8 +128,8 @@ export const landingContent = {
         {
           icon: 'tune',
           tag: 'QUICK FILTERS',
-          title: 'Review evidence',
-          description: 'Open the underlying reviews by date and rating instead of trusting a vague summary.',
+          title: 'Original reviews',
+          description: 'Open the underlying reviews by date and rating instead of relying on a vague summary.',
         },
       ],
       sentiment: {
@@ -186,7 +185,7 @@ export const landingContent = {
       ],
     },
     sprint: {
-      eyebrow: 'Sprint 1 Focus',
+      eyebrow: 'This Release Focus',
       titleLine1: 'Focused enough to ship.',
       titleLine2: 'Narrow enough to stay honest.',
       inScopeTitle: 'What This Version Already Solves',
@@ -200,7 +199,7 @@ export const landingContent = {
         'Give owners one practical view of what to fix first',
       ],
       outOfScopeItems: [
-        'No multi-platform sources beyond Google Maps in this first cut',
+        'No multi-platform import beyond Google Maps in this first cut',
         'No invite flow, billing layer, or expanded team management in this version',
         'No report export, PDF generation, or oversized admin surface',
         'No attempt to solve every analytics problem at once',
@@ -221,7 +220,7 @@ export const landingContent = {
         {
           icon: 'admin_panel_settings',
           title: 'Restaurant data stays tied to the right account',
-          description: 'Even in Sprint 1, the product is built around the idea that one restaurant should not casually see another restaurant’s feedback.',
+          description: 'Even in this release, the product is built around the idea that one restaurant should not casually see another restaurant’s feedback.',
         },
         {
           icon: 'verified_user',
@@ -236,13 +235,13 @@ export const landingContent = {
       ],
     },
     cta: {
-      titleLine1: 'A smaller promise.',
-      titleLine2: 'A more useful product.',
+      titleLine1: 'Stop reading reviews in circles.',
+      titleLine2: 'Know what to fix next.',
       description:
-        'Sentify should feel singular, not broad: one source of guest feedback, one triage loop, and one decision the team can act on with confidence.',
-      primaryCta: 'Review The Flow',
-      secondaryCta: 'Back To Top',
-      chips: ['One source in', 'One priority out', 'One dashboard per restaurant'],
+        'Start with one restaurant, one Google Maps source, and one dashboard clear enough for the team to choose the next priority with confidence.',
+      primaryCta: 'See the workflow',
+      secondaryCta: 'Back to top',
+      chips: ['One source per restaurant', 'Repeated complaints surfaced', 'One priority for the team'],
     },
     footer: {
       description:
@@ -263,7 +262,6 @@ export const landingContent = {
             ['Complaint keywords', '#signals'],
             ['Sentiment view', '#dashboard'],
             ['Rating trend', '#dashboard'],
-            ['Sprint focus', '#sprint-1'],
           ],
         },
         {
@@ -277,7 +275,7 @@ export const landingContent = {
         },
       ],
       bottomLeft:
-        'Sentify project landing page. Sprint 1 is about manual review intake, insight extraction, and one clear dashboard.',
+        'Sentify project landing page. This release is about review import, insight extraction, and one clear dashboard.',
       bottomRight: 'Built to answer one operating question well.',
     },
     ticker: [
@@ -285,7 +283,7 @@ export const landingContent = {
       'Skip duplicate review records',
       'Rank recurring complaint keywords',
       'Track positive, neutral, and negative movement',
-      'Filter review evidence by date and rating',
+      'Filter original reviews by date and rating',
       'Follow rating trend by week or month',
     ],
     globe: {
@@ -352,7 +350,6 @@ export const landingContent = {
         { label: 'Quy trình', href: '#workflow' },
         { label: 'Dashboard', href: '#dashboard' },
         { label: 'Tín hiệu', href: '#signals' },
-        { label: 'Phạm vi', href: '#sprint-1' },
       ],
       workflowCta: 'Cách hoạt động',
       dashboardCta: 'Xem dashboard',
@@ -360,15 +357,15 @@ export const landingContent = {
       themeLabel: 'Đổi giao diện',
     },
     hero: {
-      badge: 'Sprint 1 MVP',
-      titleLine1: 'Review đổ về.',
-      titleLine2: 'Việc cần làm hiện ra.',
+      badge: '',
+      titleLine1: 'Sentify',
+      titleLine2: 'Biến review thành việc cần xử lý.',
       description:
-        'Sentify giúp chủ nhà hàng biến những đoạn review rời rạc thành một danh sách việc cần xử lý rõ ràng. Chỉ cần lấy review từ Google Maps, nhận diện các phàn nàn lặp lại, rồi mở một dashboard duy nhất để biết điều gì cần ưu tiên.',
+        'Sentify giúp đội ngũ nhà hàng nhìn review rõ hơn: khách đang phàn nàn điều gì, sentiment đang ra sao, và việc gì nên làm trước.',
       highlights: [
-        'Import review từ Google Maps',
-        'Nhìn ra phàn nàn lặp lại nhanh hơn',
-        'Theo dõi biến động rating và sentiment',
+        'Gom review về một màn hình',
+        'Nhóm phàn nàn lặp lại',
+        'Chốt việc xử lý trước',
       ],
       primaryCta: 'Xem cách hoạt động',
       secondaryCta: 'Xem dashboard',
@@ -405,7 +402,7 @@ export const landingContent = {
       titleLine1: 'Một vòng lặp tập trung.',
       titleLine2: 'Một kết quả hữu ích.',
       description:
-        'Sprint 1 của Sentify cố ý giữ phạm vi hẹp: một nguồn review, một luồng nhà hàng, một dashboard, và một câu hỏi duy nhất: việc gì nên được ưu tiên xử lý trước?',
+        'Phiên bản này của Sentify cố ý giữ phạm vi hẹp: một nguồn review, một luồng nhà hàng, một dashboard, và một câu hỏi duy nhất: việc gì nên được ưu tiên xử lý trước?',
       steps: [
         {
           step: '01',
@@ -438,7 +435,7 @@ export const landingContent = {
       titleLine1: 'Một màn hình đủ để hiểu',
       titleLine2: 'chuyện gì đang diễn ra',
       description:
-        'Mục tiêu không phải là trông thật kỹ thuật. Mục tiêu là giúp chủ quán thấy mẫu vấn đề, kiểm chứng bằng review gốc, và tự tin hơn khi hành động.',
+        '',
       overview: {
         title: 'Dashboard bắt đầu từ tín hiệu quan trọng',
         description:
@@ -523,7 +520,7 @@ export const landingContent = {
       ],
     },
     sprint: {
-      eyebrow: 'Trọng tâm Sprint 1',
+      eyebrow: 'Phạm vi phiên bản này',
       titleLine1: 'Gọn để có thể ship.',
       titleLine2: 'Hẹp để vẫn trung thực.',
       inScopeTitle: 'Phiên bản này đã giải được gì',
@@ -540,7 +537,7 @@ export const landingContent = {
         'Chưa mở rộng sang các nền tảng khác ngoài Google Maps',
         'Chưa làm luồng mời thành viên, billing hay quản lý đội ngũ mở rộng',
         'Chưa có xuất báo cáo, PDF hay bộ admin quá to',
-        'Không cố gắng biến Sprint 1 thành một bộ analytics tổng hợp cho mọi bài toán',
+        'Không cố gắng biến phiên bản này thành một bộ analytics tổng hợp cho mọi bài toán',
       ],
       reasons: [
         'Một đầu vào rõ ràng giúp user flow dễ hiểu và dễ dùng.',
@@ -553,12 +550,12 @@ export const landingContent = {
       titleLine1: 'Dữ liệu review vẫn cần được xử lý',
       titleLine2: 'một cách kỷ luật.',
       description:
-        'Sentify không tự nhận là một siêu nền tảng, nhưng sản phẩm vẫn phải tạo cảm giác đáng tin. Review của nhà hàng có thể nhỏ về quy mô, nhưng vẫn cần ranh giới rõ, truy cập được bảo vệ và guardrail hợp lý.',
+        'Dữ liệu review của nhà hàng có thể không lớn, nhưng vẫn cần ranh giới xử lý rõ ràng, quyền truy cập được bảo vệ và các hàng rào an toàn có sẵn trước khi giao diện mở rộng hơn.',
       pillars: [
         {
           icon: 'admin_panel_settings',
           title: 'Dữ liệu của từng nhà hàng phải nằm đúng chỗ',
-          description: 'Ngay cả trong Sprint 1, sản phẩm đã được nghĩ theo hướng một nhà hàng không thể vô tình thấy review của nhà hàng khác.',
+          description: 'Ngay cả trong phiên bản này, sản phẩm đã được nghĩ theo hướng một nhà hàng không thể vô tình thấy review của nhà hàng khác.',
         },
         {
           icon: 'verified_user',
@@ -573,13 +570,13 @@ export const landingContent = {
       ],
     },
     cta: {
-      titleLine1: 'Lời hứa nhỏ hơn.',
-      titleLine2: 'Giá trị hữu ích hơn.',
+      titleLine1: 'Đừng chỉ đọc review.',
+      titleLine2: 'Hãy biết sửa gì trước.',
       description:
-        'Trong Sprint 1, Sentify chỉ tập trung vào một việc: giúp chủ nhà hàng biết khách đang khen điều gì, đang phàn nàn điều gì, và điều nào nên được ưu tiên xử lý trước.',
+        'Bắt đầu với một nhà hàng, một nguồn Google Maps và một dashboard đủ rõ để đội ngũ chốt ưu tiên tiếp theo nhanh hơn.',
       primaryCta: 'Xem luồng sản phẩm',
       secondaryCta: 'Lên đầu trang',
-      chips: ['Import review Google Maps', 'Insight ưu tiên từ phàn nàn', 'Một dashboard cho từng nhà hàng'],
+      chips: ['Một nguồn cho mỗi nhà hàng', 'Phàn nàn lặp lại hiện ra', 'Một ưu tiên rõ cho đội ngũ'],
     },
     footer: {
       description:
@@ -600,7 +597,6 @@ export const landingContent = {
             ['Từ khóa phàn nàn', '#signals'],
             ['Sentiment', '#dashboard'],
             ['Xu hướng rating', '#dashboard'],
-            ['Phạm vi Sprint 1', '#sprint-1'],
           ],
         },
         {
@@ -614,7 +610,7 @@ export const landingContent = {
         },
       ],
       bottomLeft:
-        'Trang giới thiệu Sentify. Sprint 1 tập trung vào nhập review thủ công, rút insight và một dashboard để ra quyết định nhanh hơn.',
+        'Trang giới thiệu Sentify. Phiên bản này tập trung vào import review, rút insight và một dashboard để ra quyết định nhanh hơn.',
       bottomRight: 'Ưu tiên sự rõ ràng, không dựng một nền tảng quá đà.',
     },
     ticker: [
@@ -680,7 +676,7 @@ export const landingContent = {
     meta: {
       title: 'Sentify | レストランレビューを次の行動へ',
       description:
-        'Sentify は Google Maps レビューを、繰り返し発生する不満、感情の傾向、優先度の高い改善アクションへ整理します。',
+        'Sentify は Google Maps のレビューを、繰り返し出る不満や感情の傾向、次に優先すべき改善アクションへ整理します。',
     },
     header: {
       brand: 'Sentify',
@@ -690,7 +686,6 @@ export const landingContent = {
         { label: '流れ', href: '#workflow' },
         { label: 'ダッシュボード', href: '#dashboard' },
         { label: 'シグナル', href: '#signals' },
-        { label: '範囲', href: '#sprint-1' },
       ],
       workflowCta: '流れを見る',
       dashboardCta: 'ダッシュボードを見る',
@@ -698,17 +693,17 @@ export const landingContent = {
       themeLabel: 'テーマを切り替える',
     },
     hero: {
-      badge: 'Sprint 1 MVP',
-      titleLine1: 'レビューが集まる。',
+      badge: '',
+      titleLine1: 'Sentify',
       titleLine2: '次の一手が見える。',
       description:
-        'Sentify はレストラン向けの AI Customer Insight Engine です。Google Maps の URL を登録し、レビューを取り込み、繰り返し出る不満を見つけ、まず対応すべき内容を 1 つの画面に整理します。',
+        'Sentify は Google Maps のレビューを一か所に集め、繰り返す不満や感情の傾向を整理し、まず直すべき点を明確にします。',
       highlights: [
-        'Google Maps レビュー取り込み',
-        '店舗ごとの感情内訳',
-        '不満キーワードの抽出',
+        'レビューを一画面に集約',
+        '繰り返す不満を整理',
+        '先に直す点を絞る',
       ],
-      primaryCta: 'プロダクトの流れを見る',
+      primaryCta: '流れを見る',
       secondaryCta: 'ダッシュボードを見る',
     },
     problem: {
@@ -740,22 +735,22 @@ export const landingContent = {
     },
     workflow: {
       eyebrow: 'ワークフロー',
-      titleLine1: 'Sprint 1 で実現する',
-      titleLine2: '最短の改善フロー',
+      titleLine1: 'このMVPで回る',
+      titleLine2: '最短の改善ループ',
       description:
-        'Sprint 1 の Sentify は、1 店舗の登録、1 本の Google Maps URL、1 回のレビュー取り込み、1 つのダッシュボードに絞って、価値が伝わる最短ループを作ります。',
+        'このMVPのSentifyは、1店舗・1本のGoogle MapsのURL・1つのダッシュボードに絞り、価値が伝わる最短の改善ループをつくります。',
       steps: [
         {
           step: '01',
-          title: 'アカウントを作成する',
+          title: '最初の店舗を登録する',
           description:
-            'まず 1 人のオーナーとして登録し、レビューを見たい店舗を 1 つ作成します。',
+            'まず対象の店舗を1つ登録し、その店舗のレビューを追える状態にします。',
         },
         {
           step: '02',
-          title: 'Google Maps の URL を保存する',
+          title: 'Google MapsのURLを保存する',
           description:
-            '店舗ごとに 1 本の URL を登録し、以後の取り込み元を明確にします。',
+            '店舗ごとに1本のURLを登録し、以後の取り込み元を明確にします。',
         },
         {
           step: '03',
@@ -765,18 +760,18 @@ export const landingContent = {
         },
         {
           step: '04',
-          title: 'ダッシュボードで優先課題を確認する',
+          title: 'ダッシュボードで次の優先課題を決める',
           description:
-            '感情比率、頻出する不満、推移を 1 画面で見て、次に直すべきことを判断します。',
+            '感情比率、頻出する不満、推移を1画面で見て、次に直すべきことを判断します。',
         },
       ],
     },
     dashboard: {
       eyebrow: 'ダッシュボード',
-      titleLine1: '1 画面で',
-      titleLine2: '変化と課題をつかむ',
+      titleLine1: '1画面で',
+      titleLine2: 'いま何が起きているかをつかむ',
       description:
-        'レビュー一覧だけではなく、感情の比率、主要な不満、期間ごとの傾向までまとめて確認できます。',
+        'レビュー一覧を追うだけでなく、感情の比率、繰り返し出る不満、期間ごとの変化までまとめて確認できます。',
       overview: {
         title: '改善判断のための要約ビュー',
         description:
@@ -827,28 +822,28 @@ export const landingContent = {
       },
     },
     signals: {
-      eyebrow: 'シグナル',
-      description: 'レビューを読んだ結果ではなく、すぐ行動に移せる形で示します。',
+      eyebrow: 'シグナル例',
+      description: 'レビューを読むこと自体が目的ではありません。すぐ動ける形で示すことが目的です。',
       cards: [
         {
           badge: { text: '増加中', color: 'red' as const },
           icon: 'schedule',
-          title: '待ち時間に関する不満が増えている',
-          description: '来店ピーク帯で待機に触れるレビューが増え、運営改善の優先度が上がっています。',
+          title: '待ち時間への不満が増えている',
+          description: 'ピーク帯を中心に、待ち時間に触れるレビューが増えています。運営改善の優先度が高い状態です。',
           metric: '18件',
         },
         {
           badge: { text: '改善', color: 'green' as const },
           icon: 'mood',
-          title: '接客に関する反応が安定している',
-          description: '直近 4 週間で接客に関するネガティブ表現が減り、全体評価を支えています。',
+          title: '接客への評価が持ち直している',
+          description: '直近4週間で接客に関するネガティブな表現が減り、全体評価を下支えしています。',
           metric: '+9 pt',
         },
         {
           badge: { text: '継続監視', color: 'blue' as const },
           icon: 'local_shipping',
-          title: '提供スピードへの言及が続いている',
-          description: '改善傾向はあるものの、提供時間に関する指摘がまだ残っています。',
+          title: '提供スピードへの指摘が続いている',
+          description: '改善の兆しはあるものの、提供時間に関する指摘はまだ続いています。',
           metric: '11件',
         },
         {
@@ -861,15 +856,15 @@ export const landingContent = {
       ],
     },
     sprint: {
-      eyebrow: 'Sprint 1 の範囲',
+      eyebrow: 'このMVPの範囲',
       titleLine1: '最初に作るのは',
-      titleLine2: '価値が見える最小構成',
+      titleLine2: '価値が伝わる最小構成',
       inScopeTitle: '今回含めるもの',
       outOfScopeTitle: '今回は含めないもの',
       whyTitle: 'この切り方にする理由',
       inScopeItems: [
-        '1 ユーザー 1 店舗から始める基本フロー',
-        'Google Maps URL からのレビュー取り込み',
+        '1ユーザー・1店舗から始める基本フロー',
+        'Google MapsのURLからレビューを取り込むこと',
         'レビュー一覧と条件フィルター',
         '感情比率と不満キーワードの可視化',
         'ダッシュボードでの優先度確認',
@@ -881,22 +876,22 @@ export const landingContent = {
         'サブスクリプションや課金機能',
       ],
       reasons: [
-        'まずは 1 店舗の改善判断に集中するためです。',
-        'MVP として価値が通る最短ループを確認するためです。',
+        'まずは1店舗の改善判断に集中するためです。',
+        'MVPとして価値が伝わる最短ループを確認するためです。',
         '将来の拡張よりも、今の体験を確実に成立させるためです。',
       ],
     },
     trust: {
       eyebrow: '信頼性',
       titleLine1: '店舗の判断を支えるための',
-      titleLine2: '実務的な設計',
+      titleLine2: '実務に沿った設計',
       description:
         'Sentify は派手な演出ではなく、レビューの重複排除、店舗単位の管理、継続的な確認という実務に必要な土台を優先しています。',
       pillars: [
         {
           icon: 'admin_panel_settings',
           title: '店舗単位で整理されたデータ',
-          description: 'Sprint 1 では店舗単位でレビューと集計を管理し、対象がぶれないようにします。',
+          description: 'このMVPでは、店舗単位でレビューと集計を管理し、対象がぶれないようにします。',
         },
         {
           icon: 'verified_user',
@@ -905,7 +900,7 @@ export const landingContent = {
         },
         {
           icon: 'shield_with_heart',
-          title: '改善判断のための要約指標',
+          title: '改善判断につながる要約指標',
           description: '生レビューだけでなく、割合や頻出キーワードとして判断しやすく提示します。',
         },
       ],
@@ -914,14 +909,14 @@ export const landingContent = {
       titleLine1: 'レビューを読むだけで終わらせず、',
       titleLine2: '次の改善につなげる。',
       description:
-        'Sprint 1 の Sentify は、レビューの収集から要約までをつなぎ、レストランオーナーが最初の改善判断を下せる状態を目指します。',
+        'このMVPのSentifyは、レビューの収集から要約までをひとつにつなぎ、レストランオーナーが最初の改善判断を下せる状態をつくります。',
       primaryCta: 'ダッシュボードを見る',
       secondaryCta: '流れを確認する',
       chips: ['Google Maps レビュー連携', '感情の可視化', '店舗ごとの要約'],
     },
     footer: {
       description:
-        'Sentify はレビューを、優先順位のある改善アクションへつなげるレストラン向けプロダクトです。',
+        'Sentify は、レビューを優先順位のある改善アクションへつなげるレストラン向けプロダクトです。',
       columns: [
         {
           title: '概要',
@@ -938,7 +933,6 @@ export const landingContent = {
             ['シグナル', '#signals'],
             ['ダッシュボード', '#dashboard'],
             ['感情分析', '#dashboard'],
-            ['Sprint 1 の範囲', '#sprint-1'],
           ],
         },
         {
@@ -952,7 +946,7 @@ export const landingContent = {
         },
       ],
       bottomLeft:
-        'Sentify ランディングページ。Sprint 1 の目的と、店舗レビューを整理する MVP の価値を紹介しています。',
+        'Sentifyのランディングページです。このMVPが何を解決し、店舗レビューをどう整理して価値に変えるのかを紹介しています。',
       bottomRight: 'レストラン向けレビューインサイト',
     },
     ticker: [
@@ -970,7 +964,7 @@ export const landingContent = {
           avatar: 'US',
           name: 'Mia Chen',
           location: 'シアトル、米国',
-          text: '待ち時間の不満がランチ帯に集中しています。',
+          text: '待ち時間への不満がランチ帯に集中しています。',
           metric: '18x',
           metricLabel: '頻出',
         },
@@ -979,7 +973,7 @@ export const landingContent = {
           avatar: 'GB',
           name: 'Luca Wright',
           location: 'ロンドン、英国',
-          text: '接客に対する好意的な表現が増えています。',
+          text: '接客に対する前向きな言及が増えています。',
           metric: '+9',
           metricLabel: '改善',
         },
@@ -997,7 +991,7 @@ export const landingContent = {
           avatar: 'BR',
           name: 'Ana Silva',
           location: 'サンパウロ、ブラジル',
-          text: '味に関する否定的な表現が再び増えています。',
+          text: '味に関する否定的な言及が再び増えています。',
           metric: '11x',
           metricLabel: '監視',
         },

@@ -113,6 +113,28 @@ async function publishApprovedItems({
     return prisma.$transaction(async (tx) => {
         const publishedReviewIds = []
         const newItems = []
+        const reviewPayloads = items
+            .filter((item) => !item.canonicalReviewId)
+            .map((item) => item.reviewPayload)
+        const existingReviewIdByExternalId =
+            reviewPayloads.length > 0
+                ? new Map(
+                      (
+                          await tx.review.findMany({
+                              where: {
+                                  restaurantId: reviewPayloads[0].restaurantId,
+                                  externalId: {
+                                      in: reviewPayloads.map((payload) => payload.externalId),
+                                  },
+                              },
+                              select: {
+                                  id: true,
+                                  externalId: true,
+                              },
+                          })
+                      ).map((review) => [review.externalId, review.id]),
+                  )
+                : new Map()
 
         for (const item of items) {
             const reviewPayload = item.reviewPayload
@@ -126,6 +148,26 @@ async function publishApprovedItems({
                 })
 
                 publishedReviewIds.push(item.canonicalReviewId)
+                continue
+            }
+
+            const existingReviewId = existingReviewIdByExternalId.get(reviewPayload.externalId)
+
+            if (existingReviewId) {
+                await tx.review.update({
+                    where: {
+                        id: existingReviewId,
+                    },
+                    data: reviewPayload,
+                })
+
+                publishedReviewIds.push(existingReviewId)
+
+                await tx.reviewIntakeItem.update({
+                    where: { id: item.id },
+                    data: { canonicalReviewId: existingReviewId },
+                })
+
                 continue
             }
 
