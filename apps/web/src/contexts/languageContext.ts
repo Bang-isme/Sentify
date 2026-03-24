@@ -1,6 +1,5 @@
 ﻿import { createContext, useContext } from 'react'
 import { landingContent, type Language, type LandingContent } from '../content/landingContent'
-import { getLocaleWithFallback } from '../content/localeFallback'
 export type { Language } from '../content/landingContent'
 
 export interface LanguageContextValue {
@@ -21,8 +20,8 @@ export const LANGUAGE_OPTIONS: Array<{ code: Language; label: string }> = [
 export const DEFAULT_LANGUAGE: Language = 'en'
 export const LANGUAGE_STORAGE_KEY = 'sentify-language'
 
-export function getLanguageCopy(language: Language): LandingContent {
-  return getLocaleWithFallback(landingContent, language)
+export function getLanguageCopy(language: Language) {
+  return landingContent[language]
 }
 
 export function useLanguage() {

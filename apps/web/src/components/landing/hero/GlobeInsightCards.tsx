@@ -49,7 +49,6 @@ type CardSize = {
 
 interface GlobeInsightCardsProps {
   layout: GlobeLayoutMetrics | null
-  phase: number
 }
 
 const INSIGHT_SEEDS: GlobeInsightSeed[] = [
@@ -197,12 +196,15 @@ function projectInsight(
 
 export const GlobeInsightCards = memo(function GlobeInsightCards({
   layout,
-  phase,
 }: GlobeInsightCardsProps) {
   const { copy } = useLanguage()
   const [cycleStep, setCycleStep] = useState(0)
   const [cardSizes, setCardSizes] = useState<Record<number, CardSize>>({})
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const groupRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const dotRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const lineRefs = useRef<Record<number, SVGLineElement | null>>({})
+  const lastPhaseRef = useRef(0)
   const visibleCount = layout && layout.shellWidth < 540 ? 1 : DESKTOP_VISIBLE_COUNT
 
   const translatedById = new Map<number, (typeof copy.globe.insights)[number]>(
@@ -310,7 +312,7 @@ export const GlobeInsightCards = memo(function GlobeInsightCards({
 
   const projectedInsights = layout
     ? insights.map((insight) =>
-        projectInsight(insight, layout, cardSizes[insight.id] ?? DEFAULT_CARD_SIZE, phase),
+        projectInsight(insight, layout, cardSizes[insight.id] ?? DEFAULT_CARD_SIZE, lastPhaseRef.current),
       )
     : []
   const visibleIndices = projectedInsights
@@ -322,6 +324,59 @@ export const GlobeInsightCards = memo(function GlobeInsightCards({
     visibleCount,
     cycleStep,
   )
+
+  useEffect(() => {
+    if (!layout) return
+
+    const handlePhase = (e: Event) => {
+      const currentPhase = (e as CustomEvent<number>).detail
+      lastPhaseRef.current = currentPhase
+
+      insights.forEach((insight, index) => {
+        const projected = projectInsight(
+          insight,
+          layout,
+          cardSizes[insight.id] ?? DEFAULT_CARD_SIZE,
+          currentPhase,
+        )
+
+        const group = groupRefs.current[insight.id]
+        if (group) {
+          group.classList.toggle('globe-insight-hidden', !projected.isVisible)
+          group.style.setProperty('--insight-dot-size', `${projected.dotSize}px`)
+          group.style.setProperty('--card-shift-x', `${projected.motionX}px`)
+          group.style.setProperty('--card-shift-y', `${projected.motionY}px`)
+        }
+
+        const dot = dotRefs.current[insight.id]
+        if (dot) {
+          dot.style.left = `${projected.dotLeft}px`
+          dot.style.top = `${projected.dotTop}px`
+        }
+
+        const line = lineRefs.current[insight.id]
+        if (line) {
+          line.setAttribute('x1', projected.dotLeft.toString())
+          line.setAttribute('y1', projected.dotTop.toString())
+          line.setAttribute('x2', projected.lineX2.toString())
+          line.setAttribute('y2', projected.lineY2.toString())
+          line.style.strokeDasharray = `${projected.lineLength}px`
+          line.style.strokeDashoffset = activeIndices.includes(index) ? '0px' : `${projected.lineLength}px`
+        }
+
+        const card = cardRefs.current[insight.id]
+        if (card) {
+          card.style.left = `${projected.cardLeft}px`
+          card.style.top = `${projected.cardTop}px`
+          card.classList.toggle('globe-insight-card-left', projected.cardSide === 'left')
+          card.classList.toggle('globe-insight-card-right', projected.cardSide === 'right')
+        }
+      })
+    }
+
+    window.addEventListener('globe:updatePhase', handlePhase)
+    return () => window.removeEventListener('globe:updatePhase', handlePhase)
+  }, [layout, cardSizes, insights, activeIndices])
 
   if (!layout) return null
 
@@ -338,6 +393,9 @@ export const GlobeInsightCards = memo(function GlobeInsightCards({
         return (
           <div
             key={insight.id}
+            ref={(node) => {
+              groupRefs.current[insight.id] = node
+            }}
             className={[
               'globe-insight-group',
               insight.isVisible ? '' : 'globe-insight-hidden',
@@ -349,6 +407,9 @@ export const GlobeInsightCards = memo(function GlobeInsightCards({
           >
             <div
               className="globe-insight-dot"
+              ref={(node) => {
+                dotRefs.current[insight.id] = node
+              }}
               style={{ left: `${insight.dotLeft}px`, top: `${insight.dotTop}px` }}
             >
               <span className="globe-insight-dot-core" />
@@ -361,6 +422,9 @@ export const GlobeInsightCards = memo(function GlobeInsightCards({
               preserveAspectRatio="none"
             >
               <line
+                ref={(node) => {
+                  lineRefs.current[insight.id] = node
+                }}
                 x1={insight.dotLeft}
                 y1={insight.dotTop}
                 x2={insight.lineX2}
