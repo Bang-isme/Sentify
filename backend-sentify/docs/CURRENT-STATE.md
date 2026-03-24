@@ -178,6 +178,10 @@ Current local SMB load evidence:
   - `INCREMENTAL` queued run reached terminal `PARTIAL` in about `14.21s`
   - `200` extracted and valid raw reviews auto-materialized into a `DRAFT` intake batch
   - batch readiness showed `200` pending items and the expected `NO_APPROVED_ITEMS` publish blocker
+- local logical recovery drill on the shared demo dataset:
+  - `2` seeded restaurants were snapshotted, damaged, and restored in about `1.96s`
+  - the restored semantic digest matched the baseline digest exactly
+  - the drill preserved canonical reviews, intake batches and items, crawl runtime rows, and dashboard aggregates
 
 ## 6. Seed And Demo Data
 
@@ -195,7 +199,7 @@ The shared seed dataset currently creates:
 The backend is still not fully release-ready. Main remaining gaps:
 
 - managed Redis or staging proof beyond local Memurai-backed queue evidence
-- staging evidence, backup, restore, and rollback drills
+- staging evidence and managed-environment backup, restore, and rollback drills beyond the local logical recovery harness
 - continued refactor of older auth and restaurant modules toward the same feature-module shape
 
 ## 8. Short Conclusion
@@ -210,6 +214,7 @@ It already has:
 - a backend-only operator layer that reduces internal crawl-to-draft work
 - seed and real-database proof for core publish behavior
 - local SMB load proof for merchant reads and worker checkpoint pressure
+- a local logical recovery drill for seeded restaurant state
 - real benchmark evidence that the crawler can handle larger sources operationally
 
 The remaining work is mostly about managed-environment evidence, staging evidence, and release discipline, not missing core business flow.

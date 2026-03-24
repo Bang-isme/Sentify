@@ -155,6 +155,13 @@ npm run load:merchant-reads -- --extra-reviews 4000 --concurrency 8 --rounds 45 
 npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-per-run 12 --reviews-per-page 20 --step-ms 40 --output load-reports/review-crawl-workers-smb-local.json
 ```
 
+Local recovery drill:
+
+```powershell
+cd "D:\Project 3\backend-sentify"
+npm run smoke:recovery-drill
+```
+
 ## 6. Minimum Evidence
 
 | Area | Minimum expected evidence |
@@ -166,14 +173,14 @@ npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-p
 | Admin intake | create, add, update, delete, publish, duplicate reuse |
 | Review crawl | source upsert, queued run, worker processing, materialize-intake |
 | Performance | local SMB read-load report and worker-pressure report for high-risk backend changes |
-| Ops | `/health`, `/api/health`, migrations, seed, worker startup |
+| Ops | `/health`, `/api/health`, migrations, seed, worker startup, local logical recovery drill |
 
 ## 7. Remaining Gaps
 
 The main testing gaps still left are:
 
 - managed Redis or staging-backed queue proof beyond local Memurai compatibility
-- staging proof, backup, restore, and rollback
+- staging proof and managed-environment backup, restore, and rollback beyond the local logical recovery drill
 
 ## 8. Merge Gate
 

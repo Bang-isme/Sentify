@@ -1,0 +1,644 @@
+{
+  "benchmark": {
+    "durationMs": 1961,
+    "finishedAt": "2026-03-24T21:00:22.304Z",
+    "mode": "logical_restaurant_state_restore",
+    "startedAt": "2026-03-24T21:00:20.343Z",
+    "targetRestaurantCount": 2
+  },
+  "notes": [
+    "This drill proves logical restaurant-state recovery on the shared demo dataset without relying on pg_dump or pg_restore availability.",
+    "The restore step preserves semantic restaurant data, review intake state, canonical reviews, crawl runtime rows, and dashboard aggregates.",
+    "Managed-environment backup, restore, and rollback evidence is still required separately for staging or production posture."
+  ],
+  "result": {
+    "baselineDigest": "ac5021cc830cd74ff85a3003dc1f0ad2803d0fc019efb93c527e0edde2aab3a7",
+    "damagedDigest": "27c34c67d79abde9d9aa4d6c8bda4d61acfe5342f9b6d88f9c68466d0a4273a1",
+    "restoredDigest": "ac5021cc830cd74ff85a3003dc1f0ad2803d0fc019efb93c527e0edde2aab3a7",
+    "restoredMatchesBaseline": true
+  },
+  "seedSummary": {
+    "restaurants": {
+      "phoHong": {
+        "id": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+        "slug": "demo-quan-pho-hong",
+        "state": {
+          "crawlRuns": 1,
+          "openBatches": 1,
+          "publishedBatches": 1,
+          "reviews": 10
+        }
+      },
+      "tacombi": {
+        "id": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+        "slug": "demo-tacombi",
+        "state": {
+          "crawlRuns": 0,
+          "openBatches": 0,
+          "publishedBatches": 1,
+          "reviews": 6
+        }
+      }
+    },
+    "users": {
+      "manager": {
+        "email": "demo.manager@sentify.local",
+        "id": "5597d283-6bca-452a-86a7-3e99c6db0bee"
+      },
+      "outsider": {
+        "email": "demo.outsider@sentify.local",
+        "id": "9ec195a4-e530-43ab-8695-fbd7d0ed3c14"
+      },
+      "owner": {
+        "email": "demo.owner@sentify.local",
+        "id": "9c8fefd5-a7db-4bac-90b2-050f67ab01b6"
+      }
+    }
+  },
+  "stages": {
+    "baseline": [
+      {
+        "liveState": {
+          "complaintKeywords": 7,
+          "crawlRuns": 1,
+          "crawlSources": 1,
+          "insightRows": 1,
+          "intakeItems": 13,
+          "openBatches": 1,
+          "publishedBatches": 1,
+          "rawReviews": 4,
+          "reviews": 10
+        },
+        "name": "Demo Quan Pho Hong",
+        "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+        "semanticDigest": "d757507a05a58fa6dee39105d18e781720682333f310f50042285844d2292f88",
+        "serviceDigest": "8e5caba42166eef4c39319647c0883d15753b66afa42699d02443a2bd46a7a9d",
+        "serviceProof": {
+          "complaints": [
+            {
+              "count": 2,
+              "keyword": "chậm",
+              "percentage": 50
+            },
+            {
+              "count": 1,
+              "keyword": "bẩn",
+              "percentage": 25
+            },
+            {
+              "count": 1,
+              "keyword": "không thân thiện",
+              "percentage": 25
+            },
+            {
+              "count": 1,
+              "keyword": "noisy",
+              "percentage": 25
+            },
+            {
+              "count": 1,
+              "keyword": "nguội",
+              "percentage": 25
+            }
+          ],
+          "detail": {
+            "datasetStatus": {
+              "approvedItemCount": 1,
+              "lastPublishedAt": "2026-03-24T21:00:21.306Z",
+              "lastPublishedSourceType": "GOOGLE_MAPS_CRAWL",
+              "pendingBatchCount": 1,
+              "pendingItemCount": 1,
+              "readyBatchCount": 0,
+              "rejectedItemCount": 1,
+              "sourcePolicy": "ADMIN_CURATED"
+            },
+            "googleMapUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+            "id": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+            "insightSummary": {
+              "averageRating": 3.3,
+              "negativePercentage": 40,
+              "neutralPercentage": 10,
+              "positivePercentage": 50,
+              "totalReviews": 10
+            },
+            "name": "Demo Quan Pho Hong",
+            "slug": "demo-quan-pho-hong"
+          },
+          "kpi": {
+            "averageRating": 3.3,
+            "negativePercentage": 40,
+            "neutralPercentage": 10,
+            "positivePercentage": 50,
+            "totalReviews": 10
+          },
+          "latestReviews": [
+            {
+              "authorName": "Nam",
+              "externalId": "source-review:v1:google_maps:demo-phohong-published-010",
+              "rating": 5,
+              "sentiment": "POSITIVE"
+            },
+            {
+              "authorName": "Hoa",
+              "externalId": "source-review:v1:google_maps:demo-phohong-published-009",
+              "rating": 3,
+              "sentiment": "NEUTRAL"
+            },
+            {
+              "authorName": "Trang",
+              "externalId": "source-review:v1:google_maps:demo-phohong-published-008",
+              "rating": 2,
+              "sentiment": "NEGATIVE"
+            }
+          ],
+          "topIssue": {
+            "action": "Prioritize improving chậm — review 2 related complaints.",
+            "count": 2,
+            "keyword": "chậm",
+            "lastUpdatedAt": "2026-03-24T21:00:21.459Z",
+            "percentage": 50
+          }
+        },
+        "slug": "demo-quan-pho-hong",
+        "snapshotSummary": {
+          "approvedItems": 11,
+          "complaintKeywords": 7,
+          "crawlRuns": 1,
+          "crawlSources": 1,
+          "insightPresent": true,
+          "intakeItems": 13,
+          "openBatches": 1,
+          "pendingItems": 1,
+          "publishedBatches": 1,
+          "rawReviews": 4,
+          "rejectedItems": 1,
+          "reviews": 10
+        }
+      },
+      {
+        "liveState": {
+          "complaintKeywords": 1,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightRows": 1,
+          "intakeItems": 6,
+          "openBatches": 0,
+          "publishedBatches": 1,
+          "rawReviews": 0,
+          "reviews": 6
+        },
+        "name": "Demo Tacombi",
+        "restaurantId": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+        "semanticDigest": "2c7bbd83a7a0c85ffc7b68006ca58abb5d1487598d843b72d89252135b9847ea",
+        "serviceDigest": "a343024836961d2ad2cef700c3121e8a25db67d926753b30d492779c798e7bb8",
+        "serviceProof": {
+          "complaints": [
+            {
+              "count": 1,
+              "keyword": "overpriced",
+              "percentage": 100
+            }
+          ],
+          "detail": {
+            "datasetStatus": {
+              "approvedItemCount": 0,
+              "lastPublishedAt": "2026-03-24T21:00:21.593Z",
+              "lastPublishedSourceType": "MANUAL",
+              "pendingBatchCount": 0,
+              "pendingItemCount": 0,
+              "readyBatchCount": 0,
+              "rejectedItemCount": 0,
+              "sourcePolicy": "ADMIN_CURATED"
+            },
+            "googleMapUrl": "https://www.google.com/maps?cid=12075628976512600470&hl=en&gl=US",
+            "id": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+            "insightSummary": {
+              "averageRating": 4.2,
+              "negativePercentage": 16.7,
+              "neutralPercentage": 0,
+              "positivePercentage": 83.3,
+              "totalReviews": 6
+            },
+            "name": "Demo Tacombi",
+            "slug": "demo-tacombi"
+          },
+          "kpi": {
+            "averageRating": 4.2,
+            "negativePercentage": 16.7,
+            "neutralPercentage": 0,
+            "positivePercentage": 83.3,
+            "totalReviews": 6
+          },
+          "latestReviews": [
+            {
+              "authorName": "Mateo",
+              "externalId": "source-review:v1:google_maps:demo-tacombi-published-006",
+              "rating": 5,
+              "sentiment": "POSITIVE"
+            },
+            {
+              "authorName": "Chloe",
+              "externalId": "source-review:v1:google_maps:demo-tacombi-published-005",
+              "rating": 4,
+              "sentiment": "POSITIVE"
+            },
+            {
+              "authorName": "Ethan",
+              "externalId": "source-review:v1:google_maps:demo-tacombi-published-004",
+              "rating": 5,
+              "sentiment": "POSITIVE"
+            }
+          ],
+          "topIssue": {
+            "action": "Prioritize improving overpriced — review 1 related complaint.",
+            "count": 1,
+            "keyword": "overpriced",
+            "lastUpdatedAt": "2026-03-24T21:00:21.626Z",
+            "percentage": 100
+          }
+        },
+        "slug": "demo-tacombi",
+        "snapshotSummary": {
+          "approvedItems": 6,
+          "complaintKeywords": 1,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightPresent": true,
+          "intakeItems": 6,
+          "openBatches": 0,
+          "pendingItems": 0,
+          "publishedBatches": 1,
+          "rawReviews": 0,
+          "rejectedItems": 0,
+          "reviews": 6
+        }
+      }
+    ],
+    "damaged": [
+      {
+        "liveState": {
+          "complaintKeywords": 0,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightRows": 0,
+          "intakeItems": 0,
+          "openBatches": 0,
+          "publishedBatches": 0,
+          "rawReviews": 0,
+          "reviews": 0
+        },
+        "name": "Demo Quan Pho Hong [damaged]",
+        "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+        "semanticDigest": "79ed1b2e4e6d30250c43aa1fcccbfd993c87374976411a41ab1a0f5b53a337a5",
+        "serviceDigest": "e186fc356d2e461c995c85e2a7dd42f039d1fb9057ced261b01914b902ff0f8c",
+        "serviceProof": {
+          "complaints": [],
+          "detail": {
+            "datasetStatus": {
+              "approvedItemCount": 0,
+              "lastPublishedAt": null,
+              "lastPublishedSourceType": null,
+              "pendingBatchCount": 0,
+              "pendingItemCount": 0,
+              "readyBatchCount": 0,
+              "rejectedItemCount": 0,
+              "sourcePolicy": "UNCONFIGURED"
+            },
+            "googleMapUrl": null,
+            "id": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+            "insightSummary": {
+              "averageRating": 0,
+              "negativePercentage": 0,
+              "neutralPercentage": 0,
+              "positivePercentage": 0,
+              "totalReviews": 0
+            },
+            "name": "Demo Quan Pho Hong [damaged]",
+            "slug": "demo-quan-pho-hong"
+          },
+          "kpi": {
+            "averageRating": 0,
+            "negativePercentage": 0,
+            "neutralPercentage": 0,
+            "positivePercentage": 0,
+            "totalReviews": 0
+          },
+          "latestReviews": [],
+          "topIssue": {
+            "action": null,
+            "count": 0,
+            "keyword": null,
+            "lastUpdatedAt": null,
+            "percentage": 0
+          }
+        },
+        "slug": "demo-quan-pho-hong",
+        "snapshotSummary": {
+          "approvedItems": 0,
+          "complaintKeywords": 0,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightPresent": false,
+          "intakeItems": 0,
+          "openBatches": 0,
+          "pendingItems": 0,
+          "publishedBatches": 0,
+          "rawReviews": 0,
+          "rejectedItems": 0,
+          "reviews": 0
+        }
+      },
+      {
+        "liveState": {
+          "complaintKeywords": 0,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightRows": 0,
+          "intakeItems": 0,
+          "openBatches": 0,
+          "publishedBatches": 0,
+          "rawReviews": 0,
+          "reviews": 0
+        },
+        "name": "Demo Tacombi [damaged]",
+        "restaurantId": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+        "semanticDigest": "2910e56075de94b2425dfd6885f04e2c665eedf304fd27f0b92e2ae00138e204",
+        "serviceDigest": "ba0d9d3d1a5d3f9388cb93f150a564fda6940b998e75d68953f8537aee41ab93",
+        "serviceProof": {
+          "complaints": [],
+          "detail": {
+            "datasetStatus": {
+              "approvedItemCount": 0,
+              "lastPublishedAt": null,
+              "lastPublishedSourceType": null,
+              "pendingBatchCount": 0,
+              "pendingItemCount": 0,
+              "readyBatchCount": 0,
+              "rejectedItemCount": 0,
+              "sourcePolicy": "UNCONFIGURED"
+            },
+            "googleMapUrl": null,
+            "id": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+            "insightSummary": {
+              "averageRating": 0,
+              "negativePercentage": 0,
+              "neutralPercentage": 0,
+              "positivePercentage": 0,
+              "totalReviews": 0
+            },
+            "name": "Demo Tacombi [damaged]",
+            "slug": "demo-tacombi"
+          },
+          "kpi": {
+            "averageRating": 0,
+            "negativePercentage": 0,
+            "neutralPercentage": 0,
+            "positivePercentage": 0,
+            "totalReviews": 0
+          },
+          "latestReviews": [],
+          "topIssue": {
+            "action": null,
+            "count": 0,
+            "keyword": null,
+            "lastUpdatedAt": null,
+            "percentage": 0
+          }
+        },
+        "slug": "demo-tacombi",
+        "snapshotSummary": {
+          "approvedItems": 0,
+          "complaintKeywords": 0,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightPresent": false,
+          "intakeItems": 0,
+          "openBatches": 0,
+          "pendingItems": 0,
+          "publishedBatches": 0,
+          "rawReviews": 0,
+          "rejectedItems": 0,
+          "reviews": 0
+        }
+      }
+    ],
+    "restored": [
+      {
+        "liveState": {
+          "complaintKeywords": 7,
+          "crawlRuns": 1,
+          "crawlSources": 1,
+          "insightRows": 1,
+          "intakeItems": 13,
+          "openBatches": 1,
+          "publishedBatches": 1,
+          "rawReviews": 4,
+          "reviews": 10
+        },
+        "name": "Demo Quan Pho Hong",
+        "restaurantId": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+        "semanticDigest": "d757507a05a58fa6dee39105d18e781720682333f310f50042285844d2292f88",
+        "serviceDigest": "8e5caba42166eef4c39319647c0883d15753b66afa42699d02443a2bd46a7a9d",
+        "serviceProof": {
+          "complaints": [
+            {
+              "count": 2,
+              "keyword": "chậm",
+              "percentage": 50
+            },
+            {
+              "count": 1,
+              "keyword": "bẩn",
+              "percentage": 25
+            },
+            {
+              "count": 1,
+              "keyword": "không thân thiện",
+              "percentage": 25
+            },
+            {
+              "count": 1,
+              "keyword": "noisy",
+              "percentage": 25
+            },
+            {
+              "count": 1,
+              "keyword": "nguội",
+              "percentage": 25
+            }
+          ],
+          "detail": {
+            "datasetStatus": {
+              "approvedItemCount": 1,
+              "lastPublishedAt": "2026-03-24T21:00:21.306Z",
+              "lastPublishedSourceType": "GOOGLE_MAPS_CRAWL",
+              "pendingBatchCount": 1,
+              "pendingItemCount": 1,
+              "readyBatchCount": 0,
+              "rejectedItemCount": 1,
+              "sourcePolicy": "ADMIN_CURATED"
+            },
+            "googleMapUrl": "https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8",
+            "id": "0fee5298-e941-4cb9-8f17-ea8fa79c8f9a",
+            "insightSummary": {
+              "averageRating": 3.3,
+              "negativePercentage": 40,
+              "neutralPercentage": 10,
+              "positivePercentage": 50,
+              "totalReviews": 10
+            },
+            "name": "Demo Quan Pho Hong",
+            "slug": "demo-quan-pho-hong"
+          },
+          "kpi": {
+            "averageRating": 3.3,
+            "negativePercentage": 40,
+            "neutralPercentage": 10,
+            "positivePercentage": 50,
+            "totalReviews": 10
+          },
+          "latestReviews": [
+            {
+              "authorName": "Nam",
+              "externalId": "source-review:v1:google_maps:demo-phohong-published-010",
+              "rating": 5,
+              "sentiment": "POSITIVE"
+            },
+            {
+              "authorName": "Hoa",
+              "externalId": "source-review:v1:google_maps:demo-phohong-published-009",
+              "rating": 3,
+              "sentiment": "NEUTRAL"
+            },
+            {
+              "authorName": "Trang",
+              "externalId": "source-review:v1:google_maps:demo-phohong-published-008",
+              "rating": 2,
+              "sentiment": "NEGATIVE"
+            }
+          ],
+          "topIssue": {
+            "action": "Prioritize improving chậm — review 2 related complaints.",
+            "count": 2,
+            "keyword": "chậm",
+            "lastUpdatedAt": "2026-03-24T21:00:21.459Z",
+            "percentage": 50
+          }
+        },
+        "slug": "demo-quan-pho-hong",
+        "snapshotSummary": {
+          "approvedItems": 11,
+          "complaintKeywords": 7,
+          "crawlRuns": 1,
+          "crawlSources": 1,
+          "insightPresent": true,
+          "intakeItems": 13,
+          "openBatches": 1,
+          "pendingItems": 1,
+          "publishedBatches": 1,
+          "rawReviews": 4,
+          "rejectedItems": 1,
+          "reviews": 10
+        }
+      },
+      {
+        "liveState": {
+          "complaintKeywords": 1,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightRows": 1,
+          "intakeItems": 6,
+          "openBatches": 0,
+          "publishedBatches": 1,
+          "rawReviews": 0,
+          "reviews": 6
+        },
+        "name": "Demo Tacombi",
+        "restaurantId": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+        "semanticDigest": "2c7bbd83a7a0c85ffc7b68006ca58abb5d1487598d843b72d89252135b9847ea",
+        "serviceDigest": "a343024836961d2ad2cef700c3121e8a25db67d926753b30d492779c798e7bb8",
+        "serviceProof": {
+          "complaints": [
+            {
+              "count": 1,
+              "keyword": "overpriced",
+              "percentage": 100
+            }
+          ],
+          "detail": {
+            "datasetStatus": {
+              "approvedItemCount": 0,
+              "lastPublishedAt": "2026-03-24T21:00:21.593Z",
+              "lastPublishedSourceType": "MANUAL",
+              "pendingBatchCount": 0,
+              "pendingItemCount": 0,
+              "readyBatchCount": 0,
+              "rejectedItemCount": 0,
+              "sourcePolicy": "ADMIN_CURATED"
+            },
+            "googleMapUrl": "https://www.google.com/maps?cid=12075628976512600470&hl=en&gl=US",
+            "id": "2fd5e7ba-a372-4973-9d01-792b009a085b",
+            "insightSummary": {
+              "averageRating": 4.2,
+              "negativePercentage": 16.7,
+              "neutralPercentage": 0,
+              "positivePercentage": 83.3,
+              "totalReviews": 6
+            },
+            "name": "Demo Tacombi",
+            "slug": "demo-tacombi"
+          },
+          "kpi": {
+            "averageRating": 4.2,
+            "negativePercentage": 16.7,
+            "neutralPercentage": 0,
+            "positivePercentage": 83.3,
+            "totalReviews": 6
+          },
+          "latestReviews": [
+            {
+              "authorName": "Mateo",
+              "externalId": "source-review:v1:google_maps:demo-tacombi-published-006",
+              "rating": 5,
+              "sentiment": "POSITIVE"
+            },
+            {
+              "authorName": "Chloe",
+              "externalId": "source-review:v1:google_maps:demo-tacombi-published-005",
+              "rating": 4,
+              "sentiment": "POSITIVE"
+            },
+            {
+              "authorName": "Ethan",
+              "externalId": "source-review:v1:google_maps:demo-tacombi-published-004",
+              "rating": 5,
+              "sentiment": "POSITIVE"
+            }
+          ],
+          "topIssue": {
+            "action": "Prioritize improving overpriced — review 1 related complaint.",
+            "count": 1,
+            "keyword": "overpriced",
+            "lastUpdatedAt": "2026-03-24T21:00:21.626Z",
+            "percentage": 100
+          }
+        },
+        "slug": "demo-tacombi",
+        "snapshotSummary": {
+          "approvedItems": 6,
+          "complaintKeywords": 1,
+          "crawlRuns": 0,
+          "crawlSources": 0,
+          "insightPresent": true,
+          "intakeItems": 6,
+          "openBatches": 0,
+          "pendingItems": 0,
+          "publishedBatches": 1,
+          "rawReviews": 0,
+          "rejectedItems": 0,
+          "reviews": 6
+        }
+      }
+    ]
+  }
+}

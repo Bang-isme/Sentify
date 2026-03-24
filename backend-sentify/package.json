@@ -13,6 +13,7 @@
     "worker:review-crawl": "node src/review-crawl-worker.js",
     "smoke:review-crawl-queue": "node scripts/review-crawl-queue-smoke.js",
     "smoke:review-ops-sync-draft": "node scripts/review-ops-sync-draft-smoke.js",
+    "smoke:recovery-drill": "node scripts/recovery-drill.js",
     "validate:review-crawl-scale": "node scripts/review-crawl-scale-validate.js",
     "load:merchant-reads": "node scripts/load-merchant-reads.js",
     "load:review-crawl-workers": "node scripts/load-review-crawl-workers.js",

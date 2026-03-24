@@ -763,5 +763,7 @@ module.exports = {
     DEMO_RESTAURANTS,
     DEMO_USERS,
     GOOGLE_MAPS_DEMO_URL,
+    countRestaurantState,
+    resetRestaurantState,
     seedDemoData,
 }
