@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getSession, logout } from '../src/lib/api'
+import { ApiClientError } from '../src/lib/api'
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -121,5 +122,25 @@ describe('api client auth handshake', () => {
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/api/auth/csrf')
     expect(String(fetchMock.mock.calls[2]?.[0])).toContain('/api/auth/refresh')
     expect(String(fetchMock.mock.calls[3]?.[0])).toContain('/api/auth/session')
+  })
+
+  it('does not attempt a refresh when no session cookies exist', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(
+        {
+          error: {
+            code: 'AUTH_MISSING_TOKEN',
+            message: 'Access token is required',
+          },
+        },
+        401,
+      ),
+    )
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getSession()).rejects.toBeInstanceOf(ApiClientError)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/auth/session')
   })
 })

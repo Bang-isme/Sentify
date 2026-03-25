@@ -1,37 +1,39 @@
-import { useEffect, useEffectEvent, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import './index.css'
 import { AuthScreen } from './components/product/AuthScreen'
-import { ProductWorkspace } from './components/product/ProductWorkspace'
 import { LandingPage } from './components/landing/LandingPage'
 import { Header } from './components/layout/Header'
 import { getProductUiCopy } from './content/productUiCopy'
 import { LanguageProvider } from './contexts/LanguageProvider'
 import { useLanguage } from './contexts/languageContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { AdminShell } from './features/admin-shell/AdminShell'
+import {
+  getAdminAccessDeniedMessage,
+  getMerchantAccessDeniedMessage,
+  getRoleDescriptor,
+  isAdminRole,
+} from './features/access/restaurantAccess'
+import {
+  getRouteFromHash,
+  isAdminRoute,
+  isMerchantRoute,
+  isProtectedRoute,
+  type AppRoute,
+} from './features/app-shell/routes'
+import { MerchantShell } from './features/merchant-shell/MerchantShell'
 import {
   ApiClientError,
   createRestaurant,
-  getComplaintKeywords,
-  getDashboardKpi,
   getSession,
-  getRestaurantDetail,
-  getSentimentBreakdown,
-  getTrend,
   listRestaurants,
-  listReviewEvidence,
   login,
   logout,
   register,
   updateRestaurant,
-  type RestaurantDetail,
-  type RestaurantMembership,
-  type ReviewListResponse,
-  type ReviewsQuery,
-  type TrendPeriod,
   type AuthUser,
+  type RestaurantMembership,
 } from './lib/api'
-
-type AppRoute = '/' | '/login' | '/signup' | '/app' | '/app/reviews' | '/app/settings' | '/app/admin'
 
 interface StoredSession {
   user: AuthUser
@@ -44,61 +46,20 @@ interface NoticeState {
   message: string
 }
 
-interface DashboardState {
-  kpi: Awaited<ReturnType<typeof getDashboardKpi>> | null
-  sentiment: Awaited<ReturnType<typeof getSentimentBreakdown>>
-  trend: Awaited<ReturnType<typeof getTrend>>
-  complaints: Awaited<ReturnType<typeof getComplaintKeywords>>
-}
-
 interface UserIdentityViewModel {
   displayName: string
   email: string
   initials: string
   restaurantCount: number
   selectedRestaurantName?: string
+  roleLabel: string
 }
 
 const SELECTED_RESTAURANT_STORAGE_KEY = 'sentify-selected-restaurant'
-const EMPTY_DASHBOARD: DashboardState = {
-  kpi: null,
-  sentiment: [],
-  trend: [],
-  complaints: [],
-}
-const DEFAULT_REVIEW_FILTERS: ReviewsQuery = {
-  page: 1,
-  limit: 10,
-}
 
 function loadSelectedRestaurantId() {
   const raw = localStorage.getItem(SELECTED_RESTAURANT_STORAGE_KEY)?.trim()
   return raw || null
-}
-
-function getRouteFromHash(hash: string): AppRoute {
-  if (!hash.startsWith('#/')) {
-    return '/'
-  }
-
-  const candidate = hash.slice(1) as AppRoute
-
-  switch (candidate) {
-    case '/':
-    case '/login':
-    case '/signup':
-    case '/app':
-    case '/app/reviews':
-    case '/app/settings':
-    case '/app/admin':
-      return candidate
-    default:
-      return '/'
-  }
-}
-
-function isAppRoute(route: AppRoute): route is '/app' | '/app/reviews' | '/app/settings' | '/app/admin' {
-  return route.startsWith('/app')
 }
 
 function getSafeSelectedRestaurantId(
@@ -110,6 +71,21 @@ function getSafeSelectedRestaurantId(
   }
 
   return restaurants[0]?.id ?? null
+}
+
+function getCurrentRestaurantMembership(
+  restaurants: RestaurantMembership[],
+  selectedRestaurantId: string | null,
+) {
+  if (selectedRestaurantId) {
+    const selectedRestaurant = restaurants.find((restaurant) => restaurant.id === selectedRestaurantId)
+
+    if (selectedRestaurant) {
+      return selectedRestaurant
+    }
+  }
+
+  return restaurants[0] ?? null
 }
 
 function getUserDisplayName(user: AuthUser | undefined, fallback: string) {
@@ -144,38 +120,42 @@ function getUserInitials(displayName: string, email: string | undefined) {
   return email?.trim()?.[0]?.toUpperCase() ?? 'S'
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ApiClientError) {
+    return error.message
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return fallback
+}
+
+function getDefaultAuthenticatedRoute(user: AuthUser | undefined): AppRoute {
+  return isAdminRole(user?.role) ? '/admin' : '/app'
+}
+
 function SentifyShell() {
   const { language } = useLanguage()
   const productCopy = getProductUiCopy(language)
   const [route, setRoute] = useState<AppRoute>(() => getRouteFromHash(window.location.hash))
   const [session, setSession] = useState<StoredSession | null>(null)
   const [authBootLoading, setAuthBootLoading] = useState(true)
-  const [sessionRefreshing, setSessionRefreshing] = useState(false)
-  const [sessionSyncKey, setSessionSyncKey] = useState(0)
   const [authPending, setAuthPending] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [notice, setNotice] = useState<NoticeState | null>(null)
-  const [restaurantDetail, setRestaurantDetail] = useState<RestaurantDetail | null>(null)
-  const [restaurantLoading, setRestaurantLoading] = useState(false)
-  const [restaurantError, setRestaurantError] = useState<string | null>(null)
-  const [dashboard, setDashboard] = useState<DashboardState>(EMPTY_DASHBOARD)
-  const [dashboardLoading, setDashboardLoading] = useState(false)
-  const [dashboardError, setDashboardError] = useState<string | null>(null)
-  const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('week')
+  const [refreshKey, setRefreshKey] = useState(0)
   const [createPending, setCreatePending] = useState(false)
   const [savePending, setSavePending] = useState(false)
-  const [reviews, setReviews] = useState<ReviewListResponse | null>(null)
-  const [reviewsLoading, setReviewsLoading] = useState(false)
-  const [reviewsError, setReviewsError] = useState<string | null>(null)
-  const [reviewFilters, setReviewFilters] = useState<ReviewsQuery>(DEFAULT_REVIEW_FILTERS)
 
   const restaurants = session?.restaurants ?? []
   const selectedRestaurantId = session?.selectedRestaurantId ?? null
+  const currentRestaurantMembership = getCurrentRestaurantMembership(restaurants, selectedRestaurantId)
   const isAuthenticated = Boolean(session)
-  const selectedRestaurantName =
-    restaurantDetail?.name ??
-    restaurants.find((restaurant) => restaurant.id === selectedRestaurantId)?.name ??
-    undefined
+  const hasAdminControl = isAdminRole(session?.user.role)
+  const homeRoute = getDefaultAuthenticatedRoute(session?.user)
+  const roleDescriptor = getRoleDescriptor(session?.user.role, language)
   const displayName = getUserDisplayName(session?.user, productCopy.header.accountFallback)
   const accountIdentity: UserIdentityViewModel | null = session
     ? {
@@ -183,15 +163,16 @@ function SentifyShell() {
         email: session.user.email,
         initials: getUserInitials(displayName, session.user.email),
         restaurantCount: restaurants.length,
-        selectedRestaurantName,
+        selectedRestaurantName: currentRestaurantMembership?.name,
+        roleLabel: roleDescriptor.label,
       }
     : null
 
-  function persistSession(nextSession: StoredSession | null) {
+  const persistSession = useCallback((nextSession: StoredSession | null) => {
     setSession(nextSession)
-  }
+  }, [])
 
-  function navigate(nextRoute: AppRoute) {
+  const navigate = useCallback((nextRoute: AppRoute) => {
     if (nextRoute === '/') {
       if (window.location.hash) {
         window.history.pushState(null, '', `${window.location.pathname}${window.location.search}`)
@@ -208,9 +189,9 @@ function SentifyShell() {
     }
 
     window.scrollTo({ top: 0, behavior: 'auto' })
-  }
+  }, [])
 
-  function scrollToSection(sectionId: string) {
+  const scrollToSection = useCallback((sectionId: string) => {
     if (sectionId === 'overview') {
       window.history.pushState(null, '', `${window.location.pathname}${window.location.search}`)
       setRoute('/')
@@ -231,47 +212,27 @@ function SentifyShell() {
         })
       })
     })
-  }
+  }, [])
 
-  function getErrorMessage(error: unknown, fallback: string) {
-    if (error instanceof ApiClientError) {
-      return error.message
-    }
-
-    if (error instanceof Error && error.message) {
-      return error.message
-    }
-
-    return fallback
-  }
-
-  function expireSessionToLogin() {
+  const expireSessionToLogin = useCallback(() => {
     persistSession(null)
-    setRestaurantDetail(null)
-    setDashboard(EMPTY_DASHBOARD)
-    setReviews(null)
-    setRestaurantError(null)
-    setDashboardError(null)
-    setReviewsError(null)
     setNotice({
       tone: 'error',
       message: productCopy.feedback.sessionExpired,
     })
     navigate('/login')
-  }
+  }, [navigate, persistSession, productCopy.feedback.sessionExpired])
 
-  function handleSessionExpiry(error: unknown) {
-    if (error instanceof ApiClientError && error.status === 401) {
-      expireSessionToLogin()
-      return true
-    }
+  const handleSessionExpiry = useCallback(
+    (error: unknown) => {
+      if (error instanceof ApiClientError && error.status === 401) {
+        expireSessionToLogin()
+        return true
+      }
 
-    return false
-  }
-
-  const handleEffectSessionExpiry = useEffectEvent((error: unknown) => handleSessionExpiry(error))
-  const getFeedbackError = useEffectEvent(
-    (kind: keyof typeof productCopy.feedback.errors) => productCopy.feedback.errors[kind],
+      return false
+    },
+    [expireSessionToLogin],
   )
 
   useEffect(() => {
@@ -317,10 +278,7 @@ function SentifyShell() {
         persistSession({
           user: result.user,
           restaurants: memberships,
-          selectedRestaurantId: getSafeSelectedRestaurantId(
-            memberships,
-            loadSelectedRestaurantId(),
-          ),
+          selectedRestaurantId: getSafeSelectedRestaurantId(memberships, loadSelectedRestaurantId()),
         })
       } catch (error) {
         if (cancelled) {
@@ -330,7 +288,7 @@ function SentifyShell() {
         if (!(error instanceof ApiClientError && error.status === 401)) {
           setNotice({
             tone: 'error',
-            message: getErrorMessage(error, getFeedbackError('refreshSession')),
+            message: getErrorMessage(error, productCopy.feedback.errors.refreshSession),
           })
         }
       } finally {
@@ -345,7 +303,7 @@ function SentifyShell() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [productCopy.feedback.errors.refreshSession, persistSession])
 
   useEffect(() => {
     if (selectedRestaurantId) {
@@ -357,16 +315,13 @@ function SentifyShell() {
   }, [selectedRestaurantId])
 
   useEffect(() => {
-    if (!session?.user.id) {
-      setSessionRefreshing(false)
+    if (!session?.user.id || session.user.role !== 'USER') {
       return
     }
 
     let cancelled = false
 
-    async function hydrateSession() {
-      setSessionRefreshing(true)
-
+    async function hydrateRestaurants() {
       try {
         const memberships = await listRestaurants()
 
@@ -382,10 +337,7 @@ function SentifyShell() {
           return {
             ...current,
             restaurants: memberships,
-            selectedRestaurantId: getSafeSelectedRestaurantId(
-              memberships,
-              current.selectedRestaurantId,
-            ),
+            selectedRestaurantId: getSafeSelectedRestaurantId(memberships, current.selectedRestaurantId),
           }
         })
       } catch (error) {
@@ -393,182 +345,59 @@ function SentifyShell() {
           return
         }
 
-        if (!handleEffectSessionExpiry(error)) {
+        if (!handleSessionExpiry(error)) {
           setNotice({
             tone: 'error',
-            message: getErrorMessage(error, getFeedbackError('refreshSession')),
+            message: getErrorMessage(error, productCopy.feedback.errors.refreshSession),
           })
-        }
-      } finally {
-        if (!cancelled) {
-          setSessionRefreshing(false)
         }
       }
     }
 
-    void hydrateSession()
+    void hydrateRestaurants()
 
     return () => {
       cancelled = true
     }
-  }, [session?.user.id, sessionSyncKey])
+  }, [handleSessionExpiry, productCopy.feedback.errors.refreshSession, refreshKey, session?.user.id, session?.user.role])
 
   useEffect(() => {
     if (authBootLoading) {
       return
     }
 
-    if (isAppRoute(route) && !session) {
+    if (isProtectedRoute(route) && !session) {
       navigate('/login')
       return
     }
 
     if ((route === '/login' || route === '/signup') && session) {
+      navigate(getDefaultAuthenticatedRoute(session.user))
+    }
+  }, [authBootLoading, navigate, route, session])
+
+  useEffect(() => {
+    if (!session) {
+      return
+    }
+
+    if (isAdminRoute(route) && !hasAdminControl) {
+      setNotice({
+        tone: 'error',
+        message: getAdminAccessDeniedMessage(language),
+      })
       navigate('/app')
-    }
-  }, [route, session, authBootLoading])
-
-  useEffect(() => {
-    if (!session?.user.id || !selectedRestaurantId) {
-      setRestaurantDetail(null)
-      setRestaurantError(null)
-      setRestaurantLoading(false)
       return
     }
 
-    const restaurantId = selectedRestaurantId
-    let cancelled = false
-
-    async function loadRestaurantDetail() {
-      setRestaurantLoading(true)
-      setRestaurantError(null)
-
-      try {
-        const detail = await getRestaurantDetail(restaurantId)
-
-        if (!cancelled) {
-          setRestaurantDetail(detail)
-        }
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
-
-        if (!handleEffectSessionExpiry(error)) {
-          setRestaurantDetail(null)
-          setRestaurantError(getErrorMessage(error, getFeedbackError('loadRestaurant')))
-        }
-      } finally {
-        if (!cancelled) {
-          setRestaurantLoading(false)
-        }
-      }
+    if (isMerchantRoute(route) && hasAdminControl) {
+      setNotice({
+        tone: 'error',
+        message: getMerchantAccessDeniedMessage(language),
+      })
+      navigate('/admin')
     }
-
-    void loadRestaurantDetail()
-
-    return () => {
-      cancelled = true
-    }
-  }, [session?.user.id, selectedRestaurantId, sessionSyncKey])
-
-  useEffect(() => {
-    if (route !== '/app' || !session?.user.id || !selectedRestaurantId) {
-      setDashboard(EMPTY_DASHBOARD)
-      setDashboardError(null)
-      setDashboardLoading(false)
-      return
-    }
-
-    const restaurantId = selectedRestaurantId
-    let cancelled = false
-
-    async function loadDashboard() {
-      setDashboardLoading(true)
-      setDashboardError(null)
-
-      try {
-        const [kpi, sentiment, trend, complaints] = await Promise.all([
-          getDashboardKpi(restaurantId),
-          getSentimentBreakdown(restaurantId),
-          getTrend(restaurantId, trendPeriod),
-          getComplaintKeywords(restaurantId),
-        ])
-
-        if (!cancelled) {
-          setDashboard({
-            kpi,
-            sentiment,
-            trend,
-            complaints,
-          })
-        }
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
-
-        if (!handleEffectSessionExpiry(error)) {
-          setDashboard(EMPTY_DASHBOARD)
-          setDashboardError(getErrorMessage(error, getFeedbackError('loadDashboard')))
-        }
-      } finally {
-        if (!cancelled) {
-          setDashboardLoading(false)
-        }
-      }
-    }
-
-    void loadDashboard()
-
-    return () => {
-      cancelled = true
-    }
-  }, [session?.user.id, route, selectedRestaurantId, sessionSyncKey, trendPeriod])
-
-  useEffect(() => {
-    if (route !== '/app/reviews' || !session?.user.id || !selectedRestaurantId) {
-      setReviews(null)
-      setReviewsError(null)
-      setReviewsLoading(false)
-      return
-    }
-
-    const restaurantId = selectedRestaurantId
-    let cancelled = false
-
-    async function loadReviewEvidence() {
-      setReviewsLoading(true)
-      setReviewsError(null)
-
-      try {
-        const result = await listReviewEvidence(restaurantId, reviewFilters)
-
-        if (!cancelled) {
-          setReviews(result)
-        }
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
-
-        if (!handleEffectSessionExpiry(error)) {
-          setReviews(null)
-          setReviewsError(getErrorMessage(error, getFeedbackError('loadReviews')))
-        }
-      } finally {
-        if (!cancelled) {
-          setReviewsLoading(false)
-        }
-      }
-    }
-
-    void loadReviewEvidence()
-
-    return () => {
-      cancelled = true
-    }
-  }, [session?.user.id, route, reviewFilters, selectedRestaurantId, sessionSyncKey])
+  }, [hasAdminControl, language, navigate, route, session])
 
   async function handleLogin(input: { email: string; password: string }) {
     setAuthPending(true)
@@ -577,15 +406,14 @@ function SentifyShell() {
     try {
       const result = await login(input)
       const memberships = result.user.restaurants ?? []
-      const nextSession: StoredSession = {
+
+      persistSession({
         user: result.user,
         restaurants: memberships,
         selectedRestaurantId: getSafeSelectedRestaurantId(memberships, null),
-      }
-
-      persistSession(nextSession)
-      setSessionSyncKey((current) => current + 1)
-      navigate('/app')
+      })
+      setRefreshKey((current) => current + 1)
+      navigate(getDefaultAuthenticatedRoute(result.user))
     } catch (error) {
       setAuthError(getErrorMessage(error, productCopy.feedback.errors.login))
     } finally {
@@ -599,14 +427,13 @@ function SentifyShell() {
 
     try {
       const result = await register(input)
-      const nextSession: StoredSession = {
+
+      persistSession({
         user: result.user,
         restaurants: [],
         selectedRestaurantId: null,
-      }
-
-      persistSession(nextSession)
-      navigate('/app')
+      })
+      navigate(getDefaultAuthenticatedRoute(result.user))
     } catch (error) {
       setAuthError(getErrorMessage(error, productCopy.feedback.errors.signup))
     } finally {
@@ -618,15 +445,10 @@ function SentifyShell() {
     try {
       await logout()
     } catch {
-      // Clear the client session even if the server-side revoke request fails.
+      // Clear client state even if server-side revoke fails.
     }
 
     persistSession(null)
-    setRestaurantDetail(null)
-    setDashboard(EMPTY_DASHBOARD)
-    setReviews(null)
-    setReviewFilters(DEFAULT_REVIEW_FILTERS)
-    setTrendPeriod('week')
     setAuthError(null)
     navigate('/')
   }
@@ -657,8 +479,7 @@ function SentifyShell() {
           selectedRestaurantId: created.id,
         }
       })
-
-      setSessionSyncKey((current) => current + 1)
+      setRefreshKey((current) => current + 1)
       setNotice({
         tone: 'success',
         message: productCopy.feedback.saved,
@@ -690,7 +511,6 @@ function SentifyShell() {
     try {
       const updated = await updateRestaurant(selectedRestaurantId, input)
 
-      setRestaurantDetail(updated)
       setSession((current) => {
         if (!current) {
           return current
@@ -704,14 +524,13 @@ function SentifyShell() {
                   ...restaurant,
                   name: updated.name,
                   slug: updated.slug,
-                  permission: updated.permission,
                   googleMapUrl: updated.googleMapUrl,
                 }
               : restaurant,
           ),
         }
       })
-      setSessionSyncKey((current) => current + 1)
+      setRefreshKey((current) => current + 1)
       setNotice({
         tone: 'success',
         message: productCopy.feedback.saved,
@@ -728,46 +547,19 @@ function SentifyShell() {
     }
   }
 
-  function handleSelectRestaurant(restaurantId: string) {
-    setSession((current) => {
-      if (!current) {
-        return current
-      }
-
-      return {
-        ...current,
-        selectedRestaurantId: restaurantId,
-      }
-    })
-  }
-
-  function handleApplyReviewFilters(filters: ReviewsQuery) {
-    setReviewFilters(filters)
-  }
-
-  function handleClearReviewFilters() {
-    setReviewFilters(DEFAULT_REVIEW_FILTERS)
-  }
-
-  function handleReviewPageChange(page: number) {
-    setReviewFilters((current) => ({
-      ...current,
-      page: Math.max(page, 1),
-    }))
-  }
-
   const heroPrimaryLabel = isAuthenticated
     ? productCopy.landing.heroPrimaryAuthenticated
     : productCopy.landing.heroPrimary
   const heroSecondaryLabel = isAuthenticated
     ? productCopy.landing.heroSecondaryAuthenticated
-    : productCopy.landing.ctaPrimaryAuthenticated
+    : productCopy.landing.heroPrimaryAuthenticated
   const ctaPrimaryLabel = isAuthenticated
     ? productCopy.landing.ctaPrimaryAuthenticated
     : productCopy.landing.ctaPrimary
   const ctaSecondaryLabel = isAuthenticated
     ? productCopy.landing.ctaSecondaryAuthenticated
     : productCopy.landing.ctaSecondary
+  const redirectingProtectedRoute = !authBootLoading && isProtectedRoute(route) && !session
 
   return (
     <div className="bg-bg-light font-display text-text-charcoal transition-colors duration-300 dark:bg-bg-dark dark:text-white">
@@ -775,6 +567,8 @@ function SentifyShell() {
         route={route}
         isAuthenticated={isAuthenticated}
         user={accountIdentity}
+        roleDescription={roleDescriptor.description}
+        homeRoute={homeRoute}
         onNavigate={navigate}
         onScrollToSection={scrollToSection}
         onLogout={handleLogout}
@@ -798,7 +592,16 @@ function SentifyShell() {
       {authBootLoading && route !== '/' ? (
         <main
           id="main-content"
-          className="flex min-h-screen items-center justify-center bg-bg-light px-6 pt-28 pb-14 dark:bg-bg-dark"
+          className="flex min-h-screen items-center justify-center bg-bg-light px-6 pb-14 pt-28 dark:bg-bg-dark"
+        >
+          <div className="rounded-[1.8rem] border border-border-light/70 bg-surface-white/88 px-6 py-5 text-sm font-semibold text-text-charcoal shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 dark:text-white">
+            {productCopy.feedback.loadingSession}
+          </div>
+        </main>
+      ) : redirectingProtectedRoute ? (
+        <main
+          id="main-content"
+          className="flex min-h-screen items-center justify-center bg-bg-light px-6 pb-14 pt-28 dark:bg-bg-dark"
         >
           <div className="rounded-[1.8rem] border border-border-light/70 bg-surface-white/88 px-6 py-5 text-sm font-semibold text-text-charcoal shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 dark:text-white">
             {productCopy.feedback.loadingSession}
@@ -815,34 +618,53 @@ function SentifyShell() {
           onSignup={handleSignup}
           onSwitchMode={(mode) => navigate(mode === 'login' ? '/login' : '/signup')}
         />
-      ) : isAppRoute(route) ? (
-        <ProductWorkspace
+      ) : isMerchantRoute(route) ? (
+        <MerchantShell
           route={route}
           copy={productCopy.app}
+          feedbackCopy={productCopy.feedback}
+          language={language}
           restaurants={restaurants}
           selectedRestaurantId={selectedRestaurantId}
-          selectedRestaurantDetail={restaurantDetail}
-          restaurantLoading={restaurantLoading || sessionRefreshing}
-          restaurantError={restaurantError}
-          dashboard={dashboard}
-          dashboardLoading={dashboardLoading}
-          dashboardError={dashboardError}
-          trendPeriod={trendPeriod}
-          onTrendPeriodChange={setTrendPeriod}
-          savePending={savePending}
+          refreshKey={refreshKey}
           createPending={createPending}
-          reviews={reviews}
-          reviewsLoading={reviewsLoading}
-          reviewsError={reviewsError}
-          reviewFilters={reviewFilters}
-          onApplyReviewFilters={handleApplyReviewFilters}
-          onClearReviewFilters={handleClearReviewFilters}
-          onReviewPageChange={handleReviewPageChange}
-          onSelectRestaurant={handleSelectRestaurant}
+          savePending={savePending}
+          onSelectRestaurant={(restaurantId) =>
+            setSession((current) =>
+              current
+                ? {
+                    ...current,
+                    selectedRestaurantId: restaurantId,
+                  }
+                : current,
+            )
+          }
           onNavigate={navigate}
           onCreateRestaurant={handleCreateRestaurant}
           onSaveRestaurant={handleSaveRestaurant}
-          onAdminDataPublished={() => setSessionSyncKey((current) => current + 1)}
+          onSessionExpiry={handleSessionExpiry}
+        />
+      ) : isAdminRoute(route) ? (
+        <AdminShell
+          route={route}
+          copy={productCopy.app}
+          feedbackCopy={productCopy.feedback}
+          language={language}
+          refreshKey={refreshKey}
+          selectedRestaurantId={selectedRestaurantId}
+          onSelectRestaurant={(restaurantId) =>
+            setSession((current) =>
+              current
+                ? {
+                    ...current,
+                    selectedRestaurantId: restaurantId,
+                  }
+                : current,
+            )
+          }
+          onNavigate={navigate}
+          onSessionExpiry={handleSessionExpiry}
+          onDataChanged={() => setRefreshKey((current) => current + 1)}
         />
       ) : (
         <LandingPage
@@ -852,7 +674,7 @@ function SentifyShell() {
           ctaSecondaryLabel={ctaSecondaryLabel}
           onHeroPrimaryAction={() => {
             if (isAuthenticated) {
-              navigate('/app')
+              navigate(homeRoute)
               return
             }
 
@@ -864,11 +686,11 @@ function SentifyShell() {
               return
             }
 
-            navigate('/app')
+            navigate('/login')
           }}
           onCtaPrimaryAction={() => {
             if (isAuthenticated) {
-              navigate('/app')
+              navigate(homeRoute)
               return
             }
 
@@ -881,14 +703,12 @@ function SentifyShell() {
   )
 }
 
-function App() {
+export default function App() {
   return (
-    <LanguageProvider>
-      <ThemeProvider>
+    <ThemeProvider>
+      <LanguageProvider>
         <SentifyShell />
-      </ThemeProvider>
-    </LanguageProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   )
 }
-
-export default App

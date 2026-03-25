@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { getProductUiCopy } from '../../content/productUiCopy'
 import { LANGUAGE_OPTIONS, useLanguage } from '../../contexts/languageContext'
 import { useTheme } from '../../contexts/useTheme'
-
-type HeaderRoute = '/' | '/login' | '/signup' | '/app' | '/app/reviews' | '/app/settings' | '/app/admin'
+import { getAdminOpsLabels } from '../../features/admin-ops/adminOpsLabels'
+import { isProtectedRoute, type AppRoute } from '../../features/app-shell/routes'
 
 interface HeaderAccountIdentity {
   displayName: string
@@ -11,13 +11,16 @@ interface HeaderAccountIdentity {
   initials: string
   restaurantCount: number
   selectedRestaurantName?: string
+  roleLabel: string
 }
 
 interface HeaderProps {
-  route: HeaderRoute
+  route: AppRoute
   isAuthenticated: boolean
   user?: HeaderAccountIdentity | null
-  onNavigate: (route: HeaderRoute) => void
+  roleDescription: string
+  homeRoute: AppRoute
+  onNavigate: (route: AppRoute) => void
   onScrollToSection: (sectionId: string) => void
   onLogout: () => void
 }
@@ -30,6 +33,8 @@ export function Header({
   route,
   isAuthenticated,
   user = null,
+  roleDescription,
+  homeRoute,
   onNavigate,
   onScrollToSection,
   onLogout,
@@ -37,6 +42,7 @@ export function Header({
   const { theme, toggleTheme } = useTheme()
   const { language, setLanguage, copy } = useLanguage()
   const productCopy = getProductUiCopy(language)
+  const adminLabels = getAdminOpsLabels(language)
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const languageMenuRef = useRef<HTMLDivElement | null>(null)
@@ -44,7 +50,8 @@ export function Header({
 
   const currentLanguage =
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
-  const isAppRoute = route.startsWith('/app')
+  const isAppRoute = isProtectedRoute(route)
+  const isAdminShell = route === '/admin' || route.startsWith('/admin/')
   const currentViewLabel =
     route === '/app'
       ? productCopy.header.dashboard
@@ -52,8 +59,14 @@ export function Header({
         ? productCopy.header.reviews
         : route === '/app/settings'
           ? productCopy.header.settings
-          : route === '/app/admin'
-            ? 'Admin intake'
+          : route === '/admin'
+            ? adminLabels.navOverview
+            : route === '/admin/intake'
+            ? adminLabels.navIntake
+            : route === '/admin/review-ops'
+              ? adminLabels.navReviewOps
+              : route === '/admin/review-crawl'
+                ? adminLabels.navReviewCrawl
           : null
 
   useEffect(() => {
@@ -112,10 +125,38 @@ export function Header({
 
   const accountActions = isAuthenticated
     ? [
-        !isAppRoute
+        isAdminShell
           ? {
-              id: 'dashboard',
-              label: productCopy.landing.ctaPrimaryAuthenticated,
+              id: 'admin-overview',
+              label: adminLabels.navOverview,
+              onClick: () => onNavigate('/admin'),
+            }
+          : null,
+        isAdminShell
+          ? {
+              id: 'admin-intake',
+              label: adminLabels.navIntake,
+              onClick: () => onNavigate('/admin/intake'),
+            }
+          : null,
+        isAdminShell
+          ? {
+              id: 'admin-review-ops',
+              label: adminLabels.navReviewOps,
+              onClick: () => onNavigate('/admin/review-ops'),
+            }
+          : null,
+        isAdminShell
+          ? {
+              id: 'admin-review-crawl',
+              label: adminLabels.navReviewCrawl,
+              onClick: () => onNavigate('/admin/review-crawl'),
+            }
+          : null,
+        !isAdminShell && isAppRoute
+          ? {
+              id: 'merchant-dashboard',
+              label: productCopy.header.dashboard,
               onClick: () => onNavigate('/app'),
             }
           : null,
@@ -124,6 +165,20 @@ export function Header({
               id: 'landing',
               label: productCopy.header.landing,
               onClick: () => onNavigate('/'),
+            }
+          : null,
+        !isAdminShell && isAppRoute
+          ? {
+              id: 'merchant-reviews',
+              label: productCopy.header.reviews,
+              onClick: () => onNavigate('/app/reviews'),
+            }
+          : null,
+        !isAdminShell && isAppRoute
+          ? {
+              id: 'merchant-settings',
+              label: productCopy.header.settings,
+              onClick: () => onNavigate('/app/settings'),
             }
           : null,
         !isAppRoute && route !== '/'
@@ -144,7 +199,7 @@ export function Header({
           className="group mr-2 flex shrink-0 items-center gap-3"
           onClick={() => {
             if (isAuthenticated) {
-              onNavigate('/app')
+              onNavigate(homeRoute)
               return
             }
 
@@ -161,12 +216,19 @@ export function Header({
 
         <nav className="hidden items-center gap-2 lg:flex">
           {isAppRoute && isAuthenticated ? (
-            currentViewLabel ? (
-              <div className="inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
-                <span className="size-2 rounded-full bg-primary"></span>
-                <span>{currentViewLabel}</span>
-              </div>
-            ) : null
+            <div className="flex items-center gap-2">
+              {currentViewLabel ? (
+                <div className="inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
+                  <span className="size-2 rounded-full bg-primary"></span>
+                  <span>{currentViewLabel}</span>
+                </div>
+              ) : null}
+              {user?.roleLabel ? (
+                <div className="inline-flex h-10 items-center rounded-full border border-primary/20 bg-primary/8 px-4 text-xs font-bold uppercase tracking-[0.16em] text-primary">
+                  {user.roleLabel}
+                </div>
+              ) : null}
+            </div>
           ) : (
             productCopy.header.marketingLinks.map((item) => (
               <button
@@ -314,13 +376,21 @@ export function Header({
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
-                            {productCopy.header.protectedAccess}
+                            {user?.roleLabel ?? productCopy.header.protectedAccess}
                           </span>
                           {restaurantLabel ? (
                             <span className="rounded-full border border-border-light bg-surface-white px-3 py-1 text-[11px] font-semibold text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
                               {restaurantLabel}
                             </span>
                           ) : null}
+                          {route.startsWith('/admin/') ? (
+                            <span className="rounded-full border border-border-light bg-surface-white px-3 py-1 text-[11px] font-semibold text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
+                              {adminLabels.shellEyebrow}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-3 text-xs leading-5 text-text-silver-light dark:text-text-silver-dark">
+                          {roleDescription}
                         </div>
                       </div>
                     </div>

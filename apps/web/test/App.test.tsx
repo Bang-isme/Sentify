@@ -1,28 +1,29 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../src/App'
 import {
   ApiClientError,
   createRestaurant,
+  getAdminRestaurantDetail,
   getComplaintKeywords,
   getDashboardKpi,
-  getSession,
   getRestaurantDetail,
   getSentimentBreakdown,
+  getSession,
   getTrend,
+  listAdminRestaurants,
   listRestaurants,
-  listReviewEvidence,
   login,
   logout,
   register,
   updateRestaurant,
-  type AuthUser,
+  type AdminRestaurantDetail,
+  type AdminRestaurantSummary,
   type ComplaintKeyword,
   type InsightSummary,
   type RestaurantDetail,
   type RestaurantMembership,
-  type ReviewListResponse,
   type SentimentBreakdownRow,
   type TrendPoint,
 } from '../src/lib/api'
@@ -33,14 +34,15 @@ vi.mock('../src/lib/api', async () => {
   return {
     ...actual,
     createRestaurant: vi.fn(),
+    getAdminRestaurantDetail: vi.fn(),
     getComplaintKeywords: vi.fn(),
     getDashboardKpi: vi.fn(),
-    getSession: vi.fn(),
     getRestaurantDetail: vi.fn(),
     getSentimentBreakdown: vi.fn(),
+    getSession: vi.fn(),
     getTrend: vi.fn(),
+    listAdminRestaurants: vi.fn(),
     listRestaurants: vi.fn(),
-    listReviewEvidence: vi.fn(),
     login: vi.fn(),
     logout: vi.fn(),
     register: vi.fn(),
@@ -48,32 +50,32 @@ vi.mock('../src/lib/api', async () => {
   }
 })
 
+const getSessionMock = vi.mocked(getSession)
 const listRestaurantsMock = vi.mocked(listRestaurants)
 const getRestaurantDetailMock = vi.mocked(getRestaurantDetail)
 const getDashboardKpiMock = vi.mocked(getDashboardKpi)
-const getSessionMock = vi.mocked(getSession)
 const getSentimentBreakdownMock = vi.mocked(getSentimentBreakdown)
 const getTrendMock = vi.mocked(getTrend)
 const getComplaintKeywordsMock = vi.mocked(getComplaintKeywords)
-const listReviewEvidenceMock = vi.mocked(listReviewEvidence)
+const listAdminRestaurantsMock = vi.mocked(listAdminRestaurants)
+const getAdminRestaurantDetailMock = vi.mocked(getAdminRestaurantDetail)
 const loginMock = vi.mocked(login)
 const logoutMock = vi.mocked(logout)
 const registerMock = vi.mocked(register)
 const createRestaurantMock = vi.mocked(createRestaurant)
 const updateRestaurantMock = vi.mocked(updateRestaurant)
 
-function createMembership(overrides: Partial<RestaurantMembership> = {}): RestaurantMembership {
+function makeMembership(overrides: Partial<RestaurantMembership> = {}): RestaurantMembership {
   return {
     id: overrides.id ?? 'rest-1',
     name: overrides.name ?? 'Cafe Aurora',
     slug: overrides.slug ?? 'cafe-aurora',
-    permission: overrides.permission ?? 'OWNER',
     googleMapUrl: overrides.googleMapUrl ?? 'https://maps.google.com/cafe-aurora',
     totalReviews: overrides.totalReviews ?? 12,
   }
 }
 
-function createDetail(
+function makeDetail(
   membership: RestaurantMembership,
   overrides: Partial<RestaurantDetail> = {},
 ): RestaurantDetail {
@@ -94,7 +96,6 @@ function createDetail(
       approvedItemCount: 0,
       rejectedItemCount: 0,
     },
-    permission: overrides.permission ?? membership.permission,
     insightSummary: overrides.insightSummary ?? {
       totalReviews: 24,
       averageRating: 4.2,
@@ -105,38 +106,106 @@ function createDetail(
   }
 }
 
-function createReviewsResponse(overrides: Partial<ReviewListResponse> = {}): ReviewListResponse {
+function makeAdminSummary(overrides: Partial<AdminRestaurantSummary> = {}): AdminRestaurantSummary {
   return {
-    data: overrides.data ?? [],
-    pagination: overrides.pagination ?? {
-      page: 1,
-      limit: 10,
-      total: 0,
-      totalPages: 0,
+    id: overrides.id ?? 'rest-1',
+    name: overrides.name ?? 'Cafe Aurora',
+    slug: overrides.slug ?? 'cafe-aurora',
+    address: overrides.address ?? '123 Market Street',
+    googleMapUrl: overrides.googleMapUrl ?? 'https://maps.google.com/cafe-aurora',
+    totalReviews: overrides.totalReviews ?? 24,
+    memberCount: overrides.memberCount ?? 2,
+    pendingBatchCount: overrides.pendingBatchCount ?? 1,
+    activeSourceCount: overrides.activeSourceCount ?? 1,
+    insightSummary: overrides.insightSummary ?? {
+      totalReviews: 24,
+      averageRating: 4.2,
+      positivePercentage: 54,
+      neutralPercentage: 15,
+      negativePercentage: 31,
+    },
+    createdAt: overrides.createdAt ?? '2026-03-25T00:00:00.000Z',
+    updatedAt: overrides.updatedAt ?? '2026-03-25T00:00:00.000Z',
+  }
+}
+
+function makeAdminDetail(
+  summary: AdminRestaurantSummary,
+  overrides: Partial<AdminRestaurantDetail> = {},
+): AdminRestaurantDetail {
+  return {
+    restaurant: overrides.restaurant ?? {
+      id: summary.id,
+      name: summary.name,
+      slug: summary.slug,
+      address: summary.address,
+      googleMapUrl: summary.googleMapUrl,
+      totalReviews: summary.totalReviews,
+      memberCount: summary.memberCount,
+      createdAt: summary.createdAt,
+      updatedAt: summary.updatedAt,
+    },
+    userFlow: overrides.userFlow ?? {
+      datasetStatus: {
+        sourcePolicy: 'ADMIN_CURATED',
+        lastPublishedAt: '2026-03-25T00:00:00.000Z',
+        lastPublishedSourceType: 'MANUAL',
+        pendingBatchCount: 1,
+        readyBatchCount: 0,
+        pendingItemCount: 4,
+        approvedItemCount: 12,
+        rejectedItemCount: 1,
+      },
+      insightSummary: {
+        totalReviews: 24,
+        averageRating: 4.2,
+        positivePercentage: 54,
+        neutralPercentage: 15,
+        negativePercentage: 31,
+      },
+    },
+    adminFlow: overrides.adminFlow ?? {
+      sourceStats: {
+        totalCount: 1,
+        activeCount: 1,
+        disabledCount: 0,
+      },
+      latestRun: null,
+      openBatches: [],
+      nextActions: ['Open Intake', 'Open Review ops', 'Open Crawl runtime'],
     },
   }
 }
 
-function mockAuthenticatedSession({
-  restaurants = [],
-  user,
-}: {
-  restaurants?: RestaurantMembership[]
-  user?: Partial<AuthUser>
-} = {}) {
+function mockUserSession(membership: RestaurantMembership) {
   getSessionMock.mockResolvedValue({
     user: {
       id: 'user-1',
-      email: user?.email ?? 'owner@sentify.test',
-      fullName: user?.fullName ?? 'Casey Owner',
-      restaurants,
+      email: 'owner@sentify.test',
+      fullName: 'Casey Owner',
+      role: 'USER',
+      restaurants: [membership],
+    },
+  })
+}
+
+function mockAdminSession() {
+  getSessionMock.mockResolvedValue({
+    user: {
+      id: 'admin-1',
+      email: 'admin@sentify.test',
+      fullName: 'Alex Admin',
+      role: 'ADMIN',
+      restaurants: [],
     },
   })
 }
 
 beforeEach(() => {
-  const membership = createMembership()
-  const detail = createDetail(membership)
+  window.location.hash = ''
+
+  const membership = makeMembership()
+  const detail = makeDetail(membership)
   const kpi: InsightSummary = detail.insightSummary
   const sentiment: SentimentBreakdownRow[] = [
     { label: 'POSITIVE', count: 10, percentage: 50 },
@@ -161,13 +230,15 @@ beforeEach(() => {
   getSentimentBreakdownMock.mockResolvedValue(sentiment)
   getTrendMock.mockResolvedValue(trend)
   getComplaintKeywordsMock.mockResolvedValue(complaints)
-  listReviewEvidenceMock.mockResolvedValue(createReviewsResponse())
+  listAdminRestaurantsMock.mockResolvedValue([makeAdminSummary()])
+  getAdminRestaurantDetailMock.mockResolvedValue(makeAdminDetail(makeAdminSummary()))
   loginMock.mockResolvedValue({
     expiresIn: 3600,
     user: {
       id: 'user-1',
       email: 'owner@sentify.test',
       fullName: 'Casey Owner',
+      role: 'USER',
       restaurants: [membership],
     },
   })
@@ -178,6 +249,7 @@ beforeEach(() => {
       id: 'user-1',
       email: 'owner@sentify.test',
       fullName: 'Casey Owner',
+      role: 'USER',
       restaurants: [],
     },
   })
@@ -186,7 +258,7 @@ beforeEach(() => {
 })
 
 describe('Sentify app shell', () => {
-  it('guards guest users away from app routes', async () => {
+  it('redirects guests away from protected routes', async () => {
     window.location.hash = '#/app'
 
     render(<App />)
@@ -194,292 +266,105 @@ describe('Sentify app shell', () => {
     await waitFor(() => {
       expect(window.location.hash).toBe('#/login')
     })
-    expect(screen.getAllByRole('button', { name: /login/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: 'Login' }).length).toBeGreaterThan(0)
   })
 
-  it('routes the hero dashboard CTA through auth for guest users', async () => {
-    window.location.hash = '#/'
-    const user = userEvent.setup()
+  it('renders the user shell without admin nav or copy', async () => {
+    const membership = makeMembership()
+    mockUserSession(membership)
+    window.location.hash = '#/app'
 
     render(<App />)
 
-    await user.click(screen.getByRole('button', { name: 'Go to dashboard' }))
+    expect((await screen.findAllByText('User workspace')).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /Step 1 Dashboard/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Step 2 Reviews/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Step 3 Settings/i })).toBeInTheDocument()
+    expect(screen.queryByText('Admin control plane')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Step 1 Restaurants overview/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Step 2 Intake/i })).not.toBeInTheDocument()
+  })
 
-    await waitFor(() => {
-      expect(window.location.hash).toBe('#/login')
+  it('renders the admin shell on the /admin overview route', async () => {
+    mockAdminSession()
+    const adminSummary = makeAdminSummary()
+    getAdminRestaurantDetailMock.mockResolvedValue(makeAdminDetail(adminSummary))
+    listAdminRestaurantsMock.mockResolvedValue([adminSummary])
+    window.location.hash = '#/admin'
+
+    render(<App />)
+
+    expect((await screen.findAllByText('Admin control plane')).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /Step 1 Restaurants/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Step 2 Intake/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Step 3 Review ops/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Step 4 Crawl runtime/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Step 1 Dashboard/i })).not.toBeInTheDocument()
+  })
+
+  it('allows a USER member to update restaurant settings', async () => {
+    const membership = makeMembership()
+    const detail = makeDetail(membership)
+    const user = userEvent.setup()
+
+    mockUserSession(membership)
+    getRestaurantDetailMock.mockResolvedValue(detail)
+    updateRestaurantMock.mockResolvedValue({
+      ...detail,
+      name: 'Cafe Aurora Updated',
+      address: '456 River Street',
     })
-  })
-
-  it('shows onboarding instead of the sidebar when no restaurants exist', async () => {
-    mockAuthenticatedSession({ restaurants: [] })
-    listRestaurantsMock.mockResolvedValue([])
-    window.location.hash = '#/app'
-
-    render(<App />)
-
-    expect(await screen.findByText('Connect your first restaurant')).toBeInTheDocument()
-    expect(screen.queryByText('Current restaurant')).not.toBeInTheDocument()
-  })
-
-  it('renders the authenticated header with avatar menu and closes it on Escape', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    window.location.hash = '#/app'
-    const user = userEvent.setup()
-
-    render(<App />)
-
-    expect(await screen.findByText('Operational triage dashboard')).toBeInTheDocument()
-
-    const accountButton = screen.getByRole('button', { name: /open account menu/i })
-    expect(accountButton).toHaveTextContent('Casey Owner')
-    expect(accountButton).toHaveAttribute('aria-expanded', 'false')
-
-    await user.click(accountButton)
-    expect(accountButton).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByText('owner@sentify.test')).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: 'Landing page' })).toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: 'Dashboard' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: 'Reviews' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: 'Settings' })).not.toBeInTheDocument()
-
-    fireEvent.keyDown(document, { key: 'Escape' })
-    await waitFor(() => {
-      expect(accountButton).toHaveAttribute('aria-expanded', 'false')
-    })
-  })
-
-  it('keeps only one dashboard entry in the landing account menu', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    window.location.hash = '#/'
-    const user = userEvent.setup()
-
-    render(<App />)
-
-    const accountButton = await screen.findByRole('button', { name: /open account menu/i })
-    await user.click(accountButton)
-
-    expect(screen.getByRole('menuitem', { name: 'Go to dashboard' })).toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: 'Dashboard' })).not.toBeInTheDocument()
-  })
-
-  it('switches language cleanly across English, Vietnamese, and Japanese', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    window.location.hash = '#/app'
-    const user = userEvent.setup()
-
-    render(<App />)
-
-    expect(await screen.findByText('Operational triage dashboard')).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: /switch language/i }))
-    await user.click(screen.getByRole('menuitemradio', { name: 'Tiếng Việt' }))
-    expect(await screen.findByText('Bảng điều hành ưu tiên vận hành')).toBeInTheDocument()
-    expect(document.documentElement.lang).toBe('vi')
-
-    await user.click(screen.getByRole('button', { name: /đổi ngôn ngữ/i }))
-    await user.click(screen.getByRole('menuitemradio', { name: '日本語' }))
-    expect(await screen.findByText('運営優先度ダッシュボード')).toBeInTheDocument()
-    expect(document.documentElement.lang).toBe('ja')
-  })
-
-  it('shows the add-another-restaurant flow inside settings instead of the sidebar', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
     window.location.hash = '#/app/settings'
 
     render(<App />)
 
     expect(await screen.findByText('Restaurant settings')).toBeInTheDocument()
-    expect(screen.getAllByText('Add another restaurant').length).toBeGreaterThan(0)
-    expect(screen.queryByText('Restaurant setup')).not.toBeInTheDocument()
-  })
 
-  it('guides the user to admin intake when the selected restaurant is missing a source URL', async () => {
-    const membership = createMembership({ googleMapUrl: null })
-    mockAuthenticatedSession({ restaurants: [membership] })
-    listRestaurantsMock.mockResolvedValue([membership])
-    getRestaurantDetailMock.mockResolvedValue(createDetail(membership, { googleMapUrl: null }))
-    window.location.hash = '#/app'
+    const nameField = screen.getByLabelText('Restaurant name')
+    const addressField = screen.getByLabelText('Address')
 
-    render(<App />)
-
-    expect(await screen.findByText('Add a source URL before intake.')).toBeInTheDocument()
-    expect(screen.getAllByText('Admin intake').length).toBeGreaterThan(0)
-    expect(screen.queryByText('Open settings')).not.toBeInTheDocument()
-  })
-
-  it('renders dataset status on the dashboard instead of sync history', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    window.location.hash = '#/app'
-
-    render(<App />)
-
-    expect(await screen.findByText('Dataset status')).toBeInTheDocument()
-    expect(screen.getAllByText('Admin intake').length).toBeGreaterThan(0)
-    expect(screen.getByText('Open admin intake')).toBeInTheDocument()
-    expect(screen.queryByText('Sync status')).not.toBeInTheDocument()
-    expect(screen.queryByText('Import history')).not.toBeInTheDocument()
-  })
-
-  it('summarizes the top issue and next action on the dashboard', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    window.location.hash = '#/app'
-
-    render(<App />)
-
-    expect(await screen.findByText('Top issue and next action')).toBeInTheDocument()
-    expect(screen.getAllByText('Wait time').length).toBeGreaterThan(0)
-    expect(
-      screen.getByText(/Review 5 reviews mentioning/i),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Open review evidence' })).toBeInTheDocument()
-  })
-
-  it('shows the empty top-issue state when no complaints exist', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    getDashboardKpiMock.mockResolvedValue({
-      totalReviews: 0,
-      averageRating: 0,
-      positivePercentage: 0,
-      neutralPercentage: 0,
-      negativePercentage: 0,
-    })
-    getComplaintKeywordsMock.mockResolvedValue([])
-    window.location.hash = '#/app'
-
-    render(<App />)
-
-    expect(await screen.findByText('Top issue and next action')).toBeInTheDocument()
-    expect(
-      screen.getByText('No dominant complaint signal yet. Publish more reviews to surface the top issue.'),
-    ).toBeInTheDocument()
-  })
-
-  it('shows the localized empty state for review evidence', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    listReviewEvidenceMock.mockResolvedValue(
-      createReviewsResponse({
-        data: [],
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: 0,
-          totalPages: 0,
-        },
-      }),
-    )
-    window.location.hash = '#/app/reviews'
-
-    render(<App />)
-
-    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
-    expect(
-      screen.getByText('No reviews published yet. Add reviews in admin intake.'),
-    ).toBeInTheDocument()
-  })
-
-  it('blocks invalid signup input on the client before calling register', async () => {
-    window.location.hash = '#/signup'
-    const user = userEvent.setup()
-
-    render(<App />)
-
-    await user.type(await screen.findByLabelText('Full name'), '   ')
-    await user.type(screen.getByLabelText('Email'), 'owner@sentify.test')
-    await user.type(screen.getByLabelText('Password'), 'longenough')
-    await user.click(screen.getByRole('button', { name: 'Create account' }))
-
-    expect(registerMock).not.toHaveBeenCalled()
-    expect(screen.getByText('Enter your full name.')).toBeInTheDocument()
-  })
-
-  it('blocks a non-Google source URL before creating a restaurant', async () => {
-    mockAuthenticatedSession({ restaurants: [] })
-    listRestaurantsMock.mockResolvedValue([])
-    window.location.hash = '#/app'
-    const user = userEvent.setup()
-
-    render(<App />)
-
-    expect(await screen.findByText('Connect your first restaurant')).toBeInTheDocument()
-
-    await user.type(screen.getByLabelText('Restaurant name'), 'Cafe Aurora')
-    await user.type(screen.getByLabelText('Google Maps URL'), 'https://example.com/place')
-    await user.click(screen.getByRole('button', { name: 'Create restaurant' }))
-
-    expect(createRestaurantMock).not.toHaveBeenCalled()
-    expect(screen.getByText('Use a Google Maps URL.')).toBeInTheDocument()
-  })
-
-  it('blocks an invalid review date range before refetching review evidence', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    window.location.hash = '#/app/reviews'
-    const user = userEvent.setup()
-
-    render(<App />)
-
-    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
-
-    listReviewEvidenceMock.mockClear()
-    await user.click(screen.getByRole('button', { name: 'From' }))
-    await user.click(screen.getByRole('button', { name: /march 7, 2026/i }))
-    await user.click(screen.getByRole('button', { name: 'To' }))
-    await user.click(screen.getByRole('button', { name: /march 1, 2026/i }))
-    await user.click(screen.getByRole('button', { name: 'Apply filters' }))
-
-    expect(listReviewEvidenceMock).not.toHaveBeenCalled()
-    expect(screen.getByText('`From` must be before or equal to `To`.')).toBeInTheDocument()
-  })
-
-  it('switches restaurant context through the custom switcher', async () => {
-    const firstRestaurant = createMembership({ id: 'rest-1', name: 'Cafe Aurora' })
-    const secondRestaurant = createMembership({
-      id: 'rest-2',
-      name: 'Bistro Nova',
-      slug: 'bistro-nova',
-      googleMapUrl: 'https://maps.google.com/bistro-nova',
-    })
-
-    mockAuthenticatedSession({
-      restaurants: [firstRestaurant, secondRestaurant],
-    })
-
-    listRestaurantsMock.mockResolvedValue([firstRestaurant, secondRestaurant])
-    getRestaurantDetailMock.mockImplementation(async (restaurantId) =>
-      restaurantId === secondRestaurant.id ? createDetail(secondRestaurant) : createDetail(firstRestaurant),
-    )
-
-    window.location.hash = '#/app'
-    const user = userEvent.setup()
-
-    render(<App />)
-
-    expect(await screen.findByText('Operational triage dashboard')).toBeInTheDocument()
-
-    const [switcherButton] = screen.getAllByRole('button', { name: /cafe aurora/i })
-    await user.click(switcherButton)
-    const [nextRestaurantOption] = screen.getAllByRole('option', { name: /bistro nova/i })
-    await user.click(nextRestaurantOption)
+    await user.clear(nameField)
+    await user.type(nameField, 'Cafe Aurora Updated')
+    await user.clear(addressField)
+    await user.type(addressField, '456 River Street')
+    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[0])
 
     await waitFor(() => {
-      expect(getRestaurantDetailMock).toHaveBeenLastCalledWith('rest-2')
+      expect(updateRestaurantMock).toHaveBeenCalledWith('rest-1', {
+        name: 'Cafe Aurora Updated',
+        address: '456 River Street',
+      })
     })
+    expect(await screen.findByRole('status')).toHaveTextContent('Changes saved.')
   })
 
-  it('does not refetch restaurant detail when switching between app tabs', async () => {
-    mockAuthenticatedSession({ restaurants: [createMembership()] })
-    window.location.hash = '#/app'
-    const user = userEvent.setup()
+  it('fails closed across roles when the route does not match the active role', async () => {
+    const membership = makeMembership()
+    mockUserSession(membership)
+    window.location.hash = '#/admin/intake'
+
+    const firstRender = render(<App />)
+
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/app')
+    })
+    expect(await screen.findByText('Operational triage dashboard')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Step 1 Dashboard/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Step 2 Intake/i })).not.toBeInTheDocument()
+
+    firstRender.unmount()
+
+    mockAdminSession()
+    window.location.hash = '#/app/settings'
 
     render(<App />)
 
-    expect(await screen.findByText('Operational triage dashboard')).toBeInTheDocument()
-    expect(getRestaurantDetailMock).toHaveBeenCalledTimes(1)
-
-    await user.click(screen.getAllByRole('button', { name: /reviews/i })[0])
-
-    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
-    expect(getRestaurantDetailMock).toHaveBeenCalledTimes(1)
-    expect(screen.queryByText('Loading restaurant...')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/admin')
+    })
+    expect((await screen.findAllByText('Restaurants overview')).length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /Step 1 Restaurants/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Step 2 Intake/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Step 1 Dashboard/i })).not.toBeInTheDocument()
   })
-
 })

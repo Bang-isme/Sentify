@@ -15,6 +15,7 @@
     "smoke:review-ops-sync-draft": "node scripts/review-ops-sync-draft-smoke.js",
     "smoke:recovery-drill": "node scripts/recovery-drill.js",
     "smoke:staging-recovery-drill": "node scripts/staging-recovery-drill.js",
+    "db:reset:local-baseline": "node scripts/reset-local-baseline.js",
     "validate:review-crawl-scale": "node scripts/review-crawl-scale-validate.js",
     "load:merchant-reads": "node scripts/load-merchant-reads.js",
     "load:review-crawl-workers": "node scripts/load-review-crawl-workers.js",

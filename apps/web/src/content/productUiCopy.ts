@@ -263,7 +263,7 @@ export const productUiCopy = {
       dashboardTitle: 'Operational triage dashboard',
       dashboardDescription:
         'This screen should answer one question quickly: what should the owner fix first?',
-      dashboardPrimaryCta: 'Start admin intake',
+      dashboardPrimaryCta: 'Review workflow readiness',
       dashboardSecondaryCta: 'Open settings',
       reviewsTitle: 'Review evidence',
       reviewsDescription:
@@ -308,7 +308,7 @@ export const productUiCopy = {
       sourceStatusConnected: 'Source ready',
       sourceStatusNeedsConfiguration: 'Source missing',
       noRestaurants: 'No restaurant yet. Create one to enter the product loop.',
-      noReviews: 'No reviews published yet. Add reviews in admin intake.',
+      noReviews: 'No reviews are published yet. Coordinate with an admin to curate and publish the first batch.',
       noComplaints: 'No recurring complaint keywords yet. Publish more reviews to build the signal.',
       noTrend: 'Trend will appear after reviews are published.',
       noGoogleMapUrl: 'A Google Maps URL is required before intake can start.',
@@ -459,7 +459,7 @@ export const productUiCopy = {
       dashboardTitle: 'Bảng điều hành ưu tiên vận hành',
       dashboardDescription:
         'Màn hình này phải trả lời thật nhanh một câu hỏi: chủ quán nên sửa gì trước?',
-      dashboardPrimaryCta: 'Bắt đầu nhập liệu',
+      dashboardPrimaryCta: 'Kiểm tra trạng thái review',
       dashboardSecondaryCta: 'Mở thiết lập',
       reviewsTitle: 'Bằng chứng đánh giá',
       reviewsDescription:
@@ -504,7 +504,7 @@ export const productUiCopy = {
       sourceStatusConnected: 'Nguồn đã sẵn sàng',
       sourceStatusNeedsConfiguration: 'Thiếu URL nguồn',
       noRestaurants: 'Chưa có nhà hàng nào. Hãy tạo một nhà hàng để đi vào vòng lặp sản phẩm.',
-      noReviews: 'Chưa có review nào được publish. Hãy nhập liệu trong khu admin.',
+      noReviews: 'Chưa có review nào được publish. Cần admin curate và publish batch đầu tiên.',
       noComplaints: 'Chưa có từ khóa phàn nàn lặp lại. Hãy publish thêm review để tạo tín hiệu.',
       noTrend: 'Xu hướng sẽ xuất hiện sau khi review được publish.',
       noGoogleMapUrl: 'Cần có URL Google Maps trước khi nhập liệu.',
@@ -655,7 +655,7 @@ export const productUiCopy = {
       dashboardTitle: '運営優先度ダッシュボード',
       dashboardDescription:
         'この画面は「まず何を直すべきか」をすばやく答えられる必要があります。',
-      dashboardPrimaryCta: '管理入力を始める',
+      dashboardPrimaryCta: 'レビュー運用状況を確認する',
       dashboardSecondaryCta: '設定を開く',
       reviewsTitle: 'レビュー根拠',
       reviewsDescription:
@@ -700,7 +700,7 @@ export const productUiCopy = {
       sourceStatusConnected: 'ソース準備完了',
       sourceStatusNeedsConfiguration: 'ソース未設定',
       noRestaurants: 'まだ店舗がありません。最初の店舗を作成して製品ループに入ってください。',
-      noReviews: 'まだレビューが公開されていません。管理入力で追加してください。',
+      noReviews: 'まだレビューは公開されていません。最初のバッチは管理側でキュレーションと公開が必要です。',
       noComplaints: '繰り返し現れる不満キーワードはまだありません。レビューを増やしてシグナルを作ってください。',
       noTrend: 'レビューが公開されるとトレンドが表示されます。',
       noGoogleMapUrl: '入力前に Google Maps URL が必要です。',

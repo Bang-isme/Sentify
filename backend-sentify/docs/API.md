@@ -91,6 +91,12 @@ Error:
 - membership only answers "which restaurant can this user see?"
 - role only answers "which app surface can this account enter?"
 
+Local demo seed:
+
+- `npm run db:reset:local-baseline` recreates the deterministic local dataset
+- seeded `USER` login: `demo.user.primary@sentify.local` / `DemoPass123!`
+- seeded `ADMIN` login: `demo.admin@sentify.local` / `DemoPass123!`
+
 ## Health
 
 ### `GET /health`

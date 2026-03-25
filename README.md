@@ -1,12 +1,18 @@
 # Sentify
 
-Sentify is a Sprint 1 implementation of an AI-assisted customer insight tool for F&B businesses.
+Sentify is an AI-assisted customer insight tool for F&B businesses with a strict two-surface product split:
+
+- `USER` for the restaurant-facing workspace
+- `ADMIN` for the internal control plane
 
 ## Current Scope
 
 - Auth: register, login, logout
-- Restaurant: create restaurant, save Google Maps URL
+- Restaurant: create restaurant, join restaurant-scoped user flow, save Google Maps URL
+- Role-aware FE shells: user workspace separated from admin control plane
 - Review intake: admin-curated manual intake (batch, approve, publish) to canonical reviews
+- Review ops: sync Google Maps sources to draft batches, inspect run readiness, approve valid items, publish
+- Review crawl: preview, queue, monitor, and materialize Google Maps crawl runs
 - Dashboard: review list, rating filter, date filter
 - Insights: sentiment breakdown, complaint keywords, rating trend
 
@@ -27,7 +33,64 @@ backend-sentify/docs/ Active backend and database documentation
 ## Local Setup
 
 Backend setup details live in [backend-sentify/docs/SETUP.md](backend-sentify/docs/SETUP.md).
-Frontend setup details live in [apps/web/README.md](apps/web/README.md).
+Frontend setup and FE route architecture live in [apps/web/README.md](apps/web/README.md).
+
+Recommended local bootstrap:
+
+```powershell
+cd "D:\Project 3\backend-sentify"
+npm run db:reset:local-baseline
+node src/server.js
+
+cd "D:\Project 3\apps\web"
+npm run dev
+```
+
+## Role Contract
+
+The source of truth for role-aware workflow is now:
+
+- `User.role` in [backend-sentify/prisma/schema.prisma](backend-sentify/prisma/schema.prisma)
+- `RestaurantUser` membership in [backend-sentify/prisma/schema.prisma](backend-sentify/prisma/schema.prisma)
+
+`RestaurantUser` no longer carries a permission enum. It only answers whether a `USER` belongs to a restaurant.
+
+| Role | Merchant flow | Admin control plane | Restaurant settings |
+| --- | --- | --- | --- |
+| `USER` | Yes, if restaurant member | No | Edit, if restaurant member |
+| `ADMIN` | No | Yes | No merchant settings surface |
+
+Admin control plane means:
+
+- intake curation
+- review ops
+- crawl runtime
+
+Merchant flow means:
+
+- dashboard
+- review evidence
+- dataset status
+- restaurant settings surface
+
+Fail-closed routing rules:
+
+- direct `#/admin/*` by `USER` redirects to `#/app`
+- direct `#/app/*` by `ADMIN` redirects to `#/admin`
+- admin navigation never renders in the user shell
+- merchant navigation never renders in the admin shell
+
+Seeded local credentials after `npm run db:reset:local-baseline`:
+
+- `USER`: `demo.user.primary@sentify.local` / `DemoPass123!`
+- `ADMIN`: `demo.admin@sentify.local` / `DemoPass123!`
+
+Critical-path browser validation:
+
+```powershell
+cd "D:\Project 3\apps\web"
+npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.ts
+```
 
 ## Runtime Docs
 

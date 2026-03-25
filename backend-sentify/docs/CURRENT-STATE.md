@@ -189,6 +189,13 @@ This dataset supports:
 - publish smoke
 - role-boundary smoke
 
+Local deterministic reset and browser entrypoints:
+
+- `npm run db:reset:local-baseline`
+- seeded `USER` login: `demo.user.primary@sentify.local` / `DemoPass123!`
+- seeded `ADMIN` login: `demo.admin@sentify.local` / `DemoPass123!`
+- browser E2E entrypoint: `cd "D:\Project 3\apps\web" ; npx playwright test`
+
 ## 7. Quality And Evidence Already In Place
 
 Current verification evidence includes:
@@ -197,6 +204,7 @@ Current verification evidence includes:
 - `npm run db:validate`
 - `npm run db:seed`
 - `npm run test:realdb`
+- `cd "D:\Project 3\apps\web" ; npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.ts`
 - queued crawl smoke
 - review crawl scale-validation harness
 - local SMB user-read load proof
@@ -212,6 +220,7 @@ Important proof points already exist:
 - admin users can inspect restaurants through dedicated admin endpoints instead of borrowing user-facing routes
 - real Postgres HTTP smoke covers user-facing read routes
 - real Postgres smoke covers publish and duplicate publish behavior
+- browser E2E now proves strict shell separation, direct-route fail-close behavior, and critical-path login/logout for both `USER` and `ADMIN`
 - Redis-backed local smoke covers worker and operator queue flow
 - shadow-database recovery proof covers restore plus app-level rollback smoke
 

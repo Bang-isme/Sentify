@@ -59,6 +59,17 @@ The seed currently creates:
 - 1 open Google Maps curation batch
 - 1 crawl source, 1 crawl run, and raw review audit rows
 
+Reset the local baseline end to end:
+
+```bash
+npm run db:reset:local-baseline
+```
+
+Seeded local credentials:
+
+- `USER`: `demo.user.primary@sentify.local` / `DemoPass123!`
+- `ADMIN`: `demo.admin@sentify.local` / `DemoPass123!`
+
 ## 5. Run The Backend
 
 ```bash
@@ -92,7 +103,24 @@ Use the seeded `ADMIN` account to:
 - run crawl preview, queue crawl runs, or sync to draft
 - publish approved batches
 
-## 7. Run Review Crawl Workers
+## 7. Browser E2E Entry Point
+
+From the frontend workspace, run:
+
+```bash
+cd ..\apps\web
+npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.ts
+```
+
+Use the seeded `USER` and `ADMIN` credentials above against the local backend.
+
+This first-wave browser suite proves:
+
+- `USER` lands in the merchant shell and cannot access admin routes
+- `ADMIN` lands in the admin shell and does not rely on merchant routes
+- both roles can complete login and logout against the seeded local baseline
+
+## 8. Run Review Crawl Workers
 
 If you want a separate queued worker process:
 
@@ -106,7 +134,7 @@ Local development may run `processor + scheduler` in one process. A production-s
 - 1 worker with `REVIEW_CRAWL_RUNTIME_MODE=scheduler`
 - 1 or more workers with `REVIEW_CRAWL_RUNTIME_MODE=processor`
 
-## 8. Local Queue Smoke
+## 9. Local Queue Smoke
 
 If Windows does not have a Redis service, the smoke script can start a local Redis binary:
 
@@ -134,7 +162,7 @@ The operator smoke additionally proves:
 
 Production queued runs still require Redis.
 
-## 9. Local SMB Load Harnesses
+## 10. Local SMB Load Harnesses
 
 User-facing read load proof on seeded local Postgres plus real HTTP routes:
 
@@ -155,7 +183,7 @@ Important behavior:
 - if Redis is unavailable, the worker harness falls back to inline queue mode and proves local worker orchestration plus database write pressure, but not Redis transport behavior
 - with `REVIEW_CRAWL_REDIS_BINARY` pointed at a local Memurai or Redis binary, the same worker harness exercises the real BullMQ queue transport and worker runtime
 
-## 10. Local Recovery Drill
+## 11. Local Recovery Drill
 
 Logical restaurant-state recovery proof on the shared demo dataset:
 
@@ -173,7 +201,7 @@ That drill will:
 
 This is local logical recovery evidence. It does not replace managed Postgres backup, restore, or rollback drills for staging or production.
 
-## 11. Staging-Compatible Recovery Drill
+## 12. Staging-Compatible Recovery Drill
 
 Shadow-database recovery rehearsal on the shared demo dataset:
 
@@ -208,7 +236,7 @@ Useful flags:
 
 This is still local evidence. It is stronger than the purely logical recovery drill because it proves a migrated restore target plus app-level rollback smoke, but it is still not a substitute for managed backup or real staging rollback proof.
 
-## 12. Review Ops CLI
+## 13. Review Ops CLI
 
 The backend-only review ops CLI lets developers or operators drive the system without touching SQL:
 
@@ -222,7 +250,7 @@ npm run ops:review -- approve-valid --user-id="<user-uuid>" --batch-id="<batch-u
 
 Use an `ADMIN` user id for these commands.
 
-## 13. Tests And Validation
+## 14. Tests And Validation
 
 Fast suite:
 
@@ -249,7 +277,7 @@ Schema validation:
 npm run db:validate
 ```
 
-## 14. Important Scripts
+## 15. Important Scripts
 
 | Script | Purpose |
 |---|---|
@@ -268,6 +296,7 @@ npm run db:validate
 | `npm run test:realdb` | Real Postgres smoke suite for publish and user-facing read routes |
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:migrate` | Apply migrations |
+| `npm run db:reset:local-baseline` | Reset local Postgres, reseed the demo dataset, and validate the schema |
 | `npm run db:seed` | Seed the shared demo dataset |
 | `npm run db:validate` | Validate Prisma schema |
 | `npm run db:studio` | Open Prisma Studio |
@@ -275,6 +304,7 @@ npm run db:validate
 ## 15. Notes
 
 - `npm run db:seed` is idempotent within the Sentify demo dataset scope; it does not reset the whole database.
+- `npm run db:reset:local-baseline` is the reproducible local-only reset command for development and browser testing.
 - `npm run test:realdb` seeds the shared demo dataset and runs the real-DB smoke suite for publish plus user-facing read routes.
 - `npm run load:merchant-reads` writes a local SMB latency and throughput report for seeded user-facing routes.
 - `npm run load:review-crawl-workers` writes a local worker-pressure report; without Redis it falls back to inline mode and should not be used to claim Redis transport proof.

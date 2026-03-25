@@ -1,5 +1,4 @@
 import { DatasetStatusCard } from '../../../features/insights/components/DatasetStatusCard'
-import { getAdminIntakeLabels } from '../../../features/admin-intake/adminIntakeLabels'
 import type {
   ComplaintKeyword,
   InsightSummary,
@@ -9,14 +8,42 @@ import type {
   TrendPoint,
 } from '../../../lib/api'
 import type { ProductUiCopy } from '../../../content/productUiCopy'
-import {
-  EmptyPanel,
-  PageIntro,
-  SectionCard,
-  SidebarStatusPill,
-  StatusMessage,
-} from './shared'
+import type { AppRoute } from '../../../features/app-shell/routes'
+import { EmptyPanel, PageIntro, SectionCard, SidebarStatusPill, StatusMessage } from './shared'
 import { formatNumber, formatPercentage, formatRating } from './shared-utils'
+
+function getUserLabels(language: string) {
+  if (language.startsWith('vi')) {
+    return {
+      reviewPrimary: 'Mo review',
+      settingsPrimary: 'Mo thiet lap',
+      sourceHint:
+        'Nguon review chua duoc cau hinh. Hay mo thiet lap nha hang va cap nhat URL Google Maps truoc khi xem chi tiet hon.',
+      sourceMissingHint:
+        'Nguon review chua duoc cau hinh. Vui long cap nhat source URL trong settings.',
+    }
+  }
+
+  if (language.startsWith('ja')) {
+    return {
+      reviewPrimary: 'Open review evidence',
+      settingsPrimary: 'Open settings',
+      sourceHint:
+        'The review source is not configured yet. Open restaurant settings and add the Google Maps URL.',
+      sourceMissingHint:
+        'The review source is not configured yet. Update the source URL in settings first.',
+    }
+  }
+
+  return {
+    reviewPrimary: 'Open review evidence',
+    settingsPrimary: 'Open settings',
+    sourceHint:
+      'The review source is not configured yet. Open restaurant settings and add the Google Maps URL.',
+    sourceMissingHint:
+      'The review source is not configured yet. Update the source URL in settings first.',
+  }
+}
 
 function MetricCard({
   label,
@@ -45,6 +72,41 @@ function MetricCard({
   )
 }
 
+function getDashboardLabels(language: string) {
+  if (language.startsWith('vi')) {
+    return {
+      readinessTitle: 'San sang cho dong co phan tich',
+      readinessDescription:
+        'Ban co the tiep tuc vao reviews hoac settings, tu do giu nguon du lieu va quy trinh review luon ro rang.',
+      noReviews:
+        'Chua co review cong khai. Hay them review hoac chuan bi nguon de bat dau dong tac phan tich.',
+      sourceReady: 'Nguon review san sang.',
+      sourceMissing: 'Nguon review chua co san.',
+    }
+  }
+
+  if (language.startsWith('ja')) {
+    return {
+      readinessTitle: 'Review readiness',
+      readinessDescription:
+        'You can continue into reviews or settings, keeping the source and review loop easy to understand.',
+      noReviews:
+        'No published reviews yet. Add reviews or prepare the source to start the analysis loop.',
+      sourceReady: 'Review source ready.',
+      sourceMissing: 'Review source not configured.',
+    }
+  }
+
+  return {
+    readinessTitle: 'Review readiness',
+    readinessDescription:
+      'Continue into reviews or settings and keep the source and review loop easy to understand.',
+    noReviews: 'No published reviews yet. Add reviews or prepare the source to start the analysis loop.',
+    sourceReady: 'Review source ready.',
+    sourceMissing: 'Review source not configured.',
+  }
+}
+
 type DashboardData = {
   kpi: InsightSummary | null
   sentiment: SentimentBreakdownRow[]
@@ -71,9 +133,10 @@ export function DashboardPanel({
   trendPeriod: TrendPeriod
   language: string
   onTrendPeriodChange: (period: TrendPeriod) => void
-  onNavigate: (route: '/app' | '/app/reviews' | '/app/settings' | '/app/admin') => void
+  onNavigate: (route: AppRoute) => void
 }) {
-  const adminLabels = getAdminIntakeLabels(language)
+  const roleAwareLabels = getUserLabels(language)
+  const dashboardLabels = getDashboardLabels(language)
   const kpi = dashboard.kpi ?? detail?.insightSummary ?? null
   const hasSource = Boolean(detail?.googleMapUrl)
   const totalReviews = kpi?.totalReviews ?? 0
@@ -96,6 +159,10 @@ export function DashboardPanel({
           language,
         )} ${copy.navReviews}`
       : null
+  const primaryActionLabel = hasSource ? roleAwareLabels.reviewPrimary : roleAwareLabels.settingsPrimary
+  const primaryActionRoute: AppRoute = hasSource ? '/app/reviews' : '/app/settings'
+  const showSecondaryReviewAction = false
+  const showSecondarySettingsAction = hasSource
 
   return (
     <div className="grid gap-6">
@@ -119,15 +186,15 @@ export function DashboardPanel({
           },
         ]}
         actions={
-          hasSource ? (
-            <>
-              <button
-                type="button"
-                className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-55 dark:text-bg-dark"
-                onClick={() => onNavigate('/app/admin')}
-              >
-                {adminLabels.nav}
-              </button>
+          <>
+            <button
+              type="button"
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-55 dark:text-bg-dark"
+              onClick={() => onNavigate(primaryActionRoute)}
+            >
+              {primaryActionLabel}
+            </button>
+            {showSecondaryReviewAction ? (
               <button
                 type="button"
                 className="group inline-flex h-11 items-center justify-center gap-2 px-1 text-sm font-semibold text-text-silver-light transition-colors hover:text-primary dark:text-text-silver-dark dark:hover:text-primary"
@@ -141,16 +208,23 @@ export function DashboardPanel({
                   arrow_forward
                 </span>
               </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark dark:text-bg-dark"
-              onClick={() => onNavigate('/app/admin')}
-            >
-              {adminLabels.nav}
-            </button>
-          )
+            ) : null}
+            {showSecondarySettingsAction ? (
+              <button
+                type="button"
+                className="group inline-flex h-11 items-center justify-center gap-2 px-1 text-sm font-semibold text-text-silver-light transition-colors hover:text-primary dark:text-text-silver-dark dark:hover:text-primary"
+                onClick={() => onNavigate('/app/settings')}
+              >
+                <span>{copy.navSettings}</span>
+                <span
+                  aria-hidden="true"
+                  className="material-symbols-outlined text-base transition-transform group-hover:translate-x-1"
+                >
+                  arrow_forward
+                </span>
+              </button>
+            ) : null}
+          </>
         }
       />
 
@@ -161,8 +235,16 @@ export function DashboardPanel({
         detail={detail}
         totalReviews={totalReviews}
         language={language}
-        onOpenAdmin={() => onNavigate('/app/admin')}
+        canOpenSettings={true}
+        onOpenSettings={() => onNavigate('/app/settings')}
       />
+
+      <SectionCard title={copy.protectedAccess} description={roleAwareLabels.sourceHint} tone="accent">
+        <div className="grid gap-3 md:grid-cols-2">
+          <SidebarStatusPill icon="insights" label={copy.navDashboard} tone="success" />
+          <SidebarStatusPill icon="rate_review" label={copy.navReviews} tone="success" />
+        </div>
+      </SectionCard>
 
       <SectionCard
         title={copy.topIssueTitle}
@@ -209,12 +291,12 @@ export function DashboardPanel({
 
       {!hasPublishedReviews ? (
         <SectionCard
-          title={copy.dashboardPrimaryCta}
-          description={copy.noReviews}
+          title={dashboardLabels.readinessTitle}
+          description={dashboardLabels.noReviews}
           tone="accent"
           headerAside={
             <div className="rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary">
-              {hasSource ? copy.intakeReady : copy.intakeBlocked}
+              {hasSource ? dashboardLabels.sourceReady : dashboardLabels.sourceMissing}
             </div>
           }
         >
@@ -242,10 +324,10 @@ export function DashboardPanel({
           <SectionCard title={copy.sourceReadiness} tone="accent">
             <div className="grid gap-3 text-sm">
               <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
-                {copy.sourceMissing}
+                {roleAwareLabels.sourceMissingHint}
               </div>
               <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
-                {copy.intakeBlocked}
+                {dashboardLabels.sourceMissing}
               </div>
             </div>
           </SectionCard>
@@ -255,7 +337,7 @@ export function DashboardPanel({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <SectionCard title={copy.sentimentSplit}>
           {dashboard.sentiment.length === 0 ? (
-            <EmptyPanel message={copy.noReviews} />
+            <EmptyPanel message={dashboardLabels.noReviews} />
           ) : (
             <div className="grid gap-3">
               {dashboard.sentiment.map((row) => (

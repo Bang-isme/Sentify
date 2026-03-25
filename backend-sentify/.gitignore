@@ -3,5 +3,7 @@
 .env.*.local
 .tmp/
 node_modules/
+# Local generated artifacts are not the runtime source of truth.
+# The app uses @prisma/client from prisma/schema.prisma.
 src/generated/
 *.log

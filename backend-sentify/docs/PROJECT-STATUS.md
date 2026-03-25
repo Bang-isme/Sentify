@@ -31,7 +31,7 @@ The backend is no longer a mock demo. It already behaves like a real product fou
 | Admin restaurant overview | Done | Dedicated admin discovery and overview endpoints for full admin flow | Keep docs and FE aligned |
 | Publish integrity | Mostly done | Stable external review identity, canonical reuse, and real-DB duplicate publish regression | Keep widening edge-case coverage as source rules evolve |
 | Database | Mostly done | Runtime models, crawl invariants, seed dataset, local logical recovery drill, local shadow-database restore rehearsal | Managed backup and rollback evidence |
-| Testing | Partial | `npm test`, `db:seed`, `test:realdb`, queued crawl smoke, seeded HTTP read proof, local SMB load harnesses, Redis-backed operator and worker smoke on local Memurai, local logical recovery drill, local shadow-database recovery smoke | Staged smoke and managed-environment proof |
+| Testing | Mostly done | `npm test`, `db:seed`, `db:reset:local-baseline`, `test:realdb`, queued crawl smoke, seeded HTTP read proof, local SMB load harnesses, Redis-backed operator and worker smoke on local Memurai, local logical recovery drill, local shadow-database recovery smoke, implemented browser E2E for `USER` and `ADMIN` critical paths | Staged smoke and managed-environment proof |
 | Docs | Mostly done | Source-of-truth docs now describe the simplified `USER` vs `ADMIN` contract | Keep sync as code evolves |
 | Ops and release | Partial | Health endpoints, worker runtime, setup docs, local recovery drills | Staging and managed-environment rollback proof |
 
@@ -72,6 +72,8 @@ Key backend milestones already achieved:
 14. Added a local logical recovery drill for seeded restaurant-state restore proof
 15. Added a local shadow-database restore plus rollback rehearsal for staging-compatible backend smoke
 16. Simplified the system role model to `USER` vs `ADMIN`
+17. Added a deterministic local baseline reset command for seeded development and browser testing
+18. Added browser E2E proof for strict `USER` vs `ADMIN` shell separation and fail-closed route behavior
 
 ## 5. Risk If Work Stops Here
 

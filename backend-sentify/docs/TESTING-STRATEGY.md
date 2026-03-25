@@ -32,7 +32,7 @@ Important role-testing principle:
 ## 2. Current Test Layers
 
 ```text
-Browser E2E                Planned later
+Browser E2E                Implemented for critical paths
 Local SMB load proof       Implemented
 Seeded read-path smoke     Implemented
 Real Postgres smoke        Implemented
@@ -63,7 +63,20 @@ Unit tests                 Current baseline
 - `npm run smoke:review-crawl-queue -- --url "..."` for queue-backed crawl proof
 - `npm run smoke:recovery-drill`
 - `npm run smoke:staging-recovery-drill`
+- `npm run db:reset:local-baseline`
 - `test/merchant-read.realdb.test.js` for end-to-end user-facing HTTP proof on seeded Postgres
+
+Browser E2E entry point:
+
+```powershell
+cd "D:\Project 3\apps\web"
+npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.ts
+```
+
+Current browser-critical-path proof:
+
+- `USER`: login, merchant shell landing, dashboard, reviews, settings update, admin-route deny, logout
+- `ADMIN`: login, admin overview landing, intake, review ops, crawl runtime, merchant-route deny, logout
 
 ## 3. File Pattern
 
@@ -208,7 +221,7 @@ The main testing gaps still left are:
 
 - managed Redis or staging-backed queue proof beyond local Memurai compatibility
 - real staging proof and managed-environment backup, restore, and rollback beyond local logical and shadow-database drills
-- browser E2E for the full user-facing path and admin publish path
+- browser coverage is still limited to first-wave critical paths and does not yet exercise deep intake publish or queue-backed crawl execution inside the browser
 
 ## 8. Merge Gate
 

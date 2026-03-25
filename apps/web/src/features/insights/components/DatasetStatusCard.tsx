@@ -17,34 +17,40 @@ function formatDateTime(value: string | null, language: string) {
 function getLabels(language: string) {
   if (language.startsWith('vi')) {
     return {
-      title: 'Trạng thái dataset',
+      title: 'Trang thai dataset',
       description:
-        'Merchant nên hiểu dữ liệu hiện đang được curate theo chính sách nào và lần publish gần nhất là khi nào.',
-      policy: 'Chính sách dữ liệu',
-      lastPublished: 'Lần publish gần nhất',
-      openReview: 'Batch đang mở',
-      pendingReview: 'Item chờ duyệt',
-      openAdmin: 'Mở khu admin',
+        'Màn hình này cho biết dataset đang được quản lý theo chính sách nào và lần publish gần nhất là khi nào.',
+      policy: 'Chinh sach du lieu',
+      lastPublished: 'Lan publish gan nhat',
+      openReview: 'Batch dang mo',
+      pendingReview: 'Item cho duyet',
+      openSettings: 'Mo thiet lap',
+      readOnlyBadge: 'Tong quan nguon',
+      readOnlyDescription:
+        'Ban van xem duoc trang thai publish va backlog hien tai, va co the dieu chinh source ngay trong settings.',
       policies: {
-        ADMIN_CURATED: 'Admin curate',
-        UNCONFIGURED: 'Chưa cấu hình',
+        ADMIN_CURATED: 'Managed dataset',
+        UNCONFIGURED: 'Chua cau hinh',
       },
     }
   }
 
   if (language.startsWith('ja')) {
     return {
-      title: 'データセット状態',
+      title: 'Dataset status',
       description:
-        '店舗側には、どのポリシーでデータが整備され、最後にいつ公開されたかだけを明確に見せます。',
-      policy: 'データポリシー',
-      lastPublished: '最終公開',
-      openReview: '進行中バッチ',
-      pendingReview: '保留中項目',
-      openAdmin: '管理画面を開く',
+        'This view explains which curation policy is active and when the last publish happened.',
+      policy: 'Dataset policy',
+      lastPublished: 'Last publish',
+      openReview: 'Open batches',
+      pendingReview: 'Pending items',
+      openSettings: 'Open settings',
+      readOnlyBadge: 'Source summary',
+      readOnlyDescription:
+        'You can inspect publish status and backlog here, and adjust the source in settings when needed.',
       policies: {
-        ADMIN_CURATED: '管理者キュレーション',
-        UNCONFIGURED: '未設定',
+        ADMIN_CURATED: 'Managed dataset',
+        UNCONFIGURED: 'Unconfigured',
       },
     }
   }
@@ -52,14 +58,17 @@ function getLabels(language: string) {
   return {
     title: 'Dataset status',
     description:
-      'Merchant-facing UI should explain which dataset policy is active and when reviewed data was last published.',
+      'This view explains which dataset policy is active and when reviewed data was last published.',
     policy: 'Dataset policy',
     lastPublished: 'Last publish',
     openReview: 'Open batches',
     pendingReview: 'Pending items',
-    openAdmin: 'Open admin intake',
+    openSettings: 'Open settings',
+      readOnlyBadge: 'Source summary',
+    readOnlyDescription:
+      'You can inspect publish status and backlog here, and adjust the source in settings when needed.',
     policies: {
-      ADMIN_CURATED: 'Admin curated',
+      ADMIN_CURATED: 'Managed dataset',
       UNCONFIGURED: 'Unconfigured',
     },
   }
@@ -69,14 +78,16 @@ interface DatasetStatusCardProps {
   detail: RestaurantDetail | null
   totalReviews: number
   language: string
-  onOpenAdmin: () => void
+  canOpenSettings: boolean
+  onOpenSettings?: () => void
 }
 
 export function DatasetStatusCard({
   detail,
   totalReviews,
   language,
-  onOpenAdmin,
+  canOpenSettings,
+  onOpenSettings,
 }: DatasetStatusCardProps) {
   const labels = getLabels(language)
   const datasetStatus = detail?.datasetStatus
@@ -93,13 +104,24 @@ export function DatasetStatusCard({
           </p>
         </div>
 
-        <button
-          type="button"
-          className="inline-flex h-11 items-center justify-center rounded-full border border-primary/35 bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark dark:text-bg-dark"
-          onClick={onOpenAdmin}
-        >
-          {labels.openAdmin}
-        </button>
+        {canOpenSettings && onOpenSettings ? (
+          <button
+            type="button"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-primary/35 bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark dark:text-bg-dark"
+            onClick={onOpenSettings}
+          >
+            {labels.openSettings}
+          </button>
+        ) : (
+          <div className="max-w-sm rounded-[1.25rem] border border-border-light/70 bg-surface-white/80 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+              {labels.readOnlyBadge}
+            </div>
+            <p className="mt-2 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+              {labels.readOnlyDescription}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

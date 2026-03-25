@@ -79,6 +79,18 @@ function getCalendarMonthLabels(language: string) {
   )
 }
 
+function getReviewEmptyMessage(language: string) {
+  if (language.startsWith('vi')) {
+    return 'Chua co review cong khai. Hay them review hoac cap nhat nguon de tiep tuc quy trinh.'
+  }
+
+  if (language.startsWith('ja')) {
+    return 'No published reviews yet. Add reviews or update the source to continue the flow.'
+  }
+
+  return 'No published reviews yet. Add reviews or update the source to continue the flow.'
+}
+
 function getCalendarCells(month: Date) {
   const start = getMonthStart(month)
   const leadingDays = start.getDay()
@@ -797,7 +809,7 @@ export function ReviewsPanel({
             </div>
           </div>
         ) : (
-          <EmptyPanel message={copy.noReviews} />
+          <EmptyPanel message={getReviewEmptyMessage(language)} />
         )}
       </SectionCard>
     </div>
