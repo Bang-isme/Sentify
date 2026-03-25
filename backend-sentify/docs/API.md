@@ -97,6 +97,18 @@ Local demo seed:
 - seeded `USER` login: `demo.user.primary@sentify.local` / `DemoPass123!`
 - seeded `ADMIN` login: `demo.admin@sentify.local` / `DemoPass123!`
 
+Current FE route mapping on top of this API contract:
+
+- merchant app for `USER`
+  - `/app`
+  - `/app/reviews`
+  - `/app/actions`
+  - `/app/settings`
+- admin app for `ADMIN`
+  - live `Operations`: `/admin/operations/*`
+  - planned `Access`: `/admin/access/*`
+  - planned `Platform`: `/admin/platform/*`
+
 ## Health
 
 ### `GET /health`

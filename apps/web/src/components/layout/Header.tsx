@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { getProductUiCopy } from '../../content/productUiCopy'
 import { LANGUAGE_OPTIONS, useLanguage } from '../../contexts/languageContext'
 import { useTheme } from '../../contexts/useTheme'
-import { getAdminOpsLabels } from '../../features/admin-ops/adminOpsLabels'
-import { isProtectedRoute, type AppRoute } from '../../features/app-shell/routes'
+import { getAdminNavigation, getMerchantNavigation, getRouteMeta } from '../../features/app-shell/navigation'
+import { isAdminRoute, isProtectedRoute, type AppRoute } from '../../features/app-shell/routes'
 
 interface HeaderAccountIdentity {
   displayName: string
@@ -25,8 +25,38 @@ interface HeaderProps {
   onLogout: () => void
 }
 
+function isVietnamese(language: string) {
+  return language.startsWith('vi')
+}
+
+function getHeaderStrings(language: string) {
+  if (isVietnamese(language)) {
+    return {
+      openAccountMenu: 'Mo menu tai khoan',
+      languageLabel: 'Ngon ngu',
+      themeLabel: 'Chuyen che do sang toi',
+      merchantApp: 'Merchant app',
+      adminHub: 'Admin hub',
+      viewLabel: 'Dang xem',
+      roleLabel: 'Role',
+      restaurantLabel: 'Restaurant',
+    }
+  }
+
+  return {
+    openAccountMenu: 'Open account menu',
+    languageLabel: 'Language',
+    themeLabel: 'Toggle theme',
+    merchantApp: 'Merchant app',
+    adminHub: 'Admin hub',
+    viewLabel: 'Viewing',
+    roleLabel: 'Role',
+    restaurantLabel: 'Restaurant',
+  }
+}
+
 function MenuDivider() {
-  return <div className="my-2 h-px bg-border-light/80 dark:bg-border-dark/80"></div>
+  return <div className="my-2 h-px bg-white/8" />
 }
 
 export function Header({
@@ -42,7 +72,7 @@ export function Header({
   const { theme, toggleTheme } = useTheme()
   const { language, setLanguage, copy } = useLanguage()
   const productCopy = getProductUiCopy(language)
-  const adminLabels = getAdminOpsLabels(language)
+  const labels = getHeaderStrings(language)
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const languageMenuRef = useRef<HTMLDivElement | null>(null)
@@ -51,23 +81,58 @@ export function Header({
   const currentLanguage =
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
   const isAppRoute = isProtectedRoute(route)
-  const isAdminShell = route === '/admin' || route.startsWith('/admin/')
-  const currentViewLabel =
-    route === '/app'
-      ? productCopy.header.dashboard
-      : route === '/app/reviews'
-        ? productCopy.header.reviews
-        : route === '/app/settings'
-          ? productCopy.header.settings
-          : route === '/admin'
-            ? adminLabels.navOverview
-            : route === '/admin/intake'
-            ? adminLabels.navIntake
-            : route === '/admin/review-ops'
-              ? adminLabels.navReviewOps
-              : route === '/admin/review-crawl'
-                ? adminLabels.navReviewCrawl
-          : null
+  const isAdminShell = isAdminRoute(route)
+  const routeMeta = getRouteMeta(route, language)
+  const shellLabel = isAdminShell ? labels.adminHub : labels.merchantApp
+
+  const restaurantLabel = useMemo(() => {
+    if (!user) {
+      return null
+    }
+
+    if (user.selectedRestaurantName) {
+      return user.selectedRestaurantName
+    }
+
+    const unit =
+      user.restaurantCount === 1
+        ? productCopy.header.restaurantSingular
+        : productCopy.header.restaurantPlural
+
+    return `${user.restaurantCount} ${unit}`
+  }, [productCopy.header.restaurantPlural, productCopy.header.restaurantSingular, user])
+
+  const accountActions = useMemo(() => {
+    if (!isAuthenticated) {
+      return []
+    }
+
+    const navItems = isAdminShell
+      ? getAdminNavigation(language).flatMap((group) => group.items)
+      : getMerchantNavigation(language).flatMap((group) => group.items)
+
+    return [
+      {
+        id: 'home',
+        label: isAdminShell ? (isVietnamese(language) ? 'Command center' : 'Command center') : 'Home',
+        onClick: () => onNavigate(homeRoute),
+      },
+      ...navItems.slice(0, 4).map((item) => ({
+        id: item.route,
+        label: item.label,
+        onClick: () => onNavigate(item.route),
+      })),
+      ...(isAppRoute
+        ? [
+            {
+              id: 'landing',
+              label: productCopy.header.landing,
+              onClick: () => onNavigate('/'),
+            },
+          ]
+        : []),
+    ]
+  }, [homeRoute, isAdminShell, isAppRoute, isAuthenticated, language, onNavigate, productCopy.header.landing])
 
   useEffect(() => {
     if (!isLanguageMenuOpen && !isAccountMenuOpen) {
@@ -106,97 +171,12 @@ export function Header({
     }
   }, [isAccountMenuOpen, isLanguageMenuOpen])
 
-  const restaurantLabel = useMemo(() => {
-    if (!user) {
-      return null
-    }
-
-    if (user.selectedRestaurantName) {
-      return user.selectedRestaurantName
-    }
-
-    const unit =
-      user.restaurantCount === 1
-        ? productCopy.header.restaurantSingular
-        : productCopy.header.restaurantPlural
-
-    return `${user.restaurantCount} ${unit}`
-  }, [productCopy.header.restaurantPlural, productCopy.header.restaurantSingular, user])
-
-  const accountActions = isAuthenticated
-    ? [
-        isAdminShell
-          ? {
-              id: 'admin-overview',
-              label: adminLabels.navOverview,
-              onClick: () => onNavigate('/admin'),
-            }
-          : null,
-        isAdminShell
-          ? {
-              id: 'admin-intake',
-              label: adminLabels.navIntake,
-              onClick: () => onNavigate('/admin/intake'),
-            }
-          : null,
-        isAdminShell
-          ? {
-              id: 'admin-review-ops',
-              label: adminLabels.navReviewOps,
-              onClick: () => onNavigate('/admin/review-ops'),
-            }
-          : null,
-        isAdminShell
-          ? {
-              id: 'admin-review-crawl',
-              label: adminLabels.navReviewCrawl,
-              onClick: () => onNavigate('/admin/review-crawl'),
-            }
-          : null,
-        !isAdminShell && isAppRoute
-          ? {
-              id: 'merchant-dashboard',
-              label: productCopy.header.dashboard,
-              onClick: () => onNavigate('/app'),
-            }
-          : null,
-        isAppRoute
-          ? {
-              id: 'landing',
-              label: productCopy.header.landing,
-              onClick: () => onNavigate('/'),
-            }
-          : null,
-        !isAdminShell && isAppRoute
-          ? {
-              id: 'merchant-reviews',
-              label: productCopy.header.reviews,
-              onClick: () => onNavigate('/app/reviews'),
-            }
-          : null,
-        !isAdminShell && isAppRoute
-          ? {
-              id: 'merchant-settings',
-              label: productCopy.header.settings,
-              onClick: () => onNavigate('/app/settings'),
-            }
-          : null,
-        !isAppRoute && route !== '/'
-          ? {
-              id: 'landing',
-              label: productCopy.header.landing,
-              onClick: () => onNavigate('/'),
-            }
-          : null,
-      ].flatMap((action) => (action ? [action] : []))
-    : []
-
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-2 pt-2 md:px-3 md:pt-3">
-      <div className="pointer-events-auto flex min-h-13 w-full items-center gap-2 rounded-[0.82rem] border border-border-light/70 bg-surface-white/84 px-3 shadow-[0_8px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300 hover:border-primary/20 dark:border-border-dark/70 dark:bg-surface-dark/88 dark:shadow-[0_8px_24px_rgba(0,0,0,0.42)] md:px-4">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/8 bg-[#0d1116]/92 backdrop-blur-xl">
+      <div className="flex h-[4.25rem] w-full items-center gap-3 px-3 lg:px-5">
         <button
           type="button"
-          className="group mr-1 flex shrink-0 items-center gap-2.5"
+          className="flex shrink-0 items-center gap-3"
           onClick={() => {
             if (isAuthenticated) {
               onNavigate(homeRoute)
@@ -206,44 +186,50 @@ export function Header({
             onScrollToSection('overview')
           }}
         >
-          <div className="flex size-8 items-center justify-center rounded-full border border-primary/25 bg-primary/8 text-primary transition-transform duration-500 group-hover:rotate-180">
+          <div className="flex size-9 items-center justify-center border border-white/10 bg-white/5 text-amber-300">
             <span className="material-symbols-outlined text-[18px]">token</span>
           </div>
-          <span className="hidden text-base font-bold tracking-tight text-text-charcoal dark:text-white sm:block">
-            {copy.header.brand}
-          </span>
+          <div className="hidden min-w-0 md:block">
+            <div className="text-[15px] font-semibold text-white">{copy.header.brand}</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              {isProtectedRoute(route) ? shellLabel : 'Sentiment operations'}
+            </div>
+          </div>
         </button>
 
-        <nav className="hidden items-center gap-2 xl:flex">
-          {isAppRoute && isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              {currentViewLabel ? (
-                <div className="inline-flex h-9 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
-                  <span className="size-2 rounded-full bg-primary"></span>
-                  <span>{currentViewLabel}</span>
-                </div>
-              ) : null}
-            </div>
+        <div className="hidden min-w-0 items-center gap-2 xl:flex">
+          {isProtectedRoute(route) ? (
+            <>
+              <span className="inline-flex border border-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                {labels.viewLabel}
+              </span>
+              <span className="inline-flex items-center gap-2 border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[12px] font-semibold text-white">
+                <span className="material-symbols-outlined text-[16px] text-slate-400">
+                  {isAdminShell ? 'view_kanban' : 'insights'}
+                </span>
+                {routeMeta.title}
+              </span>
+            </>
           ) : (
             productCopy.header.marketingLinks.map((item) => (
               <button
                 key={item.sectionId}
                 type="button"
-                className="inline-flex h-9 items-center justify-center rounded-full px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary"
+                className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 transition hover:text-white"
                 onClick={() => onScrollToSection(item.sectionId)}
               >
                 {item.label}
               </button>
             ))
           )}
-        </nav>
+        </div>
 
-        <div className="ml-auto flex items-center gap-2 md:gap-3">
+        <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
             onClick={(event) => toggleTheme(event)}
-            aria-label={copy.header.themeLabel}
-            className="flex size-8 items-center justify-center rounded-full text-text-silver-light transition-all duration-200 hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 dark:text-text-silver-dark dark:hover:bg-white/5"
+            aria-label={labels.themeLabel}
+            className="flex size-8 items-center justify-center text-slate-400 transition hover:bg-white/5 hover:text-white"
           >
             <span className="material-symbols-outlined text-lg">
               {theme === 'dark' ? 'dark_mode' : 'light_mode'}
@@ -257,13 +243,12 @@ export function Header({
                 setIsLanguageMenuOpen((current) => !current)
                 setIsAccountMenuOpen(false)
               }}
-              aria-label={copy.header.languageLabel}
+              aria-label={labels.languageLabel}
               aria-haspopup="menu"
               aria-expanded={isLanguageMenuOpen}
-              className="flex h-8 items-center gap-2 rounded-full border border-border-light px-3 text-[11px] font-bold text-text-charcoal transition-all duration-200 hover:border-primary/40 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:text-white"
+              className="flex h-8 items-center gap-1.5 border border-white/10 bg-white/5 px-2.5 text-[12px] font-semibold text-white transition hover:border-white/20"
             >
-              <span className="hidden sm:block">{currentLanguage.label}</span>
-              <span className="sm:hidden">{currentLanguage.code.toUpperCase()}</span>
+              <span>{currentLanguage.label}</span>
               <span
                 className={`material-symbols-outlined text-base transition-transform duration-200 ${
                   isLanguageMenuOpen ? 'rotate-180' : ''
@@ -274,13 +259,13 @@ export function Header({
             </button>
 
             <div
-              className={`absolute right-0 top-[calc(100%+0.65rem)] min-w-[10rem] overflow-hidden rounded-2xl border border-border-light/80 bg-surface-white/95 p-1 shadow-[0_18px_40px_-20px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-200 dark:border-border-dark/80 dark:bg-surface-dark/95 ${
+              className={`absolute right-0 top-[calc(100%+0.6rem)] min-w-[10rem] border border-white/10 bg-[#11161c] p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.35)] transition-all duration-150 ${
                 isLanguageMenuOpen
                   ? 'pointer-events-auto translate-y-0 opacity-100'
                   : 'pointer-events-none -translate-y-1 opacity-0'
               }`}
               role="menu"
-              aria-label={copy.header.languageLabel}
+              aria-label={labels.languageLabel}
             >
               {LANGUAGE_OPTIONS.map((option) => {
                 const isActive = option.code === language
@@ -295,16 +280,14 @@ export function Header({
                       setLanguage(option.code)
                       setIsLanguageMenuOpen(false)
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition ${
                       isActive
-                        ? 'bg-primary/10 font-semibold text-primary'
-                        : 'text-text-silver-light hover:bg-black/5 hover:text-text-charcoal dark:text-text-silver-dark dark:hover:bg-white/5 dark:hover:text-white'
+                        ? 'bg-white/8 font-semibold text-white'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
                     }`}
                   >
                     <span>{option.label}</span>
-                    {isActive ? (
-                      <span className="material-symbols-outlined text-base">check</span>
-                    ) : null}
+                    {isActive ? <span className="material-symbols-outlined text-base">check</span> : null}
                   </button>
                 )
               })}
@@ -312,132 +295,118 @@ export function Header({
           </div>
 
           {isAuthenticated ? (
-            <>
-              <div className="relative" ref={accountMenuRef}>
-                <button
-                  type="button"
-                  aria-label={productCopy.header.accountMenuLabel}
-                  aria-haspopup="menu"
-                  aria-expanded={isAccountMenuOpen}
-                  onClick={() => {
-                    setIsAccountMenuOpen((current) => !current)
-                    setIsLanguageMenuOpen(false)
-                  }}
-                  className="group flex h-9 items-center gap-2 rounded-full border border-border-light/80 bg-surface-white/70 pl-2 pr-3 text-left transition hover:border-primary/35 hover:bg-primary/6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:bg-surface-dark/78"
-                >
-                  <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[11px] font-black text-bg-dark">
-                    {user?.initials ?? 'S'}
+            <div className="relative" ref={accountMenuRef}>
+              <button
+                type="button"
+                aria-label={labels.openAccountMenu}
+                aria-haspopup="menu"
+                aria-expanded={isAccountMenuOpen}
+                onClick={() => {
+                  setIsAccountMenuOpen((current) => !current)
+                  setIsLanguageMenuOpen(false)
+                }}
+                className="group flex h-9 items-center gap-2 border border-white/10 bg-white/5 pl-2 pr-2.5 text-left transition hover:border-white/20"
+              >
+                <span className="flex size-7 items-center justify-center bg-amber-300 text-[11px] font-black text-[#11161c]">
+                  {user?.initials ?? 'S'}
+                </span>
+                <span className="hidden min-w-0 md:block">
+                  <span className="block truncate text-[13px] font-semibold text-white">
+                    {user?.displayName ?? productCopy.header.accountFallback}
                   </span>
-                  <span className="hidden min-w-0 md:block">
-                    <span className="block truncate text-[13px] font-semibold text-text-charcoal dark:text-white">
-                      {user?.displayName ?? productCopy.header.accountFallback}
-                    </span>
-                    <span className="block truncate text-[11px] text-text-silver-light dark:text-text-silver-dark">
-                      {restaurantLabel ?? productCopy.header.protectedAccess}
-                    </span>
+                  <span className="block truncate text-[11px] text-slate-500">
+                    {restaurantLabel ?? roleDescription}
                   </span>
-                  <span
-                    className={`material-symbols-outlined text-base text-text-silver-light transition-transform duration-200 group-hover:text-primary dark:text-text-silver-dark ${
-                      isAccountMenuOpen ? 'rotate-180' : ''
-                    }`}
-                  >
-                    expand_more
-                  </span>
-                </button>
-
-                <div
-                  className={`absolute right-0 top-[calc(100%+0.8rem)] w-[min(22rem,calc(100vw-2rem))] rounded-[1.5rem] border border-border-light/80 bg-surface-white/96 p-2 shadow-[0_22px_50px_-22px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-200 dark:border-border-dark/80 dark:bg-[#19150f]/96 ${
-                    isAccountMenuOpen
-                      ? 'pointer-events-auto translate-y-0 opacity-100'
-                      : 'pointer-events-none -translate-y-1 opacity-0'
+                </span>
+                <span
+                  className={`material-symbols-outlined text-base text-slate-500 transition-transform duration-200 ${
+                    isAccountMenuOpen ? 'rotate-180' : ''
                   }`}
-                  role="menu"
-                  aria-label={productCopy.header.accountMenuLabel}
                 >
-                  <div className="rounded-[1.1rem] border border-border-light/80 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/50">
-                    <div className="flex items-start gap-3">
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-black text-bg-dark">
-                        {user?.initials ?? 'S'}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-bold text-text-charcoal dark:text-white">
-                          {user?.displayName ?? productCopy.header.accountFallback}
-                        </div>
-                        <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-silver-light dark:text-text-silver-dark">
-                          {productCopy.header.signedInAs}
-                        </div>
-                        <div className="mt-1 truncate text-xs text-text-silver-light dark:text-text-silver-dark">
-                          {user?.email ?? ''}
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
-                            {user?.roleLabel ?? productCopy.header.protectedAccess}
-                          </span>
-                          {restaurantLabel ? (
-                            <span className="rounded-full border border-border-light bg-surface-white px-3 py-1 text-[11px] font-semibold text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
-                              {restaurantLabel}
-                            </span>
-                          ) : null}
-                          {route.startsWith('/admin/') ? (
-                            <span className="rounded-full border border-border-light bg-surface-white px-3 py-1 text-[11px] font-semibold text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
-                              {adminLabels.shellEyebrow}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="mt-3 text-xs leading-5 text-text-silver-light dark:text-text-silver-dark">
-                          {roleDescription}
-                        </div>
+                  expand_more
+                </span>
+              </button>
+
+              <div
+                className={`absolute right-0 top-[calc(100%+0.75rem)] w-[min(24rem,calc(100vw-1.5rem))] border border-white/10 bg-[#11161c] p-2 shadow-[0_20px_44px_rgba(0,0,0,0.42)] transition-all duration-150 ${
+                  isAccountMenuOpen
+                    ? 'pointer-events-auto translate-y-0 opacity-100'
+                    : 'pointer-events-none -translate-y-1 opacity-0'
+                }`}
+                role="menu"
+                aria-label={labels.openAccountMenu}
+              >
+                <div className="border border-white/8 bg-white/[0.03] p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-11 shrink-0 items-center justify-center bg-amber-300 text-sm font-black text-[#11161c]">
+                      {user?.initials ?? 'S'}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-white">
+                        {user?.displayName ?? productCopy.header.accountFallback}
                       </div>
+                      <div className="mt-1 truncate text-xs text-slate-500">{user?.email ?? ''}</div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200">
+                          {user?.roleLabel ?? productCopy.header.protectedAccess}
+                        </span>
+                        {restaurantLabel ? (
+                          <span className="border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+                            {restaurantLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-3 text-xs leading-5 text-slate-500">{roleDescription}</div>
                     </div>
                   </div>
-
-                  <MenuDivider />
-
-                  <div className="grid gap-1">
-                    {accountActions.map((action) => (
-                      <button
-                        key={action.id}
-                        type="button"
-                        role="menuitem"
-                        className="flex h-11 items-center rounded-xl px-3 text-left text-sm font-semibold text-text-charcoal transition hover:bg-primary/8 hover:text-primary dark:text-white dark:hover:bg-white/5"
-                        onClick={() => {
-                          setIsAccountMenuOpen(false)
-                          action.onClick()
-                        }}
-                      >
-                        {action.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {accountActions.length ? <MenuDivider /> : null}
-
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="flex h-11 w-full items-center rounded-xl px-3 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10"
-                    onClick={() => {
-                      setIsAccountMenuOpen(false)
-                      onLogout()
-                    }}
-                  >
-                    {productCopy.header.logout}
-                  </button>
                 </div>
+
+                <MenuDivider />
+
+                <div className="grid gap-1">
+                  {accountActions.map((action) => (
+                    <button
+                      key={action.id}
+                      type="button"
+                      role="menuitem"
+                      className="flex h-10 items-center px-3 text-left text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+                      onClick={() => {
+                        setIsAccountMenuOpen(false)
+                        action.onClick()
+                      }}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+
+                <MenuDivider />
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex h-10 w-full items-center px-3 text-left text-sm font-medium text-red-300 transition hover:bg-red-500/10"
+                  onClick={() => {
+                    setIsAccountMenuOpen(false)
+                    onLogout()
+                  }}
+                >
+                  {productCopy.header.logout}
+                </button>
               </div>
-            </>
+            </div>
           ) : (
             <>
               <button
                 type="button"
-                className="hidden h-9 items-center justify-center rounded-full px-2 text-xs font-bold text-text-charcoal transition-colors hover:text-primary-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex dark:text-white dark:hover:text-primary"
+                className="hidden h-9 items-center justify-center px-2 text-sm font-medium text-slate-300 transition hover:text-white md:inline-flex"
                 onClick={() => onNavigate('/login')}
               >
                 {productCopy.header.login}
               </button>
               <button
                 type="button"
-                className="flex h-9 items-center justify-center rounded-full bg-primary px-4 text-xs font-bold text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] transition-colors hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-bg-dark dark:hover:bg-yellow-400"
+                className="flex h-9 items-center justify-center bg-amber-300 px-3.5 text-sm font-semibold text-[#11161c] transition hover:bg-amber-200"
                 onClick={() => onNavigate('/signup')}
               >
                 {productCopy.header.signup}

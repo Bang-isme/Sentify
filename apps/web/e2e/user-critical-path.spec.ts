@@ -12,17 +12,20 @@ test.describe('USER critical path', () => {
   test('can login, work in merchant shell, update settings, and stay out of admin routes', async ({
     page,
   }) => {
-  await loginAs(page, SEED_CREDENTIALS.userPrimary, 'USER')
-  await expectMerchantShell(page)
+    await loginAs(page, SEED_CREDENTIALS.userPrimary, 'USER')
+    await expectMerchantShell(page)
 
-  await page.getByRole('button', { name: /Step 1 Dashboard/i }).first().click()
-  await expect(page.getByRole('button', { name: /Step 1 Dashboard/i }).first()).toBeVisible()
+    await page.getByRole('button', { name: /^Home$/i }).first().click()
+    await expect(page.getByText('Dataset freshness').first()).toBeVisible()
 
-  await page.getByRole('button', { name: /Step 2 Reviews/i }).first().click()
-  await expect(page.getByRole('heading', { name: 'Review evidence' }).first()).toBeVisible()
+    await page.getByRole('button', { name: /^Reviews$/i }).first().click()
+    await expect(page.getByRole('heading', { name: 'Evidence explorer' }).first()).toBeVisible()
 
-  await page.getByRole('button', { name: /Step 3 Settings/i }).first().click()
-  await expect(page.getByRole('heading', { name: 'Restaurant settings' }).first()).toBeVisible()
+    await page.getByRole('button', { name: /^Actions$/i }).first().click()
+    await expect(page.getByRole('heading', { name: 'What to fix first' }).first()).toBeVisible()
+
+    await page.getByRole('button', { name: /^Settings$/i }).first().click()
+    await expect(page.getByRole('heading', { name: 'Settings that stay readable' }).first()).toBeVisible()
 
     const restaurantName = page.getByLabel('Restaurant name')
     const restaurantAddress = page.getByLabel('Address')
@@ -41,9 +44,10 @@ test.describe('USER critical path', () => {
     await page.getByRole('button', { name: 'Save changes', exact: true }).first().click()
     await expect(page.getByText('Changes saved.').first()).toBeVisible()
 
-    await expect(page.getByRole('button', { name: /Step 1 Intake/i })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /Step 2 Review ops/i })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /Step 3 Crawl runtime/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Restaurants$/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Intake$/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Review ops$/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Crawl$/i })).toHaveCount(0)
 
     await goToRoute(page, HASH_ROUTES.adminIntake)
     await assertRouteBlockedForUser(page)

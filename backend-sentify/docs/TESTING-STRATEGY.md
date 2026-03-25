@@ -75,8 +75,8 @@ npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.
 
 Current browser-critical-path proof:
 
-- `USER`: login, merchant shell landing, dashboard, reviews, settings update, admin-route deny, logout
-- `ADMIN`: login, admin overview landing, intake, review ops, crawl runtime, merchant-route deny, logout
+- `USER`: login, merchant app landing, `Home`, `Reviews`, `Actions`, `Settings`, settings update, admin-route deny, logout
+- `ADMIN`: login, admin hub landing, live `Operations` screens, structural `Access` and `Platform` navigation, merchant-route deny, logout
 
 ## 3. File Pattern
 

@@ -7,11 +7,18 @@ export const HASH_ROUTES = {
   login: '/login',
   appHome: '/app',
   appReviews: '/app/reviews',
+  appActions: '/app/actions',
   appSettings: '/app/settings',
   adminOverview: '/admin',
-  adminIntake: '/admin/intake',
-  adminReviewOps: '/admin/review-ops',
-  adminReviewCrawl: '/admin/review-crawl',
+  adminRestaurants: '/admin/operations/restaurants',
+  adminIntake: '/admin/operations/intake',
+  adminReviewOps: '/admin/operations/review-ops',
+  adminReviewCrawl: '/admin/operations/crawl',
+  adminUsers: '/admin/access/users',
+  adminMemberships: '/admin/access/memberships',
+  adminHealthJobs: '/admin/platform/health-jobs',
+  adminIntegrationsPolicies: '/admin/platform/integrations-policies',
+  adminAudit: '/admin/platform/audit',
 } as const
 
 export const SEED_CREDENTIALS = {

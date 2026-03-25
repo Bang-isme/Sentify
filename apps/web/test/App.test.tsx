@@ -12,6 +12,7 @@ import {
   getSentimentBreakdown,
   getSession,
   getTrend,
+  listReviewEvidence,
   listAdminRestaurants,
   listRestaurants,
   login,
@@ -41,6 +42,7 @@ vi.mock('../src/lib/api', async () => {
     getSentimentBreakdown: vi.fn(),
     getSession: vi.fn(),
     getTrend: vi.fn(),
+    listReviewEvidence: vi.fn(),
     listAdminRestaurants: vi.fn(),
     listRestaurants: vi.fn(),
     login: vi.fn(),
@@ -57,6 +59,7 @@ const getDashboardKpiMock = vi.mocked(getDashboardKpi)
 const getSentimentBreakdownMock = vi.mocked(getSentimentBreakdown)
 const getTrendMock = vi.mocked(getTrend)
 const getComplaintKeywordsMock = vi.mocked(getComplaintKeywords)
+const listReviewEvidenceMock = vi.mocked(listReviewEvidence)
 const listAdminRestaurantsMock = vi.mocked(listAdminRestaurants)
 const getAdminRestaurantDetailMock = vi.mocked(getAdminRestaurantDetail)
 const loginMock = vi.mocked(login)
@@ -217,6 +220,25 @@ beforeEach(() => {
     { label: 'Week 2', averageRating: 4.3, reviewCount: 10 },
   ]
   const complaints: ComplaintKeyword[] = [{ keyword: 'Wait time', count: 5, percentage: 25 }]
+  const reviewEvidence = {
+    data: [
+      {
+        id: 'review-1',
+        externalId: 'ext-1',
+        authorName: 'Jordan',
+        rating: 2,
+        content: 'Wait time was too long.',
+        sentiment: 'NEGATIVE' as const,
+        reviewDate: '2026-03-25T00:00:00.000Z',
+      },
+    ],
+    pagination: {
+      page: 1,
+      limit: 10,
+      total: 1,
+      totalPages: 1,
+    },
+  }
 
   getSessionMock.mockRejectedValue(
     new ApiClientError(401, {
@@ -230,6 +252,7 @@ beforeEach(() => {
   getSentimentBreakdownMock.mockResolvedValue(sentiment)
   getTrendMock.mockResolvedValue(trend)
   getComplaintKeywordsMock.mockResolvedValue(complaints)
+  listReviewEvidenceMock.mockResolvedValue(reviewEvidence)
   listAdminRestaurantsMock.mockResolvedValue([makeAdminSummary()])
   getAdminRestaurantDetailMock.mockResolvedValue(makeAdminDetail(makeAdminSummary()))
   loginMock.mockResolvedValue({
@@ -277,12 +300,13 @@ describe('Sentify app shell', () => {
     render(<App />)
 
     expect((await screen.findAllByText('User workspace')).length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: /Step 1 Dashboard/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Step 2 Reviews/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Step 3 Settings/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reviews' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Actions' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
     expect(screen.queryByText('Admin control plane')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Step 1 Restaurants overview/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Step 2 Intake/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Restaurants' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Intake' })).not.toBeInTheDocument()
   })
 
   it('renders the admin shell on the /admin overview route', async () => {
@@ -295,11 +319,12 @@ describe('Sentify app shell', () => {
     render(<App />)
 
     expect((await screen.findAllByText('Admin control plane')).length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: /Step 1 Restaurants/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Step 2 Intake/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Step 3 Review ops/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Step 4 Crawl runtime/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Step 1 Dashboard/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Restaurants' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Intake' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Review ops' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Crawl' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Users' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Home' })).not.toBeInTheDocument()
   })
 
   it('allows a USER member to update restaurant settings', async () => {
@@ -318,7 +343,7 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect(await screen.findByText('Restaurant settings')).toBeInTheDocument()
+    expect(await screen.findByText('Settings that stay readable')).toBeInTheDocument()
 
     const nameField = screen.getByLabelText('Restaurant name')
     const addressField = screen.getByLabelText('Address')
@@ -341,16 +366,16 @@ describe('Sentify app shell', () => {
   it('fails closed across roles when the route does not match the active role', async () => {
     const membership = makeMembership()
     mockUserSession(membership)
-    window.location.hash = '#/admin/intake'
+    window.location.hash = '#/admin/operations/intake'
 
     const firstRender = render(<App />)
 
     await waitFor(() => {
       expect(window.location.hash).toBe('#/app')
     })
-    expect(await screen.findByText('Operational triage dashboard')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Step 1 Dashboard/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Step 2 Intake/i })).not.toBeInTheDocument()
+    expect(await screen.findByText('Dataset freshness')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Intake' })).not.toBeInTheDocument()
 
     firstRender.unmount()
 
@@ -362,9 +387,12 @@ describe('Sentify app shell', () => {
     await waitFor(() => {
       expect(window.location.hash).toBe('#/admin')
     })
-    expect((await screen.findAllByText('Restaurants overview')).length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: /Step 1 Restaurants/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Step 2 Intake/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Step 1 Dashboard/i })).not.toBeInTheDocument()
+    expect(
+      (await screen.findAllByText('One admin product, organized into operations, access, and platform.'))
+        .length,
+    ).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'Restaurants' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Intake' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Home' })).not.toBeInTheDocument()
   })
 })

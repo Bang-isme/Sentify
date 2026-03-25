@@ -116,8 +116,8 @@ Use the seeded `USER` and `ADMIN` credentials above against the local backend.
 
 This first-wave browser suite proves:
 
-- `USER` lands in the merchant shell and cannot access admin routes
-- `ADMIN` lands in the admin shell and does not rely on merchant routes
+- `USER` lands in the merchant app and moves across `Home`, `Reviews`, `Actions`, and `Settings`
+- `ADMIN` lands in the admin hub, uses live `Operations`, and can see the reserved `Access` and `Platform` IA
 - both roles can complete login and logout against the seeded local baseline
 
 ## 8. Run Review Crawl Workers

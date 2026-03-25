@@ -6,11 +6,7 @@ function escapeRegex(input: string) {
 }
 
 function navButtonPattern(label: string) {
-  return new RegExp(escapeRegex(label), 'i')
-}
-
-function shellNavPattern(step: number, label: string) {
-  return new RegExp(`Step ${step} ${escapeRegex(label)}`, 'i')
+  return new RegExp(`^${escapeRegex(label)}$`, 'i')
 }
 
 async function gotoHashRoute(page: Page, route: string) {
@@ -32,30 +28,36 @@ export async function loginAs(page: Page, account: SeedAccount, expectedRole: Se
   await page.locator('#main-content').getByRole('button', { name: 'Login', exact: true }).click()
 
   if (expectedRole === 'ADMIN') {
-    await expect(page.getByRole('button', { name: shellNavPattern(1, 'Restaurants') }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: navButtonPattern('Restaurants') }).first()).toBeVisible()
     return
   }
 
-  await expect(page.getByRole('button', { name: shellNavPattern(1, 'Dashboard') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Home') }).first()).toBeVisible()
 }
 
 export async function expectMerchantShell(page: Page) {
-  await expect(page.getByRole('button', { name: shellNavPattern(1, 'Dashboard') }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: shellNavPattern(2, 'Reviews') }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: shellNavPattern(3, 'Settings') }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: shellNavPattern(1, 'Intake') })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: shellNavPattern(2, 'Review ops') })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: shellNavPattern(3, 'Crawl runtime') })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: navButtonPattern('Home') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Reviews') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Actions') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Settings') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Restaurants') })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: navButtonPattern('Intake') })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: navButtonPattern('Review ops') })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: navButtonPattern('Crawl') })).toHaveCount(0)
 }
 
 export async function expectAdminShell(page: Page) {
-  await expect(page.getByRole('button', { name: shellNavPattern(1, 'Restaurants') }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: shellNavPattern(2, 'Intake') }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: shellNavPattern(3, 'Review ops') }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: shellNavPattern(4, 'Crawl runtime') }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: shellNavPattern(1, 'Dashboard') })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: shellNavPattern(2, 'Reviews') })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: shellNavPattern(3, 'Settings') })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: navButtonPattern('Restaurants') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Intake') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Review ops') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Crawl') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Users') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Memberships') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Health & jobs') }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: navButtonPattern('Home') })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: navButtonPattern('Reviews') })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: navButtonPattern('Actions') })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: navButtonPattern('Settings') })).toHaveCount(0)
 }
 
 export async function selectRestaurant(page: Page, currentRestaurantName: string, targetRestaurantName: string) {
@@ -92,7 +94,7 @@ export async function logout(page: Page) {
 }
 
 export async function assertRouteBlockedForUser(page: Page) {
-  await expect(page).not.toHaveURL(/#\/admin\/(?:intake|review-ops|review-crawl)/)
+  await expect(page).not.toHaveURL(/#\/admin\//)
   await expectMerchantShell(page)
 }
 

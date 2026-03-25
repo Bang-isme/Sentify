@@ -29,6 +29,23 @@ In practice, this means:
 - admin access no longer inherits from restaurant membership
 - admin users are intentionally blocked from the user-facing restaurant routes
 
+Current FE shell contract on top of that split:
+
+- merchant app for `USER`
+  - `/app`
+  - `/app/reviews`
+  - `/app/actions`
+  - `/app/settings`
+- admin app for `ADMIN`
+  - `Operations` is backed now:
+    - `/admin/operations/restaurants`
+    - `/admin/operations/intake`
+    - `/admin/operations/review-ops`
+    - `/admin/operations/crawl`
+  - `Access` and `Platform` are already part of the FE IA but remain marked `Next` until backend expansion lands:
+    - `/admin/access/*`
+    - `/admin/platform/*`
+
 ## 2. Runtime Stack
 
 - Node.js
@@ -220,7 +237,11 @@ Important proof points already exist:
 - admin users can inspect restaurants through dedicated admin endpoints instead of borrowing user-facing routes
 - real Postgres HTTP smoke covers user-facing read routes
 - real Postgres smoke covers publish and duplicate publish behavior
-- browser E2E now proves strict shell separation, direct-route fail-close behavior, and critical-path login/logout for both `USER` and `ADMIN`
+- browser E2E now proves:
+  - strict `USER` vs `ADMIN` shell separation
+  - direct-route fail-close behavior
+  - merchant critical path across `Home`, `Reviews`, `Actions`, and `Settings`
+  - admin critical path across live `Operations` screens plus structural `Access` and `Platform` navigation
 - Redis-backed local smoke covers worker and operator queue flow
 - shadow-database recovery proof covers restore plus app-level rollback smoke
 

@@ -74,6 +74,9 @@ Key backend milestones already achieved:
 16. Simplified the system role model to `USER` vs `ADMIN`
 17. Added a deterministic local baseline reset command for seeded development and browser testing
 18. Added browser E2E proof for strict `USER` vs `ADMIN` shell separation and fail-closed route behavior
+19. Reset the FE IA into two post-login products:
+    - merchant app: `Home`, `Reviews`, `Actions`, `Settings`
+    - admin hub: `Operations` live now, `Access` and `Platform` reserved as `Next`
 
 ## 5. Risk If Work Stops Here
 

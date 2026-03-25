@@ -160,21 +160,21 @@ export function AdminRestaurantsOverview({
                   <button
                     type="button"
                     className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark dark:text-bg-dark"
-                    onClick={() => onNavigate('/admin/intake')}
+                    onClick={() => onNavigate('/admin/operations/intake')}
                   >
                     {labels.navIntake}
                   </button>
                   <button
                     type="button"
                     className="inline-flex h-11 items-center justify-center rounded-full border border-border-light px-5 text-sm font-semibold text-text-charcoal transition hover:border-primary/35 hover:text-primary dark:border-border-dark dark:text-white"
-                    onClick={() => onNavigate('/admin/review-ops')}
+                    onClick={() => onNavigate('/admin/operations/review-ops')}
                   >
                     {labels.navReviewOps}
                   </button>
                   <button
                     type="button"
                     className="inline-flex h-11 items-center justify-center rounded-full border border-border-light px-5 text-sm font-semibold text-text-charcoal transition hover:border-primary/35 hover:text-primary dark:border-border-dark dark:text-white"
-                    onClick={() => onNavigate('/admin/review-crawl')}
+                    onClick={() => onNavigate('/admin/operations/crawl')}
                   >
                     {labels.navReviewCrawl}
                   </button>

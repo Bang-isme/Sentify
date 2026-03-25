@@ -9,12 +9,15 @@ Sentify is an AI-assisted customer insight tool for F&B businesses with a strict
 
 - Auth: register, login, logout
 - Restaurant: create restaurant, join restaurant-scoped user flow, save Google Maps URL
-- Role-aware FE shells: user workspace separated from admin control plane
+- Role-aware FE shells: merchant app separated from admin control plane
+- Merchant app IA: `Home`, `Reviews`, `Actions`, `Settings`
 - Review intake: admin-curated manual intake (batch, approve, publish) to canonical reviews
 - Review ops: sync Google Maps sources to draft batches, inspect run readiness, approve valid items, publish
 - Review crawl: preview, queue, monitor, and materialize Google Maps crawl runs
-- Dashboard: review list, rating filter, date filter
-- Insights: sentiment breakdown, complaint keywords, rating trend
+- Admin control-plane IA:
+  - `Operations` live now
+  - `Access` wireframed now, backend expansion next
+  - `Platform` wireframed now, backend expansion next
 
 ## Tech Stack
 
@@ -62,16 +65,25 @@ The source of truth for role-aware workflow is now:
 
 Admin control plane means:
 
-- intake curation
-- review ops
-- crawl runtime
+- `Operations`
+  - restaurants
+  - intake
+  - review ops
+  - crawl
+- `Access`
+  - users
+  - memberships
+- `Platform`
+  - health & jobs
+  - integrations & policies
+  - audit
 
 Merchant flow means:
 
-- dashboard
-- review evidence
-- dataset status
-- restaurant settings surface
+- home
+- reviews
+- actions
+- settings
 
 Fail-closed routing rules:
 
@@ -91,6 +103,12 @@ Critical-path browser validation:
 cd "D:\Project 3\apps\web"
 npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.ts
 ```
+
+What that suite proves now:
+
+- `USER` can login, land in the merchant app, move across `Home`, `Reviews`, `Actions`, and `Settings`, update settings, and logout
+- `ADMIN` can login, land in the admin hub, move across live `Operations` screens, verify `Access` and `Platform` structural nav, and logout
+- direct cross-role routes fail closed
 
 ## Runtime Docs
 
