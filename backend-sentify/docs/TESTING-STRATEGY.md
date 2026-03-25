@@ -1,6 +1,6 @@
 # Sentify Backend Testing Strategy
 
-Updated: 2026-03-25
+Updated: 2026-03-26
 
 This document tracks the current backend testing posture for the live codebase.
 
@@ -52,8 +52,8 @@ Unit tests                 Current baseline
 - queue/runtime coverage for BullMQ-safe job ids and worker lifecycle
 - role-boundary integration coverage for `USER` versus `ADMIN`
 - admin restaurant overview coverage for the new admin discovery flow
-- admin access integration coverage for users and memberships
-- admin platform integration coverage for health, policies, and audit
+- admin access integration coverage for users, memberships, and account lifecycle
+- admin platform integration coverage for health, policies, audit, and runtime controls
 
 ### Real-data coverage already in place
 
@@ -211,8 +211,8 @@ npm run smoke:staging-recovery-drill
 | Admin flow role boundary | `USER` gets `403` on `/api/admin/*`; `ADMIN` is allowed |
 | User-facing routes | seeded `GET /api/restaurants`, `/:id`, `/:id/reviews`, KPI, sentiment, trend, complaints, top issue |
 | Admin overview flow | `GET /api/admin/restaurants` and `GET /api/admin/restaurants/:id` expose restaurant discovery plus combined `userFlow` and `adminFlow` overview |
-| Admin access | `GET /api/admin/users`, `GET /api/admin/users/:id`, `PATCH /api/admin/users/:id/role`, `POST /api/admin/users/:id/password-reset`, `GET/POST/DELETE /api/admin/memberships*` |
-| Admin platform | `GET /api/admin/platform/health-jobs`, `GET /api/admin/platform/integrations-policies`, `GET /api/admin/platform/audit` |
+| Admin access | `GET /api/admin/users`, `POST /api/admin/users`, `GET /api/admin/users/:id`, `PATCH /api/admin/users/:id/role`, `PATCH /api/admin/users/:id/account-state`, `POST /api/admin/users/:id/password-reset`, `GET/POST/DELETE /api/admin/memberships*` |
+| Admin platform | `GET /api/admin/platform/health-jobs`, `GET /api/admin/platform/integrations-policies`, `GET /api/admin/platform/audit`, `PATCH /api/admin/platform/controls` |
 | Admin intake | create, add, update, delete, publish, duplicate reuse |
 | Review crawl | source upsert, queued run, worker processing, materialize-intake |
 | Review ops | sync-to-draft, source list, run detail, readiness, approve-valid, publish |
@@ -225,6 +225,7 @@ The main testing gaps still left are:
 
 - managed Redis or staging-backed queue proof beyond local Memurai compatibility
 - real staging proof and managed-environment backup, restore, and rollback beyond local logical and shadow-database drills
+- browser coverage still treats admin `Access` and `Platform` as critical-path structure checks, not full lifecycle execution
 - browser coverage is still limited to first-wave critical paths and does not yet exercise deep intake publish or queue-backed crawl execution inside the browser
 
 ## 8. Merge Gate

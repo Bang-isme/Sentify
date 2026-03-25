@@ -1,6 +1,6 @@
 # Sentify API Reference
 
-Updated: 2026-03-25
+Updated: 2026-03-26
 Base URL: `http://localhost:3000/api`
 
 This document describes the API surface that exists in the backend today.
@@ -173,6 +173,11 @@ Sets auth, refresh, and CSRF cookies and returns:
   }
 }
 ```
+
+Important lifecycle errors now returned by auth:
+
+- `401 AUTH_ACCOUNT_LOCKED`
+- `403 AUTH_ACCOUNT_DEACTIVATED`
 
 ### `GET /api/auth/session`
 
@@ -514,8 +519,10 @@ Purpose:
 Mounted under `/api/admin`.
 
 - `GET /users`
+- `POST /users`
 - `GET /users/:id`
 - `PATCH /users/:id/role`
+- `PATCH /users/:id/account-state`
 - `POST /users/:id/password-reset`
 - `GET /memberships`
 - `POST /memberships`
@@ -525,9 +532,18 @@ Purpose:
 
 - inspect the two-role account directory
 - read one user's memberships, security posture, recent intake work, and recent crawl work
+- create a new `USER` or `ADMIN`
 - change a user between `USER` and `ADMIN`
+- lock, unlock, deactivate, or reactivate an account
 - trigger password-reset delivery
 - inspect and manage restaurant membership links
+
+Lifecycle invariants:
+
+- admins cannot lock or deactivate themselves
+- the last available `ADMIN` account cannot be locked, deactivated, or downgraded
+- `ADMIN` accounts cannot hold restaurant memberships
+- deactivated `USER` accounts cannot receive restaurant membership assignment
 
 ## Admin Platform Routes
 
@@ -536,12 +552,22 @@ Mounted under `/api/admin`.
 - `GET /platform/health-jobs`
 - `GET /platform/integrations-policies`
 - `GET /platform/audit?limit=25`
+- `PATCH /platform/controls`
 
 Purpose:
 
 - expose API, database, queue, and worker posture for the admin shell
 - show the real role model, route boundary, source coverage, and crawler defaults that FE should design around
-- expose a unified audit feed spanning users, memberships, intake, crawl, and publish activity
+- expose a unified audit feed spanning users, memberships, intake, crawl, publish, and platform-control activity
+- allow safe runtime controls for crawl queue writes, crawl materialization, and intake publish
+
+Health and policy additions:
+
+- `controls` returns the live singleton runtime-control record
+- `recovery.releaseReadiness` reports:
+  - local proof coverage
+  - managed-environment proof status
+  - remaining managed-environment gap
 
 ## Final Contract Summary
 

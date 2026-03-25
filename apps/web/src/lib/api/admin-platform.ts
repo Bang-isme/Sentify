@@ -3,6 +3,8 @@ import type {
   AdminAuditResponse,
   AdminHealthJobsResponse,
   AdminIntegrationsPoliciesResponse,
+  UpdateAdminPlatformControlsInput,
+  UpdateAdminPlatformControlsResponse,
 } from './types'
 
 export function getAdminHealthJobs() {
@@ -15,4 +17,11 @@ export function getAdminIntegrationsPolicies() {
 
 export function getAdminAudit(limit = 25) {
   return request<AdminAuditResponse>(`/admin/platform/audit?limit=${limit}`)
+}
+
+export function updateAdminPlatformControls(input: UpdateAdminPlatformControlsInput) {
+  return request<UpdateAdminPlatformControlsResponse>('/admin/platform/controls', {
+    method: 'PATCH',
+    body: input,
+  })
 }

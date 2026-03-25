@@ -65,6 +65,8 @@ The runtime role model is now exactly two system roles:
     - `Operations` = live now
     - `Access` = live now
     - `Platform` = live now
+  - `Access` includes user lifecycle and membership administration
+  - `Platform` includes runtime controls plus release-readiness visibility
   - does not use merchant routes to inspect restaurants
 
 Fail-closed rules:

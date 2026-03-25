@@ -201,3 +201,78 @@ test('auth service session preserves admin role without requiring restaurant mem
     restoreModules()
 })
 
+test('auth service login rejects deactivated accounts before password verification succeeds', async () => {
+    restoreModules()
+
+    withMock('bcryptjs', {
+        compare: async () => true,
+        hash: async () => 'hashed-password',
+    })
+    withMock('../src/lib/security-event', {
+        logSecurityEvent: () => {},
+    })
+    withMock('../src/lib/prisma', {
+        user: {
+            findUnique: async () => ({
+                id: 'user-1',
+                email: 'owner@sentify.com',
+                fullName: 'Sentify Owner',
+                role: 'USER',
+                passwordHash: 'old-hash',
+                tokenVersion: 0,
+                lockedUntil: null,
+                manuallyLockedAt: null,
+                deactivatedAt: new Date('2026-03-25T00:00:00Z'),
+                restaurants: [],
+            }),
+        },
+    })
+
+    const authService = require('../src/services/auth.service')
+
+    await assert.rejects(
+        () =>
+            authService.login({
+                email: 'owner@sentify.com',
+                password: 'old-password',
+            }),
+        (error) => {
+            assert.equal(error.code, 'AUTH_ACCOUNT_DEACTIVATED')
+            return true
+        },
+    )
+
+    restoreModules()
+})
+
+test('auth service session rejects manually locked accounts', async () => {
+    restoreModules()
+
+    withMock('../src/lib/prisma', {
+        user: {
+            findUnique: async () => ({
+                id: 'user-1',
+                email: 'user@sentify.com',
+                fullName: 'Sentify User',
+                role: 'USER',
+                manuallyLockedAt: new Date('2026-03-25T00:00:00Z'),
+                lockedUntil: null,
+                deactivatedAt: null,
+                restaurants: [],
+            }),
+        },
+    })
+
+    const authService = require('../src/services/auth.service')
+
+    await assert.rejects(
+        () => authService.getSession({ userId: 'user-1' }),
+        (error) => {
+            assert.equal(error.code, 'AUTH_ACCOUNT_LOCKED')
+            return true
+        },
+    )
+
+    restoreModules()
+})
+

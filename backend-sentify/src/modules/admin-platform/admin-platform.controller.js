@@ -1,6 +1,6 @@
 const { handleControllerError } = require('../../lib/controller-error')
 const service = require('./admin-platform.service')
-const { listAuditQuerySchema } = require('./admin-platform.validation')
+const { listAuditQuerySchema, updateControlsSchema } = require('./admin-platform.validation')
 
 async function getHealthJobs(req, res) {
     try {
@@ -46,8 +46,25 @@ async function getAudit(req, res) {
     }
 }
 
+async function updateControls(req, res) {
+    try {
+        const input = updateControlsSchema.parse(req.body)
+        const result = await service.updateControls({
+            userId: req.user.userId,
+            input,
+        })
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 module.exports = {
     getAudit,
     getHealthJobs,
     getIntegrationsPolicies,
+    updateControls,
 }

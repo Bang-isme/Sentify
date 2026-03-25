@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma')
 const { forbidden, unauthorized } = require('../lib/app-error')
+const { assertUserAccountAvailable } = require('./user-account-state.service')
 
 function normalizeRoles(allowedRoles) {
     if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) {
@@ -19,6 +20,9 @@ async function getUserRoleAccess({ userId, allowedRoles }) {
             email: true,
             fullName: true,
             role: true,
+            lockedUntil: true,
+            manuallyLockedAt: true,
+            deactivatedAt: true,
         },
     })
 
@@ -28,6 +32,8 @@ async function getUserRoleAccess({ userId, allowedRoles }) {
 
     const roleSet = normalizeRoles(allowedRoles)
     const effectiveRole = user.role || 'USER'
+
+    assertUserAccountAvailable(user)
 
     if (roleSet && !roleSet.has(effectiveRole)) {
         throw forbidden('FORBIDDEN', 'You do not have access to this internal action')

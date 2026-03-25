@@ -1,9 +1,15 @@
+const bcrypt = require('bcryptjs')
+
 const { conflict, forbidden, notFound } = require('../../lib/app-error')
 const prisma = require('../../lib/prisma')
 const { INTERNAL_OPERATOR_ROLES } = require('../../lib/user-roles')
+const { revokeAllUserTokens } = require('../../services/refresh-token.service')
 const { requestPasswordReset } = require('../../services/password-reset.service')
 const { ensureRestaurantExists } = require('../../services/restaurant-access.service')
+const { buildUserAccountState } = require('../../services/user-account-state.service')
 const { getUserRoleAccess } = require('../../services/user-access.service')
+
+const PASSWORD_SALT_ROUNDS = 12
 
 function buildTransaction(prismaClient, operations) {
     if (typeof prismaClient.$transaction === 'function') {
@@ -13,19 +19,15 @@ function buildTransaction(prismaClient, operations) {
     return Promise.all(operations)
 }
 
+function normalizeEmail(email) {
+    return email.trim().toLowerCase()
+}
+
 async function ensureAdminAccess(userId) {
     return getUserRoleAccess({
         userId,
         allowedRoles: INTERNAL_OPERATOR_ROLES,
     })
-}
-
-function buildUserAccountState(lockedUntil, now = new Date()) {
-    if (lockedUntil && lockedUntil > now) {
-        return 'LOCKED'
-    }
-
-    return 'ACTIVE'
 }
 
 function countActiveRefreshTokens(refreshTokens = [], now = new Date()) {
@@ -42,7 +44,7 @@ function mapUserSummary(user, now = new Date()) {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
-        accountState: buildUserAccountState(user.lockedUntil, now),
+        accountState: buildUserAccountState(user, now),
         restaurantCount: user.restaurants?.length ?? user._count?.restaurants ?? 0,
         activeSessionCount: countActiveRefreshTokens(user.refreshTokens, now),
         pendingPasswordResetCount: countPendingPasswordResetTokens(
@@ -55,6 +57,8 @@ function mapUserSummary(user, now = new Date()) {
         tokenVersion: user.tokenVersion ?? 0,
         lastLoginAt: user.lastLoginAt ?? null,
         lockedUntil: user.lockedUntil ?? null,
+        manuallyLockedAt: user.manuallyLockedAt ?? null,
+        deactivatedAt: user.deactivatedAt ?? null,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
     }
@@ -87,18 +91,18 @@ function buildUserWhereClause({ search, role, accountState }) {
     if (search) {
         clauses.push({
             OR: [
-            {
-                email: {
-                    contains: search,
-                    mode: 'insensitive',
+                {
+                    email: {
+                        contains: search,
+                        mode: 'insensitive',
+                    },
                 },
-            },
-            {
-                fullName: {
-                    contains: search,
-                    mode: 'insensitive',
+                {
+                    fullName: {
+                        contains: search,
+                        mode: 'insensitive',
+                    },
                 },
-            },
             ],
         })
     }
@@ -109,15 +113,41 @@ function buildUserWhereClause({ search, role, accountState }) {
         })
     }
 
-    if (accountState === 'LOCKED') {
+    if (accountState === 'DEACTIVATED') {
         clauses.push({
-            lockedUntil: {
-                gt: now,
+            deactivatedAt: {
+                not: null,
             },
         })
     }
 
+    if (accountState === 'LOCKED') {
+        clauses.push({
+            deactivatedAt: null,
+        })
+        clauses.push({
+            OR: [
+                {
+                    manuallyLockedAt: {
+                        not: null,
+                    },
+                },
+                {
+                    lockedUntil: {
+                        gt: now,
+                    },
+                },
+            ],
+        })
+    }
+
     if (accountState === 'ACTIVE') {
+        clauses.push({
+            deactivatedAt: null,
+        })
+        clauses.push({
+            manuallyLockedAt: null,
+        })
         clauses.push({
             OR: [
                 {
@@ -150,7 +180,7 @@ async function listAdminUsers({ userId, filters }) {
     const now = new Date()
     const where = buildUserWhereClause(filters || {})
 
-    const [users, totalUsers, adminCount, userCount, lockedUserCount, membershipCount] =
+    const [users, totalUsers, adminCount, userCount, lockedUserCount, deactivatedUserCount, membershipCount] =
         await Promise.all([
             prisma.user.findMany({
                 where,
@@ -196,8 +226,25 @@ async function listAdminUsers({ userId, filters }) {
             }),
             prisma.user.count({
                 where: {
-                    lockedUntil: {
-                        gt: now,
+                    deactivatedAt: null,
+                    OR: [
+                        {
+                            manuallyLockedAt: {
+                                not: null,
+                            },
+                        },
+                        {
+                            lockedUntil: {
+                                gt: now,
+                            },
+                        },
+                    ],
+                },
+            }),
+            prisma.user.count({
+                where: {
+                    deactivatedAt: {
+                        not: null,
                     },
                 },
             }),
@@ -210,6 +257,7 @@ async function listAdminUsers({ userId, filters }) {
             adminCount,
             userCount,
             lockedUserCount,
+            deactivatedUserCount,
             membershipCount,
             visibleUsers: users.length,
         },
@@ -278,6 +326,59 @@ async function ensureTargetUserExists(targetUserId) {
     return user
 }
 
+async function ensureAnotherAvailableAdminExists(excludeUserId) {
+    const now = new Date()
+    const otherAdminCount = await prisma.user.count({
+        where: {
+            role: 'ADMIN',
+            id: {
+                not: excludeUserId,
+            },
+            deactivatedAt: null,
+            manuallyLockedAt: null,
+            OR: [
+                {
+                    lockedUntil: null,
+                },
+                {
+                    lockedUntil: {
+                        lte: now,
+                    },
+                },
+            ],
+        },
+    })
+
+    if (otherAdminCount <= 0) {
+        throw conflict(
+            'LAST_ADMIN_LIFECYCLE_CHANGE_FORBIDDEN',
+            'At least one available ADMIN account must remain',
+        )
+    }
+}
+
+function getAvailableAccountActions(user, actingUser, now = new Date()) {
+    const accountState = buildUserAccountState(user, now)
+    const actions = []
+    const isSelf = actingUser.id === user.id
+
+    if (!isSelf && accountState !== 'DEACTIVATED') {
+        if (accountState === 'LOCKED') {
+            actions.push('UNLOCK')
+        } else {
+            actions.push('LOCK')
+        }
+
+        actions.push('DEACTIVATE')
+    }
+
+    if (!isSelf && accountState === 'DEACTIVATED') {
+        actions.push('REACTIVATE')
+    }
+
+    return actions
+}
+
 async function getAdminUserDetail({ userId, targetUserId }) {
     const actingUser = await ensureAdminAccess(userId)
     const now = new Date()
@@ -327,8 +428,11 @@ async function getAdminUserDetail({ userId, targetUserId }) {
             ...mapUserSummary(user, now),
             canEditRole: actingUser.id !== user.id,
             availableRoleTargets: ['USER', 'ADMIN'],
+            availableAccountActions: getAvailableAccountActions(user, actingUser, now),
             roleChangePolicy:
                 'Changing a user to ADMIN removes restaurant memberships because admins use the control-plane only.',
+            lifecyclePolicy:
+                'LOCK revokes active sessions and blocks access until UNLOCK. DEACTIVATE disables login and all active sessions until REACTIVATE.',
         },
         memberships: (user.restaurants || []).map((membership) =>
             mapMembership({
@@ -346,6 +450,8 @@ async function getAdminUserDetail({ userId, targetUserId }) {
             tokenVersion: user.tokenVersion,
             lastLoginAt: user.lastLoginAt ?? null,
             lockedUntil: user.lockedUntil ?? null,
+            manuallyLockedAt: user.manuallyLockedAt ?? null,
+            deactivatedAt: user.deactivatedAt ?? null,
         },
         recentIntakeBatches: recentIntakeBatches.map((batch) => ({
             id: batch.id,
@@ -368,6 +474,64 @@ async function getAdminUserDetail({ userId, targetUserId }) {
     }
 }
 
+async function createAdminUser({ userId, input }) {
+    await ensureAdminAccess(userId)
+
+    const email = normalizeEmail(input.email)
+    const existingUser = await prisma.user.findUnique({
+        where: {
+            email,
+        },
+        select: {
+            id: true,
+        },
+    })
+
+    if (existingUser) {
+        throw conflict('EMAIL_ALREADY_EXISTS', 'Email already exists')
+    }
+
+    if (input.role === 'ADMIN' && input.restaurantId) {
+        throw conflict(
+            'ADMIN_MEMBERSHIP_FORBIDDEN',
+            'ADMIN accounts cannot be assigned to restaurants at creation time',
+        )
+    }
+
+    if (input.role === 'USER' && input.restaurantId) {
+        await ensureRestaurantExists({
+            restaurantId: input.restaurantId,
+        })
+    }
+
+    const passwordHash = await bcrypt.hash(input.password, PASSWORD_SALT_ROUNDS)
+    const createdUser = await prisma.user.create({
+        data: {
+            email,
+            fullName: input.fullName.trim(),
+            role: input.role,
+            passwordHash,
+        },
+        select: {
+            id: true,
+        },
+    })
+
+    if (input.role === 'USER' && input.restaurantId) {
+        await prisma.restaurantUser.create({
+            data: {
+                userId: createdUser.id,
+                restaurantId: input.restaurantId,
+            },
+        })
+    }
+
+    return getAdminUserDetail({
+        userId,
+        targetUserId: createdUser.id,
+    })
+}
+
 async function updateAdminUserRole({ userId, targetUserId, role }) {
     const actingUser = await ensureAdminAccess(userId)
     const targetUser = await ensureTargetUserExists(targetUserId)
@@ -380,18 +544,7 @@ async function updateAdminUserRole({ userId, targetUserId, role }) {
     }
 
     if (targetUser.role === 'ADMIN' && role === 'USER') {
-        const adminCount = await prisma.user.count({
-            where: {
-                role: 'ADMIN',
-            },
-        })
-
-        if (adminCount <= 1) {
-            throw conflict(
-                'LAST_ADMIN_ROLE_CHANGE_FORBIDDEN',
-                'At least one ADMIN account must remain',
-            )
-        }
+        await ensureAnotherAvailableAdminExists(targetUserId)
     }
 
     const operations = []
@@ -418,6 +571,81 @@ async function updateAdminUserRole({ userId, targetUserId, role }) {
     )
 
     await buildTransaction(prisma, operations)
+
+    return getAdminUserDetail({
+        userId,
+        targetUserId,
+    })
+}
+
+async function updateAdminUserAccountState({ userId, targetUserId, action }) {
+    const actingUser = await ensureAdminAccess(userId)
+    const targetUser = await ensureTargetUserExists(targetUserId)
+    const now = new Date()
+
+    if (actingUser.id === targetUser.id && ['LOCK', 'DEACTIVATE'].includes(action)) {
+        throw forbidden(
+            'ADMIN_SELF_ACCOUNT_STATE_CHANGE_FORBIDDEN',
+            'Admins cannot lock or deactivate their own account',
+        )
+    }
+
+    if (targetUser.role === 'ADMIN' && ['LOCK', 'DEACTIVATE'].includes(action)) {
+        await ensureAnotherAvailableAdminExists(targetUserId)
+    }
+
+    if (action === 'UNLOCK' && targetUser.deactivatedAt) {
+        throw conflict(
+            'DEACTIVATED_ACCOUNT_REQUIRES_REACTIVATE',
+            'Reactivate the account before unlocking it',
+        )
+    }
+
+    const updatesByAction = {
+        LOCK: {
+            manuallyLockedAt: now,
+            lockedUntil: null,
+            failedLoginCount: 0,
+            tokenVersion: {
+                increment: 1,
+            },
+        },
+        UNLOCK: {
+            manuallyLockedAt: null,
+            lockedUntil: null,
+            failedLoginCount: 0,
+            tokenVersion: {
+                increment: 1,
+            },
+        },
+        DEACTIVATE: {
+            deactivatedAt: now,
+            manuallyLockedAt: null,
+            lockedUntil: null,
+            failedLoginCount: 0,
+            tokenVersion: {
+                increment: 1,
+            },
+        },
+        REACTIVATE: {
+            deactivatedAt: null,
+            manuallyLockedAt: null,
+            lockedUntil: null,
+            failedLoginCount: 0,
+            tokenVersion: {
+                increment: 1,
+            },
+        },
+    }
+
+    await prisma.user.update({
+        where: {
+            id: targetUserId,
+        },
+        data: updatesByAction[action],
+    })
+
+    await revokeAllUserTokens(targetUserId)
 
     return getAdminUserDetail({
         userId,
@@ -501,7 +729,14 @@ async function listMemberships({ userId, filters }) {
             where: {
                 role: 'USER',
             },
-            include: {
+            select: {
+                id: true,
+                email: true,
+                fullName: true,
+                role: true,
+                lockedUntil: true,
+                manuallyLockedAt: true,
+                deactivatedAt: true,
                 _count: {
                     select: {
                         restaurants: true,
@@ -541,6 +776,7 @@ async function listMemberships({ userId, filters }) {
             email: user.email,
             fullName: user.fullName,
             role: user.role,
+            accountState: buildUserAccountState(user),
             restaurantCount: user._count.restaurants,
         })),
         restaurants: restaurants.map((restaurant) => ({
@@ -563,6 +799,9 @@ async function createMembership({ userId, input }) {
         select: {
             id: true,
             role: true,
+            lockedUntil: true,
+            manuallyLockedAt: true,
+            deactivatedAt: true,
         },
     })
 
@@ -574,6 +813,13 @@ async function createMembership({ userId, input }) {
         throw conflict(
             'MEMBERSHIP_USER_ROLE_INVALID',
             'Only USER accounts can be assigned to restaurants',
+        )
+    }
+
+    if (buildUserAccountState(targetUser) === 'DEACTIVATED') {
+        throw conflict(
+            'MEMBERSHIP_USER_DEACTIVATED',
+            'Re-activate the user before assigning restaurant membership',
         )
     }
 
@@ -655,11 +901,13 @@ async function deleteMembership({ userId, membershipId }) {
 }
 
 module.exports = {
+    createAdminUser,
     createMembership,
     deleteMembership,
     getAdminUserDetail,
     listAdminUsers,
     listMemberships,
     triggerAdminPasswordReset,
+    updateAdminUserAccountState,
     updateAdminUserRole,
 }

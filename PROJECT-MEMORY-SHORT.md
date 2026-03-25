@@ -26,13 +26,17 @@ Updated: 2026-03-26 Asia/Bangkok
 - Admin `Access`:
   - user directory
   - user detail
+  - create user
   - role changes
+  - lock, unlock, deactivate, reactivate
   - password-reset trigger
   - membership list/create/delete
 - Admin `Platform`:
   - health & jobs
   - integrations & policies
   - audit feed
+  - runtime controls for queue writes, materialization, and publish
+  - release-readiness summary separating local proof from managed-env gap
 
 ## Current Frontend Route Tree
 
@@ -79,3 +83,4 @@ Updated: 2026-03-26 Asia/Bangkok
 1. Deepen admin `Access` from read/control into fuller account lifecycle if product needs it.
 2. Deepen admin `Platform` from visibility into active system controls only when backend policy is ready.
 3. Keep FE aligned to backend truth; do not invent third roles or restaurant permission tiers.
+4. Do not describe platform health as release-ready without separate managed-environment proof.

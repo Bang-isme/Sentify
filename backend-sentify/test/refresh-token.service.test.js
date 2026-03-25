@@ -51,6 +51,9 @@ test('refresh token service rotates a valid token and keeps the token family sta
                     user: {
                         id: 'user-1',
                         tokenVersion: 3,
+                        lockedUntil: null,
+                        manuallyLockedAt: null,
+                        deactivatedAt: null,
                     },
                 }
             },
@@ -78,6 +81,9 @@ test('refresh token service rotates a valid token and keeps the token family sta
                 select: {
                     id: true,
                     tokenVersion: true,
+                    lockedUntil: true,
+                    manuallyLockedAt: true,
+                    deactivatedAt: true,
                 },
             },
         },
@@ -92,6 +98,9 @@ test('refresh token service rotates a valid token and keeps the token family sta
     assert.deepEqual(result.user, {
         id: 'user-1',
         tokenVersion: 3,
+        lockedUntil: null,
+        manuallyLockedAt: null,
+        deactivatedAt: null,
     })
 
     restoreModules()
@@ -136,6 +145,9 @@ test('refresh token service rejects expired refresh tokens without rotating them
                 user: {
                     id: 'user-1',
                     tokenVersion: 0,
+                    lockedUntil: null,
+                    manuallyLockedAt: null,
+                    deactivatedAt: null,
                 },
             }),
             update: async () => {
@@ -182,6 +194,9 @@ test('refresh token service revokes the whole family on refresh token reuse', as
                 user: {
                     id: 'user-1',
                     tokenVersion: 0,
+                    lockedUntil: null,
+                    manuallyLockedAt: null,
+                    deactivatedAt: null,
                 },
             }),
             updateMany: async (args) => {

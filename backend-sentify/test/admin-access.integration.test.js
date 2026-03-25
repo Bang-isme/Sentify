@@ -19,6 +19,8 @@ function createAdminAccessPrismaOverrides() {
             failedLoginCount: 0,
             lastLoginAt: new Date('2026-03-24T10:00:00Z'),
             lockedUntil: null,
+            manuallyLockedAt: null,
+            deactivatedAt: null,
             createdAt: new Date('2026-03-20T00:00:00Z'),
             updatedAt: new Date('2026-03-24T10:00:00Z'),
         },
@@ -31,6 +33,8 @@ function createAdminAccessPrismaOverrides() {
             failedLoginCount: 2,
             lastLoginAt: new Date('2026-03-24T08:30:00Z'),
             lockedUntil: null,
+            manuallyLockedAt: null,
+            deactivatedAt: null,
             createdAt: new Date('2026-03-21T00:00:00Z'),
             updatedAt: new Date('2026-03-24T08:30:00Z'),
         },
@@ -54,16 +58,24 @@ function createAdminAccessPrismaOverrides() {
             createdAt: new Date('2026-03-22T00:00:00Z'),
         },
     ]
-    const activeSession = {
-        id: 'refresh-1',
-        revokedAt: null,
-        expiresAt: new Date('2026-04-01T00:00:00Z'),
+    const refreshTokensByUserId = {
+        [USER_ID]: [
+            {
+                id: 'refresh-1',
+                revokedAt: null,
+                expiresAt: new Date('2026-04-01T00:00:00Z'),
+            },
+        ],
     }
-    const pendingReset = {
-        id: 'reset-1',
-        usedAt: null,
-        expiresAt: new Date('2026-03-30T00:00:00Z'),
-        createdAt: new Date('2026-03-24T09:00:00Z'),
+    const passwordResetTokensByUserId = {
+        [USER_ID]: [
+            {
+                id: 'reset-1',
+                usedAt: null,
+                expiresAt: new Date('2026-03-30T00:00:00Z'),
+                createdAt: new Date('2026-03-24T09:00:00Z'),
+            },
+        ],
     }
     const recentIntakeBatches = [
         {
@@ -78,6 +90,7 @@ function createAdminAccessPrismaOverrides() {
                 name: 'Cafe One',
                 slug: 'cafe-one',
             },
+            createdByUserId: USER_ID,
         },
     ]
     const recentCrawlRuns = [
@@ -93,18 +106,102 @@ function createAdminAccessPrismaOverrides() {
                 name: 'Cafe One',
                 slug: 'cafe-one',
             },
+            requestedByUserId: USER_ID,
         },
     ]
 
     let observedUserListWhere = null
     let resetRequestCount = 0
+    let createdUserCount = 0
 
-    function findUser(userId) {
+    function findUserById(userId) {
         return users.find((user) => user.id === userId) ?? null
+    }
+
+    function findUserByEmail(email) {
+        return users.find((user) => user.email === email) ?? null
     }
 
     function findRestaurant(restaurantId) {
         return restaurants.find((restaurant) => restaurant.id === restaurantId) ?? null
+    }
+
+    function getRefreshTokens(userId) {
+        return refreshTokensByUserId[userId] ?? []
+    }
+
+    function getPasswordResetTokens(userId) {
+        return passwordResetTokensByUserId[userId] ?? []
+    }
+
+    function matchesDateCondition(value, condition) {
+        if (condition === null) {
+            return value === null
+        }
+
+        if (!condition) {
+            return true
+        }
+
+        if (Object.prototype.hasOwnProperty.call(condition, 'not')) {
+            return condition.not === null ? value !== null : value !== condition.not
+        }
+
+        if (Object.prototype.hasOwnProperty.call(condition, 'gt')) {
+            return value instanceof Date && value > condition.gt
+        }
+
+        if (Object.prototype.hasOwnProperty.call(condition, 'lte')) {
+            return value === null || value <= condition.lte
+        }
+
+        return true
+    }
+
+    function matchesUserWhere(user, where) {
+        if (!where || Object.keys(where).length === 0) {
+            return true
+        }
+
+        if (Array.isArray(where.AND)) {
+            return where.AND.every((clause) => matchesUserWhere(user, clause))
+        }
+
+        if (Array.isArray(where.OR)) {
+            return where.OR.some((clause) => matchesUserWhere(user, clause))
+        }
+
+        if (where.role && user.role !== where.role) {
+            return false
+        }
+
+        if (where.id?.not && user.id === where.id.not) {
+            return false
+        }
+
+        if (where.email?.contains) {
+            return user.email.toLowerCase().includes(String(where.email.contains).toLowerCase())
+        }
+
+        if (where.fullName?.contains) {
+            return user.fullName
+                .toLowerCase()
+                .includes(String(where.fullName.contains).toLowerCase())
+        }
+
+        if (Object.prototype.hasOwnProperty.call(where, 'deactivatedAt')) {
+            return matchesDateCondition(user.deactivatedAt, where.deactivatedAt)
+        }
+
+        if (Object.prototype.hasOwnProperty.call(where, 'manuallyLockedAt')) {
+            return matchesDateCondition(user.manuallyLockedAt, where.manuallyLockedAt)
+        }
+
+        if (Object.prototype.hasOwnProperty.call(where, 'lockedUntil')) {
+            return matchesDateCondition(user.lockedUntil, where.lockedUntil)
+        }
+
+        return true
     }
 
     function buildMembershipRecord(membership) {
@@ -114,7 +211,7 @@ function createAdminAccessPrismaOverrides() {
 
         return {
             ...membership,
-            user: findUser(membership.userId),
+            user: findUserById(membership.userId),
             restaurant: findRestaurant(membership.restaurantId),
         }
     }
@@ -125,6 +222,24 @@ function createAdminAccessPrismaOverrides() {
         }
 
         const include = args.include ?? null
+        const select = args.select ?? null
+
+        if (select) {
+            const projected = {}
+            for (const key of Object.keys(select)) {
+                if (key === '_count') {
+                    projected._count = {
+                        restaurants: memberships.filter(
+                            (membership) => membership.userId === user.id,
+                        ).length,
+                    }
+                    continue
+                }
+
+                projected[key] = user[key]
+            }
+            return projected
+        }
 
         return {
             ...user,
@@ -133,12 +248,18 @@ function createAdminAccessPrismaOverrides() {
                       .filter((membership) => membership.userId === user.id)
                       .map((membership) => buildMembershipRecord(membership))
                 : undefined,
-            refreshTokens: include?.refreshTokens ? [activeSession] : undefined,
-            passwordResetTokens: include?.passwordResetTokens ? [pendingReset] : undefined,
+            refreshTokens: include?.refreshTokens ? getRefreshTokens(user.id) : undefined,
+            passwordResetTokens: include?.passwordResetTokens
+                ? getPasswordResetTokens(user.id)
+                : undefined,
             _count: include?._count
                 ? {
-                      intakeBatches: recentIntakeBatches.length,
-                      requestedCrawlRuns: recentCrawlRuns.length,
+                      intakeBatches: recentIntakeBatches.filter(
+                          (batch) => batch.createdByUserId === user.id,
+                      ).length,
+                      requestedCrawlRuns: recentCrawlRuns.filter(
+                          (run) => run.requestedByUserId === user.id,
+                      ).length,
                       restaurants: memberships.filter((membership) => membership.userId === user.id)
                           .length,
                   }
@@ -146,10 +267,51 @@ function createAdminAccessPrismaOverrides() {
         }
     }
 
+    function applyUserUpdate(user, data) {
+        if (Object.prototype.hasOwnProperty.call(data, 'email')) {
+            user.email = data.email
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'fullName')) {
+            user.fullName = data.fullName
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'role')) {
+            user.role = data.role
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'passwordHash')) {
+            user.passwordHash = data.passwordHash
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'failedLoginCount')) {
+            user.failedLoginCount = data.failedLoginCount
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'lockedUntil')) {
+            user.lockedUntil = data.lockedUntil
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'manuallyLockedAt')) {
+            user.manuallyLockedAt = data.manuallyLockedAt
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'deactivatedAt')) {
+            user.deactivatedAt = data.deactivatedAt
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'lastLoginAt')) {
+            user.lastLoginAt = data.lastLoginAt
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'tokenVersion')) {
+            if (typeof data.tokenVersion === 'object' && data.tokenVersion.increment) {
+                user.tokenVersion += data.tokenVersion.increment
+            } else {
+                user.tokenVersion = data.tokenVersion
+            }
+        }
+
+        user.updatedAt = new Date('2026-03-25T00:00:00Z')
+    }
+
     const prismaOverrides = {
         user: {
             findUnique: async (args) => {
-                const user = findUser(args.where.id)
+                const user = args.where.id
+                    ? findUserById(args.where.id)
+                    : findUserByEmail(args.where.email)
                 return projectUser(user, args)
             },
             findMany: async (args = {}) => {
@@ -157,42 +319,35 @@ function createAdminAccessPrismaOverrides() {
                     observedUserListWhere = args.where
                 }
 
-                if (args.where?.role === 'USER' && args.include?._count) {
-                    return users
-                        .filter((user) => user.role === 'USER')
-                        .map((user) => projectUser(user, args))
-                }
-
-                let list = users.slice()
-
-                if (args.where?.AND) {
-                    list = list.filter((user) => user.id === USER_ID)
-                }
-
-                return list.map((user) => projectUser(user, args))
+                return users
+                    .filter((user) => matchesUserWhere(user, args.where))
+                    .map((user) => projectUser(user, args))
             },
-            count: async (args = {}) => {
-                if (!args.where) {
-                    return users.length
+            count: async (args = {}) =>
+                users.filter((user) => matchesUserWhere(user, args.where)).length,
+            create: async ({ data, select }) => {
+                createdUserCount += 1
+                const user = {
+                    id: `99999999-9999-4999-8999-00000000000${createdUserCount}`,
+                    email: data.email,
+                    fullName: data.fullName,
+                    role: data.role,
+                    passwordHash: data.passwordHash,
+                    tokenVersion: 0,
+                    failedLoginCount: 0,
+                    lastLoginAt: null,
+                    lockedUntil: null,
+                    manuallyLockedAt: null,
+                    deactivatedAt: null,
+                    createdAt: new Date('2026-03-25T02:00:00Z'),
+                    updatedAt: new Date('2026-03-25T02:00:00Z'),
                 }
-
-                if (args.where.role) {
-                    return users.filter((user) => user.role === args.where.role).length
-                }
-
-                if (args.where.lockedUntil?.gt) {
-                    return users.filter(
-                        (user) => user.lockedUntil && user.lockedUntil > args.where.lockedUntil.gt,
-                    ).length
-                }
-
-                return users.length
+                users.push(user)
+                return select ? { id: user.id } : projectUser(user)
             },
             update: async ({ where, data }) => {
-                const user = findUser(where.id)
-                Object.assign(user, data, {
-                    updatedAt: new Date('2026-03-25T00:00:00Z'),
-                })
+                const user = findUserById(where.id)
+                applyUserUpdate(user, data)
                 return projectUser(user)
             },
         },
@@ -211,7 +366,27 @@ function createAdminAccessPrismaOverrides() {
                 })),
         },
         restaurantUser: {
-            findMany: async () => memberships.map((membership) => buildMembershipRecord(membership)),
+            findMany: async ({ where } = {}) =>
+                memberships
+                    .filter((membership) => {
+                        if (!where) {
+                            return true
+                        }
+
+                        if (where.userId && membership.userId !== where.userId) {
+                            return false
+                        }
+
+                        if (
+                            where.restaurantId &&
+                            membership.restaurantId !== where.restaurantId
+                        ) {
+                            return false
+                        }
+
+                        return true
+                    })
+                    .map((membership) => buildMembershipRecord(membership)),
             findUnique: async ({ where }) =>
                 buildMembershipRecord(
                     memberships.find((membership) => membership.id === where.id) ?? null,
@@ -219,7 +394,7 @@ function createAdminAccessPrismaOverrides() {
             count: async () => memberships.length,
             create: async ({ data }) => {
                 const membership = {
-                    id: '55555555-5555-4555-8555-555555555555',
+                    id: `55555555-5555-4555-8555-55555555555${memberships.length}`,
                     userId: data.userId,
                     restaurantId: data.restaurantId,
                     createdAt: new Date('2026-03-25T01:00:00Z'),
@@ -245,11 +420,11 @@ function createAdminAccessPrismaOverrides() {
         },
         reviewIntakeBatch: {
             findMany: async ({ where }) =>
-                where.createdByUserId === USER_ID ? recentIntakeBatches : [],
+                recentIntakeBatches.filter((batch) => batch.createdByUserId === where.createdByUserId),
         },
         reviewCrawlRun: {
             findMany: async ({ where }) =>
-                where.requestedByUserId === USER_ID ? recentCrawlRuns : [],
+                recentCrawlRuns.filter((run) => run.requestedByUserId === where.requestedByUserId),
         },
     }
 
@@ -263,6 +438,9 @@ function createAdminAccessPrismaOverrides() {
             },
             get resetRequestCount() {
                 return resetRequestCount
+            },
+            get createdUserCount() {
+                return createdUserCount
             },
             incrementResetRequestCount() {
                 resetRequestCount += 1
@@ -300,31 +478,11 @@ test('admin access endpoints expose user directory, detail, role changes, and re
     assert.equal(listResponse.body.data.summary.totalUsers, 2)
     assert.equal(listResponse.body.data.summary.adminCount, 1)
     assert.equal(listResponse.body.data.summary.userCount, 1)
+    assert.equal(listResponse.body.data.summary.deactivatedUserCount, 0)
     assert.equal(listResponse.body.data.users.length, 1)
     assert.equal(listResponse.body.data.users[0].email, 'member@sentify.local')
     assert.equal(Array.isArray(state.observedUserListWhere.AND), true)
-    assert.equal(state.observedUserListWhere.AND.length, 3)
-    assert.deepEqual(state.observedUserListWhere.AND[0], {
-        OR: [
-            {
-                email: {
-                    contains: 'member',
-                    mode: 'insensitive',
-                },
-            },
-            {
-                fullName: {
-                    contains: 'member',
-                    mode: 'insensitive',
-                },
-            },
-        ],
-    })
-    assert.deepEqual(state.observedUserListWhere.AND[1], {
-        role: 'USER',
-    })
-    assert.equal(state.observedUserListWhere.AND[2].OR[0].lockedUntil, null)
-    assert.ok(state.observedUserListWhere.AND[2].OR[1].lockedUntil.lte instanceof Date)
+    assert.equal(state.observedUserListWhere.AND.length, 5)
 
     const detailResponse = await request(server, 'GET', `/api/admin/users/${USER_ID}`, {
         token: auth,
@@ -332,6 +490,7 @@ test('admin access endpoints expose user directory, detail, role changes, and re
     assert.equal(detailResponse.status, 200)
     assert.equal(detailResponse.body.data.user.id, USER_ID)
     assert.equal(detailResponse.body.data.user.role, 'USER')
+    assert.deepEqual(detailResponse.body.data.user.availableAccountActions, ['LOCK', 'DEACTIVATE'])
     assert.equal(detailResponse.body.data.memberships.length, 1)
     assert.equal(detailResponse.body.data.recentIntakeBatches.length, 1)
     assert.equal(detailResponse.body.data.recentCrawlRuns.length, 1)
@@ -363,6 +522,114 @@ test('admin access endpoints expose user directory, detail, role changes, and re
     assert.equal(state.resetRequestCount, 1)
 })
 
+test('admin access lifecycle endpoints create users and manage account state safely', async (t) => {
+    const { prismaOverrides, state } = createAdminAccessPrismaOverrides()
+    const revokedUserIds = []
+    const { server } = await startApp(prismaOverrides, {
+        refreshTokenServiceOverrides: {
+            revokeAllUserTokens: async (userId) => {
+                revokedUserIds.push(userId)
+            },
+        },
+    })
+
+    t.after(async () => {
+        await stopApp(server)
+    })
+
+    const auth = createTestToken({ userId: ADMIN_ID, tokenVersion: 0 })
+
+    const createResponse = await request(server, 'POST', '/api/admin/users', {
+        token: auth,
+        body: {
+            email: 'new.user@sentify.local',
+            fullName: 'New User',
+            role: 'USER',
+            password: 'DemoPass123!',
+            restaurantId: RESTAURANT_ID,
+        },
+    })
+    assert.equal(createResponse.status, 201)
+    assert.equal(createResponse.body.data.user.email, 'new.user@sentify.local')
+    assert.equal(createResponse.body.data.user.accountState, 'ACTIVE')
+    assert.equal(createResponse.body.data.memberships.length, 1)
+    assert.equal(state.createdUserCount, 1)
+
+    const createdUserId = createResponse.body.data.user.id
+
+    const lockResponse = await request(
+        server,
+        'PATCH',
+        `/api/admin/users/${createdUserId}/account-state`,
+        {
+            token: auth,
+            body: {
+                action: 'LOCK',
+            },
+        },
+    )
+    assert.equal(lockResponse.status, 200)
+    assert.equal(lockResponse.body.data.user.accountState, 'LOCKED')
+    assert.equal(lockResponse.body.data.security.manuallyLockedAt !== null, true)
+    assert.deepEqual(revokedUserIds, [createdUserId])
+
+    const unlockResponse = await request(
+        server,
+        'PATCH',
+        `/api/admin/users/${createdUserId}/account-state`,
+        {
+            token: auth,
+            body: {
+                action: 'UNLOCK',
+            },
+        },
+    )
+    assert.equal(unlockResponse.status, 200)
+    assert.equal(unlockResponse.body.data.user.accountState, 'ACTIVE')
+
+    const deactivateResponse = await request(
+        server,
+        'PATCH',
+        `/api/admin/users/${createdUserId}/account-state`,
+        {
+            token: auth,
+            body: {
+                action: 'DEACTIVATE',
+            },
+        },
+    )
+    assert.equal(deactivateResponse.status, 200)
+    assert.equal(deactivateResponse.body.data.user.accountState, 'DEACTIVATED')
+    assert.equal(deactivateResponse.body.data.security.deactivatedAt !== null, true)
+
+    const reactivateResponse = await request(
+        server,
+        'PATCH',
+        `/api/admin/users/${createdUserId}/account-state`,
+        {
+            token: auth,
+            body: {
+                action: 'REACTIVATE',
+            },
+        },
+    )
+    assert.equal(reactivateResponse.status, 200)
+    assert.equal(reactivateResponse.body.data.user.accountState, 'ACTIVE')
+
+    const selfDeactivateResponse = await request(
+        server,
+        'PATCH',
+        `/api/admin/users/${ADMIN_ID}/account-state`,
+        {
+            token: auth,
+            body: {
+                action: 'DEACTIVATE',
+            },
+        },
+    )
+    assert.equal(selfDeactivateResponse.status, 403)
+})
+
 test('admin membership endpoints expose the graph and support create/delete', async (t) => {
     const { prismaOverrides, state } = createAdminAccessPrismaOverrides()
     const { server } = await startApp(prismaOverrides)
@@ -380,6 +647,7 @@ test('admin membership endpoints expose the graph and support create/delete', as
     assert.equal(listResponse.body.data.summary.totalMemberships, 1)
     assert.equal(listResponse.body.data.memberships.length, 1)
     assert.equal(listResponse.body.data.users.length, 1)
+    assert.equal(listResponse.body.data.users[0].accountState, 'ACTIVE')
     assert.equal(listResponse.body.data.restaurants.length, 1)
 
     const deleteResponse = await request(
@@ -416,6 +684,9 @@ test('admin access endpoints stay hidden from non-admin users', async (t) => {
                         id: USER_ID,
                         role: 'USER',
                         tokenVersion: 0,
+                        lockedUntil: null,
+                        manuallyLockedAt: null,
+                        deactivatedAt: null,
                     }
                 }
 

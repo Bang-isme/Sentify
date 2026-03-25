@@ -1,6 +1,7 @@
 const { z } = require('zod')
 
-const accountStateEnum = z.enum(['ACTIVE', 'LOCKED'])
+const accountStateEnum = z.enum(['ACTIVE', 'LOCKED', 'DEACTIVATED'])
+const accountActionEnum = z.enum(['LOCK', 'UNLOCK', 'DEACTIVATE', 'REACTIVATE'])
 const roleEnum = z.enum(['USER', 'ADMIN'])
 
 const optionalTrimmedString = z
@@ -21,6 +22,18 @@ const updateUserRoleSchema = z.object({
     role: roleEnum,
 })
 
+const createUserSchema = z.object({
+    email: z.string().trim().email(),
+    fullName: z.string().trim().min(1).max(120),
+    role: roleEnum.default('USER'),
+    password: z.string().min(8).max(128),
+    restaurantId: uuid.optional(),
+})
+
+const updateUserAccountStateSchema = z.object({
+    action: accountActionEnum,
+})
+
 const listMembershipsQuerySchema = z.object({
     userId: uuid.optional(),
     restaurantId: uuid.optional(),
@@ -32,8 +45,10 @@ const createMembershipSchema = z.object({
 })
 
 module.exports = {
+    createUserSchema,
     createMembershipSchema,
     listMembershipsQuerySchema,
     listUsersQuerySchema,
+    updateUserAccountStateSchema,
     updateUserRoleSchema,
 }

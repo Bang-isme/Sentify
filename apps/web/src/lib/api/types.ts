@@ -89,7 +89,8 @@ export interface AdminRestaurantDetail {
   }
 }
 
-export type AccountState = 'ACTIVE' | 'LOCKED'
+export type AccountState = 'ACTIVE' | 'LOCKED' | 'DEACTIVATED'
+export type AdminUserAccountAction = 'LOCK' | 'UNLOCK' | 'DEACTIVATE' | 'REACTIVATE'
 
 export interface AdminUserSummary {
   id: string
@@ -106,6 +107,8 @@ export interface AdminUserSummary {
   tokenVersion: number
   lastLoginAt: string | null
   lockedUntil: string | null
+  manuallyLockedAt: string | null
+  deactivatedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -149,7 +152,9 @@ export interface AdminUserDetailResponse {
   user: AdminUserSummary & {
     canEditRole: boolean
     availableRoleTargets: UserRole[]
+    availableAccountActions: AdminUserAccountAction[]
     roleChangePolicy: string
+    lifecyclePolicy: string
   }
   memberships: AdminMembershipRecord[]
   security: {
@@ -159,6 +164,8 @@ export interface AdminUserDetailResponse {
     tokenVersion: number
     lastLoginAt: string | null
     lockedUntil: string | null
+    manuallyLockedAt: string | null
+    deactivatedAt: string | null
   }
   recentIntakeBatches: Array<{
     id: string
@@ -214,6 +221,7 @@ export interface AdminMembershipListResponse {
     email: string
     fullName: string
     role: UserRole
+    accountState: AccountState
     restaurantCount: number
   }>
   restaurants: Array<{
@@ -245,9 +253,32 @@ export interface UpdateAdminUserRoleInput {
   role: Extract<UserRole, 'USER' | 'ADMIN'>
 }
 
+export interface CreateAdminUserInput {
+  email: string
+  fullName: string
+  role?: Extract<UserRole, 'USER' | 'ADMIN'>
+  password: string
+  restaurantId?: string
+}
+
+export interface UpdateAdminUserAccountStateInput {
+  action: AdminUserAccountAction
+}
+
 export interface CreateAdminMembershipInput {
   userId: string
   restaurantId: string
+}
+
+export interface AdminPlatformControls {
+  id: string
+  crawlQueueWritesEnabled: boolean
+  crawlMaterializationEnabled: boolean
+  intakePublishEnabled: boolean
+  note: string | null
+  updatedByUserId: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface AdminHealthJobsResponse {
@@ -313,6 +344,7 @@ export interface AdminHealthJobsResponse {
       validCount: number
     }>
   }
+  controls: AdminPlatformControls
   recovery: {
     proofArtifacts: Array<{
       key: string
@@ -321,6 +353,16 @@ export interface AdminHealthJobsResponse {
       fileName: string
       updatedAt: string | null
     }>
+    releaseReadiness: {
+      localProofStatus: string
+      localProofCoverage: {
+        requiredArtifactKeys: string[]
+        availableArtifactKeys: string[]
+        missingArtifactKeys: string[]
+      }
+      managedEnvProofStatus: string
+      managedEnvGap: string
+    }
   }
 }
 
@@ -357,6 +399,7 @@ export interface AdminIntegrationsPoliciesResponse {
       disabledSourceCount: number
       restaurantsWithoutSourceCount: number
     }
+    runtimeControls: AdminPlatformControls
   }
   environment: {
     nodeEnv: string
@@ -395,6 +438,17 @@ export interface AdminAuditResponse {
     summary: string
     metadata: Record<string, unknown>
   }>
+}
+
+export interface UpdateAdminPlatformControlsInput {
+  crawlQueueWritesEnabled?: boolean
+  crawlMaterializationEnabled?: boolean
+  intakePublishEnabled?: boolean
+  note?: string | null
+}
+
+export interface UpdateAdminPlatformControlsResponse {
+  controls: AdminPlatformControls
 }
 
 export interface AuthUser {

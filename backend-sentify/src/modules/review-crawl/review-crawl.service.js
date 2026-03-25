@@ -3,6 +3,10 @@ const crypto = require('node:crypto')
 const env = require('../../config/env')
 const { badRequest, conflict, notFound } = require('../../lib/app-error')
 const { INTERNAL_OPERATOR_ROLES } = require('../../lib/user-roles')
+const {
+    assertPlatformControlEnabled,
+    getPlatformControls,
+} = require('../../services/platform-control.service')
 const { ensureRestaurantExists } = require('../../services/restaurant-access.service')
 const { getUserRoleAccess } = require('../../services/user-access.service')
 const adminIntakeDomain = require('../admin-intake/admin-intake.domain')
@@ -167,6 +171,12 @@ async function createQueuedRunForSource({
     metadata = {},
     reuseActiveRun = false,
 }) {
+    await assertPlatformControlEnabled(
+        'crawlQueueWritesEnabled',
+        'PLATFORM_CRAWL_QUEUE_DISABLED',
+        'Creating new crawl runs is currently disabled by platform controls',
+    )
+
     ensureSourceIsSyncable(source)
 
     const strategy = input.strategy ?? 'INCREMENTAL'
@@ -1162,6 +1172,12 @@ async function materializeRunToIntakeInternal({ run, userId }) {
 }
 
 async function materializeRunToIntake({ userId, runId }) {
+    await assertPlatformControlEnabled(
+        'crawlMaterializationEnabled',
+        'PLATFORM_CRAWL_MATERIALIZATION_DISABLED',
+        'Crawl materialization is currently disabled by platform controls',
+    )
+
     const run = await ensureRunAccess(userId, runId, {
         includeSource: true,
         includeIntakeBatch: true,
@@ -1175,6 +1191,16 @@ async function materializeRunToIntake({ userId, runId }) {
 
 async function scheduleDueReviewCrawlRuns() {
     const now = new Date()
+    const controls = await getPlatformControls()
+
+    if (!controls.crawlQueueWritesEnabled) {
+        return {
+            scheduledCount: 0,
+            scannedCount: 0,
+            platformBlocked: true,
+        }
+    }
+
     const dueSources = await repository.listDueSources(now, env.REVIEW_CRAWL_SCHEDULER_BATCH_SIZE)
     let scheduledCount = 0
 

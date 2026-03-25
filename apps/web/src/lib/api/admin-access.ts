@@ -1,5 +1,6 @@
 import { request } from './client'
 import type {
+  CreateAdminUserInput,
   AdminMembershipListResponse,
   AdminMembershipMutationResult,
   AdminUserDetailResponse,
@@ -8,6 +9,7 @@ import type {
   CreateAdminMembershipInput,
   ListAdminMembershipsQuery,
   ListAdminUsersQuery,
+  UpdateAdminUserAccountStateInput,
   UpdateAdminUserRoleInput,
 } from './types'
 
@@ -38,8 +40,25 @@ export function getAdminUserDetail(userId: string) {
   return request<AdminUserDetailResponse>(`/admin/users/${userId}`)
 }
 
+export function createAdminUser(input: CreateAdminUserInput) {
+  return request<AdminUserDetailResponse>('/admin/users', {
+    method: 'POST',
+    body: input,
+  })
+}
+
 export function updateAdminUserRole(userId: string, input: UpdateAdminUserRoleInput) {
   return request<AdminUserDetailResponse>(`/admin/users/${userId}/role`, {
+    method: 'PATCH',
+    body: input,
+  })
+}
+
+export function updateAdminUserAccountState(
+  userId: string,
+  input: UpdateAdminUserAccountStateInput,
+) {
+  return request<AdminUserDetailResponse>(`/admin/users/${userId}/account-state`, {
     method: 'PATCH',
     body: input,
   })

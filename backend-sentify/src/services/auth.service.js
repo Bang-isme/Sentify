@@ -7,6 +7,7 @@ const { badRequest, conflict, tooManyRequests, unauthorized } = require('../lib/
 const prisma = require('../lib/prisma')
 const { logSecurityEvent } = require('../lib/security-event')
 const { createRefreshToken, revokeAllUserTokens } = require('./refresh-token.service')
+const { assertUserAccountAvailable } = require('./user-account-state.service')
 
 const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 15 * 60
 const PASSWORD_SALT_ROUNDS = 12
@@ -120,7 +121,44 @@ async function login(input, context = {}) {
 
     const now = new Date()
 
-    if (user?.lockedUntil && user.lockedUntil > now) {
+    if (!user) {
+        logSecurityEvent('auth.login.failed', {
+            requestId: context.requestId,
+            ip: context.ip,
+            userAgent: context.userAgent,
+            email,
+            reason: 'user_not_found',
+        })
+        throw unauthorized('AUTH_INVALID_CREDENTIALS', 'Invalid email or password')
+    }
+
+    if (user.deactivatedAt) {
+        logSecurityEvent('auth.login.deactivated', {
+            requestId: context.requestId,
+            ip: context.ip,
+            userAgent: context.userAgent,
+            userId: user.id,
+            email,
+            deactivatedAt: user.deactivatedAt.toISOString(),
+        })
+
+        throw unauthorized('AUTH_ACCOUNT_DEACTIVATED', 'This account has been deactivated')
+    }
+
+    if (user.manuallyLockedAt) {
+        logSecurityEvent('auth.login.locked', {
+            requestId: context.requestId,
+            ip: context.ip,
+            userAgent: context.userAgent,
+            userId: user.id,
+            email,
+            manuallyLockedAt: user.manuallyLockedAt.toISOString(),
+        })
+
+        throw unauthorized('AUTH_ACCOUNT_LOCKED', 'This account is currently locked')
+    }
+
+    if (user.lockedUntil && user.lockedUntil > now) {
         logSecurityEvent('auth.login.locked', {
             requestId: context.requestId,
             ip: context.ip,
@@ -134,17 +172,6 @@ async function login(input, context = {}) {
             'AUTH_RATE_LIMITED',
             'Too many failed login attempts. Please try again later.',
         )
-    }
-
-    if (!user) {
-        logSecurityEvent('auth.login.failed', {
-            requestId: context.requestId,
-            ip: context.ip,
-            userAgent: context.userAgent,
-            email,
-            reason: 'user_not_found',
-        })
-        throw unauthorized('AUTH_INVALID_CREDENTIALS', 'Invalid email or password')
     }
 
     const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash)
@@ -191,6 +218,7 @@ async function login(input, context = {}) {
         data: {
             failedLoginCount: 0,
             lockedUntil: null,
+            manuallyLockedAt: null,
             lastLoginAt: now,
         },
     })
@@ -259,6 +287,8 @@ async function getSession({ userId }) {
         throw unauthorized('AUTH_INVALID_TOKEN', 'Access token is invalid or expired')
     }
 
+    assertUserAccountAvailable(user)
+
     return {
         user: {
             ...mapUser(user, user.restaurants),
@@ -280,6 +310,8 @@ async function changePassword({ userId, currentPassword, newPassword, context = 
     if (!user) {
         throw unauthorized('AUTH_INVALID_TOKEN', 'Access token is invalid or expired')
     }
+
+    assertUserAccountAvailable(user)
 
     const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash)
 
@@ -306,6 +338,7 @@ async function changePassword({ userId, currentPassword, newPassword, context = 
             },
             failedLoginCount: 0,
             lockedUntil: null,
+            manuallyLockedAt: null,
         },
         select: {
             id: true,

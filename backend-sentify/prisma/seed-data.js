@@ -230,6 +230,8 @@ async function upsertDemoUsers(prisma) {
                 tokenVersion: 0,
                 failedLoginCount: 0,
                 lockedUntil: null,
+                manuallyLockedAt: null,
+                deactivatedAt: null,
             },
             create: {
                 email: user.email,
@@ -241,6 +243,29 @@ async function upsertDemoUsers(prisma) {
     }
 
     return users
+}
+
+async function ensurePlatformControls(prisma, userId) {
+    return prisma.platformControl.upsert({
+        where: {
+            id: 'platform',
+        },
+        update: {
+            crawlQueueWritesEnabled: true,
+            crawlMaterializationEnabled: true,
+            intakePublishEnabled: true,
+            note: 'Seeded local baseline defaults',
+            updatedByUserId: userId,
+        },
+        create: {
+            id: 'platform',
+            crawlQueueWritesEnabled: true,
+            crawlMaterializationEnabled: true,
+            intakePublishEnabled: true,
+            note: 'Seeded local baseline defaults',
+            updatedByUserId: userId,
+        },
+    })
 }
 
 async function upsertDemoRestaurants(prisma) {
@@ -693,6 +718,7 @@ async function seedDemoData(options = {}) {
 
     const users = await upsertDemoUsers(prisma)
     const restaurants = await upsertDemoRestaurants(prisma)
+    await ensurePlatformControls(prisma, users.admin.id)
 
     await resetRestaurantState(prisma, [restaurants.phoHong.id, restaurants.tacombi.id])
     await createMemberships(prisma, users, restaurants)

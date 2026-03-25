@@ -11,6 +11,10 @@ const {
     isInlineQueueMode,
 } = require('../review-crawl/review-crawl.queue')
 const { readReviewCrawlWorkerHealth } = require('../review-crawl/review-crawl.runtime')
+const {
+    getPlatformControls,
+    updatePlatformControls,
+} = require('../../services/platform-control.service')
 
 const REPORT_DIRECTORY = path.resolve(__dirname, '../../../load-reports')
 const PROOF_ARTIFACTS = [
@@ -80,6 +84,29 @@ function summarizeProofArtifacts() {
             updatedAt: stats.mtime.toISOString(),
         }
     })
+}
+
+function buildReleaseReadiness(proofArtifacts) {
+    const requiredLocalArtifactKeys = PROOF_ARTIFACTS.map((artifact) => artifact.key)
+    const availableKeys = proofArtifacts
+        .filter((artifact) => artifact.available)
+        .map((artifact) => artifact.key)
+    const missingLocalArtifactKeys = requiredLocalArtifactKeys.filter(
+        (key) => !availableKeys.includes(key),
+    )
+
+    return {
+        localProofStatus:
+            missingLocalArtifactKeys.length === 0 ? 'LOCAL_PROOF_COMPLETE' : 'LOCAL_PROOF_PARTIAL',
+        localProofCoverage: {
+            requiredArtifactKeys: requiredLocalArtifactKeys,
+            availableArtifactKeys: availableKeys,
+            missingArtifactKeys: missingLocalArtifactKeys,
+        },
+        managedEnvProofStatus: 'PENDING',
+        managedEnvGap:
+            'Managed staging or production-like backup, restore, queue, and release evidence has not been verified from this local environment yet.',
+    }
 }
 
 async function getDatabaseHealth() {
@@ -155,6 +182,7 @@ async function getHealthJobs({ userId }) {
         runningCount,
         failedCount,
         completedCount,
+        controls,
     ] = await Promise.all([
         getDatabaseHealth(),
         getReviewCrawlQueueHealth(),
@@ -192,10 +220,12 @@ async function getHealthJobs({ userId }) {
                 },
             },
         }),
+        getPlatformControls(),
     ])
 
     const mappedQueueHealth = summarizeQueueHealth(queueHealth)
     const mappedWorkerHealth = summarizeWorkerHealth(workerHealth)
+    const proofArtifacts = summarizeProofArtifacts()
 
     return {
         generatedAt: new Date().toISOString(),
@@ -233,10 +263,12 @@ async function getHealthJobs({ userId }) {
                 warningCount: run.warningCount,
                 extractedCount: run.extractedCount,
                 validCount: run.validCount,
-            })),
+                })),
         },
+        controls,
         recovery: {
-            proofArtifacts: summarizeProofArtifacts(),
+            proofArtifacts,
+            releaseReadiness: buildReleaseReadiness(proofArtifacts),
         },
     }
 }
@@ -250,6 +282,7 @@ async function getIntegrationsPolicies({ userId }) {
         activeSourceCount,
         disabledSourceCount,
         googleMapLinkedRestaurants,
+        controls,
     ] = await Promise.all([
         prisma.restaurant.count(),
         prisma.reviewCrawlSource.count(),
@@ -270,6 +303,7 @@ async function getIntegrationsPolicies({ userId }) {
                 },
             },
         }),
+        getPlatformControls(),
     ])
 
     return {
@@ -343,6 +377,7 @@ async function getIntegrationsPolicies({ userId }) {
                 disabledSourceCount,
                 restaurantsWithoutSourceCount: Math.max(restaurantCount - sourceCount, 0),
             },
+            runtimeControls: controls,
         },
         environment: {
             nodeEnv: env.NODE_ENV,
@@ -401,7 +436,7 @@ function buildAuditEvent({
 async function getAuditFeed({ userId, limit = 25 }) {
     await ensureAdminAccess(userId)
 
-    const [users, memberships, intakeBatches, crawlRuns, crawlSources] = await Promise.all([
+    const [users, memberships, intakeBatches, crawlRuns, crawlSources, platformControls] = await Promise.all([
         prisma.user.findMany({
             take: limit,
             orderBy: {
@@ -497,6 +532,12 @@ async function getAuditFeed({ userId, limit = 25 }) {
                         slug: true,
                     },
                 },
+            },
+        }),
+        prisma.platformControl.findMany({
+            take: 1,
+            orderBy: {
+                updatedAt: 'desc',
             },
         }),
     ])
@@ -638,6 +679,28 @@ async function getAuditFeed({ userId, limit = 25 }) {
         )
     }
 
+    for (const controls of platformControls) {
+        events.push(
+            buildAuditEvent({
+                id: `platform-controls-updated:${controls.id}:${controls.updatedAt.toISOString()}`,
+                timestamp: controls.updatedAt,
+                action: 'PLATFORM_CONTROLS_UPDATED',
+                resourceType: 'platformControl',
+                resourceId: controls.id,
+                actor: null,
+                restaurant: null,
+                summary: 'Platform runtime controls were updated.',
+                metadata: {
+                    crawlQueueWritesEnabled: controls.crawlQueueWritesEnabled,
+                    crawlMaterializationEnabled: controls.crawlMaterializationEnabled,
+                    intakePublishEnabled: controls.intakePublishEnabled,
+                    note: controls.note ?? null,
+                    updatedByUserId: controls.updatedByUserId ?? null,
+                },
+            }),
+        )
+    }
+
     const sorted = events
         .filter((event) => Boolean(event.timestamp))
         .sort(
@@ -667,8 +730,22 @@ async function getAuditFeed({ userId, limit = 25 }) {
     }
 }
 
+async function updateControls({ userId, input }) {
+    await ensureAdminAccess(userId)
+
+    const controls = await updatePlatformControls({
+        updatedByUserId: userId,
+        changes: input,
+    })
+
+    return {
+        controls,
+    }
+}
+
 module.exports = {
     getAuditFeed,
     getHealthJobs,
     getIntegrationsPolicies,
+    updateControls,
 }

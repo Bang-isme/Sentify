@@ -1,6 +1,6 @@
 # Sentify Backend Project Status
 
-Updated: 2026-03-25
+Updated: 2026-03-26
 
 This document answers three questions: where the backend is now, what is already done, and what should happen next.
 
@@ -29,8 +29,8 @@ The backend is no longer a mock demo. It already behaves like a real product fou
 | Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, structured `crawlCoverage`, local Memurai-backed SMB worker load proof | Managed Redis or staging-backed queue evidence |
 | Review ops control plane | Mostly done | One-click draft sync, source list, run list, readiness, bulk approve valid, publish proxy, Redis-backed sync-to-draft smoke with auto-materialized draft proof | Staging-style operator smoke |
 | Admin restaurant overview | Done | Dedicated admin discovery and overview endpoints for full admin flow | Keep docs and FE aligned |
-| Admin access management | Mostly done | User directory, user detail, role changes, password-reset trigger, membership list/create/delete, integration coverage | Broader account lifecycle controls only if product scope really needs them |
-| Admin platform visibility | Mostly done | Health & jobs, integrations & policies, audit feed, integration coverage | Add active system controls only when policy and safety rules are explicit |
+| Admin access management | Done | User directory, user detail, create user, role changes, password-reset trigger, lock/unlock/deactivate/reactivate lifecycle, membership list/create/delete, integration coverage | Keep FE and docs aligned as workflow expands |
+| Admin platform visibility | Done | Health & jobs, integrations & policies, audit feed, runtime controls, release-readiness summary, integration coverage | Managed-environment proof still needs to catch up with the visibility |
 | Publish integrity | Mostly done | Stable external review identity, canonical reuse, and real-DB duplicate publish regression | Keep widening edge-case coverage as source rules evolve |
 | Database | Mostly done | Runtime models, crawl invariants, seed dataset, local logical recovery drill, local shadow-database restore rehearsal | Managed backup and rollback evidence |
 | Testing | Mostly done | `npm test`, `db:seed`, `db:reset:local-baseline`, `test:realdb`, queued crawl smoke, seeded HTTP read proof, local SMB load harnesses, Redis-backed operator and worker smoke on local Memurai, local logical recovery drill, local shadow-database recovery smoke, implemented browser E2E for `USER` and `ADMIN` critical paths | Staged smoke and managed-environment proof |
@@ -80,12 +80,23 @@ Key backend milestones already achieved:
     - merchant app: `Home`, `Reviews`, `Actions`, `Settings`
     - admin hub: `Operations`, `Access`, and `Platform`
 20. Added live backend surfaces for admin `Access` and `Platform` so FE no longer depends on placeholders for those domains
+21. Added explicit admin account lifecycle controls:
+    - create user
+    - lock / unlock
+    - deactivate / reactivate
+    - last-admin safety rules
+22. Added singleton platform runtime controls and enforced them in live backend flows:
+    - crawl queue writes
+    - crawl materialization
+    - intake publish
+23. Added release-readiness summary so FE can distinguish local proof from missing managed-environment evidence
 
 ## 5. Risk If Work Stops Here
 
 - confidence still lacks staging-style release proof
 - queue worker behavior is measured under local Memurai-backed Redis compatibility, but not yet under managed Redis or staging
 - Google-reported totals can still exceed the public review rows exposed through the unofficial RPC, even though operator surfaces now label that mismatch as advisory when the public chain is exhausted
+- FE can now see lifecycle and runtime-control truth, but the managed-environment evidence behind those screens is still incomplete
 - release operations are not yet demonstrated in a real staging deployment or against managed backup and rollback workflows
 
 ## 6. Recommended Next Order
@@ -95,6 +106,7 @@ The next backend priorities should be:
 1. prepare staging deployment plus managed backup, restore, and rollback evidence
 2. rerun queue proof on managed Redis or staging infrastructure
 3. keep tightening staged auth and ops smoke as release confidence rises
+4. expand admin browser proof from structural nav into deeper `Access` lifecycle and `Platform` control execution
 
 ## 7. Short Conclusion
 

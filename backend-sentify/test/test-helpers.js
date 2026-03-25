@@ -166,6 +166,7 @@ async function startApp(prismaOverrides = {}, options = {}) {
         reviewCrawlSource: {},
         reviewCrawlRun: {},
         reviewCrawlRawReview: {},
+        platformControl: {},
         refreshToken: {},
         passwordResetToken: {},
     }

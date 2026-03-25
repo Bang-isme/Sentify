@@ -98,6 +98,20 @@ const registerMock = vi.mocked(register)
 const createRestaurantMock = vi.mocked(createRestaurant)
 const updateRestaurantMock = vi.mocked(updateRestaurant)
 
+const defaultPlatformControls = {
+  id: 'platform',
+  crawlQueueWritesEnabled: true,
+  crawlMaterializationEnabled: true,
+  intakePublishEnabled: true,
+  note: null,
+  updatedByUserId: 'admin-1',
+  createdAt: '2026-03-25T00:00:00.000Z',
+  updatedAt: '2026-03-25T00:00:00.000Z',
+}
+
+const defaultLifecyclePolicy =
+  'LOCK revokes active sessions and blocks access until UNLOCK. DEACTIVATE disables login and all active sessions until REACTIVATE.'
+
 function makeMembership(overrides: Partial<RestaurantMembership> = {}): RestaurantMembership {
   return {
     id: overrides.id ?? 'rest-1',
@@ -312,12 +326,14 @@ beforeEach(() => {
         createdIntakeBatchCount: 1,
         requestedCrawlRunCount: 1,
         failedLoginCount: 0,
-        tokenVersion: 0,
-        lastLoginAt: '2026-03-25T00:00:00.000Z',
-        lockedUntil: null,
-        createdAt: '2026-03-25T00:00:00.000Z',
-        updatedAt: '2026-03-25T00:00:00.000Z',
-      },
+      tokenVersion: 0,
+      lastLoginAt: '2026-03-25T00:00:00.000Z',
+      lockedUntil: null,
+      manuallyLockedAt: null,
+      deactivatedAt: null,
+      createdAt: '2026-03-25T00:00:00.000Z',
+      updatedAt: '2026-03-25T00:00:00.000Z',
+    },
       {
         id: 'admin-1',
         email: 'admin@sentify.test',
@@ -330,12 +346,14 @@ beforeEach(() => {
         createdIntakeBatchCount: 0,
         requestedCrawlRunCount: 0,
         failedLoginCount: 0,
-        tokenVersion: 0,
-        lastLoginAt: '2026-03-25T00:00:00.000Z',
-        lockedUntil: null,
-        createdAt: '2026-03-25T00:00:00.000Z',
-        updatedAt: '2026-03-25T00:00:00.000Z',
-      },
+      tokenVersion: 0,
+      lastLoginAt: '2026-03-25T00:00:00.000Z',
+      lockedUntil: null,
+      manuallyLockedAt: null,
+      deactivatedAt: null,
+      createdAt: '2026-03-25T00:00:00.000Z',
+      updatedAt: '2026-03-25T00:00:00.000Z',
+    },
     ],
   })
   getAdminUserDetailMock.mockResolvedValue({
@@ -354,11 +372,15 @@ beforeEach(() => {
       tokenVersion: 0,
       lastLoginAt: '2026-03-25T00:00:00.000Z',
       lockedUntil: null,
+      manuallyLockedAt: null,
+      deactivatedAt: null,
       createdAt: '2026-03-25T00:00:00.000Z',
       updatedAt: '2026-03-25T00:00:00.000Z',
       canEditRole: true,
       availableRoleTargets: ['USER', 'ADMIN'],
+      availableAccountActions: ['LOCK', 'DEACTIVATE'],
       roleChangePolicy: 'Role changes stay in admin access only.',
+      lifecyclePolicy: defaultLifecyclePolicy,
     },
     memberships: [
       {
@@ -386,6 +408,8 @@ beforeEach(() => {
       tokenVersion: 0,
       lastLoginAt: '2026-03-25T00:00:00.000Z',
       lockedUntil: null,
+      manuallyLockedAt: null,
+      deactivatedAt: null,
     },
     recentIntakeBatches: [],
     recentCrawlRuns: [],
@@ -426,6 +450,7 @@ beforeEach(() => {
         email: 'owner@sentify.test',
         fullName: 'Casey Owner',
         role: 'USER',
+        accountState: 'ACTIVE',
         restaurantCount: 1,
       },
     ],
@@ -518,8 +543,19 @@ beforeEach(() => {
       },
       recentRuns: [],
     },
+    controls: defaultPlatformControls,
     recovery: {
       proofArtifacts: [],
+      releaseReadiness: {
+        localProofStatus: 'LOCAL_PROOF_COMPLETE',
+        localProofCoverage: {
+          requiredArtifactKeys: ['queue-smoke', 'ops-sync-draft', 'recovery-drill'],
+          availableArtifactKeys: ['queue-smoke', 'ops-sync-draft', 'recovery-drill'],
+          missingArtifactKeys: [],
+        },
+        managedEnvProofStatus: 'PENDING',
+        managedEnvGap: 'Managed staging and production recovery proof has not been recorded yet.',
+      },
     },
   })
   getAdminIntegrationsPoliciesMock.mockResolvedValue({
@@ -550,6 +586,7 @@ beforeEach(() => {
         disabledSourceCount: 0,
         restaurantsWithoutSourceCount: 1,
       },
+      runtimeControls: defaultPlatformControls,
     },
     environment: {
       nodeEnv: 'test',
@@ -600,11 +637,15 @@ beforeEach(() => {
       tokenVersion: 0,
       lastLoginAt: '2026-03-25T00:00:00.000Z',
       lockedUntil: null,
+      manuallyLockedAt: null,
+      deactivatedAt: null,
       createdAt: '2026-03-25T00:00:00.000Z',
       updatedAt: '2026-03-25T00:00:00.000Z',
       canEditRole: true,
       availableRoleTargets: ['USER', 'ADMIN'],
+      availableAccountActions: ['LOCK', 'DEACTIVATE'],
       roleChangePolicy: 'Role changes stay in admin access only.',
+      lifecyclePolicy: defaultLifecyclePolicy,
     },
     memberships: [],
     security: {
@@ -614,6 +655,8 @@ beforeEach(() => {
       tokenVersion: 0,
       lastLoginAt: '2026-03-25T00:00:00.000Z',
       lockedUntil: null,
+      manuallyLockedAt: null,
+      deactivatedAt: null,
     },
     recentIntakeBatches: [],
     recentCrawlRuns: [],

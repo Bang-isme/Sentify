@@ -7,7 +7,18 @@ const ADMIN_ID = '66666666-6666-4666-8666-666666666666'
 const USER_ID = '77777777-7777-4777-8777-777777777777'
 const RESTAURANT_ID = '88888888-8888-4888-8888-888888888888'
 
-test('admin platform endpoints expose health, policies, and audit history', async (t) => {
+function createAdminPlatformPrismaOverrides() {
+    const platformControl = {
+        id: 'platform',
+        crawlQueueWritesEnabled: true,
+        crawlMaterializationEnabled: true,
+        intakePublishEnabled: true,
+        note: null,
+        updatedByUserId: null,
+        createdAt: new Date('2026-03-25T00:00:00Z'),
+        updatedAt: new Date('2026-03-25T00:00:00Z'),
+    }
+
     const prismaOverrides = {
         user: {
             findUnique: async ({ where }) => {
@@ -18,6 +29,9 @@ test('admin platform endpoints expose health, policies, and audit history', asyn
                         fullName: 'Admin One',
                         role: 'ADMIN',
                         tokenVersion: 0,
+                        lockedUntil: null,
+                        manuallyLockedAt: null,
+                        deactivatedAt: null,
                     }
                 }
 
@@ -172,8 +186,27 @@ test('admin platform endpoints expose health, policies, and audit history', asyn
                 },
             ],
         },
+        platformControl: {
+            upsert: async ({ update, create }) => {
+                Object.assign(platformControl, create, update, {
+                    updatedAt: new Date('2026-03-26T01:00:00Z'),
+                })
+                return { ...platformControl }
+            },
+            findMany: async () => [{ ...platformControl }],
+        },
     }
 
+    return {
+        prismaOverrides,
+        state: {
+            platformControl,
+        },
+    }
+}
+
+test('admin platform endpoints expose health, policies, controls, and audit history', async (t) => {
+    const { prismaOverrides, state } = createAdminPlatformPrismaOverrides()
     const { server } = await startApp(prismaOverrides)
 
     t.after(async () => {
@@ -189,6 +222,11 @@ test('admin platform endpoints expose health, policies, and audit history', asyn
     assert.equal(healthResponse.body.data.services.api.status, 'UP')
     assert.equal(healthResponse.body.data.services.database.status, 'SKIPPED')
     assert.equal(healthResponse.body.data.jobs.counts.queued, 1)
+    assert.equal(healthResponse.body.data.controls.intakePublishEnabled, true)
+    assert.equal(
+        typeof healthResponse.body.data.recovery.releaseReadiness.localProofStatus,
+        'string',
+    )
     assert.equal(Array.isArray(healthResponse.body.data.recovery.proofArtifacts), true)
 
     const policiesResponse = await request(
@@ -201,6 +239,27 @@ test('admin platform endpoints expose health, policies, and audit history', asyn
     assert.deepEqual(policiesResponse.body.data.roleModel.systemRoles, ['USER', 'ADMIN'])
     assert.equal(policiesResponse.body.data.routeBoundary.adminRole, 'ADMIN')
     assert.equal(policiesResponse.body.data.policies.sourceCoverage.sourceCount, 1)
+    assert.equal(
+        policiesResponse.body.data.policies.runtimeControls.crawlQueueWritesEnabled,
+        true,
+    )
+
+    const updateControlsResponse = await request(
+        server,
+        'PATCH',
+        '/api/admin/platform/controls',
+        {
+            token: auth,
+            body: {
+                crawlQueueWritesEnabled: false,
+                note: 'Maintenance window',
+            },
+        },
+    )
+    assert.equal(updateControlsResponse.status, 200)
+    assert.equal(updateControlsResponse.body.data.controls.crawlQueueWritesEnabled, false)
+    assert.equal(updateControlsResponse.body.data.controls.note, 'Maintenance window')
+    assert.equal(state.platformControl.updatedByUserId, ADMIN_ID)
 
     const auditResponse = await request(server, 'GET', '/api/admin/platform/audit?limit=10', {
         token: auth,
@@ -209,7 +268,12 @@ test('admin platform endpoints expose health, policies, and audit history', asyn
     assert.equal(auditResponse.body.data.limit, 10)
     assert.ok(auditResponse.body.data.summary.totalEvents >= 1)
     assert.equal(Array.isArray(auditResponse.body.data.items), true)
-    assert.equal(auditResponse.body.data.items[0].resourceType.length > 0, true)
+    assert.equal(
+        auditResponse.body.data.items.some(
+            (item) => item.action === 'PLATFORM_CONTROLS_UPDATED',
+        ),
+        true,
+    )
 })
 
 test('admin platform endpoints stay hidden from non-admin users', async (t) => {
@@ -221,11 +285,27 @@ test('admin platform endpoints stay hidden from non-admin users', async (t) => {
                         id: USER_ID,
                         role: 'USER',
                         tokenVersion: 0,
+                        lockedUntil: null,
+                        manuallyLockedAt: null,
+                        deactivatedAt: null,
                     }
                 }
 
                 return null
             },
+        },
+        platformControl: {
+            upsert: async () => ({
+                id: 'platform',
+                crawlQueueWritesEnabled: true,
+                crawlMaterializationEnabled: true,
+                intakePublishEnabled: true,
+                note: null,
+                updatedByUserId: null,
+                createdAt: new Date('2026-03-25T00:00:00Z'),
+                updatedAt: new Date('2026-03-25T00:00:00Z'),
+            }),
+            findMany: async () => [],
         },
     }
 

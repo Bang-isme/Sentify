@@ -76,11 +76,13 @@ Admin control plane means:
   - crawl
 - `Access`
   - users
+  - user lifecycle
   - memberships
 - `Platform`
   - health & jobs
   - integrations & policies
   - audit
+  - runtime controls
 
 Merchant flow means:
 

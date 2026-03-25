@@ -2,9 +2,11 @@ const { handleControllerError } = require('../../lib/controller-error')
 const { validateUuidParam } = require('../../middleware/validate-uuid')
 const service = require('./admin-access.service')
 const {
+    createUserSchema,
     createMembershipSchema,
     listMembershipsQuerySchema,
     listUsersQuerySchema,
+    updateUserAccountStateSchema,
     updateUserRoleSchema,
 } = require('./admin-access.validation')
 
@@ -42,6 +44,22 @@ async function getUserDetail(req, res) {
     }
 }
 
+async function createUser(req, res) {
+    try {
+        const input = createUserSchema.parse(req.body)
+        const result = await service.createAdminUser({
+            userId: req.user.userId,
+            input,
+        })
+
+        return res.status(201).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 async function updateUserRole(req, res) {
     try {
         const input = updateUserRoleSchema.parse(req.body)
@@ -49,6 +67,23 @@ async function updateUserRole(req, res) {
             userId: req.user.userId,
             targetUserId: req.params.id,
             role: input.role,
+        })
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
+async function updateUserAccountState(req, res) {
+    try {
+        const input = updateUserAccountStateSchema.parse(req.body)
+        const result = await service.updateAdminUserAccountState({
+            userId: req.user.userId,
+            targetUserId: req.params.id,
+            action: input.action,
         })
 
         return res.status(200).json({
@@ -122,12 +157,14 @@ async function deleteMembership(req, res) {
 }
 
 module.exports = {
+    createUser,
     createMembership,
     deleteMembership,
     getUserDetail,
     listMemberships,
     listUsers,
     triggerPasswordReset,
+    updateUserAccountState,
     updateUserRole,
     validateMembershipId,
     validateUserId,

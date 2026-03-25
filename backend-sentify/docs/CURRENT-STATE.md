@@ -1,6 +1,6 @@
 # Sentify Backend Current State
 
-Updated: 2026-03-25
+Updated: 2026-03-26
 
 This document describes the backend exactly as it exists in the current codebase.
 
@@ -71,6 +71,24 @@ The backend is a modular monolith. `admin-intake`, `review-crawl`, `review-ops`,
 - `ADMIN`
   - uses only the admin control-plane routes
   - does not need restaurant membership to inspect or operate on a restaurant
+
+### Account lifecycle
+
+`User` now carries explicit lifecycle state beyond role:
+
+- `ACTIVE`
+- `LOCKED`
+  - manual admin lock via `manuallyLockedAt`
+  - or auth lockout via `lockedUntil`
+- `DEACTIVATED`
+  - admin deactivation via `deactivatedAt`
+
+Operational effect:
+
+- locked accounts cannot log in or refresh sessions until unlocked
+- deactivated accounts cannot log in or refresh sessions until reactivated
+- admin lifecycle actions revoke sessions by bumping `tokenVersion` and revoking refresh tokens
+- the last available `ADMIN` account cannot be locked, deactivated, or downgraded
 
 ### Flow split
 
@@ -148,13 +166,17 @@ Behavior:
   - next recommended admin actions
 - admin access management with:
   - user directory and user detail
+  - create user
   - role changes between `USER` and `ADMIN`
+  - lock, unlock, deactivate, and reactivate lifecycle actions
   - password-reset trigger
   - restaurant membership mapping
-- admin platform visibility with:
+- admin platform visibility and controls with:
   - API, database, queue, and worker health
   - integration and route-boundary policy visibility
   - audit event feed across users, memberships, intake, crawl, and publish history
+  - runtime control switches for queue writes, crawl materialization, and intake publish
+  - release-readiness summary separating local proof from missing managed-environment proof
 - intake create, edit, delete, publish
 - canonical review reuse when external review identity matches
 - review crawl source upsert and queued runs
@@ -173,7 +195,7 @@ Behavior:
 
 ## 5. Current Database Shape
 
-The schema currently contains 13 models:
+The schema currently contains 14 models:
 
 1. `User`
 2. `RefreshToken`
@@ -188,6 +210,7 @@ The schema currently contains 13 models:
 11. `ReviewCrawlSource`
 12. `ReviewCrawlRun`
 13. `ReviewCrawlRawReview`
+14. `PlatformControl`
 
 Important role and ownership invariants:
 
@@ -196,6 +219,11 @@ Important role and ownership invariants:
 - `Review` is the canonical user-facing dataset
 - `ReviewIntakeBatch` and `ReviewIntakeItem` are admin-side staging
 - `ReviewCrawlSource`, `ReviewCrawlRun`, and `ReviewCrawlRawReview` are admin-side crawl runtime and audit state
+
+Additional invariants:
+
+- account lifecycle is stored on `User` and is independent from restaurant membership
+- `PlatformControl` is a singleton runtime policy record for global admin controls
 
 ## 6. Seed And Demo Data
 
@@ -216,6 +244,8 @@ This dataset supports:
 - user-facing dashboard demo
 - review evidence demo
 - admin curation demo
+- admin access lifecycle demo
+- admin platform controls demo
 - publish smoke
 - role-boundary smoke
 
@@ -249,6 +279,9 @@ Important proof points already exist:
 - route guards now enforce the simplified `USER` vs `ADMIN` split
 - admin users can inspect restaurants through dedicated admin endpoints instead of borrowing user-facing routes
 - admin users can now inspect live `Access` and `Platform` data through dedicated `/api/admin/*` endpoints instead of FE-only placeholders
+- admin users can now execute account lifecycle actions through dedicated `Access` endpoints
+- runtime platform controls now gate live backend flows for queueing, materialization, and publish
+- health and policy endpoints now expose release-readiness and runtime-control truth so FE can distinguish local proof from managed-environment gaps
 - real Postgres HTTP smoke covers user-facing read routes
 - real Postgres smoke covers publish and duplicate publish behavior
 - browser E2E now proves:

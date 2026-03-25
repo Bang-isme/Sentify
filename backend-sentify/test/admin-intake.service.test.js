@@ -45,10 +45,20 @@ function mockRestaurantLookup(onCall) {
     })
 }
 
+function mockPlatformControls(overrides = {}) {
+    withMock('../src/services/platform-control.service', {
+        assertPlatformControlEnabled: async () => ({
+            intakePublishEnabled: true,
+        }),
+        ...overrides,
+    })
+}
+
 function restoreModules() {
     clearModule('../src/modules/admin-intake/admin-intake.domain')
     clearModule('../src/modules/admin-intake/admin-intake.service')
     clearModule('../src/modules/admin-intake/admin-intake.repository')
+    clearModule('../src/services/platform-control.service')
     clearModule('../src/services/restaurant-access.service')
     clearModule('../src/services/user-access.service')
     clearModule('../src/services/sentiment-analyzer.service')
@@ -384,6 +394,7 @@ test('admin intake service rejects publish when no approved items exist', async 
     restoreModules()
 
     mockInternalOperatorAccess()
+    mockPlatformControls()
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         findBatchById: async () => ({
             id: 'batch-1',
@@ -473,6 +484,7 @@ test('admin intake service publishes approved items and rebuilds insights', asyn
         accessChecked = true
         return { id: args.userId, role: 'ADMIN' }
     })
+    mockPlatformControls()
     withMock('../src/services/sentiment-analyzer.service', {
         analyzeReviewSync: ({ rating }) => ({
             label: rating >= 4 ? 'POSITIVE' : 'NEGATIVE',
@@ -515,6 +527,31 @@ test('admin intake service publishes approved items and rebuilds insights', asyn
     assert.equal(recalculatedRestaurantId, 'restaurant-1')
     assert.equal(result.publishedCount, 1)
     assert.deepEqual(result.publishedReviewIds, ['review-1'])
+
+    restoreModules()
+})
+
+test('admin intake service blocks publish when platform controls disable it', async () => {
+    restoreModules()
+
+    mockInternalOperatorAccess()
+    mockPlatformControls({
+        assertPlatformControlEnabled: async () => {
+            const error = new Error('Publish disabled')
+            error.code = 'PLATFORM_INTAKE_PUBLISH_DISABLED'
+            throw error
+        },
+    })
+
+    const { publishReviewBatch } = require('../src/modules/admin-intake/admin-intake.service')
+
+    await assert.rejects(
+        () => publishReviewBatch({ userId: 'user-1', batchId: 'batch-1' }),
+        (error) => {
+            assert.equal(error.code, 'PLATFORM_INTAKE_PUBLISH_DISABLED')
+            return true
+        },
+    )
 
     restoreModules()
 })

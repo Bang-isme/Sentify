@@ -2,6 +2,7 @@ const { createHash, randomBytes } = require('crypto')
 
 const { unauthorized } = require('../lib/app-error')
 const prisma = require('../lib/prisma')
+const { assertUserAccountAvailable } = require('./user-account-state.service')
 
 const REFRESH_TOKEN_BYTES = 32
 const REFRESH_TOKEN_TTL_DAYS = 7
@@ -50,7 +51,17 @@ async function rotateRefreshToken(rawToken) {
 
     const existing = await prisma.refreshToken.findUnique({
         where: { tokenHash },
-        include: { user: { select: { id: true, tokenVersion: true } } },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    tokenVersion: true,
+                    lockedUntil: true,
+                    manuallyLockedAt: true,
+                    deactivatedAt: true,
+                },
+            },
+        },
     })
 
     if (!existing) {
@@ -71,6 +82,8 @@ async function rotateRefreshToken(rawToken) {
     if (existing.expiresAt < new Date()) {
         throw unauthorized('AUTH_REFRESH_TOKEN_EXPIRED', 'Refresh token has expired')
     }
+
+    assertUserAccountAvailable(existing.user)
 
     // Revoke old token + create new one in the same family (atomic)
     const newRaw = generateRawToken()

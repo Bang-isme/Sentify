@@ -16,6 +16,16 @@ function sendUnauthorized(req, res, code, message) {
     })
 }
 
+function sendForbidden(req, res, code, message) {
+    return res.status(403).json({
+        error: {
+            code,
+            message,
+            ...(req?.requestId ? { requestId: req.requestId } : {}),
+        },
+    })
+}
+
 function sendServiceUnavailable(req, res, code, message) {
     return res.status(503).json({
         error: {
@@ -96,6 +106,9 @@ async function authMiddleware(req, res, next) {
                     id: true,
                     role: true,
                     tokenVersion: true,
+                    lockedUntil: true,
+                    manuallyLockedAt: true,
+                    deactivatedAt: true,
                 },
             }),
             AUTH_DB_TIMEOUT_MS,
@@ -104,6 +117,24 @@ async function authMiddleware(req, res, next) {
 
         if (!user || payload.tokenVersion !== user.tokenVersion) {
             return sendUnauthorized(req, res, 'AUTH_REVOKED_TOKEN', 'Access token has been revoked')
+        }
+
+        if (user.deactivatedAt) {
+            return sendForbidden(
+                req,
+                res,
+                'AUTH_ACCOUNT_DEACTIVATED',
+                'This account has been deactivated',
+            )
+        }
+
+        if (user.manuallyLockedAt || (user.lockedUntil && user.lockedUntil > new Date())) {
+            return sendUnauthorized(
+                req,
+                res,
+                'AUTH_ACCOUNT_LOCKED',
+                'This account is currently locked',
+            )
         }
 
         req.user = {

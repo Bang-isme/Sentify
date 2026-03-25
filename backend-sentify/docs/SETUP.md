@@ -1,6 +1,6 @@
 # Sentify Backend Setup
 
-Updated: 2026-03-25
+Updated: 2026-03-26
 
 This document describes how to run the backend and the backend-only crawl tooling in the current codebase.
 
@@ -99,6 +99,9 @@ Use the seeded `ADMIN` account to:
 
 - list restaurants through `/api/admin/restaurants`
 - inspect `/api/admin/restaurants/:id`
+- create users and manage lifecycle through `/api/admin/users*`
+- assign or remove restaurant memberships through `/api/admin/memberships*`
+- inspect and update runtime controls through `/api/admin/platform/*`
 - curate review batches
 - run crawl preview, queue crawl runs, or sync to draft
 - publish approved batches
@@ -119,6 +122,14 @@ This first-wave browser suite proves:
 - `USER` lands in the merchant app and moves across `Home`, `Reviews`, `Actions`, and `Settings`
 - `ADMIN` lands in the admin hub and uses live `Operations`, `Access`, and `Platform` screens
 - both roles can complete login and logout against the seeded local baseline
+
+Current local admin behavior behind those screens:
+
+- `Access > Users` supports create user, role change, password reset, and account lifecycle actions
+- `Access > Memberships` supports assign/remove restaurant membership for `USER` accounts
+- `Platform > Health & jobs` shows live runtime controls and release-readiness state
+- `Platform > Integrations & policies` mirrors runtime controls in policy context
+- `Platform > Audit` includes platform-control update events
 
 ## 8. Run Review Crawl Workers
 
@@ -161,6 +172,12 @@ The operator smoke additionally proves:
 - batch readiness can be read immediately after the queued operator run settles
 
 Production queued runs still require Redis.
+
+Global runtime controls can temporarily disable parts of that flow:
+
+- `crawlQueueWritesEnabled = false` blocks new queued crawl runs
+- `crawlMaterializationEnabled = false` blocks crawl-to-intake materialization
+- `intakePublishEnabled = false` blocks publish into canonical reviews
 
 ## 10. Local SMB Load Harnesses
 

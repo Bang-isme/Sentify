@@ -1,6 +1,7 @@
 const { badRequest, notFound } = require('../../lib/app-error')
 const { ensureRestaurantExists } = require('../../services/restaurant-access.service')
 const { recalculateRestaurantInsights } = require('../../services/insight.service')
+const { assertPlatformControlEnabled } = require('../../services/platform-control.service')
 const { INTERNAL_OPERATOR_ROLES } = require('../../lib/user-roles')
 const { getUserRoleAccess } = require('../../services/user-access.service')
 const {
@@ -240,6 +241,11 @@ async function deleteReviewBatch({ userId, batchId }) {
 
 async function publishReviewBatch({ userId, batchId }) {
     await ensureInternalOperatorAccess(userId)
+    await assertPlatformControlEnabled(
+        'intakePublishEnabled',
+        'PLATFORM_INTAKE_PUBLISH_DISABLED',
+        'Review publish is currently disabled by platform controls',
+    )
 
     const batch = await repository.findBatchById(batchId, {
         includeItems: true,

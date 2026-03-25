@@ -45,12 +45,29 @@ function mockRestaurantLookup(onCall) {
     })
 }
 
+function mockPlatformControls(overrides = {}) {
+    withMock('../src/services/platform-control.service', {
+        assertPlatformControlEnabled: async () => ({
+            crawlQueueWritesEnabled: true,
+            crawlMaterializationEnabled: true,
+            intakePublishEnabled: true,
+        }),
+        getPlatformControls: async () => ({
+            crawlQueueWritesEnabled: true,
+            crawlMaterializationEnabled: true,
+            intakePublishEnabled: true,
+        }),
+        ...overrides,
+    })
+}
+
 function restoreModules() {
     clearModule('../src/modules/review-crawl/review-crawl.service')
     clearModule('../src/modules/review-crawl/review-crawl.repository')
     clearModule('../src/modules/review-crawl/review-crawl.queue')
     clearModule('../src/modules/review-crawl/review-crawl.runtime')
     clearModule('../src/modules/review-crawl/google-maps.service')
+    clearModule('../src/services/platform-control.service')
     clearModule('../src/services/restaurant-access.service')
     clearModule('../src/services/user-access.service')
     clearModule('../src/modules/admin-intake/admin-intake.domain')
@@ -146,6 +163,7 @@ test('review crawl service creates a queued run and enqueues it', async () => {
     let enqueuedRunId = null
 
     mockInternalOperatorAccess()
+    mockPlatformControls()
     withMock('../src/modules/review-crawl/review-crawl.repository', {
         findSourceById: async () => ({
             id: 'source-1',
@@ -222,6 +240,54 @@ test('review crawl service creates a queued run and enqueues it', async () => {
     assert.equal(enqueuedRunId, 'run-1')
     assert.equal(result.crawlCoverage.completeness, 'IN_PROGRESS')
     assert.equal(result.crawlCoverage.operatorPolicy.code, 'WAIT_FOR_TERMINAL_RUN')
+
+    restoreModules()
+})
+
+test('review crawl service blocks new crawl runs when platform queue writes are disabled', async () => {
+    restoreModules()
+
+    mockInternalOperatorAccess()
+    mockPlatformControls({
+        assertPlatformControlEnabled: async () => {
+            const error = new Error('Queue writes disabled')
+            error.code = 'PLATFORM_CRAWL_QUEUE_DISABLED'
+            throw error
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        findSourceById: async () => ({
+            id: 'source-1',
+            restaurantId: 'restaurant-1',
+            provider: 'GOOGLE_MAPS',
+            status: 'ACTIVE',
+        }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        logReviewCrawlEvent: () => {},
+    })
+    withMock('../src/modules/review-crawl/google-maps.service', {})
+    withMock('../src/modules/admin-intake/admin-intake.repository', {})
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+
+    await assert.rejects(
+        () =>
+            service.createReviewCrawlRun({
+                userId: 'user-1',
+                sourceId: 'source-1',
+                input: {
+                    strategy: 'INCREMENTAL',
+                },
+            }),
+        (error) => {
+            assert.equal(error.code, 'PLATFORM_CRAWL_QUEUE_DISABLED')
+            return true
+        },
+    )
 
     restoreModules()
 })
@@ -758,6 +824,7 @@ test('review crawl service materializes a completed run into a Google Maps draft
     const createdChunks = []
 
     mockInternalOperatorAccess()
+    mockPlatformControls()
     withMock('../src/modules/review-crawl/review-crawl.repository', {
         findRunById: async (runId, options = {}) => {
             if (runId !== 'run-1') {
@@ -938,6 +1005,7 @@ test('review crawl service reuses an open source draft batch and appends only un
     let updatedRunIntakeBatchId = null
 
     mockInternalOperatorAccess()
+    mockPlatformControls()
     withMock('../src/modules/review-crawl/review-crawl.repository', {
         findRunById: async (runId, options = {}) => {
             if (runId !== 'run-2') {
@@ -1155,6 +1223,42 @@ test('review crawl service reuses an open source draft batch and appends only un
     assert.equal(createdItems[0].sourceExternalId, 'google-maps:review:b')
     assert.equal(result.materializedCount, 1)
     assert.equal(result.batch.id, 'batch-open')
+
+    restoreModules()
+})
+
+test('review crawl service blocks materialization when platform controls disable it', async () => {
+    restoreModules()
+
+    mockInternalOperatorAccess()
+    mockPlatformControls({
+        assertPlatformControlEnabled: async (key) => {
+            if (key === 'crawlMaterializationEnabled') {
+                const error = new Error('Materialization disabled')
+                error.code = 'PLATFORM_CRAWL_MATERIALIZATION_DISABLED'
+                throw error
+            }
+
+            return {
+                crawlQueueWritesEnabled: true,
+                crawlMaterializationEnabled: false,
+            }
+        },
+    })
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+
+    await assert.rejects(
+        () =>
+            service.materializeRunToIntake({
+                userId: 'user-1',
+                runId: 'run-1',
+            }),
+        (error) => {
+            assert.equal(error.code, 'PLATFORM_CRAWL_MATERIALIZATION_DISABLED')
+            return true
+        },
+    )
 
     restoreModules()
 })

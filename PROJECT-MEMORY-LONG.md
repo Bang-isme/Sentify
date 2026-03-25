@@ -61,6 +61,8 @@ Principles:
 - system-aware
 - restaurant context is persistent only inside `Operations`
 - `Access` and `Platform` are global admin domains
+- `Access` owns user lifecycle, not just directory visibility
+- `Platform` may expose active controls, but FE must show the proof level behind them
 
 ## Stable Backend Shape
 
@@ -75,6 +77,8 @@ Principles:
   - `review-crawl`
   - `admin-access`
   - `admin-platform`
+  - `platform-control.service`
+  - `user-account-state.service`
 
 ## Docs To Trust First
 
@@ -104,6 +108,7 @@ These tracked project-memory files exist so project context survives clone/sessi
 
 - Before changing roles, re-check this file and `schema.prisma`.
 - Before saying a surface is live, verify the backend endpoint exists now.
+- Before saying a platform control is safe or ready, verify both backend enforcement and the proof level behind it.
 - Before changing FE IA, keep merchant and admin as separate products.
 - After major architecture changes:
   - refresh docs
