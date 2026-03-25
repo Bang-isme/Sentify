@@ -46,8 +46,21 @@ function mapRestaurants(memberships) {
         id: membership.restaurant.id,
         name: membership.restaurant.name,
         slug: membership.restaurant.slug,
-        permission: membership.permission,
     }))
+}
+
+function mapUser(user, memberships) {
+    return {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role || 'USER',
+        ...(memberships
+            ? {
+                  restaurants: mapRestaurants(memberships),
+              }
+            : {}),
+    }
 }
 
 async function register(input, context = {}) {
@@ -66,6 +79,7 @@ async function register(input, context = {}) {
         data: {
             email,
             fullName: input.fullName.trim(),
+            role: 'USER',
             passwordHash,
         },
     })
@@ -82,9 +96,7 @@ async function register(input, context = {}) {
 
     return {
         user: {
-            id: user.id,
-            email: user.email,
-            fullName: user.fullName,
+            ...mapUser(user),
         },
         accessToken: buildAccessToken(user),
         refreshToken: refreshToken.raw,
@@ -198,10 +210,7 @@ async function login(input, context = {}) {
         refreshToken: refreshToken.raw,
         expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
         user: {
-            id: user.id,
-            email: user.email,
-            fullName: user.fullName,
-            restaurants: mapRestaurants(user.restaurants),
+            ...mapUser(user, user.restaurants),
         },
     }
 }
@@ -252,10 +261,7 @@ async function getSession({ userId }) {
 
     return {
         user: {
-            id: user.id,
-            email: user.email,
-            fullName: user.fullName,
-            restaurants: mapRestaurants(user.restaurants),
+            ...mapUser(user, user.restaurants),
         },
     }
 }
@@ -305,6 +311,7 @@ async function changePassword({ userId, currentPassword, newPassword, context = 
             id: true,
             email: true,
             fullName: true,
+            role: true,
             tokenVersion: true,
         },
     })
@@ -326,9 +333,7 @@ async function changePassword({ userId, currentPassword, newPassword, context = 
         refreshToken: refreshToken.raw,
         expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
         user: {
-            id: updatedUser.id,
-            email: updatedUser.email,
-            fullName: updatedUser.fullName,
+            ...mapUser(updatedUser),
         },
     }
 }

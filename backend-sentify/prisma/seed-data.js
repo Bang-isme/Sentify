@@ -6,17 +6,30 @@ const DEMO_PASSWORD = 'DemoPass123!'
 const GOOGLE_MAPS_DEMO_URL = 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8'
 
 const DEMO_USERS = {
-    owner: {
-        email: 'demo.owner@sentify.local',
-        fullName: 'Sentify Demo Owner',
+    userPrimary: {
+        email: 'demo.user.primary@sentify.local',
+        fullName: 'Sentify Demo User Primary',
+        role: 'USER',
     },
-    manager: {
-        email: 'demo.manager@sentify.local',
-        fullName: 'Sentify Demo Manager',
+    userSecondary: {
+        email: 'demo.user.secondary@sentify.local',
+        fullName: 'Sentify Demo User Secondary',
+        role: 'USER',
+    },
+    userTacombi: {
+        email: 'demo.user.tacombi@sentify.local',
+        fullName: 'Sentify Demo User Tacombi',
+        role: 'USER',
     },
     outsider: {
         email: 'demo.outsider@sentify.local',
         fullName: 'Sentify Demo Outsider',
+        role: 'USER',
+    },
+    admin: {
+        email: 'demo.admin@sentify.local',
+        fullName: 'Sentify Demo Admin',
+        role: 'ADMIN',
     },
 }
 
@@ -212,6 +225,7 @@ async function upsertDemoUsers(prisma) {
             },
             update: {
                 fullName: user.fullName,
+                role: user.role,
                 passwordHash,
                 tokenVersion: 0,
                 failedLoginCount: 0,
@@ -220,6 +234,7 @@ async function upsertDemoUsers(prisma) {
             create: {
                 email: user.email,
                 fullName: user.fullName,
+                role: user.role,
                 passwordHash,
             },
         })
@@ -339,19 +354,20 @@ async function createMemberships(prisma, users, restaurants) {
     await prisma.restaurantUser.createMany({
         data: [
             {
-                userId: users.owner.id,
+                userId: users.userPrimary.id,
                 restaurantId: restaurants.phoHong.id,
-                permission: 'OWNER',
             },
             {
-                userId: users.manager.id,
+                userId: users.userSecondary.id,
                 restaurantId: restaurants.phoHong.id,
-                permission: 'MANAGER',
             },
             {
-                userId: users.owner.id,
+                userId: users.userPrimary.id,
                 restaurantId: restaurants.tacombi.id,
-                permission: 'OWNER',
+            },
+            {
+                userId: users.userTacombi.id,
+                restaurantId: restaurants.tacombi.id,
             },
         ],
         skipDuplicates: true,
@@ -684,7 +700,7 @@ async function seedDemoData(options = {}) {
     buildSeedLog(log, 'Creating published baseline batches...')
 
     const phoHongPublished = await createPublishedBatch({
-        userId: users.owner.id,
+        userId: users.admin.id,
         restaurantId: restaurants.phoHong.id,
         title: 'Google Maps baseline publish',
         sourceType: 'GOOGLE_MAPS_CRAWL',
@@ -692,7 +708,7 @@ async function seedDemoData(options = {}) {
     })
 
     const tacombiPublished = await createPublishedBatch({
-        userId: users.owner.id,
+        userId: users.admin.id,
         restaurantId: restaurants.tacombi.id,
         title: 'Manual quality baseline',
         sourceType: 'MANUAL',
@@ -702,7 +718,7 @@ async function seedDemoData(options = {}) {
     buildSeedLog(log, 'Creating open Google Maps curation batch...')
 
     const draftBatch = await createOpenBatch({
-        userId: users.manager.id,
+        userId: users.admin.id,
         restaurantId: restaurants.phoHong.id,
         title: 'Google Maps draft triage',
         items: PHO_HONG_DRAFT_ITEMS,
@@ -711,28 +727,48 @@ async function seedDemoData(options = {}) {
     buildSeedLog(log, 'Creating review crawl source, run, and raw review audit trail...')
 
     const crawlRuntime = await seedReviewCrawlRuntime(prisma, {
-        userId: users.manager.id,
+        userId: users.admin.id,
         restaurant: restaurants.phoHong,
         batch: draftBatch,
     })
 
     const summary = {
         credentials: {
-            email: DEMO_USERS.owner.email,
             password: DEMO_PASSWORD,
+            userPrimary: {
+                email: DEMO_USERS.userPrimary.email,
+                role: DEMO_USERS.userPrimary.role,
+            },
+            internalAdmin: {
+                email: DEMO_USERS.admin.email,
+                role: DEMO_USERS.admin.role,
+            },
         },
         users: {
-            owner: {
-                id: users.owner.id,
-                email: users.owner.email,
+            userPrimary: {
+                id: users.userPrimary.id,
+                email: users.userPrimary.email,
+                role: users.userPrimary.role,
             },
-            manager: {
-                id: users.manager.id,
-                email: users.manager.email,
+            userSecondary: {
+                id: users.userSecondary.id,
+                email: users.userSecondary.email,
+                role: users.userSecondary.role,
+            },
+            userTacombi: {
+                id: users.userTacombi.id,
+                email: users.userTacombi.email,
+                role: users.userTacombi.role,
             },
             outsider: {
                 id: users.outsider.id,
                 email: users.outsider.email,
+                role: users.outsider.role,
+            },
+            admin: {
+                id: users.admin.id,
+                email: users.admin.email,
+                role: users.admin.role,
             },
         },
         restaurants: {

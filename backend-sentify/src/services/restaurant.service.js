@@ -145,7 +145,8 @@ async function createRestaurant(input) {
     const googleMapUrl = input.googleMapUrl?.trim() || null
     const slug = await generateUniqueSlug(name)
 
-    // Restaurant creation and OWNER membership must succeed together or rollback together.
+    // Restaurant creation and membership insertion must commit together so the user can land in the
+    // merchant flow immediately after onboarding.
     const result = await prisma.$transaction(async (tx) => {
         const restaurant = await tx.restaurant.create({
             data: {
@@ -156,17 +157,15 @@ async function createRestaurant(input) {
             },
         })
 
-        const membership = await tx.restaurantUser.create({
+        await tx.restaurantUser.create({
             data: {
                 userId: input.userId,
                 restaurantId: restaurant.id,
-                permission: 'OWNER',
             },
         })
 
         return {
             restaurant,
-            membership,
         }
     })
 
@@ -176,7 +175,6 @@ async function createRestaurant(input) {
         slug: result.restaurant.slug,
         address: result.restaurant.address,
         googleMapUrl: result.restaurant.googleMapUrl,
-        permission: result.membership.permission,
         createdAt: result.restaurant.createdAt,
     }
 }
@@ -208,7 +206,6 @@ async function listRestaurants({ userId }) {
         name: membership.restaurant.name,
         slug: membership.restaurant.slug,
         googleMapUrl: membership.restaurant.googleMapUrl,
-        permission: membership.permission,
         totalReviews: membership.restaurant._count.reviews,
     }))
 }
@@ -230,17 +227,14 @@ async function getRestaurantDetail({ userId, restaurantId }) {
         address: access.restaurant.address,
         googleMapUrl: access.restaurant.googleMapUrl,
         datasetStatus: buildDatasetStatus({ latestPublishedBatch, openBatches }),
-        permission: access.permission,
         insightSummary: buildInsightSummary(access.restaurantWithRelations.insight),
     }
 }
 
 async function updateRestaurant(input) {
-    // Only OWNER can change restaurant profile data in Sprint 1.
     const access = await getRestaurantAccess({
         userId: input.userId,
         restaurantId: input.restaurantId,
-        allowedPermissions: ['OWNER'],
     })
 
     const data = {}
@@ -271,7 +265,6 @@ async function updateRestaurant(input) {
         slug: restaurant.slug,
         address: restaurant.address,
         googleMapUrl: restaurant.googleMapUrl,
-        permission: access.permission,
         updatedAt: restaurant.updatedAt,
     }
 }
@@ -281,4 +274,8 @@ module.exports = {
     getRestaurantDetail,
     listRestaurants,
     updateRestaurant,
+    __private: {
+        buildDatasetStatus,
+        fetchIntakeSummary,
+    },
 }

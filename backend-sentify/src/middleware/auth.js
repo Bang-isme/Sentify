@@ -94,6 +94,7 @@ async function authMiddleware(req, res, next) {
                 },
                 select: {
                     id: true,
+                    role: true,
                     tokenVersion: true,
                 },
             }),
@@ -107,6 +108,7 @@ async function authMiddleware(req, res, next) {
 
         req.user = {
             userId: user.id,
+            role: user.role || 'USER',
             tokenVersion: payload.tokenVersion,
             jti: payload.jti || null,
         }

@@ -537,7 +537,7 @@ async function main() {
     )
     const baseline = await Promise.all(
         targetDetails.map((target) =>
-            buildRestaurantReport(seedSummary.users.owner.id, target),
+            buildRestaurantReport(seedSummary.users.userPrimary.id, target),
         ),
     )
 
@@ -546,7 +546,7 @@ async function main() {
 
     const damaged = await Promise.all(
         targetDetails.map((target) =>
-            buildRestaurantReport(seedSummary.users.owner.id, target),
+            buildRestaurantReport(seedSummary.users.userPrimary.id, target),
         ),
     )
 
@@ -564,7 +564,7 @@ async function main() {
 
     const restored = await Promise.all(
         targetDetails.map((target) =>
-            buildRestaurantReport(seedSummary.users.owner.id, target),
+            buildRestaurantReport(seedSummary.users.userPrimary.id, target),
         ),
     )
 
@@ -637,3 +637,4 @@ main()
     .finally(async () => {
         await prisma.disconnect()
     })
+

@@ -108,7 +108,7 @@ Stage A is considered delivered when:
 - Domain: backend
 - Estimate: 3 points
 - Dependencies: A1-S2
-- Files: `D:\Project 3\backend-sentify\test\auth.integration.test.js`, `D:\Project 3\backend-sentify\test\auth.service.test.js`, `D:\Project 3\backend-sentify\test\data-isolation.integration.test.js`, `D:\Project 3\backend-sentify\test\test-helpers.js`, `D:\Project 3\backend-sentify\src\middleware\require-permission.js`, `D:\Project 3\backend-sentify\src\services\restaurant-access.service.js`
+- Files: `D:\Project 3\backend-sentify\test\auth.integration.test.js`, `D:\Project 3\backend-sentify\test\auth.service.test.js`, `D:\Project 3\backend-sentify\test\data-isolation.integration.test.js`, `D:\Project 3\backend-sentify\test\test-helpers.js`, `D:\Project 3\backend-sentify\src\middleware\require-user-role.js`, `D:\Project 3\backend-sentify\src\middleware\require-internal-role.js`, `D:\Project 3\backend-sentify\src\services\restaurant-access.service.js`, `D:\Project 3\backend-sentify\src\services\user-access.service.js`
 - Acceptance Criteria:
   - bearer token path is covered
   - cookie auth path is covered

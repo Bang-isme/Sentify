@@ -159,6 +159,7 @@ async function startApp(prismaOverrides = {}, options = {}) {
         restaurantUser: {},
         complaintKeyword: {},
         review: {},
+        reviewIntakeItem: {},
         reviewIntakeBatch: {},
         reviewCrawlSource: {},
         reviewCrawlRun: {},

@@ -2,7 +2,9 @@ const crypto = require('node:crypto')
 
 const env = require('../../config/env')
 const { badRequest, conflict, notFound } = require('../../lib/app-error')
-const { getRestaurantAccess } = require('../../services/restaurant-access.service')
+const { INTERNAL_OPERATOR_ROLES } = require('../../lib/user-roles')
+const { ensureRestaurantExists } = require('../../services/restaurant-access.service')
+const { getUserRoleAccess } = require('../../services/user-access.service')
 const adminIntakeDomain = require('../admin-intake/admin-intake.domain')
 const adminIntakeRepository = require('../admin-intake/admin-intake.repository')
 const googleMapsProvider = require('./google-maps.service')
@@ -31,33 +33,34 @@ function generateLeaseToken() {
     return crypto.randomUUID()
 }
 
-async function ensureRestaurantEditorAccess(userId, restaurantId) {
-    return getRestaurantAccess({
+async function ensureInternalOperatorAccess(userId) {
+    return getUserRoleAccess({
         userId,
-        restaurantId,
-        allowedPermissions: ['OWNER', 'MANAGER'],
+        allowedRoles: INTERNAL_OPERATOR_ROLES,
     })
 }
 
 async function ensureSourceAccess(userId, sourceId) {
+    await ensureInternalOperatorAccess(userId)
+
     const source = await repository.findSourceById(sourceId)
 
     if (!source) {
         throw notFound('NOT_FOUND', 'Review crawl source not found')
     }
 
-    await ensureRestaurantEditorAccess(userId, source.restaurantId)
     return source
 }
 
 async function ensureRunAccess(userId, runId, options = {}) {
+    await ensureInternalOperatorAccess(userId)
+
     const run = await repository.findRunById(runId, options)
 
     if (!run) {
         throw notFound('NOT_FOUND', 'Review crawl run not found')
     }
 
-    await ensureRestaurantEditorAccess(userId, run.restaurantId)
     return run
 }
 
@@ -257,12 +260,14 @@ async function createQueuedRunForSource({
 }
 
 async function previewGoogleMapsReviews({ userId, input }) {
-    await ensureRestaurantEditorAccess(userId, input.restaurantId)
+    await ensureInternalOperatorAccess(userId)
+    await ensureRestaurantExists({ restaurantId: input.restaurantId })
     return googleMapsProvider.crawlGoogleMapsReviews(input)
 }
 
 async function upsertReviewCrawlSource({ userId, input }) {
-    await ensureRestaurantEditorAccess(userId, input.restaurantId)
+    await ensureInternalOperatorAccess(userId)
+    await ensureRestaurantExists({ restaurantId: input.restaurantId })
 
     const resolved = await googleMapsProvider.resolveGoogleMapsSource(input)
     const canonicalCid = resolved.place.identifiers.cid

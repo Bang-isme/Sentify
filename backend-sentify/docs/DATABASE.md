@@ -1,6 +1,6 @@
 # Sentify Database
 
-Updated: 2026-03-24
+Updated: 2026-03-25
 
 This document reflects the current Prisma schema in `prisma/schema.prisma`.
 
@@ -8,11 +8,11 @@ This document reflects the current Prisma schema in `prisma/schema.prisma`.
 
 - PostgreSQL
 - Prisma 7
-- Prisma adapter: `@prisma/adapter-pg`
+- Prisma config via `prisma.config.ts`
 
 ## Current Schema Summary
 
-Current schema has 10 models and 5 enums.
+Current schema has 13 models and 10 enums.
 
 Models:
 
@@ -26,14 +26,39 @@ Models:
 8. `ComplaintKeyword`
 9. `ReviewIntakeBatch`
 10. `ReviewIntakeItem`
+11. `ReviewCrawlSource`
+12. `ReviewCrawlRun`
+13. `ReviewCrawlRawReview`
 
 Enums:
 
-1. `RestaurantPermission`
+1. `UserRole`
 2. `ReviewSentiment`
-3. `ReviewIntakeBatchSourceType`
-4. `ReviewIntakeBatchStatus`
-5. `ReviewIntakeItemApprovalStatus`
+3. `ReviewCrawlProvider`
+4. `ReviewCrawlSourceStatus`
+5. `ReviewCrawlRunStrategy`
+6. `ReviewCrawlRunStatus`
+7. `ReviewCrawlRunPriority`
+8. `ReviewIntakeBatchSourceType`
+9. `ReviewIntakeBatchStatus`
+10. `ReviewIntakeItemApprovalStatus`
+
+## Role and Scope Model
+
+The current data model intentionally separates system role from restaurant scope:
+
+- `User.role`
+  - `USER`
+  - `ADMIN`
+- `RestaurantUser`
+  - membership only
+  - no restaurant sub-role column
+
+Operational meaning:
+
+- `USER` enters the user-facing product routes
+- `ADMIN` enters the internal control plane
+- `RestaurantUser` only answers which restaurant a `USER` belongs to
 
 ## Core Relationships
 
@@ -44,6 +69,10 @@ Enums:
 - `User` to `ReviewIntakeBatch` is one-to-many through `createdByUserId`
 - `ReviewIntakeBatch` to `ReviewIntakeItem` is one-to-many
 - `ReviewIntakeItem` to `Review` is optional many-to-one through `canonicalReviewId`
+- `Restaurant` to `ReviewCrawlSource` is one-to-many
+- `Restaurant` to `ReviewCrawlRun` is one-to-many
+- `ReviewCrawlSource` to `ReviewCrawlRun` is one-to-many
+- `ReviewCrawlSource` to `ReviewCrawlRawReview` is one-to-many
 - `User` to `RefreshToken` is one-to-many
 - `User` to `PasswordResetToken` is one-to-many
 
@@ -54,12 +83,15 @@ Enums:
 Purpose:
 
 - account identity
+- system role assignment
 - login lockout state
 - JWT revocation state
 
 Key fields:
 
 - `email` unique
+- `fullName`
+- `role`
 - `passwordHash`
 - `tokenVersion`
 - `failedLoginCount`
@@ -97,7 +129,7 @@ Key fields:
 
 Purpose:
 
-- merchant-facing entity that owns reviews and insights
+- top-level restaurant entity for both user-facing reads and admin-side intake/crawl work
 
 Key fields:
 
@@ -110,23 +142,27 @@ Key fields:
 
 Purpose:
 
-- membership and permission binding between user and restaurant
+- pure membership binding between `User` and `Restaurant`
 
 Key fields:
 
 - `userId`
 - `restaurantId`
-- `permission`
 
 Constraints:
 
 - unique membership per `(userId, restaurantId)`
 
+Important note:
+
+- there is no `permission` field anymore
+- user-facing access uses membership existence only
+
 ### Review
 
 Purpose:
 
-- canonical merchant-facing review dataset
+- canonical user-facing review dataset
 
 Key fields:
 
@@ -149,7 +185,8 @@ Constraints and indexes:
 
 Operational note:
 
-- manual intake publish uses stable derived ids in the form `manual-intake:v1:*` so the same source review can be updated across batches instead of duplicated
+- manual intake publish uses stable derived ids in the form `manual-intake:v1:*`
+- this lets later batches update the same canonical review instead of duplicating it
 
 ### InsightSummary
 
@@ -191,12 +228,13 @@ Constraint:
 
 Purpose:
 
-- staging batch for curated review intake before publish
+- admin-curated staging batch before publish
 
 Key fields:
 
 - `restaurantId`
 - `createdByUserId`
+- `crawlSourceId`
 - `title`
 - `sourceType`
 - `status`
@@ -208,6 +246,7 @@ Indexes:
 - `(restaurantId, status, createdAt)`
 - `(restaurantId, updatedAt, createdAt)`
 - `(createdByUserId, createdAt)`
+- `(crawlSourceId)`
 
 ### ReviewIntakeItem
 
@@ -217,8 +256,16 @@ Purpose:
 
 Key fields:
 
-- raw fields: `rawAuthorName`, `rawRating`, `rawContent`, `rawReviewDate`
-- normalized fields: `normalizedAuthorName`, `normalizedRating`, `normalizedContent`, `normalizedReviewDate`
+- raw fields:
+  - `rawAuthorName`
+  - `rawRating`
+  - `rawContent`
+  - `rawReviewDate`
+- normalized fields:
+  - `normalizedAuthorName`
+  - `normalizedRating`
+  - `normalizedContent`
+  - `normalizedReviewDate`
 - `approvalStatus`
 - `reviewerNote`
 - `canonicalReviewId`
@@ -229,29 +276,105 @@ Indexes:
 - `(batchId, createdAt)`
 - `(canonicalReviewId)`
 - `(restaurantId, approvalStatus)`
+- `(sourceProvider, sourceExternalId)`
 
 Operational note:
 
-- `canonicalReviewId` is intentionally not unique; multiple intake items from different batches may point to the same canonical review after dedupe or correction
+- `canonicalReviewId` is intentionally not unique
+- multiple intake items from different batches may point to the same canonical review after dedupe or correction
+
+### ReviewCrawlSource
+
+Purpose:
+
+- persistent admin-owned source registration for queue-backed crawl runs
+
+Key fields:
+
+- `restaurantId`
+- `provider`
+- `externalPlaceId`
+- `placeUrl`
+- `status`
+
+Operational note:
+
+- one restaurant can have multiple crawl sources over time
+- source status is part of the admin control plane, not a user-facing concept
+
+### ReviewCrawlRun
+
+Purpose:
+
+- one queued or historical crawl execution
+
+Key fields:
+
+- `restaurantId`
+- `sourceId`
+- `requestedByUserId`
+- `status`
+- `strategy`
+- `priority`
+- `pageSize`
+- `maxPages`
+- `maxReviews`
+- `delayMs`
+- `startedAt`
+- `finishedAt`
+- `nextPageToken`
+- `extractedCount`
+- `validCount`
+- `warningCount`
+- `intakeBatchId`
+
+Operational note:
+
+- run state is persisted so crawl progress can survive restarts
+- the run may later materialize into one draft intake batch
+
+### ReviewCrawlRawReview
+
+Purpose:
+
+- persisted raw crawl evidence before intake materialization
+
+Key fields:
+
+- `sourceId`
+- `runId`
+- `provider`
+- `sourceExternalId`
+- raw review fields
+- normalized validity flags and warnings
+
+Operational note:
+
+- this model is part of the admin ingest pipeline only
+- user-facing routes never read from it directly
 
 ## Operational Meaning
 
 Current write model:
 
-- admins or restaurant members curate data into `ReviewIntakeBatch` and `ReviewIntakeItem`
-- publish creates or updates canonical `Review` rows using stable derived external ids
-- insights are recalculated into `InsightSummary` and `ComplaintKeyword`
+- `ADMIN` users create intake batches, run crawl flows, approve evidence, and publish
+- publish creates or updates canonical `Review` rows
+- publish refreshes `InsightSummary` and `ComplaintKeyword`
 
 Current read model:
 
-- merchant dashboard reads canonical `Review`, `InsightSummary`, and `ComplaintKeyword`
+- `USER` routes read canonical `Review`, `InsightSummary`, and `ComplaintKeyword`
+- draft intake items and crawl raw rows stay behind the admin boundary
 
-## Migration Direction Visible in History
+## Final Database Summary
 
-Migration history shows a clear product shift:
+The database now encodes a simpler access model than earlier iterations:
 
-- early migrations introduced import-run automation tables
-- later migrations removed automated import state
-- newer migrations introduced manual intake tables and indexes
+- one system role for the user-facing app: `USER`
+- one system role for the internal control plane: `ADMIN`
+- one restaurant scope table: `RestaurantUser`
 
-So the current database direction is manual-first curation, not automated import runtime.
+This keeps the data model aligned to the product goal:
+
+- user-facing routes read stable canonical data
+- admin routes own the intake and crawl mechanics

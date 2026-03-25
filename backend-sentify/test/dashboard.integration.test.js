@@ -19,7 +19,6 @@ test('dashboard endpoints return data with valid access', async (t) => {
             findFirst: async ({ where }) => {
                 if (where.userId === 'user-1' && where.restaurantId === RESTAURANT_ID) {
                     return {
-                        permission: 'OWNER',
                         restaurant: {
                             id: RESTAURANT_ID,
                             name: 'Cafe One',

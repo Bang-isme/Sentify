@@ -4,6 +4,7 @@ const helmet = require('helmet')
 
 const env = require('./config/env')
 const authRoutes = require('./routes/auth')
+const adminRestaurantsRoutes = require('./modules/admin-restaurants/admin-restaurants.routes')
 const adminIntakeRoutes = require('./modules/admin-intake/admin-intake.routes')
 const reviewOpsRoutes = require('./modules/review-ops/review-ops.routes')
 const reviewCrawlRoutes = require('./modules/review-crawl/google-maps.routes')
@@ -11,11 +12,13 @@ const { sendError } = require('./lib/controller-error')
 const prisma = require('./lib/prisma')
 const { csrfProtection } = require('./middleware/csrf')
 const errorHandler = require('./middleware/error-handler')
+const requireInternalRole = require('./middleware/require-internal-role')
 const { apiLimiter } = require('./middleware/rate-limit')
 const authMiddleware = require('./middleware/auth')
 const requestIdMiddleware = require('./middleware/request-id')
 const requestLogger = require('./middleware/request-logger')
 const restaurantRoutes = require('./routes/restaurants')
+const { INTERNAL_OPERATOR_ROLES } = require('./lib/user-roles')
 
 const app = express()
 
@@ -64,9 +67,10 @@ app.get('/api/health', async (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/restaurants', restaurantRoutes)
-app.use('/api/admin', authMiddleware, adminIntakeRoutes)
-app.use('/api/admin', authMiddleware, reviewCrawlRoutes)
-app.use('/api/admin', authMiddleware, reviewOpsRoutes)
+app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), adminRestaurantsRoutes)
+app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), adminIntakeRoutes)
+app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), reviewCrawlRoutes)
+app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), reviewOpsRoutes)
 
 app.use((req, res) => {
     return sendError(req, res, 404, 'NOT_FOUND', 'Resource not found')

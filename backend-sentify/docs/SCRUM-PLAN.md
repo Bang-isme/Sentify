@@ -79,7 +79,7 @@ Scale readiness is deliberately split into levels:
 
 Current product stack:
 
-- Frontend: Vue 3, Vue Router, Vite, Vitest, ESLint
+- Frontend: React 19, Vite, TypeScript, Vitest, ESLint
 - Backend: Node.js, Express, Prisma, PostgreSQL
 - Security: JWT, refresh tokens, HTTP-only auth cookies, CSRF middleware, Helmet, rate limiting
 - Operations: single service deployment, health endpoints, structured request logging
@@ -110,7 +110,8 @@ Sentify needs one repeatable demo dataset that powers:
 
 Target seed contents:
 
-- 2 restaurants with clear ownership and membership roles
+- 2 restaurants with clear membership boundaries
+- 3 `USER` members, 1 `USER` outsider, and 1 `ADMIN` operator
 - 1 published dataset with enough reviews to show KPI, sentiment, complaints, trend, and evidence drill-down
 - 1 draft or in-review intake batch with mixed approved and rejected items
 - edge cases for duplicate detection, invalid rating rejection, and empty-state restaurant setup
@@ -165,7 +166,9 @@ A story is ready only when:
 - permissions are explicit
 - data and migration impact are understood
 - the verification method is named before coding begins
-- if the story touches admin behavior, it stays inside the current restaurant-scoped `OWNER | MANAGER` model unless a dedicated role change story exists
+- if the story touches admin behavior, it must respect the live proposal split:
+  - user-facing access stays scoped by `RestaurantUser` membership
+  - internal control-plane access stays on `User.role = ADMIN`
 
 ### Definition of Done
 
@@ -189,7 +192,7 @@ Sprint goal:
 Close the backend trust gaps so future feature work rests on a secure, testable baseline.
 
 Sprint review demo:
-Cookie and bearer auth both work, permission checks are stable, and a real Postgres smoke flow proves publish updates merchant-facing insight data.
+Cookie and bearer auth both work, role boundaries are stable, and a real Postgres smoke flow proves publish updates merchant-facing insight data.
 
 Planned capacity:
 22 story points
@@ -279,8 +282,8 @@ Architecture decision record, capacity model, storage lifecycle plan, and a cost
 - Priority: P0
 - Estimate: M, 3 points
 - Dependencies: S1-T02
-- Files: `D:\Project 3\backend-sentify\test\auth.integration.test.js`, `D:\Project 3\backend-sentify\test\auth.service.test.js`, `D:\Project 3\backend-sentify\test\data-isolation.integration.test.js`, `D:\Project 3\backend-sentify\test\test-helpers.js`, `D:\Project 3\backend-sentify\src\middleware\require-permission.js`, `D:\Project 3\backend-sentify\src\services\restaurant-access.service.js`
-- Input: current `OWNER | MANAGER | MEMBER` model and known auth edge cases
+- Files: `D:\Project 3\backend-sentify\test\auth.integration.test.js`, `D:\Project 3\backend-sentify\test\auth.service.test.js`, `D:\Project 3\backend-sentify\test\data-isolation.integration.test.js`, `D:\Project 3\backend-sentify\test\test-helpers.js`, `D:\Project 3\backend-sentify\src\middleware\require-user-role.js`, `D:\Project 3\backend-sentify\src\middleware\require-internal-role.js`, `D:\Project 3\backend-sentify\src\services\restaurant-access.service.js`, `D:\Project 3\backend-sentify\src\services\user-access.service.js`
+- Input: current `USER | ADMIN` model, restaurant membership scoping, and known auth edge cases
 - Output: explicit coverage for bearer path, cookie path, expired token, invalid token, and cross-restaurant denial
 - Verify: `cd "D:\Project 3\backend-sentify" ; npm test`
 - Rollback: remove newly added failing cases and restore last green baseline while keeping the bug list open

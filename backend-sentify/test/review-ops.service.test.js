@@ -14,6 +14,37 @@ function withMock(modulePath, exports) {
     }
 }
 
+function mockInternalOperatorAccess(onCall) {
+    withMock('../src/services/user-access.service', {
+        getUserRoleAccess: async (args) => {
+            if (typeof onCall === 'function') {
+                return onCall(args)
+            }
+
+            return {
+                id: args.userId,
+                role: 'ADMIN',
+            }
+        },
+    })
+}
+
+function mockRestaurantLookup(onCall) {
+    withMock('../src/services/restaurant-access.service', {
+        ensureRestaurantExists: async (args) => {
+            if (typeof onCall === 'function') {
+                return onCall(args)
+            }
+
+            return {
+                restaurant: {
+                    id: args.restaurantId,
+                },
+            }
+        },
+    })
+}
+
 function restoreModules() {
     clearModule('../src/modules/review-ops/review-ops.service')
     clearModule('../src/modules/review-crawl/review-crawl.service')
@@ -24,6 +55,7 @@ function restoreModules() {
     clearModule('../src/modules/admin-intake/admin-intake.repository')
     clearModule('../src/modules/admin-intake/admin-intake.service')
     clearModule('../src/services/restaurant-access.service')
+    clearModule('../src/services/user-access.service')
     clearModule('../src/services/sentiment-analyzer.service')
 }
 
@@ -32,6 +64,7 @@ test('review ops sync-to-draft upserts a source and creates a DRAFT materializin
 
     let createRunArgs = null
 
+    mockInternalOperatorAccess()
     withMock('../src/modules/review-crawl/review-crawl.service', {
         upsertReviewCrawlSource: async () => ({
             source: {
@@ -81,9 +114,8 @@ test('review ops sync-to-draft upserts a source and creates a DRAFT materializin
 test('review ops lists sources with latest run, open draft batch, and runtime health', async () => {
     restoreModules()
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
+    mockRestaurantLookup()
     withMock('../src/modules/review-crawl/review-crawl.repository', {
         listSourcesByRestaurant: async () => [
             {
@@ -208,9 +240,7 @@ test('review ops lists sources with latest run, open draft batch, and runtime he
 test('review ops batch readiness reports publish blockers and crawl validation issues', async () => {
     restoreModules()
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/services/sentiment-analyzer.service', {
         analyzeReviewSync: ({ rating }) => ({
             label: rating >= 4 ? 'POSITIVE' : 'NEGATIVE',
@@ -319,9 +349,7 @@ test('review ops approve-valid only approves publishable pending items', async (
     let updatedBatchStatus = null
     let batchReadCount = 0
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/services/sentiment-analyzer.service', {
         analyzeReviewSync: ({ rating }) => ({
             label: rating >= 4 ? 'POSITIVE' : 'NEGATIVE',

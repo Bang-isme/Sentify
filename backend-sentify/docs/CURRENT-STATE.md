@@ -2,21 +2,32 @@
 
 Updated: 2026-03-25
 
-This document describes the backend and database as they exist in the current codebase.
+This document describes the backend exactly as it exists in the current codebase.
 
-## 1. Current Product Direction
+## 1. Product Direction
 
-The backend is firmly aligned to:
+The backend is aligned to a manual-first, merchant-first product:
 
-- a manual-first workflow
-- admin-curated intake
-- merchant reads backed only by canonical published data
-
-In practice:
-
-- crawl and manual entry create intake evidence
+- admin-curated intake is the only way new evidence enters the system
 - publish is the only step that moves data into canonical `Review`
-- merchant dashboard and review APIs read from curated, stable data
+- user-facing dashboard and review APIs read only from canonical published data
+- crawl runtime is an admin-side ingestion aid, not a user-triggered product flow
+
+Important role clarification:
+
+- business surface still has two actor groups: user-facing restaurant users and internal admins
+- system roles are now simplified to exactly two values:
+  - `User.role = USER`
+  - `User.role = ADMIN`
+- `RestaurantUser` is now a pure membership relation
+- there is no secondary permission enum on restaurant membership anymore
+
+In practice, this means:
+
+- `/api/restaurants/*` is the user-facing surface for authenticated `USER` accounts that belong to the restaurant
+- `/api/admin/*` is the internal control-plane surface for authenticated `ADMIN` accounts
+- admin access no longer inherits from restaurant membership
+- admin users are intentionally blocked from the user-facing restaurant routes
 
 ## 2. Runtime Stack
 
@@ -27,9 +38,60 @@ In practice:
 - BullMQ plus Redis for queued crawl jobs
 - CommonJS runtime
 
-The backend is a modular monolith. `admin-intake`, `review-crawl`, and `review-ops` now have clearer feature boundaries than the older route-controller-service areas.
+The backend is a modular monolith. `admin-intake`, `review-crawl`, `review-ops`, and `admin-restaurants` are now clear backend feature modules. Auth and restaurant reads still use the older route-controller-service shape.
 
-## 3. What The Backend Already Has
+## 3. Current Role Model
+
+### System roles
+
+- `USER`
+  - uses the user-facing product routes
+  - must also belong to the target restaurant through `RestaurantUser`
+- `ADMIN`
+  - uses only the admin control-plane routes
+  - does not need restaurant membership to inspect or operate on a restaurant
+
+### Flow split
+
+#### User-facing flow
+
+Endpoints:
+
+- `POST /api/restaurants`
+- `GET /api/restaurants`
+- `GET /api/restaurants/:id`
+- `PATCH /api/restaurants/:id`
+- `GET /api/restaurants/:id/reviews`
+- `GET /api/restaurants/:id/dashboard/*`
+
+Behavior:
+
+- create or select a restaurant
+- inspect canonical dataset status
+- read KPI, sentiment, trend, complaints, top issue, and review evidence
+
+#### Admin flow
+
+Endpoints:
+
+- `GET /api/admin/restaurants`
+- `GET /api/admin/restaurants/:id`
+- `GET /api/admin/review-batches*`
+- `POST /api/admin/review-batches*`
+- `PATCH /api/admin/review-items/:id`
+- `POST /api/admin/review-crawl/*`
+- `POST /api/admin/review-ops/*`
+
+Behavior:
+
+- inspect all restaurants
+- review user-facing dataset status plus admin-side next actions
+- curate intake batches
+- run or inspect Google Maps crawl jobs
+- sync crawl evidence into draft batches
+- publish approved evidence into canonical reviews
+
+## 4. What The Backend Already Has
 
 ### Auth and security
 
@@ -41,10 +103,11 @@ The backend is a modular monolith. `admin-intake`, `review-crawl`, and `review-o
 - CSRF double-submit protection for cookie writes
 - rate limits and login lockout
 - token revocation through `tokenVersion`
+- explicit route separation between `USER` and `ADMIN`
 
-### Merchant-facing reads
+### User-facing reads
 
-- restaurant detail
+- restaurant list and detail
 - dataset status
 - review evidence list
 - dashboard KPI
@@ -53,16 +116,19 @@ The backend is a modular monolith. `admin-intake`, `review-crawl`, and `review-o
 - complaint keywords
 - top issue and next action
 
-### Admin intake
+### Admin control plane
 
-- create batch
-- list batch
-- add items
-- bulk add items
-- update item
-- delete item
-- publish batch
+- restaurant list for admin selection
+- admin restaurant overview with:
+  - current user-facing dataset status
+  - source stats
+  - latest crawl run
+  - open intake batches
+  - next recommended admin actions
+- intake create, edit, delete, publish
 - canonical review reuse when external review identity matches
+- review crawl source upsert and queued runs
+- crawl-to-draft orchestration via `review-ops`
 
 ### Review crawl runtime
 
@@ -73,20 +139,9 @@ The backend is a modular monolith. `admin-intake`, `review-crawl`, and `review-o
 - draft materialization into intake batches
 - fresh-session cursor recovery for suspicious empty pages
 - backfill auto-resume from persisted checkpoint cursors
-- structured `crawlCoverage` diagnostics plus mismatch warnings when preview metadata totals exceed extracted public reviews
+- structured `crawlCoverage` diagnostics and mismatch warnings when preview totals exceed extracted public reviews
 
-### Review ops control plane
-
-- one-click `sync-to-draft` orchestration from Google Maps URL
-- source list with latest run `crawlCoverage` and open draft batch summary
-- run history by source
-- enriched run detail with queue state and operator policy
-- source enable and disable controls
-- batch readiness summary before publish
-- bulk approve of only currently publishable pending items
-- thin publish proxy that still uses the existing admin-intake publish path
-
-## 4. Current Database Shape
+## 5. Current Database Shape
 
 The schema currently contains 13 models:
 
@@ -104,19 +159,37 @@ The schema currently contains 13 models:
 12. `ReviewCrawlRun`
 13. `ReviewCrawlRawReview`
 
-Data layers are clearly separated:
+Important role and ownership invariants:
 
-- `Review` is the canonical merchant-facing dataset
-- `ReviewIntakeBatch` and `ReviewIntakeItem` are curation and publish staging
-- `ReviewCrawlSource`, `ReviewCrawlRun`, and `ReviewCrawlRawReview` are crawl runtime and audit state
-- `InsightSummary` and `ComplaintKeyword` are dashboard read models
+- `User.role` is the only system-role switch
+- `RestaurantUser` only answers “does this user belong to this restaurant?”
+- `Review` is the canonical user-facing dataset
+- `ReviewIntakeBatch` and `ReviewIntakeItem` are admin-side staging
+- `ReviewCrawlSource`, `ReviewCrawlRun`, and `ReviewCrawlRawReview` are admin-side crawl runtime and audit state
 
-Important crawl invariants:
+## 6. Seed And Demo Data
 
-- only one active crawl run per source (`QUEUED` or `RUNNING`)
-- only one open crawl-backed intake batch per crawl source
+The shared seed dataset currently creates:
 
-## 5. Quality And Evidence Already In Place
+- 2 restaurants
+- 5 users:
+  - 3 `USER` accounts with realistic restaurant memberships
+  - 1 `USER` outsider account with no membership
+  - 1 `ADMIN` operator account
+- published baseline data
+- an open Google Maps crawl draft batch
+- a crawl source, a crawl run, and raw review audit rows
+- at least one invalid raw review example for readiness diagnostics
+
+This dataset supports:
+
+- user-facing dashboard demo
+- review evidence demo
+- admin curation demo
+- publish smoke
+- role-boundary smoke
+
+## 7. Quality And Evidence Already In Place
 
 Current verification evidence includes:
 
@@ -126,82 +199,23 @@ Current verification evidence includes:
 - `npm run test:realdb`
 - queued crawl smoke
 - review crawl scale-validation harness
+- local SMB user-read load proof
+- local worker-pressure proof
+- local operator-path proof
+- local logical recovery drill
+- local shadow-database restore and rollback rehearsal
 
 Important proof points already exist:
 
-- migration-backed auth token tables now match the live Prisma schema on fresh and existing local databases
-- BullMQ-safe queued crawl runtime
-- worker heartbeat and scheduler lock behavior
-- shared seed dataset for demo and regression work
-- service-level auth lifecycle proof for refresh rotation, refresh-token reuse detection, forgot-password issuance, and reset-password invalidation
-- controller-level auth route proof for body-token refresh, cookie clearing on failed refresh, and reset-password cookie cleanup
-- real Postgres auth smoke for register, session cookie issuance, refresh rotation, and logout revocation
-- real Postgres publish smoke
-- real Postgres HTTP smoke for merchant read routes
-- local SMB load proof for merchant read routes over seeded HTTP + Prisma paths
-- local worker-pressure proof for crawl checkpoint persistence and concurrency
-- real Postgres duplicate-publish regression across batches
-- operator orchestration tests for `review-ops`
-- repeated live Google Maps crawl benchmarks that converge to stable public review ceilings
+- auth token tables now match the live Prisma schema on fresh and existing local databases
+- route guards now enforce the simplified `USER` vs `ADMIN` split
+- admin users can inspect restaurants through dedicated admin endpoints instead of borrowing user-facing routes
+- real Postgres HTTP smoke covers user-facing read routes
+- real Postgres smoke covers publish and duplicate publish behavior
+- Redis-backed local smoke covers worker and operator queue flow
+- shadow-database recovery proof covers restore plus app-level rollback smoke
 
-Current crawl evidence on the live `Quan Pho Hong` source:
-
-- direct full crawl, `delayMs=0`: `4527 / 4746` in about `33-36s`
-- queued backfill smoke, default backfill delay `0`: `4527 / 4746` in about `50.3s`
-- completed runs keep a mismatch warning and expose `crawlCoverage.operatorPolicy = REPORTED_TOTAL_IS_ADVISORY` when `reportedTotal > extractedCount`
-
-Current crawl evidence on the larger live `Cong Ca Phe` source:
-
-- preview metadata reported `15098`
-- direct and queued runs both converged at `9744`
-- the user-confirmed Google Maps place card also showed `9744`
-- this strongly suggests the crawler matched the visible public review surface
-
-Current crawl evidence on the even larger live `Pizza 4P's Hoang Van Thu` source:
-
-- preview metadata reported `17646`
-- direct full crawl converged at `14599`
-- queued backfill with `maxPages=1000` also converged at `14599`
-- this shows the same mismatch pattern can persist at larger scale while direct and queued modes still agree on the crawlable public review ceiling
-
-Current local SMB load evidence:
-
-- merchant reads on seeded local Postgres plus real HTTP routes:
-  - `4010` canonical reviews on the target restaurant
-  - `360` successful requests, `0` errors
-  - overall throughput about `186.32 requests/s`
-  - overall latency about `42.87ms avg`, `63.63ms p95`, `188.21ms p99`
-- review crawl workers on seeded local Postgres with synthetic checkpoint writes and local Memurai-backed BullMQ transport:
-  - `24` queued runs at concurrency `4`
-  - `5760` raw reviews persisted across `288` synthetic pages
-  - about `5.8 runs/s`, `69.59 pages/s`, `1391.71 raw reviews/s`
-  - observed max running concurrency `4`
-- operator-triggered `review-ops sync-to-draft` smoke with local Memurai-backed BullMQ transport:
-  - `INCREMENTAL` queued run reached terminal `PARTIAL` in about `14.21s`
-  - `200` extracted and valid raw reviews auto-materialized into a `DRAFT` intake batch
-  - batch readiness showed `200` pending items and the expected `NO_APPROVED_ITEMS` publish blocker
-- local logical recovery drill on the shared demo dataset:
-  - `2` seeded restaurants were snapshotted, damaged, and restored in about `1.96s`
-  - the restored semantic digest matched the baseline digest exactly
-  - the drill preserved canonical reviews, intake batches and items, crawl runtime rows, and dashboard aggregates
-- local staging-compatible recovery rehearsal on a separately migrated shadow database:
-  - `npm run smoke:staging-recovery-drill`
-  - latest local run restored `2` restaurants, `3` users, `16` canonical reviews, `3` batches, `19` intake items, `1` crawl source, `1` crawl run, and `4` raw reviews in about `8.15s`
-  - source and target semantic digests matched exactly
-  - target and rollback smoke both returned `200` for `/health`, `/api/health`, `GET /api/restaurants`, `GET /api/restaurants/:id`, and `GET /api/restaurants/:id/dashboard/kpi`
-
-## 6. Seed And Demo Data
-
-The shared seed dataset currently creates:
-
-- 2 restaurants
-- 3 users with realistic access boundaries
-- published baseline data
-- an open Google Maps crawl draft batch
-- a crawl source, a crawl run, and raw review audit rows
-- at least one invalid raw review example to exercise readiness diagnostics
-
-## 7. What Is Still Missing
+## 8. What Is Still Missing
 
 The backend is still not fully release-ready. Main remaining gaps:
 
@@ -209,20 +223,17 @@ The backend is still not fully release-ready. Main remaining gaps:
 - real deployed staging evidence and managed-environment backup, restore, and rollback drills beyond the current local shadow-database rehearsal
 - continued refactor of older auth and restaurant modules toward the same feature-module shape
 
-## 8. Short Conclusion
+## 9. Short Conclusion
 
-The backend is well past the demo-only stage.
+The backend is already beyond the demo-only stage.
 
-It already has:
+The important contract is now simpler than before:
 
-- a sound manual-first data model
-- a controlled publish boundary
-- queue-based crawl infrastructure outside the request path
-- a backend-only operator layer that reduces internal crawl-to-draft work
-- seed and real-database proof for core publish behavior
-- local SMB load proof for merchant reads and worker checkpoint pressure
-- a local logical recovery drill for seeded restaurant state
-- a local shadow-database recovery rehearsal that proves restore plus app-level rollback smoke on a separately migrated target database
-- real benchmark evidence that the crawler can handle larger sources operationally
+- user-facing app flow belongs to `USER`
+- admin control-plane flow belongs to `ADMIN`
+- restaurant membership answers scope, not privilege level
 
-The remaining work is mostly about managed-environment evidence, staging evidence, and release discipline, not missing core business flow.
+That keeps the codebase closer to the real product goal:
+
+- users read stable restaurant intelligence
+- admins operate intake, crawl, and publish mechanics

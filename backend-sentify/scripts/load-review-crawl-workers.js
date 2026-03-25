@@ -639,7 +639,7 @@ async function main() {
 
     try {
         const seedSummary = await seedDemoData({ prisma })
-        const ownerUserId = seedSummary.users.owner.id
+        const operatorUserId = seedSummary.users.admin.id
         const restaurantId = seedSummary.restaurants.phoHong.id
         const sources = await createSyntheticSources(
             prisma,
@@ -659,7 +659,7 @@ async function main() {
         const runs = await Promise.all(
             sources.map((source) =>
                 reviewCrawlService.createReviewCrawlRun({
-                    userId: ownerUserId,
+                    userId: operatorUserId,
                     sourceId: source.id,
                     input: {
                         strategy: 'BACKFILL',

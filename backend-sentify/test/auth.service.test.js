@@ -46,6 +46,7 @@ test('auth service changes password and returns new access token', async () => {
                 id: 'user-1',
                 email: 'owner@sentify.com',
                 fullName: 'Sentify Owner',
+                role: 'USER',
                 passwordHash: 'old-hash',
                 tokenVersion: 0,
             }),
@@ -55,6 +56,7 @@ test('auth service changes password and returns new access token', async () => {
                     id: 'user-1',
                     email: 'owner@sentify.com',
                     fullName: 'Sentify Owner',
+                    role: 'USER',
                     tokenVersion: 1,
                 }
             },
@@ -76,6 +78,7 @@ test('auth service changes password and returns new access token', async () => {
     assert.equal(updateArgs.data.passwordHash, 'hashed-password')
     assert.equal(updateArgs.data.tokenVersion.increment, 1)
     assert.equal(result.user.id, 'user-1')
+    assert.equal(result.user.role, 'USER')
     assert.equal(typeof result.accessToken, 'string')
 
     restoreModules()
@@ -97,6 +100,7 @@ test('auth service rejects invalid current password', async () => {
                 id: 'user-1',
                 email: 'owner@sentify.com',
                 fullName: 'Sentify Owner',
+                role: 'USER',
                 passwordHash: 'old-hash',
                 tokenVersion: 0,
             }),
@@ -121,3 +125,79 @@ test('auth service rejects invalid current password', async () => {
 
     restoreModules()
 })
+
+test('auth service session maps user memberships without restaurant sub-roles', async () => {
+    restoreModules()
+
+    withMock('../src/lib/prisma', {
+        user: {
+            findUnique: async () => ({
+                id: 'user-1',
+                email: 'user@sentify.com',
+                fullName: 'Sentify User',
+                role: 'USER',
+                restaurants: [
+                    {
+                        restaurant: {
+                            id: 'resto-1',
+                            name: 'Cafe One',
+                            slug: 'cafe-one',
+                            address: '1 Demo Street',
+                            googleMapUrl: 'https://maps.app.goo.gl/demo',
+                        },
+                    },
+                ],
+            }),
+        },
+    })
+
+    const authService = require('../src/services/auth.service')
+    const result = await authService.getSession({ userId: 'user-1' })
+
+    assert.deepEqual(result.user, {
+        id: 'user-1',
+        email: 'user@sentify.com',
+        fullName: 'Sentify User',
+        role: 'USER',
+        restaurants: [
+            {
+                id: 'resto-1',
+                name: 'Cafe One',
+                slug: 'cafe-one',
+            },
+        ],
+    })
+    assert.equal('permission' in result.user.restaurants[0], false)
+
+    restoreModules()
+})
+
+test('auth service session preserves admin role without requiring restaurant memberships', async () => {
+    restoreModules()
+
+    withMock('../src/lib/prisma', {
+        user: {
+            findUnique: async () => ({
+                id: 'admin-1',
+                email: 'admin@sentify.com',
+                fullName: 'Sentify Admin',
+                role: 'ADMIN',
+                restaurants: [],
+            }),
+        },
+    })
+
+    const authService = require('../src/services/auth.service')
+    const result = await authService.getSession({ userId: 'admin-1' })
+
+    assert.deepEqual(result.user, {
+        id: 'admin-1',
+        email: 'admin@sentify.com',
+        fullName: 'Sentify Admin',
+        role: 'ADMIN',
+        restaurants: [],
+    })
+
+    restoreModules()
+})
+

@@ -14,11 +14,43 @@ function withMock(modulePath, exports) {
     }
 }
 
+function mockInternalOperatorAccess(onCall) {
+    withMock('../src/services/user-access.service', {
+        getUserRoleAccess: async (args) => {
+            if (typeof onCall === 'function') {
+                return onCall(args)
+            }
+
+            return {
+                id: args.userId,
+                role: 'ADMIN',
+            }
+        },
+    })
+}
+
+function mockRestaurantLookup(onCall) {
+    withMock('../src/services/restaurant-access.service', {
+        ensureRestaurantExists: async (args) => {
+            if (typeof onCall === 'function') {
+                return onCall(args)
+            }
+
+            return {
+                restaurant: {
+                    id: args.restaurantId,
+                },
+            }
+        },
+    })
+}
+
 function restoreModules() {
     clearModule('../src/modules/admin-intake/admin-intake.domain')
     clearModule('../src/modules/admin-intake/admin-intake.service')
     clearModule('../src/modules/admin-intake/admin-intake.repository')
     clearModule('../src/services/restaurant-access.service')
+    clearModule('../src/services/user-access.service')
     clearModule('../src/services/sentiment-analyzer.service')
     clearModule('../src/services/insight.service')
 }
@@ -27,13 +59,20 @@ test('admin intake service creates a batch with editor access', async () => {
     restoreModules()
 
     let accessArgs = null
+    let restaurantLookupArgs = null
     let createdPayload = null
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async (args) => {
-            accessArgs = args
-            return { restaurant: { id: args.restaurantId } }
-        },
+    mockInternalOperatorAccess(async (args) => {
+        accessArgs = args
+        return { id: args.userId, role: 'ADMIN' }
+    })
+    mockRestaurantLookup(async (args) => {
+        restaurantLookupArgs = args
+        return {
+            restaurant: {
+                id: args.restaurantId,
+            },
+        }
     })
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         createBatch: async (payload) => {
@@ -62,8 +101,8 @@ test('admin intake service creates a batch with editor access', async () => {
     })
 
     assert.equal(accessArgs.userId, 'user-1')
-    assert.equal(accessArgs.restaurantId, 'restaurant-1')
-    assert.deepEqual(accessArgs.allowedPermissions, ['OWNER', 'MANAGER'])
+    assert.equal(restaurantLookupArgs.restaurantId, 'restaurant-1')
+    assert.deepEqual(accessArgs.allowedRoles, ['ADMIN'])
     assert.equal(createdPayload.title, 'March batch')
     assert.equal(result.status, 'DRAFT')
     assert.equal(result.counts.totalItems, 0)
@@ -113,11 +152,9 @@ test('admin intake service adds items and updates batch status', async () => {
         updatedAt: new Date('2026-03-10T00:00:00Z'),
     }
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => {
-            accessChecked = true
-            return { restaurant: { id: 'restaurant-1' } }
-        },
+    mockInternalOperatorAccess(async (args) => {
+        accessChecked = true
+        return { id: args.userId, role: 'ADMIN' }
     })
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         findBatchById: async () => {
@@ -182,11 +219,9 @@ test('admin intake service updates an item and refreshes batch status', async ()
         updatedAt: new Date('2026-03-10T00:00:00Z'),
     }
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => {
-            accessChecked = true
-            return { restaurant: { id: 'restaurant-1' } }
-        },
+    mockInternalOperatorAccess(async (args) => {
+        accessChecked = true
+        return { id: args.userId, role: 'ADMIN' }
     })
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         findItemById: async () => ({
@@ -294,9 +329,7 @@ test('admin intake service updates an item and refreshes batch status', async ()
 test('admin intake service rejects approval when the item has no usable review evidence', async () => {
     restoreModules()
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurant: { id: 'restaurant-1' } }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/services/sentiment-analyzer.service', {
         analyzeReviewSync: () => ({
             label: 'NEUTRAL',
@@ -350,9 +383,7 @@ test('admin intake service rejects approval when the item has no usable review e
 test('admin intake service rejects publish when no approved items exist', async () => {
     restoreModules()
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurant: { id: 'restaurant-1' } }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         findBatchById: async () => ({
             id: 'batch-1',
@@ -438,11 +469,9 @@ test('admin intake service publishes approved items and rebuilds insights', asyn
         ],
     }
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => {
-            accessChecked = true
-            return { restaurant: { id: 'restaurant-1' } }
-        },
+    mockInternalOperatorAccess(async (args) => {
+        accessChecked = true
+        return { id: args.userId, role: 'ADMIN' }
     })
     withMock('../src/services/sentiment-analyzer.service', {
         analyzeReviewSync: ({ rating }) => ({
@@ -641,11 +670,9 @@ test('admin intake service bulk adds unique items and skips duplicates', async (
         updatedAt: new Date('2026-03-10T00:00:00Z'),
     }
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => {
-            accessChecked = true
-            return { restaurant: { id: 'restaurant-1' } }
-        },
+    mockInternalOperatorAccess(async (args) => {
+        accessChecked = true
+        return { id: args.userId, role: 'ADMIN' }
     })
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         findBatchById: async () => {
@@ -720,11 +747,9 @@ test('admin intake service deletes a review item and refreshes batch status', as
         updatedAt: new Date('2026-03-10T00:00:00Z'),
     }
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => {
-            accessChecked = true
-            return { restaurant: { id: 'restaurant-1' } }
-        },
+    mockInternalOperatorAccess(async (args) => {
+        accessChecked = true
+        return { id: args.userId, role: 'ADMIN' }
     })
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         findItemById: async () => ({
@@ -785,11 +810,9 @@ test('admin intake service deletes a draft batch', async () => {
         status: 'DRAFT',
     }
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => {
-            accessChecked = true
-            return { restaurant: { id: 'restaurant-1' } }
-        },
+    mockInternalOperatorAccess(async (args) => {
+        accessChecked = true
+        return { id: args.userId, role: 'ADMIN' }
     })
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         findBatchById: async () => batch,

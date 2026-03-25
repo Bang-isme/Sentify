@@ -12,14 +12,22 @@ Source-of-truth docs:
 
 ## 1. Goals
 
-The backend is no longer mock-only. The test strategy now has six practical layers:
+The backend test strategy now has six practical layers:
 
-1. fast day-to-day tests for development
-2. real Postgres smoke for publish and canonical data updates
+1. fast unit and mocked integration tests for daily development
+2. real Postgres smoke for auth, publish, and canonical data updates
 3. queued crawl runtime proof for background ingestion
-4. seeded HTTP smoke for merchant-read routes
-5. local SMB load proof for merchant-read latency and throughput
-6. local worker-pressure, operator-path, and shadow-database recovery proof for crawl checkpoint persistence plus rollback-oriented ops evidence
+4. seeded HTTP smoke for user-facing routes
+5. local SMB load proof for user-facing latency and throughput
+6. local recovery, queue, and shadow-database drills for operational confidence
+
+Important role-testing principle:
+
+- the product remains merchant-first and admin-curated
+- the runtime role model is now simplified to:
+  - `USER`
+  - `ADMIN`
+- tests should prove both the role boundary and the restaurant-scope boundary
 
 ## 2. Current Test Layers
 
@@ -37,11 +45,13 @@ Unit tests                 Current baseline
 
 - unit tests for services, parsers, validation, and domain helpers
 - mocked integration tests for controller and request/response behavior
-- auth integration for cookie + CSRF handshake
+- auth integration for cookie plus CSRF handshake
 - auth integration for body-token refresh, refresh-failure cookie clearing, and forgot/reset controller contracts
-- service-level auth lifecycle coverage for refresh rotation/reuse and forgot/reset password flows
+- service-level auth lifecycle coverage for refresh rotation, reuse handling, forgot-password, and reset-password
 - publish-path coverage for canonical review reuse
 - queue/runtime coverage for BullMQ-safe job ids and worker lifecycle
+- role-boundary integration coverage for `USER` versus `ADMIN`
+- admin restaurant overview coverage for the new admin discovery flow
 
 ### Real-data coverage already in place
 
@@ -50,9 +60,10 @@ Unit tests                 Current baseline
 - `npm run load:merchant-reads -- --extra-reviews 4000 --concurrency 8 --rounds 45 --output load-reports/merchant-reads-smb-local.json`
 - `npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-per-run 12 --reviews-per-page 20 --step-ms 40 --output load-reports/review-crawl-workers-smb-local.json`
 - `npm run smoke:review-ops-sync-draft -- --url "..."` for operator-triggered queue proof
-- `npm run smoke:staging-recovery-drill` for shadow-database restore plus rollback rehearsal
-- `npm run smoke:review-crawl-queue -- --url "..."`
-- `test/merchant-read.realdb.test.js` for full HTTP merchant-read proof on seeded Postgres
+- `npm run smoke:review-crawl-queue -- --url "..."` for queue-backed crawl proof
+- `npm run smoke:recovery-drill`
+- `npm run smoke:staging-recovery-drill`
+- `test/merchant-read.realdb.test.js` for end-to-end user-facing HTTP proof on seeded Postgres
 
 ## 3. File Pattern
 
@@ -78,22 +89,31 @@ Meaning:
 
 Current real-DB suite:
 
-- `auth.realdb.test.js`: register -> session cookie -> refresh rotation -> logout proof on real Postgres
+- `auth.realdb.test.js`: register -> session cookie -> refresh rotation -> logout proof
 - `duplicate-publish.realdb.test.js`: same source review across multiple batches must reuse canonical review rows and keep insight totals stable
 - `publish.realdb.test.js`: publish -> canonical review -> dashboard refresh
-- `merchant-read.realdb.test.js`: route -> auth -> service -> Prisma proof for merchant reads
+- `merchant-read.realdb.test.js`: user-facing route -> auth -> service -> Prisma proof, plus `USER` versus `ADMIN` boundaries and admin restaurant overview smoke
 
 Current auth-lifecycle service suite:
 
-- `refresh-token.service.test.js`: rotation, family-wide revoke on reuse, invalid and expired token handling, revoke-all behavior
-- `password-reset.service.test.js`: enumeration-safe forgot-password behavior, reset token issuance, invalid/used/expired reset handling, credential invalidation and refresh-session revocation
+- `refresh-token.service.test.js`
+- `password-reset.service.test.js`
+
+Current role and route boundary suite:
+
+- `data-isolation.integration.test.js`
+- `admin-restaurants.integration.test.js`
+- `auth.integration.test.js`
 
 ## 4. Shared Seed Dataset
 
 The shared seed currently provides:
 
 - 2 restaurants
-- owner, manager, and outsider memberships
+- 5 users:
+  - 3 `USER` accounts with restaurant membership
+  - 1 `USER` outsider without restaurant membership
+  - 1 `ADMIN` operator
 - 2 published baseline batches
 - 1 open Google Maps crawl draft batch
 - 1 queued-crawl audit trail with raw reviews
@@ -101,12 +121,12 @@ The shared seed currently provides:
 
 This dataset must support:
 
-- dashboard demo
+- user-facing dashboard demo
 - review evidence demo
 - admin curation demo
 - publish smoke
-- merchant-read HTTP smoke
-- later frontend integration fixes
+- role-boundary smoke
+- user-flow versus admin-flow verification
 
 ## 5. Commands
 
@@ -157,36 +177,28 @@ npm run load:merchant-reads -- --extra-reviews 4000 --concurrency 8 --rounds 45 
 npm run load:review-crawl-workers -- --source-count 24 --concurrency 4 --pages-per-run 12 --reviews-per-page 20 --step-ms 40 --output load-reports/review-crawl-workers-smb-local.json
 ```
 
-Local recovery drill:
+Recovery drills:
 
 ```powershell
 cd "D:\Project 3\backend-sentify"
 npm run smoke:recovery-drill
-```
-
-Local staging-compatible recovery drill:
-
-```powershell
-cd "D:\Project 3\backend-sentify"
 npm run smoke:staging-recovery-drill
 ```
-
-Current local baseline:
-
-- about `8.15s` wall clock
-- exact digest match between source and restored target
-- target and rollback both passed health plus authenticated merchant-read smoke
 
 ## 6. Minimum Evidence
 
 | Area | Minimum expected evidence |
 |---|---|
-| Auth | register, login, logout, session, invalid token, expired token, permission denial, refresh rotation and reuse detection, forgot/reset password lifecycle |
+| Auth | register, login, logout, session, invalid token, expired token, refresh rotation and reuse detection, forgot/reset password lifecycle |
 | CSRF | issue cookie, missing token -> `403`, correct token -> success |
-| Restaurant access | owner, manager, outsider behavior |
-| Merchant read routes | seeded `GET /api/restaurants`, `/:id`, `/:id/reviews`, KPI, sentiment, trend, complaints, top issue |
+| User flow role boundary | `USER` can use `/api/restaurants/*`; `ADMIN` gets `403` there |
+| Restaurant scope boundary | member can read own restaurant; outsider gets `404` |
+| Admin flow role boundary | `USER` gets `403` on `/api/admin/*`; `ADMIN` is allowed |
+| User-facing routes | seeded `GET /api/restaurants`, `/:id`, `/:id/reviews`, KPI, sentiment, trend, complaints, top issue |
+| Admin overview flow | `GET /api/admin/restaurants` and `GET /api/admin/restaurants/:id` expose restaurant discovery plus combined `userFlow` and `adminFlow` overview |
 | Admin intake | create, add, update, delete, publish, duplicate reuse |
 | Review crawl | source upsert, queued run, worker processing, materialize-intake |
+| Review ops | sync-to-draft, source list, run detail, readiness, approve-valid, publish |
 | Performance | local SMB read-load report and worker-pressure report for high-risk backend changes |
 | Ops | `/health`, `/api/health`, migrations, seed, worker startup, local logical recovery drill, shadow-database restore plus rollback rehearsal |
 
@@ -195,7 +207,8 @@ Current local baseline:
 The main testing gaps still left are:
 
 - managed Redis or staging-backed queue proof beyond local Memurai compatibility
-- real staging proof and managed-environment backup, restore, and rollback beyond the local logical and shadow-database recovery drills
+- real staging proof and managed-environment backup, restore, and rollback beyond local logical and shadow-database drills
+- browser E2E for the full user-facing path and admin publish path
 
 ## 8. Merge Gate
 
@@ -203,5 +216,10 @@ The main testing gaps still left are:
 - `npm run db:validate` passes
 - any high-risk backend change ships with test or smoke evidence
 - changes to publish or crawl runtime need real evidence, not only mocks
-- read-path or worker runtime performance changes should refresh the local load report or equivalent evidence
-- public contract docs stay synced when behavior changes
+- role-boundary changes must prove:
+  - `USER` allow on `/api/restaurants/*`
+  - `USER` deny on `/api/admin/*`
+  - `ADMIN` allow on `/api/admin/*`
+  - `ADMIN` deny on `/api/restaurants/*`
+- user-facing or worker performance changes should refresh the local load report or equivalent evidence
+- source-of-truth docs stay synced when behavior changes

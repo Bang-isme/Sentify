@@ -1,5 +1,7 @@
 const { notFound } = require('../../lib/app-error')
-const { getRestaurantAccess } = require('../../services/restaurant-access.service')
+const { ensureRestaurantExists } = require('../../services/restaurant-access.service')
+const { INTERNAL_OPERATOR_ROLES } = require('../../lib/user-roles')
+const { getUserRoleAccess } = require('../../services/user-access.service')
 const adminIntakeDomain = require('../admin-intake/admin-intake.domain')
 const adminIntakeRepository = require('../admin-intake/admin-intake.repository')
 const adminIntakeService = require('../admin-intake/admin-intake.service')
@@ -13,26 +15,28 @@ const reviewCrawlRepository = require('../review-crawl/review-crawl.repository')
 const { readReviewCrawlWorkerHealth } = require('../review-crawl/review-crawl.runtime')
 const reviewCrawlService = require('../review-crawl/review-crawl.service')
 
-async function ensureRestaurantEditorAccess(userId, restaurantId) {
-    return getRestaurantAccess({
+async function ensureInternalOperatorAccess(userId) {
+    return getUserRoleAccess({
         userId,
-        restaurantId,
-        allowedPermissions: ['OWNER', 'MANAGER'],
+        allowedRoles: INTERNAL_OPERATOR_ROLES,
     })
 }
 
 async function ensureSourceAccess(userId, sourceId, options = {}) {
+    await ensureInternalOperatorAccess(userId)
+
     const source = await reviewCrawlRepository.findSourceById(sourceId, options)
 
     if (!source) {
         throw notFound('NOT_FOUND', 'Review crawl source not found')
     }
 
-    await ensureRestaurantEditorAccess(userId, source.restaurantId)
     return source
 }
 
 async function ensureBatchAccess(userId, batchId) {
+    await ensureInternalOperatorAccess(userId)
+
     const batch = await adminIntakeRepository.findBatchById(batchId, {
         includeItems: true,
     })
@@ -41,7 +45,6 @@ async function ensureBatchAccess(userId, batchId) {
         throw notFound('NOT_FOUND', 'Review batch not found')
     }
 
-    await ensureRestaurantEditorAccess(userId, batch.restaurantId)
     return batch
 }
 
@@ -150,7 +153,8 @@ function mapOperatorSource(source) {
 }
 
 async function listSources({ userId, restaurantId }) {
-    await ensureRestaurantEditorAccess(userId, restaurantId)
+    await ensureInternalOperatorAccess(userId)
+    await ensureRestaurantExists({ restaurantId })
 
     const [sources, queueHealth, workerHealth, overdueSourceCount] = await Promise.all([
         reviewCrawlRepository.listSourcesByRestaurant(restaurantId),

@@ -12,13 +12,14 @@ const realDbTest =
 
 realDbTest('real DB publish smoke updates canonical reviews, dataset status, and dashboard insights', async () => {
     const seedSummary = await seedDemoData({ prisma })
-    const ownerUserId = seedSummary.users.owner.id
+    const userPrimaryId = seedSummary.users.userPrimary.id
+    const adminUserId = seedSummary.users.admin.id
     const uniqueSuffix = Date.now()
     let restaurantId = null
 
     try {
         const restaurant = await restaurantService.createRestaurant({
-            userId: ownerUserId,
+            userId: userPrimaryId,
             name: `Real DB Smoke ${uniqueSuffix}`,
             address: 'Seeded smoke lane',
             googleMapUrl: GOOGLE_MAPS_DEMO_URL,
@@ -26,14 +27,14 @@ realDbTest('real DB publish smoke updates canonical reviews, dataset status, and
         restaurantId = restaurant.id
 
         const createdBatch = await adminIntakeService.createReviewBatch({
-            userId: ownerUserId,
+            userId: adminUserId,
             restaurantId,
             sourceType: 'MANUAL',
             title: 'Real DB smoke publish batch',
         })
 
         const addedBatch = await adminIntakeService.addReviewItemsBulk({
-            userId: ownerUserId,
+            userId: adminUserId,
             batchId: createdBatch.id,
             items: [
                 {
@@ -59,7 +60,7 @@ realDbTest('real DB publish smoke updates canonical reviews, dataset status, and
 
         for (const item of addedBatch.items) {
             await adminIntakeService.updateReviewItem({
-                userId: ownerUserId,
+                userId: adminUserId,
                 itemId: item.id,
                 input: {
                     approvalStatus: 'APPROVED',
@@ -68,7 +69,7 @@ realDbTest('real DB publish smoke updates canonical reviews, dataset status, and
         }
 
         const publishResult = await adminIntakeService.publishReviewBatch({
-            userId: ownerUserId,
+            userId: adminUserId,
             batchId: createdBatch.id,
         })
 
@@ -99,7 +100,7 @@ realDbTest('real DB publish smoke updates canonical reviews, dataset status, and
         assert.ok(reviewRows[0].keywords.includes('slow'))
 
         const kpi = await dashboardService.getRestaurantKpi({
-            userId: ownerUserId,
+            userId: userPrimaryId,
             restaurantId,
         })
         assert.equal(kpi.totalReviews, 2)
@@ -107,13 +108,13 @@ realDbTest('real DB publish smoke updates canonical reviews, dataset status, and
         assert.equal(kpi.negativePercentage, 50)
 
         const complaints = await dashboardService.getComplaintKeywords({
-            userId: ownerUserId,
+            userId: userPrimaryId,
             restaurantId,
         })
         assert.ok(complaints.some((keyword) => keyword.keyword === 'slow'))
 
         const detail = await restaurantService.getRestaurantDetail({
-            userId: ownerUserId,
+            userId: userPrimaryId,
             restaurantId,
         })
         assert.equal(detail.datasetStatus.lastPublishedSourceType, 'MANUAL')
@@ -129,3 +130,4 @@ realDbTest('real DB publish smoke updates canonical reviews, dataset status, and
         }
     }
 })
+

@@ -52,7 +52,8 @@ realDbTest(
     'real DB duplicate publish regression reuses canonical reviews across batches and keeps insight totals stable',
     async () => {
         const seedSummary = await seedDemoData({ prisma })
-        const ownerUserId = seedSummary.users.owner.id
+        const userPrimaryId = seedSummary.users.userPrimary.id
+        const adminUserId = seedSummary.users.admin.id
         const uniqueSuffix = Date.now()
         const sharedSourceExternalId = `duplicate-publish-${uniqueSuffix}-shared`
         const sharedCanonicalExternalId = `source-review:v1:google_maps:${sharedSourceExternalId}`
@@ -60,7 +61,7 @@ realDbTest(
 
         try {
             const restaurant = await restaurantService.createRestaurant({
-                userId: ownerUserId,
+                userId: userPrimaryId,
                 name: `Duplicate Publish Smoke ${uniqueSuffix}`,
                 address: 'Duplicate publish lane',
                 googleMapUrl: GOOGLE_MAPS_DEMO_URL,
@@ -68,7 +69,7 @@ realDbTest(
             restaurantId = restaurant.id
 
             const firstPublish = await createAndPublishBatch({
-                userId: ownerUserId,
+                userId: adminUserId,
                 restaurantId,
                 title: 'Duplicate publish batch 1',
                 items: [
@@ -134,7 +135,7 @@ realDbTest(
             )
 
             const secondPublish = await createAndPublishBatch({
-                userId: ownerUserId,
+                userId: adminUserId,
                 restaurantId,
                 title: 'Duplicate publish batch 2',
                 items: [
@@ -210,7 +211,7 @@ realDbTest(
             )
 
             const kpi = await dashboardService.getRestaurantKpi({
-                userId: ownerUserId,
+                userId: userPrimaryId,
                 restaurantId,
             })
             assert.deepEqual(kpi, {
@@ -222,7 +223,7 @@ realDbTest(
             })
 
             const complaints = await dashboardService.getComplaintKeywords({
-                userId: ownerUserId,
+                userId: userPrimaryId,
                 restaurantId,
             })
             assert.ok(complaints.some((keyword) => keyword.keyword === 'slow'))
@@ -244,13 +245,14 @@ realDbTest(
 
 realDbTest('real DB publish flow rejects republishing a locked batch', async () => {
     const seedSummary = await seedDemoData({ prisma })
-    const ownerUserId = seedSummary.users.owner.id
+    const userPrimaryId = seedSummary.users.userPrimary.id
+    const adminUserId = seedSummary.users.admin.id
     const uniqueSuffix = Date.now()
     let restaurantId = null
 
     try {
         const restaurant = await restaurantService.createRestaurant({
-            userId: ownerUserId,
+            userId: userPrimaryId,
             name: `Republish Lock Smoke ${uniqueSuffix}`,
             address: 'Republish lock lane',
             googleMapUrl: GOOGLE_MAPS_DEMO_URL,
@@ -258,7 +260,7 @@ realDbTest('real DB publish flow rejects republishing a locked batch', async () 
         restaurantId = restaurant.id
 
         const publishResult = await createAndPublishBatch({
-            userId: ownerUserId,
+            userId: adminUserId,
             restaurantId,
             title: 'Republish lock batch',
             items: [
@@ -278,7 +280,7 @@ realDbTest('real DB publish flow rejects republishing a locked batch', async () 
 
         await assert.rejects(
             adminIntakeService.publishReviewBatch({
-                userId: ownerUserId,
+                userId: adminUserId,
                 batchId: publishResult.batch.id,
             }),
             (error) => error?.code === 'INTAKE_BATCH_LOCKED',
@@ -297,3 +299,4 @@ realDbTest('real DB publish flow rejects republishing a locked batch', async () 
 test.after(async () => {
     await prisma.$disconnect()
 })
+

@@ -4,13 +4,16 @@ const dashboardController = require('../controllers/dashboard.controller')
 const reviewsController = require('../controllers/reviews.controller')
 const restaurantController = require('../controllers/restaurants.controller')
 const authMiddleware = require('../middleware/auth')
+const requireUserRole = require('../middleware/require-user-role')
 const { validateUuidParam } = require('../middleware/validate-uuid')
+const { USER_ROLE } = require('../lib/user-roles')
 
 const router = express.Router()
 
 const validateId = validateUuidParam('id')
 
 router.use(authMiddleware)
+router.use(requireUserRole(USER_ROLE.USER))
 
 router.post('/', restaurantController.createRestaurant)
 router.get('/', restaurantController.listRestaurants)

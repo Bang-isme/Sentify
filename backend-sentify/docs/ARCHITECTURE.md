@@ -3,20 +3,31 @@
 Updated: 2026-03-25
 
 This document describes the backend as it exists in the current codebase.
-It intentionally avoids future-only roles and flows that are not implemented yet.
+
+It keeps one important distinction explicit:
+
+- the product still has two actor groups from the proposal:
+  - user-facing restaurant users
+  - internal admins
+- the runtime implementation now models that split with only two system roles:
+  - `USER`
+  - `ADMIN`
 
 ## Runtime Shape
 
 Sentify backend is a modular monolith built with:
 
-- Node.js + Express 5
-- PostgreSQL + Prisma 7
+- Node.js
+- Express 5
+- PostgreSQL
+- Prisma 7
+- BullMQ plus Redis for queued crawl work
 - CommonJS runtime
 
 Entry points:
 
-- `src/server.js`: process lifecycle, startup, graceful shutdown
-- `src/app.js`: Express middleware and route mounting
+- `src/server.js`: process lifecycle and graceful shutdown
+- `src/app.js`: middleware and route mounting
 
 Mounted route groups:
 
@@ -25,17 +36,6 @@ Mounted route groups:
 - `/api/admin`
 - `/health`
 - `/api/health`
-
-## Current Module Layout
-
-The codebase is currently in a mixed state:
-
-- `admin-intake` follows a feature-module pattern under `src/modules/admin-intake/`
-- `review-crawl` follows a feature-module pattern under `src/modules/review-crawl/`
-- `review-ops` now sits above those two modules as a backend-only orchestration layer
-- auth, restaurants, reviews, dashboard, and insights still use the older `routes/ + controllers/ + services/` layout
-
-This means the backend is already modular, but the refactor toward a fully feature-oriented structure is not finished yet.
 
 ## Directory Map
 
@@ -60,9 +60,9 @@ backend-sentify/
       app-error.js
       auth-cookie.js
       controller-error.js
-      math.js
       prisma.js
       security-event.js
+      user-roles.js
     middleware/
       auth.js
       csrf.js
@@ -70,9 +70,14 @@ backend-sentify/
       rate-limit.js
       request-id.js
       request-logger.js
-      require-permission.js
+      require-internal-role.js
+      require-user-role.js
       validate-uuid.js
     modules/
+      admin-restaurants/
+        admin-restaurants.controller.js
+        admin-restaurants.routes.js
+        admin-restaurants.service.js
       admin-intake/
         admin-intake.controller.js
         admin-intake.domain.js
@@ -80,11 +85,6 @@ backend-sentify/
         admin-intake.routes.js
         admin-intake.service.js
         admin-intake.validation.js
-      review-ops/
-        review-ops.controller.js
-        review-ops.routes.js
-        review-ops.service.js
-        review-ops.validation.js
       review-crawl/
         google-maps.parser.js
         google-maps.routes.js
@@ -96,6 +96,11 @@ backend-sentify/
         review-crawl.repository.js
         review-crawl.runtime.js
         review-crawl.service.js
+      review-ops/
+        review-ops.controller.js
+        review-ops.routes.js
+        review-ops.service.js
+        review-ops.validation.js
     routes/
       auth.js
       restaurants.js
@@ -110,168 +115,245 @@ backend-sentify/
       restaurant.service.js
       review.service.js
       sentiment-analyzer.service.js
+      user-access.service.js
   test/
 ```
+
+## Module Layout
+
+The backend is currently split into two styles:
+
+- feature modules under `src/modules/*` for admin-facing orchestration areas
+- older route-controller-service slices for auth and user-facing restaurant reads
+
+Current feature modules:
+
+- `admin-restaurants`
+- `admin-intake`
+- `review-crawl`
+- `review-ops`
+
+This means the codebase is already modular, but the full refactor to one uniform module style is still unfinished.
 
 ## Request Flow
 
 Typical request lifecycle:
 
 1. `request-id` assigns `req.requestId`
-2. `request-logger` measures and logs the request
-3. `cors`, `helmet`, body parsers
-4. global `/api` rate limit
-5. `csrfProtection`
-6. route matching
-7. optional `auth` middleware
-8. optional `require-permission`
-9. controller validation with Zod
-10. service execution
-11. Prisma / repository access
-12. JSON response or mapped error
+2. `request-logger` records timing and outcome
+3. `cors`, `helmet`, and body parsers run
+4. global `/api` rate limit applies
+5. `csrfProtection` checks cookie-authenticated writes
+6. route match happens
+7. `auth` optionally loads the authenticated user
+8. one of the role guards may run:
+   - `require-user-role`
+   - `require-internal-role`
+9. controller validates input
+10. service executes business logic
+11. Prisma persists or reads data
+12. response or mapped error is returned
 
 ## Auth and Session Model
 
-Current auth implementation supports both:
+The auth model supports both:
 
-- Bearer token via `Authorization: Bearer ...`
-- cookie-based session via `sentify_access_token`
+- bearer token auth
+- cookie-based browser auth
 
-Additional auth features already implemented:
+Security features already implemented:
 
 - refresh token rotation
 - password reset tokens
 - login lockout after repeated failures
 - token revocation through `tokenVersion`
-- fallback verification with `JWT_SECRET_PREVIOUS`
+- optional fallback verification with `JWT_SECRET_PREVIOUS`
+- CSRF double-submit protection for cookie-authenticated writes
 
-Important implementation notes:
+Operational notes:
 
-- `csrf.js` enforces double-submit protection for cookie-authenticated write requests
-- the CSRF contract now covers both access-cookie and refresh-cookie write paths
-- auth controllers issue `XSRF-TOKEN` on register, login, session refresh, password change, refresh, and explicit `GET /api/auth/csrf`
-- auth controllers clear `XSRF-TOKEN` on logout, refresh failure, and password reset
-- Bearer-token requests bypass CSRF validation because the browser cannot inject the bearer token from another origin
-
-This means the cookie-based auth path is now fully wired end-to-end for browser writes.
+- auth controllers issue `XSRF-TOKEN` on register, login, refresh, password change, session bootstrap, and explicit CSRF bootstrap
+- logout and refresh failure clear auth cookies and CSRF state
+- bearer-token requests bypass CSRF because the browser cannot inject the bearer token cross-site
 
 ## Authorization Model
 
-There is no global `SYSTEM_ADMIN` role in the current schema.
+### System roles
 
-Current authorization is restaurant-scoped:
+Source of truth:
 
-- `RestaurantUser.permission` can be `OWNER` or `MANAGER`
-- access checks are resolved through membership in `RestaurantUser`
+- Prisma enum in `prisma/schema.prisma`
+- runtime constants in `src/lib/user-roles.js`
 
-Admin-intake routes are not global operator routes yet. They are protected by:
+Current runtime roles:
 
-- authenticated user
-- restaurant membership
-- `OWNER` or `MANAGER` permission for the target restaurant
+- `USER`
+- `ADMIN`
+
+### Scope model
+
+Restaurant scoping is handled by `RestaurantUser`.
+
+Important rule:
+
+- `RestaurantUser` is membership only
+- it does not carry sub-roles such as owner, manager, or member anymore
+
+### Route split
+
+User-facing routes:
+
+- mounted at `/api/restaurants`
+- require `auth`
+- require `User.role = USER`
+- require restaurant membership for restaurant-scoped reads and updates
+
+Admin routes:
+
+- mounted at `/api/admin`
+- require `auth`
+- require `User.role = ADMIN`
+- do not require restaurant membership
+
+### Why the split matters
+
+This preserves the proposal's actor boundary while simplifying implementation:
+
+- restaurant users read only the stable canonical dataset
+- internal admins manage intake, crawl, readiness, and publish
+- admin users do not borrow user-facing routes to understand a restaurant
+- user-facing accounts cannot see admin-only mechanics
+
+## Endpoint Ownership by Flow
+
+### User-facing flow
+
+Owned by:
+
+- `routes/restaurants.js`
+- `controllers/restaurants.controller.js`
+- `controllers/dashboard.controller.js`
+- `controllers/reviews.controller.js`
+- `services/restaurant.service.js`
+- `services/dashboard.service.js`
+- `services/review.service.js`
+
+What it does:
+
+- create a restaurant
+- list the user's restaurants
+- read restaurant detail and dataset status
+- read dashboard aggregates
+- read canonical review evidence
+- update restaurant profile fields
+
+### Admin flow
+
+Owned by:
+
+- `modules/admin-restaurants/*`
+- `modules/admin-intake/*`
+- `modules/review-crawl/*`
+- `modules/review-ops/*`
+
+What it does:
+
+- inspect restaurant-level admin overview
+- curate intake batches
+- preview or queue Google Maps crawl runs
+- sync crawl data into draft batches
+- approve valid items
+- publish approved evidence into canonical reviews
 
 ## Data Ownership Boundaries
 
-Current ownership split:
+User-facing reads:
 
-- `restaurants`, `reviews`, `dashboard`, `insights`: merchant-facing read/update surface
-- `admin-intake`: curation workflow before publishing to canonical reviews
-- `review-crawl`: ingestion bridge that turns external Google Maps place URLs into validated intake-ready JSON
-- `review-ops`: operator control plane that reduces crawl-to-draft steps and exposes readiness/health views
-- `Review`: canonical dataset used by merchant-facing reads
-- `ReviewIntakeBatch` and `ReviewIntakeItem`: staging and review workflow
+- `Review`
+- `InsightSummary`
+- `ComplaintKeyword`
+- dataset status derived from intake and publish state
+
+Admin-side workflow state:
+
+- `ReviewIntakeBatch`
+- `ReviewIntakeItem`
+- `ReviewCrawlSource`
+- `ReviewCrawlRun`
+- `ReviewCrawlRawReview`
+
+Important invariant:
+
+- user-facing routes never read draft intake items directly as product evidence
+- publish is the boundary that moves approved evidence into canonical `Review`
 
 ## Review Crawl Flow
 
-Current Google Maps crawl architecture now has two lanes:
+The Google Maps crawl runtime has three layers:
 
-1. preview lane:
-   - `POST /api/admin/review-crawl/google-maps`
-   - synchronous, small, used for diagnostics and sampling
-2. job lane:
+1. preview lane
+   - synchronous sample fetch for diagnostics
+2. queued runtime lane
    - source upsert
-   - queued crawl run
-   - worker-side page-by-page persistence
-   - optional materialization into draft intake batch
-
-On top of that, `review-ops` adds an operator lane:
-
-- one-click Google Maps URL to draft sync
-- source list with latest run and open draft batch summary
-- run detail with queue state
-- readiness checks before publish
-- bulk approve of only valid pending items
+   - queue-backed run lifecycle
+   - persisted raw review checkpoints
+3. operator lane
+   - one-click sync to draft
+   - readiness checks
+   - admin publish follow-through
 
 Queued crawl flow:
 
-1. API resolves canonical source identity from the input URL
-2. API creates or upserts one `ReviewCrawlSource`
-3. API creates one `ReviewCrawlRun` with status `QUEUED`
-4. BullMQ enqueues the run into the `review-crawl` queue
-5. worker process claims the run lease and initializes a Google Maps review session
-6. worker fetches review pages sequentially, retries suspicious empty pages, and can recover later cursors through a fresh session
-7. worker persists normalized raw reviews page-by-page and checkpoints `nextPageToken`, counts, warnings, and known-review streak after each page
-8. premature backfill exhaustion can re-queue from the saved checkpoint cursor instead of starting again from page 1
-9. worker finishes the run as `COMPLETED`, `PARTIAL`, `FAILED`, or `CANCELLED`
-10. admin may materialize the run into a draft intake batch
-
-Why this matters:
-
-- the HTTP app is no longer responsible for long-running deep crawls
-- crawl progress survives process restarts through persisted run state
-- incremental syncs stop early when the worker hits already-known reviews
-- canonical `Review` still stays behind the admin-intake publish boundary
-- operators now get an explicit warning if Google-reported totals are larger than the public review rows the worker could actually exhaust
+1. admin upserts a crawl source
+2. admin creates a crawl run
+3. BullMQ enqueues the run
+4. worker processes pages and persists raw reviews plus checkpoint state
+5. run finishes as `COMPLETED`, `PARTIAL`, `FAILED`, or `CANCELLED`
+6. admin may materialize the run into a draft intake batch
 
 ## Review Ops Flow
 
-`review-ops` does not replace `review-crawl` or `admin-intake`.
-It composes them into a tighter operator workflow:
+`review-ops` composes the crawl and intake layers into a tighter admin workflow:
 
-1. operator sends one `sync-to-draft` request with `restaurantId` and Google Maps URL
-2. backend upserts the crawl source
-3. backend creates or reuses the active crawl run for that source
-4. backend marks the run for draft auto-materialization
-5. worker persists raw reviews page-by-page
-6. terminal `COMPLETED` or `PARTIAL` run appends valid new rows into the source's open draft batch
-7. operator uses readiness checks and bulk approval helpers
-8. publish still goes through the existing admin-intake publish transaction
+1. sync Google Maps URL to draft
+2. inspect sources and runs
+3. inspect draft readiness
+4. bulk approve valid pending items
+5. publish the batch
 
-This keeps the publish boundary manual while removing most of the low-level operator choreography.
+This module exists so the admin flow can be understood from backend endpoints without the frontend having to stitch together low-level crawl calls itself.
 
-## Publish Flow
+## Admin Restaurant Overview
 
-Current publish flow in `admin-intake.service.js`:
+`admin-restaurants` is the missing "flow map" module for internal users.
 
-1. load batch and verify it is editable
-2. filter approved intake items
-3. validate that each approved item is publishable and build canonical `Review` payload from normalized-or-raw values
-4. derive a stable manual external id from source review identity
-5. create new canonical reviews or update existing canonical reviews with the same `(restaurantId, externalId)` inside one transaction
-6. link intake items to `canonicalReviewId`, allowing multiple intake rows from different batches to reference one canonical review
-7. mark batch as `PUBLISHED`
-8. recalculate `InsightSummary` and `ComplaintKeyword`
+Its two endpoints:
 
-This is synchronous in the request path today.
+- `GET /api/admin/restaurants`
+- `GET /api/admin/restaurants/:id`
 
-## Dashboard Read Model
+exist for one reason:
 
-Current dashboard behavior:
+- admin needs one clear discovery and overview surface that explains both:
+  - what the user-facing restaurant currently looks like
+  - what the admin should do next
 
-- KPI reads from cached `InsightSummary`
-- complaint keywords read from cached `ComplaintKeyword`
-- trend is aggregated from `Review`
-- sentiment breakdown is grouped from `Review`
-- review evidence reads from canonical `Review`
+That is why the detail payload contains both:
 
-## Testing Posture
+- `userFlow`
+- `adminFlow`
 
-The project has a solid mocked test layer:
+## Current Architectural Summary
 
-- controller tests
-- service tests
-- route-level integration tests with mocked Prisma
-- auth integration coverage for cookie plus CSRF handshake
-- repository coverage for cross-batch canonical review reuse on publish
+The current backend architecture is intentionally simple:
 
-The current suite is good for business logic verification, but it is not yet a full real-database integration setup.
+- one modular monolith
+- one user-facing route family
+- one admin route family
+- one canonical dataset boundary
+
+That simplicity is now enforced by the role model too:
+
+- `USER` owns the user-facing restaurant app surface
+- `ADMIN` owns the internal control plane
+- `RestaurantUser` only scopes which restaurant a `USER` can access

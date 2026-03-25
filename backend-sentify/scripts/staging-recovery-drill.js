@@ -316,8 +316,8 @@ function summarizeHttpResponse(response) {
     }
 }
 
-async function captureSmokeSuite(baseUrl, ownerUser, targetRestaurantId) {
-    const token = createAccessToken(ownerUser)
+async function captureSmokeSuite(baseUrl, seededUser, targetRestaurantId) {
+    const token = createAccessToken(seededUser)
     const headers = {
         Authorization: `Bearer ${token}`,
     }
@@ -849,12 +849,12 @@ async function main() {
         prisma,
         targets.map((target) => target.restaurantId),
     )
-    const ownerUser = sourceSnapshot.users.find(
-        (user) => user.id === seedSummary.users.owner.id,
+    const seededUser = sourceSnapshot.users.find(
+        (user) => user.id === seedSummary.users.userPrimary.id,
     )
 
-    if (!ownerUser) {
-        throw new Error('Owner user was not found in the backup slice')
+    if (!seededUser) {
+        throw new Error('Seeded user was not found in the backup slice')
     }
 
     let targetDatabase = null
@@ -920,7 +920,7 @@ async function main() {
         targetServer = await startServer(targetDbUrl, targetPort)
         const targetHttpSmoke = await captureSmokeSuite(
             targetServer.baseUrl,
-            ownerUser,
+            seededUser,
             targets[0].restaurantId,
         )
 
@@ -928,7 +928,7 @@ async function main() {
         rollbackServer = await startServer(sourceDbUrl, rollbackPort)
         const rollbackHttpSmoke = await captureSmokeSuite(
             rollbackServer.baseUrl,
-            ownerUser,
+            seededUser,
             targets[0].restaurantId,
         )
 
@@ -1017,3 +1017,4 @@ main()
     .finally(async () => {
         await prisma.disconnect()
     })
+

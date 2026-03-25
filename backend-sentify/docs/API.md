@@ -3,28 +3,40 @@
 Updated: 2026-03-25
 Base URL: `http://localhost:3000/api`
 
-This file documents the API surface that exists in the current backend codebase.
+This document describes the API surface that exists in the backend today.
+It is intentionally aligned to the simplified runtime role model:
+
+- `User.role = USER`
+- `User.role = ADMIN`
+
+Important clarification:
+
+- the product still has two actor groups from the proposal:
+  - user-facing restaurant users
+  - internal admins
+- the implementation now keeps that split with only two system roles
+- `RestaurantUser` is only a restaurant-scoping relation
+- there is no secondary restaurant permission enum anymore
 
 ## Conventions
 
-### Auth
+### Auth Transport
 
 Protected endpoints currently accept either:
 
 - `Authorization: Bearer <access_token>`
 - auth cookie `sentify_access_token`
 
-Cookie-based sessions also use:
+Cookie-based auth also uses:
 
 - refresh cookie `sentify_refresh_token`
 - CSRF cookie `XSRF-TOKEN`
 
-Important note:
+Important rules:
 
-- auth endpoints set auth and refresh cookies
-- cookie-authenticated `POST`, `PATCH`, and `DELETE` requests must send header `X-CSRF-Token` matching the `XSRF-TOKEN` cookie
-- `GET /api/auth/csrf` can be used to bootstrap or rotate the CSRF cookie before a cookie-authenticated write, including refresh flows that only have the refresh cookie
-- JSON responses do not return raw tokens
+- cookie-authenticated `POST`, `PATCH`, and `DELETE` requests must send `X-CSRF-Token`
+- `GET /api/auth/csrf` can be called before cookie-authenticated writes or refresh flows
+- auth responses set cookies; JSON responses do not expose raw tokens
 
 ### Response Shapes
 
@@ -55,11 +67,29 @@ Error:
   "error": {
     "code": "ERROR_CODE",
     "message": "Human readable message",
-    "timestamp": "2026-03-19T00:00:00.000Z",
+    "timestamp": "2026-03-25T00:00:00.000Z",
     "requestId": "uuid"
   }
 }
 ```
+
+## Role Model
+
+### Runtime roles
+
+- `USER`
+  - allowed on `/api/restaurants/*`
+  - still needs `RestaurantUser` membership for restaurant-scoped reads and updates
+- `ADMIN`
+  - allowed on `/api/admin/*`
+  - does not need restaurant membership to inspect or operate on a restaurant
+
+### Boundary rules
+
+- `USER` is denied on `/api/admin/*`
+- `ADMIN` is denied on `/api/restaurants/*`
+- membership only answers "which restaurant can this user see?"
+- role only answers "which app surface can this account enter?"
 
 ## Health
 
@@ -85,7 +115,7 @@ or
 
 ### `POST /api/auth/register`
 
-Creates a user, sets auth, refresh, and CSRF cookies, and returns:
+Creates a new `USER`, sets auth, refresh, and CSRF cookies, and returns:
 
 ```json
 {
@@ -93,7 +123,8 @@ Creates a user, sets auth, refresh, and CSRF cookies, and returns:
     "user": {
       "id": "uuid",
       "email": "user@example.com",
-      "fullName": "Tran Van A"
+      "fullName": "Tran Van A",
+      "role": "USER"
     },
     "expiresIn": 900
   }
@@ -111,12 +142,12 @@ Sets auth, refresh, and CSRF cookies and returns:
       "id": "uuid",
       "email": "user@example.com",
       "fullName": "Tran Van A",
+      "role": "USER",
       "restaurants": [
         {
           "id": "uuid",
           "name": "Cafe One",
-          "slug": "cafe-one",
-          "permission": "OWNER"
+          "slug": "cafe-one"
         }
       ]
     },
@@ -127,17 +158,38 @@ Sets auth, refresh, and CSRF cookies and returns:
 
 ### `GET /api/auth/session`
 
-Returns the current authenticated user and restaurants.
+Returns the current authenticated user and restaurant memberships.
 Also re-issues the CSRF cookie for browser clients using cookie auth.
+
+Response shape:
+
+```json
+{
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "fullName": "Tran Van A",
+      "role": "USER",
+      "restaurants": [
+        {
+          "id": "uuid",
+          "name": "Cafe One",
+          "slug": "cafe-one"
+        }
+      ]
+    }
+  }
+}
+```
 
 ### `GET /api/auth/csrf`
 
 Issues or rotates the `XSRF-TOKEN` cookie and returns `204 No Content`.
-This endpoint is safe to call before `POST /api/auth/refresh` when the browser only has the refresh cookie available.
 
 ### `POST /api/auth/logout`
 
-Clears auth, refresh, and CSRF cookies and revokes current token version.
+Clears auth, refresh, and CSRF cookies and revokes the current token version.
 
 ```json
 {
@@ -149,7 +201,7 @@ Clears auth, refresh, and CSRF cookies and revokes current token version.
 
 ### `PATCH /api/auth/password`
 
-Changes password, revokes previous sessions, issues fresh auth, refresh, and CSRF cookies, and returns:
+Changes password, revokes previous sessions, issues fresh cookies, and returns:
 
 ```json
 {
@@ -157,7 +209,8 @@ Changes password, revokes previous sessions, issues fresh auth, refresh, and CSR
     "user": {
       "id": "uuid",
       "email": "user@example.com",
-      "fullName": "Tran Van A"
+      "fullName": "Tran Van A",
+      "role": "USER"
     },
     "expiresIn": 900
   }
@@ -180,14 +233,6 @@ Rotates refresh token and renews auth, refresh, and CSRF cookies.
 
 Always returns a generic success message.
 
-```json
-{
-  "data": {
-    "message": "If the email is registered, a reset link has been sent."
-  }
-}
-```
-
 ### `POST /api/auth/reset-password`
 
 Consumes a reset token and returns:
@@ -200,29 +245,95 @@ Consumes a reset token and returns:
 }
 ```
 
-## Restaurants
+## Flow Map
 
-All `/api/restaurants/*` endpoints require auth.
+### User-facing flow
+
+This is the stable product surface read by restaurant users.
+
+Typical sequence:
+
+1. register or login
+2. read session
+3. create or select a restaurant
+4. read restaurant detail and dataset status
+5. read dashboard and review evidence
+6. update restaurant profile fields if needed
+
+Required identity:
+
+- `User.role = USER`
+- restaurant membership for restaurant-scoped routes
+
+### Admin flow
+
+This is the internal control plane for curated intake and crawl orchestration.
+
+Typical sequence:
+
+1. login as `ADMIN`
+2. list restaurants through the admin overview surface
+3. inspect one restaurant's user-facing dataset status plus admin-side next actions
+4. curate intake batches or run crawl flows
+5. publish approved evidence into canonical reviews
+
+Required identity:
+
+- `User.role = ADMIN`
+- no restaurant membership required
+
+## User-Facing Routes
+
+All `/api/restaurants/*` routes require:
+
+- authentication
+- `User.role = USER`
 
 ### `POST /api/restaurants`
 
-Create restaurant.
+Creates a restaurant and immediately adds a `RestaurantUser` membership row for the calling `USER`.
 
 ### `GET /api/restaurants`
 
-List restaurants the current user belongs to.
+Lists restaurants that the current `USER` belongs to.
+
+Returned fields:
+
+- `id`
+- `name`
+- `slug`
+- `googleMapUrl`
+- `totalReviews`
 
 ### `GET /api/restaurants/:id`
 
-Returns restaurant detail, `permission`, `datasetStatus`, and `insightSummary`.
+Returns:
+
+- restaurant summary
+- `datasetStatus`
+- `insightSummary`
+
+Important note:
+
+- there is no `permission` field anymore
+- if the caller is not a member of that restaurant, the API returns `404`
 
 ### `PATCH /api/restaurants/:id`
 
-Owner-only update for restaurant profile fields.
+Updates restaurant profile fields:
 
-## Reviews
+- `name`
+- `address`
+- `googleMapUrl`
+
+Current contract:
+
+- any `USER` who belongs to the restaurant may update it
+- there is no owner-only sub-role gate anymore
 
 ### `GET /api/restaurants/:id/reviews`
+
+Lists canonical review evidence for the restaurant.
 
 Query params:
 
@@ -232,347 +343,163 @@ Query params:
 - `page`
 - `limit`
 
-Returns canonical review evidence with pagination.
+### Dashboard routes
 
-## Dashboard
+- `GET /api/restaurants/:id/dashboard/kpi`
+- `GET /api/restaurants/:id/dashboard/sentiment`
+- `GET /api/restaurants/:id/dashboard/trend`
+- `GET /api/restaurants/:id/dashboard/complaints`
+- `GET /api/restaurants/:id/dashboard/top-issue`
 
-### `GET /api/restaurants/:id/dashboard/kpi`
+These routes only read canonical published data.
+They do not expose draft intake state or internal operator notes.
 
-Cached KPI summary.
+## Admin Routes
 
-### `GET /api/restaurants/:id/dashboard/sentiment`
+All `/api/admin/*` routes require:
 
-Sentiment count and percentage breakdown.
+- authentication
+- `User.role = ADMIN`
 
-### `GET /api/restaurants/:id/dashboard/trend`
+Important note:
 
-Query param:
+- admin access does not depend on `RestaurantUser`
+- the restaurant id in admin routes only scopes which restaurant the operator is acting on
 
-- `period=week|month`
+## Admin Restaurant Overview
 
-### `GET /api/restaurants/:id/dashboard/complaints`
+### `GET /api/admin/restaurants`
 
-Complaint keywords sorted by frequency.
+Lists all restaurants for internal admin discovery.
 
-### `GET /api/restaurants/:id/dashboard/top-issue`
+Returned fields include:
 
-Returns top complaint keyword plus suggested next action.
+- restaurant identity and profile
+- `totalReviews`
+- `memberCount`
+- `pendingBatchCount`
+- `activeSourceCount`
+- `insightSummary`
 
-## Review Crawl
+### `GET /api/admin/restaurants/:id`
 
-All `/api/admin/review-crawl/*` endpoints require auth plus restaurant-scoped `OWNER` or `MANAGER` access.
+Returns one combined overview that explains the full admin flow for a restaurant.
 
-### `POST /api/admin/review-crawl/google-maps`
-
-Accepts a Google Maps place URL and returns:
-
-- normalized place metadata
-- reported total review count
-- normalized review rows
-- `intake.items` already shaped for the manual admin-intake flow
-
-Request body:
-
-```json
-{
-  "restaurantId": "uuid",
-  "url": "https://www.google.com/maps/place/...",
-  "language": "en",
-  "region": "us",
-  "sort": "newest",
-  "pages": 1,
-  "pageSize": 20,
-  "maxReviews": 100,
-  "delayMs": 0
-}
-```
-
-Response shape:
+Top-level shape:
 
 ```json
 {
   "data": {
-    "source": {},
-    "place": {},
-    "reviews": [],
-    "intake": {
-      "items": [],
-      "validItemCount": 0,
-      "droppedReviewCount": 0,
-      "warnings": []
+    "restaurant": {
+      "id": "uuid",
+      "name": "Cafe One",
+      "slug": "cafe-one",
+      "memberCount": 2,
+      "totalReviews": 25
     },
-    "crawl": {
-      "status": "ok",
-      "completeness": "complete"
+    "userFlow": {
+      "datasetStatus": {
+        "sourcePolicy": "ADMIN_CURATED",
+        "pendingBatchCount": 1
+      },
+      "insightSummary": {
+        "totalReviews": 25,
+        "averageRating": 4.2
+      }
+    },
+    "adminFlow": {
+      "sourceStats": {
+        "totalCount": 1,
+        "activeCount": 1,
+        "disabledCount": 0
+      },
+      "latestRun": {
+        "id": "uuid",
+        "status": "PARTIAL"
+      },
+      "openBatches": [],
+      "nextActions": []
     }
   }
 }
 ```
 
-Important semantics:
-
-- `crawl.completeness = "complete"` means the currently exposed public review page chain was exhausted
-- it does not guarantee `totalReviewsExtracted === place.totalReviewCount`
-- when Google reports more reviews than the crawler can extract, the response carries a warning in `crawl.warnings`
-
-### `POST /api/admin/review-crawl/sources`
-
-Creates or upserts a canonical Google Maps crawl source for one restaurant.
-
-Request body:
-
-```json
-{
-  "restaurantId": "uuid",
-  "url": "https://maps.app.goo.gl/...",
-  "language": "en",
-  "region": "us",
-  "syncEnabled": true,
-  "syncIntervalMinutes": 1440
-}
-```
-
-Response returns:
-
-- `source.id`
-- canonical crawl identity (`canonicalCid`, `placeHexId`, `googlePlaceId`)
-- source scheduling defaults
-- resolved place metadata
-
-### `POST /api/admin/review-crawl/sources/:sourceId/runs`
-
-Enqueues an asynchronous crawl run.
-
-Request body:
-
-```json
-{
-  "strategy": "INCREMENTAL",
-  "priority": "NORMAL",
-  "maxPages": 10,
-  "pageSize": 20,
-  "delayMs": 0
-}
-```
-
-Returns `202` with a queued run payload.
-
-Notes:
-
-- `BACKFILL` now defaults to `delayMs = 0`
-- run warnings may still include a `reportedTotal` vs `extractedCount` mismatch after a `COMPLETED` run
-- run payloads now also include `crawlCoverage` with structured completeness, mismatch, delta, and operator-policy fields
-
-### `GET /api/admin/review-crawl/runs/:runId`
-
-Returns run progress:
-
-- `status`
-- `pagesFetched`
-- `extractedCount`
-- `validCount`
-- `duplicateCount`
-- `checkpointCursor`
-- `warnings`
-- `crawlCoverage`
-- optional linked `intakeBatch`
-
-Status contract:
-
-- `QUEUED`
-- `RUNNING`
-- `PARTIAL`
-- `COMPLETED`
-- `FAILED`
-- `CANCELLED`
-
-`crawlCoverage` semantics:
-
-- `reportedTotalDelta = reportedTotal - extractedCount`
-- positive `reportedTotalDelta` does not automatically mean more public reviews are still crawlable
-- `crawlCoverage.completeness = "PUBLIC_CHAIN_EXHAUSTED"` plus `operatorPolicy.code = "REPORTED_TOTAL_IS_ADVISORY"` means the public page chain ended even though Google still reported a higher total
-- `operatorPolicy.code = "RESUME_FROM_CHECKPOINT"` means the run ended with `premature_exhaustion` and should be resumed from the saved checkpoint if deeper backfill proof is required
-
-### `POST /api/admin/review-crawl/runs/:runId/cancel`
-
-Cancels a queued run immediately or marks a running run for cancellation at the next checkpoint.
-
-### `POST /api/admin/review-crawl/runs/:runId/resume`
-
-Re-queues a `FAILED` or `PARTIAL` run from its persisted checkpoint cursor.
-
-### `POST /api/admin/review-crawl/runs/:runId/materialize-intake`
-
-Creates a draft `ReviewIntakeBatch` with source-tracked intake items from the raw reviews seen in that run.
-
-Important behavior:
-
-- raw reviews are persisted before materialization
-- crawler runs do not write directly to canonical `Review`
-- intake items now preserve `sourceProvider`, `sourceExternalId`, and `sourceReviewUrl`
-- publish still goes through admin-intake review and canonical dedupe
-
-## Review Ops
-
-All `/api/admin/review-ops/*` endpoints require auth plus restaurant-scoped `OWNER` or `MANAGER` access.
-
-This layer exists to reduce the number of backend-only operator steps. It composes `review-crawl` and `admin-intake` without bypassing the publish gate.
-
-### `POST /api/admin/review-ops/google-maps/sync-to-draft`
-
-Creates or reuses a crawl source, creates or reuses an active run, and marks the run for draft auto-materialization when it reaches `COMPLETED` or `PARTIAL`.
-
-Request body:
-
-```json
-{
-  "restaurantId": "uuid",
-  "url": "https://maps.app.goo.gl/...",
-  "language": "en",
-  "region": "us",
-  "strategy": "BACKFILL",
-  "priority": "NORMAL",
-  "maxPages": 50,
-  "pageSize": 20,
-  "delayMs": 0
-}
-```
-
-Returns `202` with:
-
-- `source`
-- `run`
-- `draftPolicy`
-
-Important behavior:
-
-- default strategy is `BACKFILL` for a source that has never succeeded before
-- default strategy is `INCREMENTAL` for an already-synced source
-- manual publish is still required after the draft batch is ready
-- backfill defaults now favor throughput
-- `run.crawlCoverage.operatorPolicy` is the structured operator-facing replacement for inferring crawl coverage from warning strings alone
-
-### `GET /api/admin/review-ops/sources?restaurantId=...`
-
-Returns:
-
-- source list
-- latest run summary per source, including `latestRun.crawlCoverage`
-- open draft batch summary per source
-- queue health
-- worker heartbeat summary
-- overdue source count for that restaurant
-
-### `GET /api/admin/review-ops/sources/:sourceId/runs`
-
-Query params:
-
-- `page`
-- `limit`
-
-Returns paginated run history for one crawl source.
-
-### `GET /api/admin/review-ops/runs/:runId`
-
-Returns:
-
-- mapped run detail
-- queue job state, when available
-- flags such as `resumable` and `materializable`
-- `run.crawlCoverage` for mismatch and operator-policy interpretation
-
-### `POST /api/admin/review-ops/sources/:sourceId/disable`
-
-Disables a crawl source and clears its next scheduled sync timestamp.
-
-### `POST /api/admin/review-ops/sources/:sourceId/enable`
-
-Re-enables a crawl source and recomputes the next scheduled sync timestamp when source sync is enabled.
-
-### `GET /api/admin/review-ops/batches/:batchId/readiness`
-
-Returns:
-
-- batch summary
-- batch counts
-- `publishAllowed`
-- `blockingReasons`
-- `bulkApprovableCount`
-- crawl diagnostics for invalid raw reviews
-- top validation issue codes
-
-This endpoint does not publish anything. It is a readiness check.
-
-### `POST /api/admin/review-ops/batches/:batchId/approve-valid`
-
-Bulk-approves only `PENDING` items that still pass publish validation at the moment of execution.
-
-Important behavior:
-
-- invalid pending items are skipped
-- publish validation still reuses the same domain rule as manual publish
-- the batch status is recalculated after the bulk update
-
-### `POST /api/admin/review-ops/batches/:batchId/publish`
-
-Thin proxy to the existing admin-intake publish path.
-
-It does not bypass canonical dedupe or publish validation.
-
-## Admin Intake
-
-All `/api/admin/*` endpoints require:
-
-- authenticated user
-- restaurant membership
-- `OWNER` or `MANAGER` permission for the related restaurant
-
-There is no global operator-only admin role in the current implementation.
-
-### `POST /api/admin/review-batches`
-
-Create intake batch.
-
-### `GET /api/admin/review-batches`
-
-Requires `restaurantId` query param.
-
-### `GET /api/admin/review-batches/:id`
-
-Batch detail with items.
-
-### `DELETE /api/admin/review-batches/:id`
-
-Delete draft or in-review batch.
-
-### `POST /api/admin/review-batches/:id/items`
-
-Add curated intake items.
-
-### `POST /api/admin/review-batches/:id/items/bulk`
-
-Add items in bulk with duplicate skipping against existing batch items.
-
-### `PATCH /api/admin/review-items/:id`
-
-Update normalized fields, approval status, or reviewer note.
-Important validation rules:
-
-- `rawReviewDate` and `normalizedReviewDate` cannot be in the future
-- an item cannot move to `APPROVED` unless it has publishable evidence after normalization: at least one of author name, content, or review date must remain
-- `normalizedRating`, when provided, must stay in the range `1..5`
-
-### `DELETE /api/admin/review-items/:id`
-
-Delete intake item and recalculate batch state.
-
-### `POST /api/admin/review-batches/:id/publish`
-
-Publishes approved items into canonical `Review` and triggers insight recalculation.
-
-Publish semantics:
-
-- approved intake rows are normalized into a canonical payload before the transaction begins
-- manual intake rows receive a stable `manual-intake:v1:*` external id derived from the source review identity
-- publish reuses and updates an existing canonical `Review` when the same restaurant and derived external id already exist
-- multiple `ReviewIntakeItem` rows may link back to the same canonical `Review` across different batches
+Why this endpoint exists:
+
+- admin should not need to borrow user-facing routes to understand a restaurant
+- the endpoint makes the user-visible state and admin next steps visible in one payload
+
+## Admin Intake Routes
+
+Mounted under `/api/admin`.
+
+- `POST /review-batches`
+- `GET /review-batches`
+- `GET /review-batches/:id`
+- `DELETE /review-batches/:id`
+- `POST /review-batches/:id/items`
+- `POST /review-batches/:id/items/bulk`
+- `PATCH /review-items/:id`
+- `DELETE /review-items/:id`
+- `POST /review-batches/:id/publish`
+
+Purpose:
+
+- create draft batches
+- ingest manual or crawl-derived items
+- approve or reject evidence
+- publish approved evidence into canonical `Review`
+
+## Review Crawl Routes
+
+Mounted under `/api/admin`.
+
+- `POST /review-crawl/google-maps`
+- `POST /review-crawl/sources`
+- `POST /review-crawl/sources/:sourceId/runs`
+- `GET /review-crawl/runs/:runId`
+- `POST /review-crawl/runs/:runId/cancel`
+- `POST /review-crawl/runs/:runId/resume`
+- `POST /review-crawl/runs/:runId/materialize-intake`
+
+Purpose:
+
+- preview crawl samples
+- register or update crawl sources
+- queue crawl runs
+- inspect queue-backed run state
+- materialize valid raw reviews into draft intake
+
+## Review Ops Routes
+
+Mounted under `/api/admin`.
+
+- `POST /review-ops/google-maps/sync-to-draft`
+- `GET /review-ops/sources`
+- `GET /review-ops/sources/:sourceId/runs`
+- `GET /review-ops/runs/:runId`
+- `POST /review-ops/sources/:sourceId/disable`
+- `POST /review-ops/sources/:sourceId/enable`
+- `GET /review-ops/batches/:batchId/readiness`
+- `POST /review-ops/batches/:batchId/approve-valid`
+- `POST /review-ops/batches/:batchId/publish`
+
+Purpose:
+
+- collapse crawl-to-draft into one operator flow
+- inspect readiness before publish
+- bulk-approve valid pending items
+- publish through the same admin-curated boundary
+
+## Final Contract Summary
+
+The backend now exposes two clean route families:
+
+- `/api/restaurants/*`
+  - for `USER`
+  - restaurant membership required
+  - reads and light profile updates only
+- `/api/admin/*`
+  - for `ADMIN`
+  - no restaurant membership required
+  - admin discovery, intake, crawl, and publish control plane

@@ -1,6 +1,8 @@
 const { badRequest, notFound } = require('../../lib/app-error')
-const { getRestaurantAccess } = require('../../services/restaurant-access.service')
+const { ensureRestaurantExists } = require('../../services/restaurant-access.service')
 const { recalculateRestaurantInsights } = require('../../services/insight.service')
+const { INTERNAL_OPERATOR_ROLES } = require('../../lib/user-roles')
+const { getUserRoleAccess } = require('../../services/user-access.service')
 const {
     buildIntakeItemDedupKey,
     buildReviewPayload,
@@ -15,16 +17,16 @@ const {
 } = require('./admin-intake.domain')
 const repository = require('./admin-intake.repository')
 
-async function ensureRestaurantEditorAccess(userId, restaurantId) {
-    return getRestaurantAccess({
+async function ensureInternalOperatorAccess(userId) {
+    return getUserRoleAccess({
         userId,
-        restaurantId,
-        allowedPermissions: ['OWNER', 'MANAGER'],
+        allowedRoles: INTERNAL_OPERATOR_ROLES,
     })
 }
 
 async function createReviewBatch({ userId, restaurantId, sourceType, title }) {
-    await ensureRestaurantEditorAccess(userId, restaurantId)
+    await ensureInternalOperatorAccess(userId)
+    await ensureRestaurantExists({ restaurantId })
 
     const batch = await repository.createBatch({
         restaurantId,
@@ -37,13 +39,16 @@ async function createReviewBatch({ userId, restaurantId, sourceType, title }) {
 }
 
 async function listReviewBatches({ userId, restaurantId }) {
-    await ensureRestaurantEditorAccess(userId, restaurantId)
+    await ensureInternalOperatorAccess(userId)
+    await ensureRestaurantExists({ restaurantId })
 
     const batches = await repository.listBatchesByRestaurant(restaurantId)
     return batches.map((batch) => mapBatch(batch))
 }
 
 async function getReviewBatch({ userId, batchId }) {
+    await ensureInternalOperatorAccess(userId)
+
     const batch = await repository.findBatchById(batchId, {
         includeItems: true,
     })
@@ -52,17 +57,17 @@ async function getReviewBatch({ userId, batchId }) {
         throw notFound('NOT_FOUND', 'Review batch not found')
     }
 
-    await ensureRestaurantEditorAccess(userId, batch.restaurantId)
     return mapBatch(batch, { includeItems: true })
 }
 
 async function addReviewItems({ userId, batchId, items }) {
+    await ensureInternalOperatorAccess(userId)
+
     const batch = await repository.findBatchById(batchId, {
         includeItems: true,
     })
 
     resolveEditableBatch(batch)
-    await ensureRestaurantEditorAccess(userId, batch.restaurantId)
 
     await repository.createItems(
         batch.id,
@@ -86,12 +91,13 @@ async function addReviewItems({ userId, batchId, items }) {
 }
 
 async function addReviewItemsBulk({ userId, batchId, items }) {
+    await ensureInternalOperatorAccess(userId)
+
     const batch = await repository.findBatchById(batchId, {
         includeItems: true,
     })
 
     resolveEditableBatch(batch)
-    await ensureRestaurantEditorAccess(userId, batch.restaurantId)
 
     const existingKeys = new Set(
         (batch.items || []).map((item) =>
@@ -141,6 +147,8 @@ async function addReviewItemsBulk({ userId, batchId, items }) {
 }
 
 async function updateReviewItem({ userId, itemId, input }) {
+    await ensureInternalOperatorAccess(userId)
+
     const item = await repository.findItemById(itemId)
 
     if (!item) {
@@ -148,7 +156,6 @@ async function updateReviewItem({ userId, itemId, input }) {
     }
 
     resolveEditableBatch(item.batch)
-    await ensureRestaurantEditorAccess(userId, item.restaurantId)
 
     const updates = pickDefined(input, {
         normalizedAuthorName: (value) => value ?? null,
@@ -187,6 +194,8 @@ async function updateReviewItem({ userId, itemId, input }) {
 }
 
 async function deleteReviewItem({ userId, itemId }) {
+    await ensureInternalOperatorAccess(userId)
+
     const item = await repository.findItemById(itemId)
 
     if (!item) {
@@ -194,7 +203,6 @@ async function deleteReviewItem({ userId, itemId }) {
     }
 
     resolveEditableBatch(item.batch)
-    await ensureRestaurantEditorAccess(userId, item.restaurantId)
 
     await repository.deleteItem(itemId)
 
@@ -214,10 +222,11 @@ async function deleteReviewItem({ userId, itemId }) {
 }
 
 async function deleteReviewBatch({ userId, batchId }) {
+    await ensureInternalOperatorAccess(userId)
+
     const batch = await repository.findBatchById(batchId)
 
     resolveDeletableBatch(batch)
-    await ensureRestaurantEditorAccess(userId, batch.restaurantId)
 
     await repository.deleteBatch(batchId)
 
@@ -230,12 +239,13 @@ async function deleteReviewBatch({ userId, batchId }) {
 }
 
 async function publishReviewBatch({ userId, batchId }) {
+    await ensureInternalOperatorAccess(userId)
+
     const batch = await repository.findBatchById(batchId, {
         includeItems: true,
     })
 
     resolveEditableBatch(batch)
-    await ensureRestaurantEditorAccess(userId, batch.restaurantId)
 
     const approvedItems = batch.items.filter((item) => item.approvalStatus === 'APPROVED')
 

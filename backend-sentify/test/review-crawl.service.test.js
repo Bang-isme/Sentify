@@ -14,6 +14,37 @@ function withMock(modulePath, exports) {
     }
 }
 
+function mockInternalOperatorAccess(onCall) {
+    withMock('../src/services/user-access.service', {
+        getUserRoleAccess: async (args) => {
+            if (typeof onCall === 'function') {
+                return onCall(args)
+            }
+
+            return {
+                id: args.userId,
+                role: 'ADMIN',
+            }
+        },
+    })
+}
+
+function mockRestaurantLookup(onCall) {
+    withMock('../src/services/restaurant-access.service', {
+        ensureRestaurantExists: async (args) => {
+            if (typeof onCall === 'function') {
+                return onCall(args)
+            }
+
+            return {
+                restaurant: {
+                    id: args.restaurantId,
+                },
+            }
+        },
+    })
+}
+
 function restoreModules() {
     clearModule('../src/modules/review-crawl/review-crawl.service')
     clearModule('../src/modules/review-crawl/review-crawl.repository')
@@ -21,6 +52,7 @@ function restoreModules() {
     clearModule('../src/modules/review-crawl/review-crawl.runtime')
     clearModule('../src/modules/review-crawl/google-maps.service')
     clearModule('../src/services/restaurant-access.service')
+    clearModule('../src/services/user-access.service')
     clearModule('../src/modules/admin-intake/admin-intake.domain')
     clearModule('../src/modules/admin-intake/admin-intake.repository')
     clearModule('../src/config/env')
@@ -33,9 +65,8 @@ test('review crawl service upserts a canonical Google Maps source', async () => 
 
     let upsertArgs = null
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
+    mockRestaurantLookup()
     withMock('../src/modules/review-crawl/google-maps.service', {
         resolveGoogleMapsSource: async () => ({
             place: {
@@ -114,9 +145,7 @@ test('review crawl service creates a queued run and enqueues it', async () => {
     let createdRunData = null
     let enqueuedRunId = null
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/modules/review-crawl/review-crawl.repository', {
         findSourceById: async () => ({
             id: 'source-1',
@@ -267,9 +296,7 @@ test('review crawl service completes an incremental run when the known review st
         ['google-maps:review:b', { externalReviewKey: 'google-maps:review:b', firstSeenRunId: 'older-run' }],
     ])
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/modules/review-crawl/google-maps.service', {
         initializeGoogleMapsReviewSession: async () => ({
             place: {
@@ -446,9 +473,7 @@ test('review crawl service auto-resumes a premature backfill run from the saved 
         intakeBatch: null,
     }
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/modules/review-crawl/google-maps.service', {
         initializeGoogleMapsReviewSession: async () => ({
             place: {
@@ -607,9 +632,7 @@ test('review crawl service keeps a reported-total mismatch warning when the sour
         intakeBatch: null,
     }
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/modules/review-crawl/google-maps.service', {
         initializeGoogleMapsReviewSession: async () => ({
             place: {
@@ -734,9 +757,7 @@ test('review crawl service materializes a completed run into a Google Maps draft
 
     const createdChunks = []
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/modules/review-crawl/review-crawl.repository', {
         findRunById: async (runId, options = {}) => {
             if (runId !== 'run-1') {
@@ -916,9 +937,7 @@ test('review crawl service reuses an open source draft batch and appends only un
     let createdItems = null
     let updatedRunIntakeBatchId = null
 
-    withMock('../src/services/restaurant-access.service', {
-        getRestaurantAccess: async () => ({ restaurantId: 'restaurant-1', permission: 'OWNER' }),
-    })
+    mockInternalOperatorAccess()
     withMock('../src/modules/review-crawl/review-crawl.repository', {
         findRunById: async (runId, options = {}) => {
             if (runId !== 'run-2') {

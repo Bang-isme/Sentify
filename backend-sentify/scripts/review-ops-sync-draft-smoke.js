@@ -40,8 +40,8 @@ function printUsage() {
             '  node scripts/review-ops-sync-draft-smoke.js --url <google-maps-url> [options]',
             '',
             'Options:',
-            '  --restaurant-id <uuid>    Optional. Defaults to the first OWNER membership',
-            '  --user-id <uuid>          Optional. Defaults to the first OWNER membership user',
+            '  --restaurant-id <uuid>    Optional. Defaults to the first restaurant in the dataset',
+            '  --user-id <uuid>          Optional. Defaults to the first ADMIN user',
             '  --language <code>         Default: en',
             '  --region <code>           Default: us',
             '  --strategy <value>        Optional override: incremental | backfill',
@@ -267,33 +267,69 @@ async function stopLocalRedis(state) {
     }
 }
 
-async function resolveOwnerContext(prisma, explicitUserId, explicitRestaurantId) {
-    if (explicitUserId && explicitRestaurantId) {
-        return {
-            userId: explicitUserId,
-            restaurantId: explicitRestaurantId,
-        }
+async function resolveInternalOperatorContext(prisma, explicitUserId, explicitRestaurantId) {
+    const [operatorUser, restaurant] = await Promise.all([
+        explicitUserId
+            ? prisma.user.findUnique({
+                  where: {
+                      id: explicitUserId,
+                  },
+                  select: {
+                      id: true,
+                      role: true,
+                  },
+              })
+            : prisma.user.findFirst({
+                  where: {
+                      role: {
+                          in: ['ADMIN'],
+                      },
+                  },
+                  orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
+                  select: {
+                      id: true,
+                      role: true,
+                  },
+              }),
+        explicitRestaurantId
+            ? prisma.restaurant.findUnique({
+                  where: {
+                      id: explicitRestaurantId,
+                  },
+                  select: {
+                      id: true,
+                  },
+              })
+            : prisma.restaurant.findFirst({
+                  orderBy: {
+                      createdAt: 'asc',
+                  },
+                  select: {
+                      id: true,
+                  },
+              }),
+    ])
+
+    if (!operatorUser) {
+        throw new Error(
+            'No internal ADMIN user was found. Pass --user-id explicitly or seed an operator user first.',
+        )
     }
 
-    const ownerMembership = await prisma.restaurantUser.findFirst({
-        where: {
-            permission: 'OWNER',
-        },
-        select: {
-            userId: true,
-            restaurantId: true,
-        },
-    })
+    if (!['ADMIN'].includes(operatorUser.role)) {
+        throw new Error('The selected --user-id does not belong to an internal ADMIN user.')
+    }
 
-    if (!ownerMembership) {
+    if (!restaurant) {
         throw new Error(
-            'No OWNER restaurant membership was found. Pass --user-id and --restaurant-id explicitly.',
+            'No restaurant was found. Pass --restaurant-id explicitly or seed a restaurant first.',
         )
     }
 
     return {
-        userId: explicitUserId || ownerMembership.userId,
-        restaurantId: explicitRestaurantId || ownerMembership.restaurantId,
+        userId: operatorUser.id,
+        userRole: operatorUser.role,
+        restaurantId: restaurant.id,
     }
 }
 
@@ -464,7 +500,7 @@ async function main() {
         : await startReviewCrawlWorkerRuntime()
 
     try {
-        const ownerContext = await resolveOwnerContext(
+        const operatorContext = await resolveInternalOperatorContext(
             prisma,
             readFlag(args, '--user-id'),
             readFlag(args, '--restaurant-id'),
@@ -475,9 +511,9 @@ async function main() {
             ? strategyOverrideRaw.toUpperCase()
             : null
         const syncResult = await reviewOpsService.syncGoogleMapsToDraft({
-            userId: ownerContext.userId,
+            userId: operatorContext.userId,
             input: {
-                restaurantId: ownerContext.restaurantId,
+                restaurantId: operatorContext.restaurantId,
                 url,
                 language: readFlag(args, '--language') || 'en',
                 region: readFlag(args, '--region') || 'us',
@@ -503,7 +539,7 @@ async function main() {
         const terminalResult = redisState.inlineQueueMode
             ? await processRunInlineUntilStable(
                   reviewCrawlService,
-                  ownerContext.userId,
+                  operatorContext.userId,
                   syncResult.run.id,
                   timeoutMs,
                   pollMs,
@@ -511,7 +547,7 @@ async function main() {
               )
             : await waitForStableTerminalRun(
                   reviewCrawlService,
-                  ownerContext.userId,
+                  operatorContext.userId,
                   syncResult.run.id,
                   timeoutMs,
                   pollMs,
@@ -524,7 +560,7 @@ async function main() {
 
         if (batchId) {
             batchReadiness = await reviewOpsService.getBatchReadiness({
-                userId: ownerContext.userId,
+                userId: operatorContext.userId,
                 batchId,
             })
         }
@@ -535,7 +571,7 @@ async function main() {
                 startedEmbeddedRedis: redisState.startedEmbeddedRedis,
                 inlineQueueMode: redisState.inlineQueueMode,
             },
-            ownerContext,
+            operatorContext,
             request: {
                 url,
                 language: readFlag(args, '--language') || 'en',
@@ -603,3 +639,4 @@ main().catch(async (error) => {
 
     process.exit(1)
 })
+

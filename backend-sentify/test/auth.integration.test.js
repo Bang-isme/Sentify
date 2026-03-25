@@ -52,6 +52,7 @@ test('auth integration flows', async (t) => {
                         id: 'user-1',
                         email: 'exists@sentify.com',
                         fullName: 'Existing User',
+                        role: 'USER',
                         passwordHash: 'hashed',
                         tokenVersion: 0,
                         failedLoginCount: 0,
@@ -65,6 +66,7 @@ test('auth integration flows', async (t) => {
                         id: 'user-1',
                         email: 'owner@sentify.com',
                         fullName: 'Owner',
+                        role: 'USER',
                         passwordHash: 'hashed',
                         tokenVersion: 0,
                         failedLoginCount: 0,
@@ -79,12 +81,14 @@ test('auth integration flows', async (t) => {
                 id: 'user-2',
                 email: data.email,
                 fullName: data.fullName,
+                role: data.role,
                 tokenVersion: 0,
             }),
             update: async ({ where }) => ({
                 id: where.id,
                 email: 'owner@sentify.com',
                 fullName: 'Owner',
+                role: 'USER',
                 tokenVersion: 1,
             }),
         },
@@ -110,6 +114,7 @@ test('auth integration flows', async (t) => {
 
     assert.equal(registerResponse.status, 201)
     assert.equal(registerResponse.body.data.user.email, 'new@sentify.com')
+    assert.equal(registerResponse.body.data.user.role, 'USER')
     assert.ok(readCookieValue(registerResponse.headers['set-cookie'], 'XSRF-TOKEN'))
 
     const loginResponse = await request(server, 'POST', '/api/auth/login', {
@@ -121,6 +126,7 @@ test('auth integration flows', async (t) => {
 
     assert.equal(loginResponse.status, 200)
     assert.equal(loginResponse.body.data.user.email, 'exists@sentify.com')
+    assert.equal(loginResponse.body.data.user.role, 'USER')
     assert.ok(readCookieValue(loginResponse.headers['set-cookie'], 'XSRF-TOKEN'))
 
     const loginFailResponse = await request(server, 'POST', '/api/auth/login', {
@@ -137,6 +143,7 @@ test('auth integration flows', async (t) => {
     })
 
     assert.equal(sessionResponse.status, 200)
+    assert.equal(sessionResponse.body.data.user.role, 'USER')
 
     const sessionNoToken = await request(server, 'GET', '/api/auth/session')
     assert.equal(sessionNoToken.status, 401)
@@ -166,6 +173,7 @@ test('auth integration flows', async (t) => {
 
     assert.equal(changePasswordResponse.status, 200)
     assert.equal(changePasswordResponse.body.data.user.email, 'owner@sentify.com')
+    assert.equal(changePasswordResponse.body.data.user.role, 'USER')
 
     const changePasswordFail = await request(
         server,
@@ -201,6 +209,7 @@ test('cookie-authenticated writes require a matching csrf token', async (t) => {
                         id: 'user-1',
                         email: 'exists@sentify.com',
                         fullName: 'Existing User',
+                        role: 'USER',
                         passwordHash: 'hashed',
                         tokenVersion: 0,
                         failedLoginCount: 0,
@@ -215,6 +224,7 @@ test('cookie-authenticated writes require a matching csrf token', async (t) => {
                 id: where.id,
                 email: 'exists@sentify.com',
                 fullName: 'Existing User',
+                role: 'USER',
                 tokenVersion: 1,
             }),
         },
@@ -311,6 +321,7 @@ test('refresh accepts a body token without session cookies and skips csrf enforc
                     userId: 'user-1',
                     user: {
                         id: 'user-1',
+                        role: 'USER',
                         tokenVersion: 3,
                     },
                 }
@@ -348,6 +359,7 @@ test('refresh clears cookies when rotation fails', async (t) => {
                         id: 'user-1',
                         email: 'exists@sentify.com',
                         fullName: 'Existing User',
+                        role: 'USER',
                         passwordHash: 'hashed',
                         tokenVersion: 0,
                         failedLoginCount: 0,
@@ -362,6 +374,7 @@ test('refresh clears cookies when rotation fails', async (t) => {
                 id: where.id,
                 email: 'exists@sentify.com',
                 fullName: 'Existing User',
+                role: 'USER',
                 tokenVersion: 0,
             }),
         },
@@ -488,3 +501,4 @@ test('forgot and reset password routes validate input and clear cookies on succe
     assert.ok(hasClearedCookie(resetResponse.headers['set-cookie'], 'sentify_refresh_token'))
     assert.ok(hasClearedCookie(resetResponse.headers['set-cookie'], 'XSRF-TOKEN'))
 })
+

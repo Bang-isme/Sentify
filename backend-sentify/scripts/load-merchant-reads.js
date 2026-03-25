@@ -413,8 +413,8 @@ async function main() {
         const seedSummary = await seedDemoData({ prisma })
         const restaurantId =
             options.restaurantId || seedSummary.restaurants.phoHong.id
-        const ownerToken = createTestToken({
-            userId: seedSummary.users.owner.id,
+        const userToken = createTestToken({
+            userId: seedSummary.users.userPrimary.id,
             tokenVersion: 0,
         })
 
@@ -438,13 +438,13 @@ async function main() {
         })
 
         const scenarios = buildScenarios(restaurantId)
-        await warmup(server, agent, scenarios, ownerToken, options.timeoutMs)
+        await warmup(server, agent, scenarios, userToken, options.timeoutMs)
 
         const run = await runScenarioLoad({
             server,
             agent,
             scenarios,
-            token: ownerToken,
+            token: userToken,
             concurrency: options.concurrency,
             rounds: options.rounds,
             timeoutMs: options.timeoutMs,
@@ -519,3 +519,4 @@ main().catch((error) => {
     console.error(error?.stack || error?.message || String(error))
     process.exit(1)
 })
+

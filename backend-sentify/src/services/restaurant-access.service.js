@@ -1,13 +1,5 @@
 const prisma = require('../lib/prisma')
-const { forbidden, notFound } = require('../lib/app-error')
-
-function normalizePermissions(allowedPermissions) {
-    if (!Array.isArray(allowedPermissions) || allowedPermissions.length === 0) {
-        return null
-    }
-
-    return new Set(allowedPermissions)
-}
+const { notFound } = require('../lib/app-error')
 
 function buildRestaurantSummary(restaurant) {
     return {
@@ -24,10 +16,9 @@ function buildRestaurantSummary(restaurant) {
 async function getRestaurantAccess({
     userId,
     restaurantId,
-    allowedPermissions,
     restaurantInclude,
 }) {
-    // Membership is the source of truth for both visibility and permission checks in Sprint 1.
+    // Merchant routes stay restaurant-scoped, but membership no longer carries sub-roles.
     const membership = await prisma.restaurantUser.findFirst({
         where: {
             userId,
@@ -46,19 +37,35 @@ async function getRestaurantAccess({
         throw notFound('NOT_FOUND', 'Restaurant not found')
     }
 
-    const permissionSet = normalizePermissions(allowedPermissions)
-
-    if (permissionSet && !permissionSet.has(membership.permission)) {
-        throw forbidden('FORBIDDEN', 'You do not have access to this restaurant action')
-    }
-
     return {
-        permission: membership.permission,
         restaurant: buildRestaurantSummary(membership.restaurant),
         restaurantWithRelations: membership.restaurant,
     }
 }
 
+async function ensureRestaurantExists({ restaurantId, restaurantInclude }) {
+    const restaurant = await prisma.restaurant.findUnique({
+        where: {
+            id: restaurantId,
+        },
+        ...(restaurantInclude
+            ? {
+                  include: restaurantInclude,
+              }
+            : {}),
+    })
+
+    if (!restaurant) {
+        throw notFound('NOT_FOUND', 'Restaurant not found')
+    }
+
+    return {
+        restaurant: buildRestaurantSummary(restaurant),
+        restaurantWithRelations: restaurant,
+    }
+}
+
 module.exports = {
+    ensureRestaurantExists,
     getRestaurantAccess,
 }

@@ -34,14 +34,18 @@ function sortBySlug(restaurants) {
     return [...restaurants].sort((left, right) => left.slug.localeCompare(right.slug))
 }
 
-realDbTest('real DB merchant read smoke returns seeded restaurant, review, and dashboard data', async (t) => {
+realDbTest('real DB user read smoke returns seeded restaurant, review, and dashboard data', async (t) => {
     const seedSummary = await seedDemoData({ prisma })
-    const ownerToken = createTestToken({
-        userId: seedSummary.users.owner.id,
+    const primaryUserToken = createTestToken({
+        userId: seedSummary.users.userPrimary.id,
         tokenVersion: 0,
     })
-    const managerToken = createTestToken({
-        userId: seedSummary.users.manager.id,
+    const secondaryUserToken = createTestToken({
+        userId: seedSummary.users.userSecondary.id,
+        tokenVersion: 0,
+    })
+    const tacombiUserToken = createTestToken({
+        userId: seedSummary.users.userTacombi.id,
         tokenVersion: 0,
     })
     const outsiderToken = createTestToken({
@@ -56,18 +60,17 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         await stopRealApp(server)
     })
 
-    const ownerRestaurants = await request(server, 'GET', '/api/restaurants', {
-        token: ownerToken,
+    const primaryRestaurants = await request(server, 'GET', '/api/restaurants', {
+        token: primaryUserToken,
     })
-    assert.equal(ownerRestaurants.status, 200)
-    assert.equal(ownerRestaurants.body.data.length, 2)
-    assert.deepEqual(sortBySlug(ownerRestaurants.body.data), [
+    assert.equal(primaryRestaurants.status, 200)
+    assert.equal(primaryRestaurants.body.data.length, 2)
+    assert.deepEqual(sortBySlug(primaryRestaurants.body.data), [
         {
             id: phoHongId,
             name: 'Demo Quan Pho Hong',
             slug: 'demo-quan-pho-hong',
             googleMapUrl: 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8',
-            permission: 'OWNER',
             totalReviews: 10,
         },
         {
@@ -75,23 +78,35 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
             name: 'Demo Tacombi',
             slug: 'demo-tacombi',
             googleMapUrl: 'https://www.google.com/maps?cid=12075628976512600470&hl=en&gl=US',
-            permission: 'OWNER',
             totalReviews: 6,
         },
     ])
 
-    const managerRestaurants = await request(server, 'GET', '/api/restaurants', {
-        token: managerToken,
+    const secondaryRestaurants = await request(server, 'GET', '/api/restaurants', {
+        token: secondaryUserToken,
     })
-    assert.equal(managerRestaurants.status, 200)
-    assert.deepEqual(managerRestaurants.body.data, [
+    assert.equal(secondaryRestaurants.status, 200)
+    assert.deepEqual(secondaryRestaurants.body.data, [
         {
             id: phoHongId,
             name: 'Demo Quan Pho Hong',
             slug: 'demo-quan-pho-hong',
             googleMapUrl: 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8',
-            permission: 'MANAGER',
             totalReviews: 10,
+        },
+    ])
+
+    const tacombiRestaurants = await request(server, 'GET', '/api/restaurants', {
+        token: tacombiUserToken,
+    })
+    assert.equal(tacombiRestaurants.status, 200)
+    assert.deepEqual(tacombiRestaurants.body.data, [
+        {
+            id: tacombiId,
+            name: 'Demo Tacombi',
+            slug: 'demo-tacombi',
+            googleMapUrl: 'https://www.google.com/maps?cid=12075628976512600470&hl=en&gl=US',
+            totalReviews: 6,
         },
     ])
 
@@ -105,11 +120,10 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         server,
         'GET',
         `/api/restaurants/${phoHongId}`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(phoHongDetail.status, 200)
     assert.equal(phoHongDetail.body.data.name, 'Demo Quan Pho Hong')
-    assert.equal(phoHongDetail.body.data.permission, 'OWNER')
     assert.equal(phoHongDetail.body.data.datasetStatus.sourcePolicy, 'ADMIN_CURATED')
     assert.equal(phoHongDetail.body.data.datasetStatus.lastPublishedSourceType, 'GOOGLE_MAPS_CRAWL')
     assert.equal(phoHongDetail.body.data.datasetStatus.pendingBatchCount, 1)
@@ -121,11 +135,21 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
     assert.equal(phoHongDetail.body.data.insightSummary.negativePercentage, 40)
     assert.ok(phoHongDetail.body.data.datasetStatus.lastPublishedAt)
 
+    const secondaryDetail = await request(
+        server,
+        'GET',
+        `/api/restaurants/${phoHongId}`,
+        { token: secondaryUserToken },
+    )
+    assert.equal(secondaryDetail.status, 200)
+    assert.equal(secondaryDetail.body.data.datasetStatus.pendingBatchCount, 1)
+    assert.equal(secondaryDetail.body.data.insightSummary.totalReviews, 10)
+
     const tacombiDetail = await request(
         server,
         'GET',
         `/api/restaurants/${tacombiId}`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(tacombiDetail.status, 200)
     assert.equal(tacombiDetail.body.data.datasetStatus.lastPublishedSourceType, 'MANUAL')
@@ -138,7 +162,7 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         server,
         'GET',
         `/api/restaurants/${phoHongId}/reviews?page=1&limit=5`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(reviewsPageOne.status, 200)
     assert.equal(reviewsPageOne.body.pagination.total, 10)
@@ -152,7 +176,7 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         server,
         'GET',
         `/api/restaurants/${phoHongId}/reviews?rating=2&page=1&limit=20`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(reviewsRatingTwo.status, 200)
     assert.equal(reviewsRatingTwo.body.pagination.total, 3)
@@ -163,7 +187,7 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         server,
         'GET',
         `/api/restaurants/${phoHongId}/reviews?from=2026-02-01&to=2026-03-31&page=1&limit=20`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(reviewsDateFiltered.status, 200)
     assert.equal(reviewsDateFiltered.body.pagination.total, 6)
@@ -172,7 +196,7 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         server,
         'GET',
         `/api/restaurants/${phoHongId}/dashboard/kpi`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(kpi.status, 200)
     assert.deepEqual(kpi.body.data, {
@@ -187,7 +211,7 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         server,
         'GET',
         `/api/restaurants/${phoHongId}/dashboard/sentiment`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(sentiment.status, 200)
     assert.deepEqual(sentiment.body.data, [
@@ -200,7 +224,7 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         server,
         'GET',
         `/api/restaurants/${phoHongId}/dashboard/trend?period=month`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(trendMonth.status, 200)
     assert.deepEqual(trendMonth.body.data, [
@@ -213,7 +237,7 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         server,
         'GET',
         `/api/restaurants/${phoHongId}/dashboard/complaints`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(complaints.status, 200)
     assert.equal(complaints.body.data[0].keyword, 'chậm')
@@ -224,7 +248,7 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
         server,
         'GET',
         `/api/restaurants/${phoHongId}/dashboard/top-issue`,
-        { token: ownerToken },
+        { token: primaryUserToken },
     )
     assert.equal(topIssue.status, 200)
     assert.equal(topIssue.body.data.keyword, 'chậm')
@@ -233,10 +257,18 @@ realDbTest('real DB merchant read smoke returns seeded restaurant, review, and d
     assert.ok(topIssue.body.data.lastUpdatedAt)
 })
 
-realDbTest('real DB merchant read smoke preserves isolation and validation boundaries', async (t) => {
+realDbTest('real DB role boundaries separate user flow from admin control plane', async (t) => {
     const seedSummary = await seedDemoData({ prisma })
-    const managerToken = createTestToken({
-        userId: seedSummary.users.manager.id,
+    const primaryUserToken = createTestToken({
+        userId: seedSummary.users.userPrimary.id,
+        tokenVersion: 0,
+    })
+    const secondaryUserToken = createTestToken({
+        userId: seedSummary.users.userSecondary.id,
+        tokenVersion: 0,
+    })
+    const adminToken = createTestToken({
+        userId: seedSummary.users.admin.id,
         tokenVersion: 0,
     })
     const outsiderToken = createTestToken({
@@ -251,21 +283,29 @@ realDbTest('real DB merchant read smoke preserves isolation and validation bound
         await stopRealApp(server)
     })
 
-    const managerAllowed = await request(
+    const userAllowed = await request(
         server,
         'GET',
         `/api/restaurants/${phoHongId}/dashboard/kpi`,
-        { token: managerToken },
+        { token: secondaryUserToken },
     )
-    assert.equal(managerAllowed.status, 200)
+    assert.equal(userAllowed.status, 200)
 
-    const managerForbidden = await request(
+    const userForbiddenOtherRestaurant = await request(
         server,
         'GET',
         `/api/restaurants/${tacombiId}/dashboard/kpi`,
-        { token: managerToken },
+        { token: secondaryUserToken },
     )
-    assert.equal(managerForbidden.status, 404)
+    assert.equal(userForbiddenOtherRestaurant.status, 404)
+
+    const userAdminForbidden = await request(
+        server,
+        'GET',
+        `/api/admin/review-batches?restaurantId=${phoHongId}`,
+        { token: primaryUserToken },
+    )
+    assert.equal(userAdminForbidden.status, 403)
 
     const outsiderForbidden = await request(
         server,
@@ -275,11 +315,19 @@ realDbTest('real DB merchant read smoke preserves isolation and validation bound
     )
     assert.equal(outsiderForbidden.status, 404)
 
+    const adminMerchantForbidden = await request(
+        server,
+        'GET',
+        `/api/restaurants/${phoHongId}/dashboard/kpi`,
+        { token: adminToken },
+    )
+    assert.equal(adminMerchantForbidden.status, 403)
+
     const invalidDateRange = await request(
         server,
         'GET',
         `/api/restaurants/${phoHongId}/reviews?from=2026-03-31&to=2026-02-01`,
-        { token: managerToken },
+        { token: secondaryUserToken },
     )
     assert.equal(invalidDateRange.status, 400)
     assert.equal(invalidDateRange.body.error.code, 'INVALID_DATE_RANGE')
@@ -288,8 +336,50 @@ realDbTest('real DB merchant read smoke preserves isolation and validation bound
         server,
         'GET',
         `/api/restaurants/${phoHongId}/dashboard/trend?period=year`,
-        { token: managerToken },
+        { token: secondaryUserToken },
     )
     assert.equal(invalidTrendPeriod.status, 400)
     assert.equal(invalidTrendPeriod.body.error.code, 'VALIDATION_FAILED')
+})
+
+realDbTest('real DB admin routes expose restaurant selection and control-plane overview flow', async (t) => {
+    const seedSummary = await seedDemoData({ prisma })
+    const adminToken = createTestToken({
+        userId: seedSummary.users.admin.id,
+        tokenVersion: 0,
+    })
+    const phoHongId = seedSummary.restaurants.phoHong.id
+    const server = await startRealApp()
+
+    t.after(async () => {
+        await stopRealApp(server)
+    })
+
+    const listRestaurants = await request(server, 'GET', '/api/admin/restaurants', {
+        token: adminToken,
+    })
+    assert.equal(listRestaurants.status, 200)
+    assert.ok(Array.isArray(listRestaurants.body.data))
+    assert.ok(listRestaurants.body.data.some((restaurant) => restaurant.id === phoHongId))
+
+    const restaurantOverview = await request(
+        server,
+        'GET',
+        `/api/admin/restaurants/${phoHongId}`,
+        { token: adminToken },
+    )
+    assert.equal(restaurantOverview.status, 200)
+    assert.equal(restaurantOverview.body.data.restaurant.id, phoHongId)
+    assert.equal(restaurantOverview.body.data.userFlow.datasetStatus.pendingBatchCount, 1)
+    assert.ok(Array.isArray(restaurantOverview.body.data.adminFlow.openBatches))
+    assert.ok(Array.isArray(restaurantOverview.body.data.adminFlow.nextActions))
+
+    const listBatches = await request(
+        server,
+        'GET',
+        `/api/admin/review-batches?restaurantId=${phoHongId}`,
+        { token: adminToken },
+    )
+    assert.equal(listBatches.status, 200)
+    assert.ok(Array.isArray(listBatches.body.data))
 })

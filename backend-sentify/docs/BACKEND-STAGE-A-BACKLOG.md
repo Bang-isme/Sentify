@@ -129,8 +129,8 @@ This artifact is successful as a sprint backlog when:
 - Priority: P0
 - Estimate: 3 points
 - Dependencies: B1-S2
-- Files: `D:\Project 3\backend-sentify\test\auth.integration.test.js`, `D:\Project 3\backend-sentify\test\auth.service.test.js`, `D:\Project 3\backend-sentify\test\data-isolation.integration.test.js`, `D:\Project 3\backend-sentify\test\test-helpers.js`, `D:\Project 3\backend-sentify\src\middleware\require-permission.js`, `D:\Project 3\backend-sentify\src\services\restaurant-access.service.js`
-- Input: current `OWNER | MANAGER | MEMBER` model and auth edge cases
+- Files: `D:\Project 3\backend-sentify\test\auth.integration.test.js`, `D:\Project 3\backend-sentify\test\auth.service.test.js`, `D:\Project 3\backend-sentify\test\data-isolation.integration.test.js`, `D:\Project 3\backend-sentify\test\test-helpers.js`, `D:\Project 3\backend-sentify\src\middleware\require-user-role.js`, `D:\Project 3\backend-sentify\src\middleware\require-internal-role.js`, `D:\Project 3\backend-sentify\src\services\restaurant-access.service.js`, `D:\Project 3\backend-sentify\src\services\user-access.service.js`
+- Input: current `USER | ADMIN` model, restaurant membership scoping, and auth edge cases
 - Output: stronger denial-path and token-path coverage
 - Acceptance Criteria:
   - bearer token path is covered
