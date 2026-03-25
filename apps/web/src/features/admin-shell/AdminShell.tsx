@@ -7,17 +7,19 @@ import { getAdminNavigation, getRouteMeta } from '../app-shell/navigation'
 import {
   isAdminAccessRoute,
   isAdminOperationsRoute,
-  isAdminPlatformRoute,
   type AdminRoute,
   type AppRoute,
 } from '../app-shell/routes'
 import { ShellLayout } from '../app-shell/ShellLayout'
+import { AdminMembershipsPanel } from '../admin-access/components/AdminMembershipsPanel'
+import { AdminUsersPanel } from '../admin-access/components/AdminUsersPanel'
 import { AdminIntakePanel } from '../admin-intake/components/AdminIntakePanel'
+import { AdminAuditPanel } from '../admin-platform/components/AdminAuditPanel'
+import { AdminHealthJobsPanel } from '../admin-platform/components/AdminHealthJobsPanel'
+import { AdminIntegrationsPoliciesPanel } from '../admin-platform/components/AdminIntegrationsPoliciesPanel'
 import { AdminRestaurantsOverview } from './AdminRestaurantsOverview'
 import {
-  getAdminHubDomainFromView,
   type AdminHubViewKey,
-  AdminHubDomainScreen,
   AdminHubHomeScreen,
 } from '../admin-hub'
 import { ReviewCrawlPanel } from '../review-crawl/components/ReviewCrawlPanel'
@@ -136,6 +138,7 @@ export function AdminShell({
   const [detailError, setDetailError] = useState<string | null>(null)
 
   const isOperationsRoute = isAdminOperationsRoute(route)
+  const needsOperationsData = isOperationsRoute
   const currentAdminView = getAdminViewFromRoute(route)
   const routeMeta = getRouteMeta(route, language)
 
@@ -151,6 +154,13 @@ export function AdminShell({
     restaurants.find((restaurant) => restaurant.id === currentRestaurantId) ?? restaurants[0] ?? null
 
   useEffect(() => {
+    if (!needsOperationsData) {
+      setRestaurants([])
+      setOverviewLoading(false)
+      setOverviewError(null)
+      return undefined
+    }
+
     let cancelled = false
 
     async function loadRestaurants() {
@@ -185,7 +195,7 @@ export function AdminShell({
     return () => {
       cancelled = true
     }
-  }, [feedbackCopy.errors.loadRestaurant, onSessionExpiry, refreshKey])
+  }, [feedbackCopy.errors.loadRestaurant, needsOperationsData, onSessionExpiry, refreshKey])
 
   useEffect(() => {
     if (!currentRestaurantId || !isOperationsRoute) {
@@ -245,25 +255,62 @@ export function AdminShell({
   const approvedItemCount = detail?.userFlow.datasetStatus.approvedItemCount ?? 0
   const restaurantDetail = mapAdminDetailToRestaurantDetail(detail)
 
-  const badges = [
-    {
-      label: `${formatCount(restaurants.length, language)} restaurants`,
-      tone: 'neutral' as const,
-    },
-    {
-      label: `${formatCount(activeSourceCount, language)} live sources`,
-      tone: activeSourceCount > 0 ? ('success' as const) : ('warning' as const),
-    },
-    {
-      label: `${formatCount(pendingBatchCount, language)} pending batches`,
-      tone: pendingBatchCount > 0 ? ('warning' as const) : ('neutral' as const),
-    },
-  ]
+  const badges = route === '/admin'
+    ? [
+        {
+          label: 'Operations live',
+          tone: 'success' as const,
+        },
+        {
+          label: 'Access live',
+          tone: 'success' as const,
+        },
+        {
+          label: 'Platform live',
+          tone: 'success' as const,
+        },
+      ]
+    : isOperationsRoute
+      ? [
+          {
+            label: `${formatCount(restaurants.length, language)} restaurants`,
+            tone: 'neutral' as const,
+          },
+          {
+            label: `${formatCount(activeSourceCount, language)} live sources`,
+            tone: activeSourceCount > 0 ? ('success' as const) : ('warning' as const),
+          },
+          {
+            label: `${formatCount(pendingBatchCount, language)} pending batches`,
+            tone: pendingBatchCount > 0 ? ('warning' as const) : ('neutral' as const),
+          },
+        ]
+      : isAdminAccessRoute(route)
+        ? [
+            {
+              label: 'Global admin scope',
+              tone: 'neutral' as const,
+            },
+            {
+              label: 'USER + ADMIN model',
+              tone: 'success' as const,
+            },
+          ]
+        : [
+            {
+              label: 'Health visibility',
+              tone: 'neutral' as const,
+            },
+            {
+              label: 'Audit visibility',
+              tone: 'success' as const,
+            },
+          ]
 
   const contextSlot = route === '/admin' ? (
     <div className="grid gap-3 border border-white/8 bg-white/[0.04] p-4">
       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-        Admin picture
+        Control-plane map
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="border border-white/8 bg-white/[0.03] p-3">
@@ -274,10 +321,17 @@ export function AdminShell({
           </div>
         </div>
         <div className="border border-white/8 bg-white/[0.03] p-3">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Expansion</div>
-          <div className="mt-2 text-[14px] font-semibold text-white">Access + Platform next</div>
+          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Access</div>
+          <div className="mt-2 text-[14px] font-semibold text-white">Users and memberships</div>
           <div className="mt-1 text-[12px] leading-5 text-slate-400">
-            Users, memberships, health, policies, and audit are reserved as target-state screens.
+            Identity and restaurant visibility now live in the same admin product.
+          </div>
+        </div>
+        <div className="border border-white/8 bg-white/[0.03] p-3 sm:col-span-2">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Platform</div>
+          <div className="mt-2 text-[14px] font-semibold text-white">Health, policy, and audit</div>
+          <div className="mt-1 text-[12px] leading-5 text-slate-400">
+            Queue state, integration defaults, and audit history explain how the backend actually behaves behind the UI.
           </div>
         </div>
       </div>
@@ -313,12 +367,12 @@ export function AdminShell({
         {isAdminAccessRoute(route) ? 'Access scope' : 'Platform scope'}
       </div>
       <div className="text-[18px] font-semibold text-white">
-        {isAdminAccessRoute(route) ? 'Identity and membership administration' : 'System-level operations'}
+        {isAdminAccessRoute(route) ? 'Identity and membership administration' : 'System health, policy, and audit'}
       </div>
       <div className="text-[12px] leading-6 text-slate-400">
         {isAdminAccessRoute(route)
-          ? 'These screens are reserved in the IA now and should be backed by dedicated admin access endpoints next.'
-          : 'These surfaces define the broader control-plane target state: health, policies, integrations, and audit.'}
+          ? 'These screens use dedicated admin access endpoints so user management stays separate from merchant UX.'
+          : 'These screens expose the health checks, defaults, and audit evidence that explain the system behind the UI.'}
       </div>
     </div>
   )
@@ -364,8 +418,8 @@ export function AdminShell({
     <div className="space-y-2 text-[12px] leading-6 text-slate-400">
       <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
         {isAdminAccessRoute(route)
-          ? 'Next: add admin users and memberships endpoints.'
-          : 'Next: add aggregated platform and audit endpoints.'}
+          ? 'Global scope: manage user identity and restaurant visibility from the same control plane.'
+          : 'Global scope: monitor runtime, policies, and audit without entering restaurant-scoped operations.'}
       </div>
       <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
         Role boundary remains strict: only ADMIN can see these groups.
@@ -403,12 +457,6 @@ export function AdminShell({
           activeView={currentAdminView}
           onNavigate={(view) => onNavigate(getRouteFromAdminView(view))}
         />
-      ) : isAdminAccessRoute(route) || isAdminPlatformRoute(route) ? (
-        <AdminHubDomainScreen
-          domainKey={getAdminHubDomainFromView(currentAdminView)}
-          activeView={currentAdminView}
-          onNavigate={(view) => onNavigate(getRouteFromAdminView(view))}
-        />
       ) : route === '/admin/operations/restaurants' ? (
         <AdminRestaurantsOverview
           language={language}
@@ -435,6 +483,36 @@ export function AdminShell({
           restaurantId={currentRestaurantId}
           detail={restaurantDetail}
           onPublished={onDataChanged}
+        />
+      ) : route === '/admin/access/users' ? (
+        <AdminUsersPanel
+          language={language}
+          refreshKey={refreshKey}
+          onSessionExpiry={onSessionExpiry}
+        />
+      ) : route === '/admin/access/memberships' ? (
+        <AdminMembershipsPanel
+          language={language}
+          refreshKey={refreshKey}
+          onSessionExpiry={onSessionExpiry}
+        />
+      ) : route === '/admin/platform/health-jobs' ? (
+        <AdminHealthJobsPanel
+          language={language}
+          refreshKey={refreshKey}
+          onSessionExpiry={onSessionExpiry}
+        />
+      ) : route === '/admin/platform/integrations-policies' ? (
+        <AdminIntegrationsPoliciesPanel
+          language={language}
+          refreshKey={refreshKey}
+          onSessionExpiry={onSessionExpiry}
+        />
+      ) : route === '/admin/platform/audit' ? (
+        <AdminAuditPanel
+          language={language}
+          refreshKey={refreshKey}
+          onSessionExpiry={onSessionExpiry}
         />
       ) : (
         <ReviewCrawlPanel

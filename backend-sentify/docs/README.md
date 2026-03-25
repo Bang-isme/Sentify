@@ -32,5 +32,6 @@ Notes:
 - `REVIEW-CRAWLER.md` documents the non-browser Google Maps review crawler, queued run model, benchmark evidence, mismatch semantics for reported totals, and the backend-only `review-ops` control plane; it also records the important `Cong Ca Phe` case where preview metadata reported `15098` but the visible public review surface converged at `9744`
 - `REVIEW-CRAWLER-SCALE.md` documents the scale-validation checklist and the harness used to estimate larger-source runtime
 - `SETUP.md` includes `db:seed`, `test:realdb`, the local queued crawl smoke commands, and the inline-queue fallback for local benchmarking
+- root-level `PROJECT-MEMORY-SHORT.md` and `PROJECT-MEMORY-LONG.md` keep a tracked cross-session memory snapshot for the whole repo
 - `BACKEND-STAGE-A-BACKLOG.md` is the backend-only execution slice
 - `STAGE-A-BACKLOG.md` is the broader Stage A delivery view when cross-functional context is needed

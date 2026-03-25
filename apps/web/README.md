@@ -63,8 +63,8 @@ The runtime role model is now exactly two system roles:
   - enters the internal admin control plane
   - sees 3 grouped domains:
     - `Operations` = live now
-    - `Access` = wireframed now, backend expansion next
-    - `Platform` = wireframed now, backend expansion next
+    - `Access` = live now
+    - `Platform` = live now
   - does not use merchant routes to inspect restaurants
 
 Fail-closed rules:
@@ -136,7 +136,7 @@ npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.
 The first-wave browser coverage proves:
 
 - `USER` can login, land in the merchant app, move across `Home`, `Reviews`, `Actions`, and `Settings`, update settings, and logout
-- `ADMIN` can login, land in the admin hub, inspect live `Operations` screens, and verify structural `Access` and `Platform` navigation
+- `ADMIN` can login, land in the admin hub, inspect live `Operations`, `Access`, and `Platform` screens
 - cross-role direct-route attempts are redirected fail-closed
 
 ## Current FE scope
@@ -154,8 +154,10 @@ The first-wave browser coverage proves:
   - `Review ops` = live now
   - `Crawl` = live now
 - admin `Access` and `Platform`
-  - visible in the IA now
-  - intentionally marked `Next`
-  - reserved for future backend endpoints
+  - `Users` = live now
+  - `Memberships` = live now
+  - `Health & jobs` = live now
+  - `Integrations & policies` = live now
+  - `Audit` = live now
 
 The app understands intake batches with `GOOGLE_MAPS_CRAWL` source type for display, while manual batch creation remains scoped to manual source types.

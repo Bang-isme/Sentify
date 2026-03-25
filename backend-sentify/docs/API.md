@@ -106,8 +106,8 @@ Current FE route mapping on top of this API contract:
   - `/app/settings`
 - admin app for `ADMIN`
   - live `Operations`: `/admin/operations/*`
-  - planned `Access`: `/admin/access/*`
-  - planned `Platform`: `/admin/platform/*`
+  - live `Access`: `/admin/access/*`
+  - live `Platform`: `/admin/platform/*`
 
 ## Health
 
@@ -508,6 +508,40 @@ Purpose:
 - inspect readiness before publish
 - bulk-approve valid pending items
 - publish through the same admin-curated boundary
+
+## Admin Access Routes
+
+Mounted under `/api/admin`.
+
+- `GET /users`
+- `GET /users/:id`
+- `PATCH /users/:id/role`
+- `POST /users/:id/password-reset`
+- `GET /memberships`
+- `POST /memberships`
+- `DELETE /memberships/:id`
+
+Purpose:
+
+- inspect the two-role account directory
+- read one user's memberships, security posture, recent intake work, and recent crawl work
+- change a user between `USER` and `ADMIN`
+- trigger password-reset delivery
+- inspect and manage restaurant membership links
+
+## Admin Platform Routes
+
+Mounted under `/api/admin`.
+
+- `GET /platform/health-jobs`
+- `GET /platform/integrations-policies`
+- `GET /platform/audit?limit=25`
+
+Purpose:
+
+- expose API, database, queue, and worker posture for the admin shell
+- show the real role model, route boundary, source coverage, and crawler defaults that FE should design around
+- expose a unified audit feed spanning users, memberships, intake, crawl, and publish activity
 
 ## Final Contract Summary
 

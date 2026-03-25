@@ -4,8 +4,10 @@ const helmet = require('helmet')
 
 const env = require('./config/env')
 const authRoutes = require('./routes/auth')
+const adminAccessRoutes = require('./modules/admin-access/admin-access.routes')
 const adminRestaurantsRoutes = require('./modules/admin-restaurants/admin-restaurants.routes')
 const adminIntakeRoutes = require('./modules/admin-intake/admin-intake.routes')
+const adminPlatformRoutes = require('./modules/admin-platform/admin-platform.routes')
 const reviewOpsRoutes = require('./modules/review-ops/review-ops.routes')
 const reviewCrawlRoutes = require('./modules/review-crawl/google-maps.routes')
 const { sendError } = require('./lib/controller-error')
@@ -67,8 +69,10 @@ app.get('/api/health', async (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/restaurants', restaurantRoutes)
+app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), adminAccessRoutes)
 app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), adminRestaurantsRoutes)
 app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), adminIntakeRoutes)
+app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), adminPlatformRoutes)
 app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), reviewCrawlRoutes)
 app.use('/api/admin', authMiddleware, requireInternalRole(INTERNAL_OPERATOR_ROLES), reviewOpsRoutes)
 

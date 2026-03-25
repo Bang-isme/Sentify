@@ -29,6 +29,8 @@ The backend is no longer a mock demo. It already behaves like a real product fou
 | Review crawl runtime | Mostly done | Source, run, worker, checkpoint, raw persistence, draft materialization, fresh-session recovery, structured `crawlCoverage`, local Memurai-backed SMB worker load proof | Managed Redis or staging-backed queue evidence |
 | Review ops control plane | Mostly done | One-click draft sync, source list, run list, readiness, bulk approve valid, publish proxy, Redis-backed sync-to-draft smoke with auto-materialized draft proof | Staging-style operator smoke |
 | Admin restaurant overview | Done | Dedicated admin discovery and overview endpoints for full admin flow | Keep docs and FE aligned |
+| Admin access management | Mostly done | User directory, user detail, role changes, password-reset trigger, membership list/create/delete, integration coverage | Broader account lifecycle controls only if product scope really needs them |
+| Admin platform visibility | Mostly done | Health & jobs, integrations & policies, audit feed, integration coverage | Add active system controls only when policy and safety rules are explicit |
 | Publish integrity | Mostly done | Stable external review identity, canonical reuse, and real-DB duplicate publish regression | Keep widening edge-case coverage as source rules evolve |
 | Database | Mostly done | Runtime models, crawl invariants, seed dataset, local logical recovery drill, local shadow-database restore rehearsal | Managed backup and rollback evidence |
 | Testing | Mostly done | `npm test`, `db:seed`, `db:reset:local-baseline`, `test:realdb`, queued crawl smoke, seeded HTTP read proof, local SMB load harnesses, Redis-backed operator and worker smoke on local Memurai, local logical recovery drill, local shadow-database recovery smoke, implemented browser E2E for `USER` and `ADMIN` critical paths | Staged smoke and managed-environment proof |
@@ -76,7 +78,8 @@ Key backend milestones already achieved:
 18. Added browser E2E proof for strict `USER` vs `ADMIN` shell separation and fail-closed route behavior
 19. Reset the FE IA into two post-login products:
     - merchant app: `Home`, `Reviews`, `Actions`, `Settings`
-    - admin hub: `Operations` live now, `Access` and `Platform` reserved as `Next`
+    - admin hub: `Operations`, `Access`, and `Platform`
+20. Added live backend surfaces for admin `Access` and `Platform` so FE no longer depends on placeholders for those domains
 
 ## 5. Risk If Work Stops Here
 

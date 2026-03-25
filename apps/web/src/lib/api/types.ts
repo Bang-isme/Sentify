@@ -89,6 +89,314 @@ export interface AdminRestaurantDetail {
   }
 }
 
+export type AccountState = 'ACTIVE' | 'LOCKED'
+
+export interface AdminUserSummary {
+  id: string
+  email: string
+  fullName: string
+  role: UserRole
+  accountState: AccountState
+  restaurantCount: number
+  activeSessionCount: number
+  pendingPasswordResetCount: number
+  createdIntakeBatchCount: number
+  requestedCrawlRunCount: number
+  failedLoginCount: number
+  tokenVersion: number
+  lastLoginAt: string | null
+  lockedUntil: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminMembershipRecord {
+  id: string
+  createdAt: string
+  user: {
+    id: string
+    email: string
+    fullName: string
+    role: UserRole
+  }
+  restaurant: {
+    id: string
+    name: string
+    slug: string
+    address: string | null
+    googleMapUrl: string | null
+  }
+}
+
+export interface AdminUserListResponse {
+  summary: {
+    totalUsers: number
+    adminCount: number
+    userCount: number
+    lockedUserCount: number
+    membershipCount: number
+    visibleUsers: number
+  }
+  filters: {
+    search: string | null
+    role: UserRole | null
+    accountState: AccountState | null
+  }
+  users: AdminUserSummary[]
+}
+
+export interface AdminUserDetailResponse {
+  user: AdminUserSummary & {
+    canEditRole: boolean
+    availableRoleTargets: UserRole[]
+    roleChangePolicy: string
+  }
+  memberships: AdminMembershipRecord[]
+  security: {
+    activeSessionCount: number
+    pendingPasswordResetCount: number
+    failedLoginCount: number
+    tokenVersion: number
+    lastLoginAt: string | null
+    lockedUntil: string | null
+  }
+  recentIntakeBatches: Array<{
+    id: string
+    title: string | null
+    status: ReviewIntakeBatchStatus
+    sourceType: ReviewIntakeBatchSourceType
+    createdAt: string
+    publishedAt: string | null
+    restaurant: {
+      id: string
+      name: string
+      slug: string
+    }
+  }>
+  recentCrawlRuns: Array<{
+    id: string
+    status: ReviewCrawlRunStatus
+    strategy: ReviewCrawlRunStrategy
+    priority: ReviewCrawlRunPriority
+    queuedAt: string
+    finishedAt: string | null
+    restaurant: {
+      id: string
+      name: string
+      slug: string
+    }
+  }>
+}
+
+export interface AdminUserPasswordResetResult {
+  user: {
+    id: string
+    email: string
+    fullName: string
+  }
+  message: string
+}
+
+export interface AdminMembershipListResponse {
+  summary: {
+    totalMemberships: number
+    visibleMemberships: number
+    userCount: number
+    restaurantCount: number
+  }
+  filters: {
+    userId: string | null
+    restaurantId: string | null
+  }
+  memberships: AdminMembershipRecord[]
+  users: Array<{
+    id: string
+    email: string
+    fullName: string
+    role: UserRole
+    restaurantCount: number
+  }>
+  restaurants: Array<{
+    id: string
+    name: string
+    slug: string
+    address: string | null
+    googleMapUrl: string | null
+    memberCount: number
+  }>
+}
+
+export interface AdminMembershipMutationResult {
+  membership: AdminMembershipRecord
+}
+
+export interface ListAdminUsersQuery {
+  search?: string
+  role?: UserRole
+  accountState?: AccountState
+}
+
+export interface ListAdminMembershipsQuery {
+  userId?: string
+  restaurantId?: string
+}
+
+export interface UpdateAdminUserRoleInput {
+  role: Extract<UserRole, 'USER' | 'ADMIN'>
+}
+
+export interface CreateAdminMembershipInput {
+  userId: string
+  restaurantId: string
+}
+
+export interface AdminHealthJobsResponse {
+  generatedAt: string
+  services: {
+    api: {
+      status: string
+      checkedAt: string
+      uptimeSeconds: number
+      nodeEnv: string
+    }
+    database: {
+      status: string
+      checkedAt: string
+      errorMessage?: string
+    }
+    queue: {
+      status: string
+      configured: boolean
+      inlineMode: boolean
+      queueName: string
+      counts: Record<string, number> | null
+    }
+    workers: {
+      status: string
+      configured: boolean
+      scheduler: Record<string, unknown> | null
+      processors: Record<string, unknown>[]
+      processorCount: number
+    }
+  }
+  jobs: {
+    queueName: string
+    runtimeMode: string
+    concurrency: number
+    counts: {
+      queued: number
+      running: number
+      failed: number
+      completed: number
+    }
+    recentRuns: Array<{
+      id: string
+      restaurant: {
+        id: string
+        name: string
+        slug: string
+      }
+      requestedBy: {
+        id: string
+        email: string
+        fullName: string
+        role: UserRole
+      } | null
+      status: ReviewCrawlRunStatus
+      strategy: ReviewCrawlRunStrategy
+      priority: ReviewCrawlRunPriority
+      queuedAt: string
+      startedAt: string | null
+      finishedAt: string | null
+      warningCount: number
+      extractedCount: number
+      validCount: number
+    }>
+  }
+  recovery: {
+    proofArtifacts: Array<{
+      key: string
+      label: string
+      available: boolean
+      fileName: string
+      updatedAt: string | null
+    }>
+  }
+}
+
+export interface AdminIntegrationsPoliciesResponse {
+  generatedAt: string
+  roleModel: {
+    systemRoles: string[]
+    restaurantMembershipModel: string
+    membershipPermissions: boolean
+    adminRequiresRestaurantMembership: boolean
+    userRequiresRestaurantMembership: boolean
+  }
+  routeBoundary: {
+    merchantBasePath: string
+    adminBasePath: string
+    merchantRole: string
+    adminRole: string
+  }
+  integrations: Array<{
+    key: string
+    label: string
+    status: string
+    detail: string
+  }>
+  policies: {
+    sourcePolicy: string
+    publishPolicy: string
+    crawlDefaults: Record<string, number | string | boolean | null>
+    sourceCoverage: {
+      restaurantCount: number
+      googleMapLinkedRestaurants: number
+      sourceCount: number
+      activeSourceCount: number
+      disabledSourceCount: number
+      restaurantsWithoutSourceCount: number
+    }
+  }
+  environment: {
+    nodeEnv: string
+    appUrl: string
+    corsOrigins: string[]
+    bodyLimit: string
+    authCookieSameSite: string
+    emailProvider: string
+  }
+}
+
+export interface AdminAuditResponse {
+  generatedAt: string
+  limit: number
+  summary: {
+    totalEvents: number
+    byAction: Record<string, number>
+  }
+  items: Array<{
+    id: string
+    timestamp: string
+    action: string
+    resourceType: string
+    resourceId: string
+    restaurant: {
+      id: string
+      name: string
+      slug: string
+    } | null
+    actor: {
+      id: string
+      email: string
+      fullName: string
+      role: UserRole
+    } | null
+    summary: string
+    metadata: Record<string, unknown>
+  }>
+}
+
 export interface AuthUser {
   id: string
   email: string

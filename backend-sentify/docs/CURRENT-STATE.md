@@ -42,9 +42,13 @@ Current FE shell contract on top of that split:
     - `/admin/operations/intake`
     - `/admin/operations/review-ops`
     - `/admin/operations/crawl`
-  - `Access` and `Platform` are already part of the FE IA but remain marked `Next` until backend expansion lands:
-    - `/admin/access/*`
-    - `/admin/platform/*`
+  - `Access` is backed now:
+    - `/admin/access/users`
+    - `/admin/access/memberships`
+  - `Platform` is backed now:
+    - `/admin/platform/health-jobs`
+    - `/admin/platform/integrations-policies`
+    - `/admin/platform/audit`
 
 ## 2. Runtime Stack
 
@@ -142,6 +146,15 @@ Behavior:
   - latest crawl run
   - open intake batches
   - next recommended admin actions
+- admin access management with:
+  - user directory and user detail
+  - role changes between `USER` and `ADMIN`
+  - password-reset trigger
+  - restaurant membership mapping
+- admin platform visibility with:
+  - API, database, queue, and worker health
+  - integration and route-boundary policy visibility
+  - audit event feed across users, memberships, intake, crawl, and publish history
 - intake create, edit, delete, publish
 - canonical review reuse when external review identity matches
 - review crawl source upsert and queued runs
@@ -235,13 +248,14 @@ Important proof points already exist:
 - auth token tables now match the live Prisma schema on fresh and existing local databases
 - route guards now enforce the simplified `USER` vs `ADMIN` split
 - admin users can inspect restaurants through dedicated admin endpoints instead of borrowing user-facing routes
+- admin users can now inspect live `Access` and `Platform` data through dedicated `/api/admin/*` endpoints instead of FE-only placeholders
 - real Postgres HTTP smoke covers user-facing read routes
 - real Postgres smoke covers publish and duplicate publish behavior
 - browser E2E now proves:
   - strict `USER` vs `ADMIN` shell separation
   - direct-route fail-close behavior
   - merchant critical path across `Home`, `Reviews`, `Actions`, and `Settings`
-  - admin critical path across live `Operations` screens plus structural `Access` and `Platform` navigation
+  - admin critical path across live `Operations`, `Access`, and `Platform` screens
 - Redis-backed local smoke covers worker and operator queue flow
 - shadow-database recovery proof covers restore plus app-level rollback smoke
 

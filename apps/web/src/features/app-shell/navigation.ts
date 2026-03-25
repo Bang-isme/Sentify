@@ -26,8 +26,6 @@ export interface RouteMeta {
 }
 
 const NOW_STAGE: RouteStage = { label: 'Now', tone: 'now' }
-const NEXT_STAGE: RouteStage = { label: 'Next', tone: 'next' }
-
 function isVietnamese(language: string) {
   return language.startsWith('vi')
 }
@@ -152,14 +150,14 @@ export function getAdminNavigation(language: string): NavGroup<AdminRoute>[] {
             label: 'Users',
             icon: 'group',
             description: 'Quan ly user, role, va trang thai tai khoan.',
-            stage: NEXT_STAGE,
+            stage: NOW_STAGE,
           },
           {
             route: '/admin/access/memberships',
             label: 'Memberships',
             icon: 'badge',
             description: 'Gan user vao nha hang va xem mapping hai chieu.',
-            stage: NEXT_STAGE,
+            stage: NOW_STAGE,
           },
         ],
       },
@@ -171,21 +169,21 @@ export function getAdminNavigation(language: string): NavGroup<AdminRoute>[] {
             label: 'Health & jobs',
             icon: 'monitor_heart',
             description: 'Backend health, worker, queue, va recovery.',
-            stage: NEXT_STAGE,
+            stage: NOW_STAGE,
           },
           {
             route: '/admin/platform/integrations-policies',
             label: 'Integrations',
             icon: 'settings_input_component',
             description: 'Source policy, crawler policy, va readiness.',
-            stage: NEXT_STAGE,
+            stage: NOW_STAGE,
           },
           {
             route: '/admin/platform/audit',
             label: 'Audit',
             icon: 'history',
             description: 'Log publish, operator action, va lich su ingest.',
-            stage: NEXT_STAGE,
+            stage: NOW_STAGE,
           },
         ],
       },
@@ -234,14 +232,14 @@ export function getAdminNavigation(language: string): NavGroup<AdminRoute>[] {
           label: 'Users',
           icon: 'group',
           description: 'User directory, role assignment, status, and reset actions.',
-          stage: NEXT_STAGE,
+            stage: NOW_STAGE,
         },
         {
           route: '/admin/access/memberships',
           label: 'Memberships',
           icon: 'badge',
           description: 'Assign users to restaurants and inspect both sides of the mapping.',
-          stage: NEXT_STAGE,
+            stage: NOW_STAGE,
         },
       ],
     },
@@ -253,21 +251,21 @@ export function getAdminNavigation(language: string): NavGroup<AdminRoute>[] {
           label: 'Health & jobs',
           icon: 'monitor_heart',
           description: 'Backend health, worker state, queue visibility, and recovery posture.',
-          stage: NEXT_STAGE,
+            stage: NOW_STAGE,
         },
         {
           route: '/admin/platform/integrations-policies',
           label: 'Integrations',
           icon: 'settings_input_component',
           description: 'Integration readiness and environment-level policy surfaces.',
-          stage: NEXT_STAGE,
+            stage: NOW_STAGE,
         },
         {
           route: '/admin/platform/audit',
           label: 'Audit',
           icon: 'history',
           description: 'Publish history, operator activity, and system event trail.',
-          stage: NEXT_STAGE,
+          stage: NOW_STAGE,
         },
       ],
     },
@@ -308,8 +306,8 @@ export function getRouteMeta(route: AppRoute, language: string): RouteMeta {
         ? 'Command center cho operations, access va platform'
         : 'Command center across operations, access, and platform',
       description: isVietnamese(language)
-        ? 'Tong quan cap he thong, gom ca surface da co backend va surface tiep theo.'
-        : 'A global control-plane overview across the backed operations surfaces and the planned expansion areas.',
+        ? 'Tong quan control plane gom operations, access, va platform da duoc noi voi backend.'
+        : 'A global control-plane overview across operations, access, and platform, all connected to backend surfaces.',
       stage: NOW_STAGE,
     }
   }

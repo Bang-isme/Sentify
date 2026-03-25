@@ -52,6 +52,8 @@ Unit tests                 Current baseline
 - queue/runtime coverage for BullMQ-safe job ids and worker lifecycle
 - role-boundary integration coverage for `USER` versus `ADMIN`
 - admin restaurant overview coverage for the new admin discovery flow
+- admin access integration coverage for users and memberships
+- admin platform integration coverage for health, policies, and audit
 
 ### Real-data coverage already in place
 
@@ -76,7 +78,7 @@ npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.
 Current browser-critical-path proof:
 
 - `USER`: login, merchant app landing, `Home`, `Reviews`, `Actions`, `Settings`, settings update, admin-route deny, logout
-- `ADMIN`: login, admin hub landing, live `Operations` screens, structural `Access` and `Platform` navigation, merchant-route deny, logout
+- `ADMIN`: login, admin hub landing, live `Operations`, `Access`, and `Platform` screens, merchant-route deny, logout
 
 ## 3. File Pattern
 
@@ -209,6 +211,8 @@ npm run smoke:staging-recovery-drill
 | Admin flow role boundary | `USER` gets `403` on `/api/admin/*`; `ADMIN` is allowed |
 | User-facing routes | seeded `GET /api/restaurants`, `/:id`, `/:id/reviews`, KPI, sentiment, trend, complaints, top issue |
 | Admin overview flow | `GET /api/admin/restaurants` and `GET /api/admin/restaurants/:id` expose restaurant discovery plus combined `userFlow` and `adminFlow` overview |
+| Admin access | `GET /api/admin/users`, `GET /api/admin/users/:id`, `PATCH /api/admin/users/:id/role`, `POST /api/admin/users/:id/password-reset`, `GET/POST/DELETE /api/admin/memberships*` |
+| Admin platform | `GET /api/admin/platform/health-jobs`, `GET /api/admin/platform/integrations-policies`, `GET /api/admin/platform/audit` |
 | Admin intake | create, add, update, delete, publish, duplicate reuse |
 | Review crawl | source upsert, queued run, worker processing, materialize-intake |
 | Review ops | sync-to-draft, source list, run detail, readiness, approve-valid, publish |

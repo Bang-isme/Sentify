@@ -16,8 +16,8 @@ Sentify is an AI-assisted customer insight tool for F&B businesses with a strict
 - Review crawl: preview, queue, monitor, and materialize Google Maps crawl runs
 - Admin control-plane IA:
   - `Operations` live now
-  - `Access` wireframed now, backend expansion next
-  - `Platform` wireframed now, backend expansion next
+  - `Access` live now
+  - `Platform` live now
 
 ## Tech Stack
 
@@ -37,6 +37,10 @@ backend-sentify/docs/ Active backend and database documentation
 
 Backend setup details live in [backend-sentify/docs/SETUP.md](backend-sentify/docs/SETUP.md).
 Frontend setup and FE route architecture live in [apps/web/README.md](apps/web/README.md).
+Tracked project memory now also lives in:
+
+- [PROJECT-MEMORY-SHORT.md](PROJECT-MEMORY-SHORT.md)
+- [PROJECT-MEMORY-LONG.md](PROJECT-MEMORY-LONG.md)
 
 Recommended local bootstrap:
 
@@ -107,7 +111,7 @@ npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.
 What that suite proves now:
 
 - `USER` can login, land in the merchant app, move across `Home`, `Reviews`, `Actions`, and `Settings`, update settings, and logout
-- `ADMIN` can login, land in the admin hub, move across live `Operations` screens, verify `Access` and `Platform` structural nav, and logout
+- `ADMIN` can login, land in the admin hub, move across live `Operations`, `Access`, and `Platform` screens, and logout
 - direct cross-role routes fail closed
 
 ## Runtime Docs

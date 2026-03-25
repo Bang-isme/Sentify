@@ -155,6 +155,8 @@ async function startApp(prismaOverrides = {}, options = {}) {
     clearModule('../src/services/email.service')
 
     const defaultPrisma = {
+        $queryRaw: async () => [{ '?column?': 1 }],
+        $transaction: async (operations) => Promise.all(operations),
         user: {},
         restaurantUser: {},
         complaintKeyword: {},

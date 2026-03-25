@@ -30,8 +30,8 @@ export function AdminHubHomeScreen({ activeView = 'home', onNavigate }: AdminHub
               One admin product, organized into operations, access, and platform.
             </h1>
             <p className="mt-3 max-w-2xl text-[14px] leading-7 text-[#b9b295]">
-              Operations are live now. Access and Platform are part of the target-state wireframe and are
-              marked `Next` until the backend grows those surfaces.
+              All three domains are now wired: Operations for restaurant workflows, Access for identity and
+              memberships, and Platform for health, policy, and audit visibility.
             </p>
           </div>
 
@@ -127,10 +127,10 @@ export function AdminHubHomeScreen({ activeView = 'home', onNavigate }: AdminHub
                   </div>
                   <div
                     className={`border px-2 py-1 text-[10px] font-semibold uppercase ${
-                      isHome ? statusTone('Now') : statusTone(view.startsWith('operations-') ? 'Now' : 'Next')
+                      isHome ? statusTone('Now') : statusTone('Now')
                     }`}
                   >
-                    {isHome ? 'Entry' : view.startsWith('operations-') ? 'Now' : 'Next'}
+                    {isHome ? 'Entry' : 'Now'}
                   </div>
                 </div>
               )
@@ -148,8 +148,8 @@ export function AdminHubHomeScreen({ activeView = 'home', onNavigate }: AdminHub
               merchant screens.
             </p>
             <p>
-              Operations is the only live domain right now. Access and Platform are intentionally shown to
-              make the product target state explicit.
+              Admin now has a full control-plane surface: restaurant operations, user access, and platform
+              visibility live in one shell.
             </p>
             <p>
               The layout is intentionally dense and full-bleed, with a collapsible rail instead of oversized

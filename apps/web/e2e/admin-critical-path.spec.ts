@@ -26,10 +26,19 @@ test.describe('ADMIN critical path', () => {
     await expect(page.getByRole('heading', { name: 'Admin review intake' }).first()).toBeVisible()
 
     await page.getByRole('button', { name: /^Users$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Access' }).first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'User access administration' }).first()).toBeVisible()
+
+    await page.getByRole('button', { name: /^Memberships$/i }).first().click()
+    await expect(page.getByRole('heading', { name: 'Membership mapping' }).first()).toBeVisible()
 
     await page.getByRole('button', { name: /^Health & jobs$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Platform' }).first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Platform health and jobs' }).first()).toBeVisible()
+
+    await page.getByRole('button', { name: /^Integrations$/i }).first().click()
+    await expect(page.getByRole('heading', { name: 'Integrations and policies' }).first()).toBeVisible()
+
+    await page.getByRole('button', { name: /^Audit$/i }).first().click()
+    await expect(page.getByRole('heading', { name: 'Audit trail' }).first()).toBeVisible()
 
     await expect(page.getByRole('button', { name: /^Home$/i })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /^Reviews$/i })).toHaveCount(0)
