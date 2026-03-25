@@ -33,33 +33,33 @@ export function PageIntro({
         : 'border-border-light/70 bg-bg-light/70 text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white'
 
   return (
-    <section className="app-shell-panel rounded-[1.45rem] border border-border-light/70 bg-surface-white/88 p-4 shadow-[0_18px_56px_-36px_rgba(0,0,0,0.3)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 sm:p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <section className="app-shell-panel rounded-[0.82rem] border border-border-light/70 bg-surface-white/90 p-3.5 shadow-[0_16px_42px_-30px_rgba(0,0,0,0.28)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/84 sm:p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
           {eyebrow ? (
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/18 bg-primary/8 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
               <span className="size-2 rounded-full bg-primary"></span>
               {eyebrow}
             </div>
           ) : null}
           <h1
-            className={`text-[1.5rem] font-black tracking-tight text-text-charcoal dark:text-white sm:text-[1.65rem] ${
-              eyebrow ? 'mt-4' : ''
+            className={`text-[1.32rem] font-black tracking-tight text-text-charcoal dark:text-white sm:text-[1.48rem] ${
+              eyebrow ? 'mt-3' : ''
             }`}
           >
             {title}
           </h1>
-          <p className="mt-2.5 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+          <p className="mt-2 text-[14px] leading-6 text-text-silver-light dark:text-text-silver-dark">
             {description}
           </p>
           {meta?.length ? (
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+            <div className="mt-2.5 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
               {meta.map((item) => (
                 <div
                   key={`${item.icon}-${item.label}`}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${toneClass(item.tone)}`}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-2.5 py-1.5 text-[10px] font-semibold ${toneClass(item.tone)}`}
                 >
-                  <span className="material-symbols-outlined text-[16px]">{item.icon}</span>
+                  <span className="material-symbols-outlined text-[15px]">{item.icon}</span>
                   <span>{item.label}</span>
                 </div>
               ))}
@@ -93,19 +93,19 @@ export function SectionCard({
 }) {
   return (
     <section
-      className={`app-shell-panel rounded-[1.45rem] border p-4 shadow-[0_18px_56px_-36px_rgba(0,0,0,0.32)] backdrop-blur sm:p-5 ${
+      className={`app-shell-panel rounded-[0.82rem] border p-3.5 shadow-[0_16px_42px_-30px_rgba(0,0,0,0.28)] backdrop-blur sm:p-4 ${
         tone === 'accent'
           ? 'border-primary/18 bg-primary/[0.04] dark:border-primary/15 dark:bg-primary/[0.05]'
           : 'border-border-light/70 bg-surface-white/88 dark:border-border-dark/70 dark:bg-surface-dark/82'
       } ${className ?? ''}`}
     >
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-3.5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-bold tracking-tight text-text-charcoal dark:text-white sm:text-[1.15rem]">
+          <h2 className="text-[1.05rem] font-bold tracking-tight text-text-charcoal dark:text-white sm:text-[1.08rem]">
             {title}
           </h2>
           {description ? (
-            <p className="mt-1.5 max-w-3xl text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+            <p className="mt-1.5 max-w-3xl text-[14px] leading-6 text-text-silver-light dark:text-text-silver-dark">
               {description}
             </p>
           ) : null}
@@ -137,9 +137,9 @@ export function SidebarStatusPill({
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-2xl border ${compact ? 'px-3 py-2.5 text-[13px]' : 'px-3 py-3 text-sm'} ${toneClass}`}
+      className={`flex items-center gap-2.5 rounded-[0.7rem] border ${compact ? 'px-2.5 py-2 text-[12px]' : 'px-3 py-2.5 text-[13px]'} ${toneClass}`}
     >
-      <span className="material-symbols-outlined text-[18px]">{icon}</span>
+      <span className="material-symbols-outlined text-[16px]">{icon}</span>
       <span className="font-semibold leading-5">{label}</span>
     </div>
   )
@@ -154,7 +154,7 @@ export function StatusMessage({
 }) {
   return (
     <div
-      className={`rounded-2xl border px-4 py-3 text-sm ${
+      className={`rounded-[0.72rem] border px-3.5 py-2.5 text-[14px] ${
         tone === 'error'
           ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200'
           : 'border-border-light/70 bg-surface-white/80 text-text-silver-light dark:border-border-dark dark:bg-surface-dark/70 dark:text-text-silver-dark'
@@ -176,7 +176,7 @@ export function FieldError({ message }: { message?: string }) {
 
 export function EmptyPanel({ message }: { message: string }) {
   return (
-    <div className="rounded-[1.35rem] border border-dashed border-border-light/90 bg-bg-light/70 p-5 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/60 dark:text-text-silver-dark">
+    <div className="rounded-[0.78rem] border border-dashed border-border-light/90 bg-bg-light/70 p-4 text-[14px] leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/60 dark:text-text-silver-dark">
       {message}
     </div>
   )

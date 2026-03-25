@@ -83,17 +83,17 @@ export function RestaurantSwitcher({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className={`flex w-full items-center justify-between rounded-[1.35rem] border border-border-light/80 bg-bg-light/75 px-4 text-left transition hover:border-primary/35 hover:bg-primary/6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:bg-bg-dark/55 ${
-          compact ? 'py-3.5' : 'py-4'
+        className={`flex w-full items-center justify-between rounded-[0.72rem] border border-border-light/80 bg-bg-light/75 px-3 text-left transition hover:border-primary/35 hover:bg-primary/6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:bg-bg-dark/55 ${
+          compact ? 'py-2.5' : 'py-3'
         }`}
         onClick={() => setIsOpen((current) => !current)}
       >
         <div>
-          <div className="text-base font-bold text-text-charcoal dark:text-white">
+          <div className="text-[14px] font-bold text-text-charcoal dark:text-white">
             {currentRestaurant.name}
           </div>
           {!compact ? (
-            <div className="mt-1 text-sm text-text-silver-light dark:text-text-silver-dark">
+            <div className="mt-1 text-[13px] text-text-silver-light dark:text-text-silver-dark">
               {copy.restaurantSwitcherHint}
             </div>
           ) : null}
@@ -108,9 +108,9 @@ export function RestaurantSwitcher({
       </button>
 
       <div
-        className={`grid overflow-hidden rounded-[1.3rem] border border-border-light/80 bg-surface-white/96 shadow-[0_18px_44px_-24px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-200 dark:border-border-dark dark:bg-surface-dark/96 ${
+        className={`grid overflow-hidden rounded-[0.72rem] border border-border-light/80 bg-surface-white/96 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-all duration-200 dark:border-border-dark dark:bg-surface-dark/96 ${
           isOpen
-            ? 'mt-3 max-h-80 p-2 opacity-100'
+            ? 'mt-2.5 max-h-80 p-1.5 opacity-100'
             : 'pointer-events-none mt-0 max-h-0 p-0 opacity-0'
         }`}
         role="listbox"
@@ -125,7 +125,7 @@ export function RestaurantSwitcher({
               type="button"
               role="option"
               aria-selected={isActive}
-              className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition ${
+              className={`flex w-full items-center justify-between rounded-[0.65rem] px-3 py-2.5 text-left transition ${
                 isActive
                   ? 'bg-primary/10 text-primary'
                   : 'text-text-charcoal hover:bg-primary/6 dark:text-white dark:hover:bg-white/5'
