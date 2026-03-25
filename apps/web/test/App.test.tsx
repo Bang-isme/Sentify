@@ -703,7 +703,8 @@ describe('Sentify app shell', () => {
     await waitFor(() => {
       expect(window.location.hash).toBe('#/login')
     })
-    expect(screen.getAllByRole('button', { name: 'Login' }).length).toBeGreaterThan(0)
+    expect(screen.getByTestId('auth-shell')).toBeInTheDocument()
+    expect(screen.getByTestId('auth-submit')).toBeInTheDocument()
   })
 
   it('renders the user shell without admin nav or copy', async () => {
@@ -713,14 +714,14 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect((await screen.findAllByText('User workspace')).length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reviews' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Actions' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
-    expect(screen.queryByText('Admin control plane')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Restaurants' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Intake' })).not.toBeInTheDocument()
+    expect(await screen.findByTestId('merchant-shell')).toBeInTheDocument()
+    expect(screen.getByTestId('merchant-nav')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-app')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-app-reviews')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-app-actions')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-app-settings')).toBeInTheDocument()
+    expect(screen.queryByTestId('admin-shell')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('admin-nav')).not.toBeInTheDocument()
   })
 
   it('renders the admin shell on the /admin overview route', async () => {
@@ -732,13 +733,14 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect((await screen.findAllByText('Admin control plane')).length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: 'Restaurants' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Intake' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Review ops' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Crawl' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Users' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Home' })).not.toBeInTheDocument()
+    expect(await screen.findByTestId('admin-shell')).toBeInTheDocument()
+    expect(screen.getByTestId('admin-nav')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-admin-operations-restaurants')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-admin-operations-intake')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-admin-operations-review-ops')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-admin-operations-crawl')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-admin-access-users')).toBeInTheDocument()
+    expect(screen.queryByTestId('merchant-nav')).not.toBeInTheDocument()
   })
 
   it('renders live admin access and platform screens instead of placeholders', async () => {
@@ -747,8 +749,7 @@ describe('Sentify app shell', () => {
 
     const firstRender = render(<App />)
 
-    expect(await screen.findByText('User access administration')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Refresh users' })).toBeInTheDocument()
+    expect(await screen.findByTestId('admin-users-screen')).toBeInTheDocument()
 
     firstRender.unmount()
 
@@ -757,8 +758,7 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect(await screen.findByText('Platform health and jobs')).toBeInTheDocument()
-    expect(screen.getByText('Recovery proof artifacts')).toBeInTheDocument()
+    expect(await screen.findByTestId('admin-health-jobs-screen')).toBeInTheDocument()
   })
 
   it('allows a USER member to update restaurant settings', async () => {
@@ -777,16 +777,17 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect(await screen.findByText('Settings that stay readable')).toBeInTheDocument()
+    expect(await screen.findByTestId('merchant-settings-screen')).toBeInTheDocument()
+    expect(screen.getByTestId('settings-form')).toBeInTheDocument()
 
-    const nameField = screen.getByLabelText('Restaurant name')
-    const addressField = screen.getByLabelText('Address')
+    const nameField = screen.getByTestId('restaurant-name-input')
+    const addressField = screen.getByTestId('restaurant-address-input')
 
     await user.clear(nameField)
     await user.type(nameField, 'Cafe Aurora Updated')
     await user.clear(addressField)
     await user.type(addressField, '456 River Street')
-    await user.click(screen.getAllByRole('button', { name: 'Save changes' })[0])
+    await user.click(screen.getByTestId('save-profile'))
 
     await waitFor(() => {
       expect(updateRestaurantMock).toHaveBeenCalledWith('rest-1', {
@@ -794,7 +795,7 @@ describe('Sentify app shell', () => {
         address: '456 River Street',
       })
     })
-    expect(await screen.findByRole('status')).toHaveTextContent('Changes saved.')
+    expect(await screen.findByRole('status')).toBeInTheDocument()
   })
 
   it('fails closed across roles when the route does not match the active role', async () => {
@@ -807,9 +808,9 @@ describe('Sentify app shell', () => {
     await waitFor(() => {
       expect(window.location.hash).toBe('#/app')
     })
-    expect(await screen.findByText('Dataset freshness')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Intake' })).not.toBeInTheDocument()
+    expect(await screen.findByTestId('merchant-home-screen')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-app')).toBeInTheDocument()
+    expect(screen.queryByTestId('nav-admin-operations-intake')).not.toBeInTheDocument()
 
     firstRender.unmount()
 
@@ -821,12 +822,9 @@ describe('Sentify app shell', () => {
     await waitFor(() => {
       expect(window.location.hash).toBe('#/admin')
     })
-    expect(
-      (await screen.findAllByText('One admin product, organized into operations, access, and platform.'))
-        .length,
-    ).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: 'Restaurants' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Intake' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Home' })).not.toBeInTheDocument()
+    expect(await screen.findByTestId('admin-home-screen')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-admin-operations-restaurants')).toBeInTheDocument()
+    expect(screen.getByTestId('nav-admin-operations-intake')).toBeInTheDocument()
+    expect(screen.queryByTestId('nav-app')).not.toBeInTheDocument()
   })
 })

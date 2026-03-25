@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { NavGroup, RouteStage } from './navigation'
+import {
+  getShellBadgeClass,
+  getShellChrome,
+  getShellStageClass,
+} from './shellChrome'
 
 interface ShellBadge {
   label: string
@@ -23,55 +28,8 @@ interface ShellLayoutProps<RouteId extends string> {
   children: ReactNode
 }
 
-function isVietnamese(language: string) {
-  return language.startsWith('vi')
-}
-
 function getStorageKey(mode: 'merchant' | 'admin') {
   return `sentify-shell-nav-${mode}`
-}
-
-function getStrings(language: string) {
-  if (isVietnamese(language)) {
-    return {
-      navigation: 'Dieu huong',
-      collapse: 'Thu gon sidebar',
-      expand: 'Mo rong sidebar',
-      openNavigation: 'Mo menu',
-      closeNavigation: 'Dong menu',
-      now: 'Now',
-      next: 'Next',
-    }
-  }
-
-  return {
-    navigation: 'Navigation',
-    collapse: 'Collapse sidebar',
-    expand: 'Expand sidebar',
-    openNavigation: 'Open navigation',
-    closeNavigation: 'Close navigation',
-    now: 'Now',
-    next: 'Next',
-  }
-}
-
-function getBadgeClasses(tone: ShellBadge['tone']) {
-  switch (tone) {
-    case 'success':
-      return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200 dark:text-emerald-200'
-    case 'warning':
-      return 'border-amber-500/25 bg-amber-500/10 text-amber-200 dark:text-amber-200'
-    case 'danger':
-      return 'border-red-500/25 bg-red-500/10 text-red-200 dark:text-red-200'
-    default:
-      return 'border-white/10 bg-white/5 text-slate-200 dark:text-slate-200'
-  }
-}
-
-function getStageClasses(stage: RouteStage) {
-  return stage.tone === 'next'
-    ? 'border-sky-400/25 bg-sky-400/10 text-sky-200'
-    : 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200'
 }
 
 export function ShellLayout<RouteId extends string>({
@@ -90,10 +48,16 @@ export function ShellLayout<RouteId extends string>({
   onNavigate,
   children,
 }: ShellLayoutProps<RouteId>) {
-  const strings = useMemo(() => getStrings(language), [language])
+  const chrome = useMemo(() => getShellChrome(mode, language), [language, mode])
   const storageKey = useMemo(() => getStorageKey(mode), [mode])
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { copy, palette } = chrome
+  const isAdmin = mode === 'admin'
+  const railTitleClass = isAdmin ? 'text-white' : 'text-[#1b2329]'
+  const railMetaClass = isAdmin ? 'text-slate-500' : 'text-[#766a58]'
+  const bodyTitleClass = isAdmin ? 'text-white' : 'text-[#1c2329]'
+  const bodyCopyClass = isAdmin ? 'text-slate-400' : 'text-[#5f625b]'
 
   useEffect(() => {
     const saved = window.localStorage.getItem(storageKey)
@@ -131,66 +95,63 @@ export function ShellLayout<RouteId extends string>({
     }
   }, [mobileOpen])
 
-  const palette =
-    mode === 'admin'
-      ? {
-          shell: 'bg-[#0f1114] text-slate-100',
-          sidebar: 'border-r border-white/8 bg-[#12161b]',
-          sidebarPanel: 'border border-white/6 bg-[#171c22]',
-          activeItem: 'border-sky-400/20 bg-sky-400/10 text-white',
-          idleItem: 'border-transparent text-slate-400 hover:border-white/8 hover:bg-white/[0.03] hover:text-white',
-          page: 'bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.08),transparent_28%),linear-gradient(180deg,#0f1114_0%,#0b0d10_100%)]',
-          pagePanel: 'border border-white/7 bg-[#12161b]',
-          mutedPanel: 'border border-white/6 bg-[#161b21]',
-          accent: 'text-sky-300',
-        }
-      : {
-          shell: 'bg-[#0d1116] text-slate-100',
-          sidebar: 'border-r border-white/8 bg-[#10161b]',
-          sidebarPanel: 'border border-white/6 bg-[#151d23]',
-          activeItem: 'border-emerald-400/20 bg-emerald-400/10 text-white',
-          idleItem: 'border-transparent text-slate-400 hover:border-white/8 hover:bg-white/[0.03] hover:text-white',
-          page: 'bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.08),transparent_28%),linear-gradient(180deg,#0d1116_0%,#0b0f13_100%)]',
-          pagePanel: 'border border-white/7 bg-[#10161b]',
-          mutedPanel: 'border border-white/6 bg-[#151c22]',
-          accent: 'text-emerald-300',
-        }
-
   return (
-    <main className={`min-h-screen ${palette.shell}`}>
-      <div className={`fixed inset-0 z-40 bg-black/45 backdrop-blur-sm lg:hidden ${mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`} onClick={() => setMobileOpen(false)} />
+    <main
+      data-testid={isAdmin ? 'admin-shell' : 'merchant-shell'}
+      className={`app-shell-shell relative min-h-screen overflow-x-hidden ${palette.shell}`}
+    >
+      <div className={`pointer-events-none absolute inset-0 ${palette.backdropOne}`} />
+      <div className={`pointer-events-none absolute inset-0 ${palette.backdropTwo} opacity-70`} />
+      <div
+        className={`fixed inset-0 z-40 bg-black/45 backdrop-blur-sm lg:hidden ${
+          mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        onClick={() => setMobileOpen(false)}
+      />
 
-      <div className="flex min-h-screen pt-[4.4rem]">
+      <div className="relative flex min-h-screen pt-[3.75rem]">
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex w-[min(320px,88vw)] flex-col ${palette.sidebar} px-3 pb-4 pt-[4.9rem] shadow-[0_24px_80px_rgba(0,0,0,0.35)] transition-transform duration-200 lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:translate-x-0 lg:pt-[5.2rem] ${collapsed ? 'lg:w-[88px]' : 'lg:w-[280px]'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          data-testid={isAdmin ? 'admin-nav' : 'merchant-nav'}
+          className={`app-shell-rail fixed bottom-0 left-0 top-[3.75rem] z-50 flex w-[min(300px,84vw)] flex-col border-r ${palette.rail} transition-transform duration-200 lg:sticky lg:z-20 lg:h-[calc(100vh-3.75rem)] lg:translate-x-0 ${collapsed ? 'lg:w-[76px]' : 'lg:w-[248px]'} ${
+            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
         >
-          <div className={`mb-3 flex items-start gap-3 px-1 ${collapsed ? 'lg:justify-center' : ''}`}>
-            <div className="flex size-9 shrink-0 items-center justify-center border border-white/10 bg-white/5">
+          <div
+            className={`flex items-start gap-3 border-b ${palette.railDivider} px-4 py-3 ${
+              collapsed ? 'lg:justify-center lg:px-3' : ''
+            }`}
+          >
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-[12px] border border-white/10 bg-white/[0.04]">
               <span className={`material-symbols-outlined text-[18px] ${palette.accent}`}>
                 {mode === 'admin' ? 'admin_panel_settings' : 'storefront'}
               </span>
             </div>
             {!collapsed ? (
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${railMetaClass}`}>
                   {productLabel}
                 </div>
-                <div className="mt-1 text-[15px] font-semibold text-white">{sectionLabel}</div>
+                <div className="mt-1 flex min-w-0 items-center gap-2">
+                  <div className={`truncate text-[14px] font-semibold ${railTitleClass}`}>{sectionLabel}</div>
+                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${palette.chipMuted}`}>
+                    {mode === 'admin' ? 'ADMIN' : 'USER'}
+                  </span>
+                </div>
               </div>
             ) : null}
             <div className="ml-auto flex items-center gap-1.5">
               <button
                 type="button"
-                className="inline-flex size-8 items-center justify-center border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:text-white lg:hidden"
-                aria-label={strings.closeNavigation}
+                className="inline-flex size-8 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-white/20 hover:text-white lg:hidden"
+                aria-label={copy.closeNavigation}
                 onClick={() => setMobileOpen(false)}
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
               <button
                 type="button"
-                className="hidden size-8 items-center justify-center border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:text-white lg:inline-flex"
-                aria-label={collapsed ? strings.expand : strings.collapse}
+                className="hidden size-8 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-white/20 hover:text-white lg:inline-flex"
+                aria-label={collapsed ? copy.expand : copy.collapse}
                 onClick={() => setCollapsed((current) => !current)}
               >
                 <span className="material-symbols-outlined text-[18px]">
@@ -200,15 +161,17 @@ export function ShellLayout<RouteId extends string>({
             </div>
           </div>
 
-          <div className={`flex-1 overflow-y-auto px-1 ${collapsed ? 'space-y-3' : 'space-y-4'}`}>
+          <div className="flex-1 overflow-y-auto px-2 py-2.5">
             {navGroups.map((group) => (
-              <section key={group.label} className={`px-1 py-1 ${collapsed ? '' : `${palette.sidebarPanel} p-2`}`}>
+              <section key={group.label} className="py-1.5 first:pt-0">
                 {!collapsed ? (
-                  <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  <div
+                    className={`px-2 text-[10px] font-semibold uppercase tracking-[0.22em] ${palette.railSectionLabel}`}
+                  >
                     {group.label}
                   </div>
                 ) : null}
-                <div className="grid gap-1.5">
+                <div className="mt-2 grid gap-1">
                   {group.items.map((item) => {
                     const active = item.route === route
 
@@ -218,25 +181,32 @@ export function ShellLayout<RouteId extends string>({
                         type="button"
                         title={collapsed ? item.label : undefined}
                         aria-label={item.label}
-                        className={`group flex items-center gap-3 border px-2.5 py-2 text-left transition ${active ? palette.activeItem : palette.idleItem}`}
+                        data-testid={`nav-${String(item.route).replace(/[^\w]+/g, '-').replace(/^-|-$/g, '')}`}
+                        className={`app-shell-rail-item group flex items-center gap-3 border px-2.5 py-2 text-left transition ${
+                          active ? palette.railItemActive : palette.railItemIdle
+                        } ${collapsed ? 'justify-center rounded-[12px] px-2.5' : 'rounded-[12px]'}`}
                         onClick={() => {
                           setMobileOpen(false)
                           onNavigate(item.route)
                         }}
                       >
-                        <span className="inline-flex size-8 shrink-0 items-center justify-center border border-white/10 bg-white/5 text-slate-200">
-                          <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.04] text-slate-200">
+                          <span className={`material-symbols-outlined text-[18px] ${palette.railIcon}`}>
+                            {item.icon}
+                          </span>
                         </span>
                         {!collapsed ? (
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[13px] font-semibold">{item.label}</span>
-                            <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">
+                            <span className="block truncate text-[13px] font-semibold">{item.label}</span>
+                            <span className={`mt-0.5 block truncate text-[11px] leading-5 ${railMetaClass}`}>
                               {item.description}
                             </span>
                           </span>
                         ) : null}
                         {!collapsed ? (
-                          <span className={`inline-flex shrink-0 border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${getStageClasses(item.stage)}`}>
+                          <span
+                            className={`inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${getShellStageClass(item.stage.tone)}`}
+                          >
                             {item.stage.label}
                           </span>
                         ) : null}
@@ -248,51 +218,53 @@ export function ShellLayout<RouteId extends string>({
             ))}
           </div>
 
-          {sidebarFooter ? (
-            <div className={`mt-3 px-1 ${collapsed ? '' : `${palette.sidebarPanel} p-2`}`}>{sidebarFooter}</div>
-          ) : null}
+          {sidebarFooter ? <div className={`border-t ${palette.railDivider} px-3 py-3`}>{sidebarFooter}</div> : null}
         </aside>
 
         <div className="min-w-0 flex-1">
-          <div className="w-full px-3 pb-6 lg:px-5">
+          <div className="mx-auto w-full max-w-[1920px] px-3 pb-6 lg:px-5">
             <button
               type="button"
-              className={`mb-3 inline-flex size-9 items-center justify-center border border-white/10 bg-white/5 text-slate-200 lg:hidden ${palette.pagePanel}`}
-              aria-label={strings.openNavigation}
+              className={`mb-3 inline-flex size-9 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.04] text-slate-200 lg:hidden ${palette.heroPanel}`}
+              aria-label={copy.openNavigation}
               onClick={() => setMobileOpen(true)}
             >
               <span className="material-symbols-outlined text-[18px]">menu</span>
             </button>
 
-            <section className={`${palette.pagePanel} ${palette.page} mb-4 px-4 py-4 lg:px-6 lg:py-5`}>
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${getStageClasses(stage)}`}>
+            <section className={`app-shell-panel app-shell-surface ${palette.hero} mb-4 overflow-hidden rounded-[14px] px-3.5 py-3 lg:px-4 lg:py-3`}>
+              <div className="relative flex flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_clamp(260px,24vw,340px)] xl:items-start xl:gap-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${getShellStageClass(stage.tone)}`}
+                    >
                       {stage.label}
                     </span>
-                    <span className="inline-flex border border-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${palette.chipMuted}`}>
                       {sectionLabel}
                     </span>
                     {badges.map((badge) => (
                       <span
                         key={`${badge.label}-${badge.tone ?? 'neutral'}`}
-                        className={`inline-flex border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${getBadgeClasses(badge.tone)}`}
+                        className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${getShellBadgeClass(badge.tone)}`}
                       >
                         {badge.label}
                       </span>
                     ))}
                   </div>
-                  <h1 className="max-w-5xl text-[28px] font-semibold tracking-[-0.03em] text-white lg:text-[34px]">
+                  <h1 className={`mt-3 max-w-5xl text-[22px] font-semibold tracking-[-0.03em] lg:text-[26px] ${bodyTitleClass}`}>
                     {title}
                   </h1>
-                  <p className="mt-3 max-w-4xl text-[14px] leading-6 text-slate-400">{description}</p>
+                  <p className={`mt-2.5 max-w-4xl text-[13px] leading-6 ${bodyCopyClass}`}>{description}</p>
                 </div>
-                {contextSlot ? <div className="xl:max-w-[420px] xl:min-w-[320px]">{contextSlot}</div> : null}
+                {contextSlot ? (
+                  <div className={`rounded-[12px] border px-3 py-3 ${palette.heroPanel}`}>{contextSlot}</div>
+                ) : null}
               </div>
             </section>
 
-            <section className="grid gap-4">{children}</section>
+            <section className="grid gap-3 lg:gap-4">{children}</section>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import type { MerchantHubReviewsScreenProps } from './merchantHubTypes'
-import { merchantHubCopy } from './merchantHubCopy'
+import { getMerchantHubCopy } from './merchantHubCopy'
 import {
   MerchantHubBadge,
   MerchantHubEmptyState,
@@ -10,6 +10,7 @@ import {
 import { formatNumber, formatRating, formatReviewDate, getReviewToneClasses } from '../../components/product/workspace/shared-utils'
 
 export function MerchantHubReviewsScreen({
+  language,
   restaurant,
   detail,
   query,
@@ -22,19 +23,20 @@ export function MerchantHubReviewsScreen({
   onNavigateToActions,
   onNavigateToSettings,
 }: MerchantHubReviewsScreenProps) {
+  const copy = getMerchantHubCopy(language)
   const reviewTotal = reviews?.pagination.total ?? reviewCount ?? 0
   const hasQuery = Boolean(query.rating || query.from || query.to || query.page || query.limit)
 
   return (
-    <div className="grid gap-4">
+    <div data-testid="merchant-reviews-screen" className="grid gap-4">
       <MerchantHubPanel className="p-5 lg:p-4">
         <MerchantHubSectionHeader
-          eyebrow={merchantHubCopy.reviews.title}
-          title="Evidence explorer"
-          description={merchantHubCopy.reviews.description}
+          eyebrow={copy.reviews.title}
+          title={language.startsWith('vi') ? 'Đánh giá khách' : 'Evidence explorer'}
+          description={copy.reviews.description}
           action={
             <MerchantHubBadge state={searchStatus}>
-              {searchStatus === 'now' ? merchantHubCopy.nowLabel : merchantHubCopy.nextLabel}
+              {searchStatus === 'now' ? copy.nowLabel : copy.nextLabel}
             </MerchantHubBadge>
           }
         />
@@ -45,18 +47,26 @@ export function MerchantHubReviewsScreen({
             <div className="mt-2 flex items-center gap-2 border border-[#e7ded0] bg-[#fcfaf6] px-3 py-3">
               <span className="material-symbols-outlined text-[18px] text-[#8a5a44]">search</span>
               <div className="min-w-0 flex-1 text-[13px] text-[#5f584e]">{searchHint}</div>
-              <MerchantHubBadge state="next">Next</MerchantHubBadge>
+              <MerchantHubBadge state="next">{copy.nextLabel}</MerchantHubBadge>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {hasQuery ? (
                 <>
-                  {query.rating ? <MerchantHubPill>Rating {query.rating}</MerchantHubPill> : null}
-                  {query.from ? <MerchantHubPill>From {query.from}</MerchantHubPill> : null}
-                  {query.to ? <MerchantHubPill>To {query.to}</MerchantHubPill> : null}
+                  {query.rating ? (
+                    <MerchantHubPill>{language.startsWith('vi') ? `Điểm ${query.rating}` : `Rating ${query.rating}`}</MerchantHubPill>
+                  ) : null}
+                  {query.from ? (
+                    <MerchantHubPill>{language.startsWith('vi') ? `Từ ${query.from}` : `From ${query.from}`}</MerchantHubPill>
+                  ) : null}
+                  {query.to ? (
+                    <MerchantHubPill>{language.startsWith('vi') ? `Đến ${query.to}` : `To ${query.to}`}</MerchantHubPill>
+                  ) : null}
                   {query.limit ? <MerchantHubPill>Limit {query.limit}</MerchantHubPill> : null}
                 </>
               ) : (
-                <MerchantHubPill tone="warning">No active filter</MerchantHubPill>
+                <MerchantHubPill tone="warning">
+                  {language.startsWith('vi') ? 'Chưa bật bộ lọc' : 'No active filter'}
+                </MerchantHubPill>
               )}
             </div>
           </div>
@@ -65,14 +75,14 @@ export function MerchantHubReviewsScreen({
             {filters.map((filter) => (
               <div key={filter.label} className="border border-[#e7ded0] bg-[#fcfaf6] px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">
-                    {filter.label}
-                  </div>
-                  <MerchantHubBadge state={filter.status}>
-                    {filter.status === 'now' ? merchantHubCopy.nowLabel : merchantHubCopy.nextLabel}
-                  </MerchantHubBadge>
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">
+                  {filter.label}
                 </div>
-                <div className="mt-2 text-[14px] font-semibold text-[#1f1c18]">{filter.value}</div>
+                <MerchantHubBadge state={filter.status}>
+                    {filter.status === 'now' ? copy.nowLabel : copy.nextLabel}
+                </MerchantHubBadge>
+              </div>
+              <div className="mt-2 text-[14px] font-semibold text-[#1f1c18]">{filter.value}</div>
               </div>
             ))}
           </div>
@@ -82,18 +92,30 @@ export function MerchantHubReviewsScreen({
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <MerchantHubPanel className="p-5 lg:p-4">
           <MerchantHubSectionHeader
-            eyebrow="Now"
-            title="Published reviews"
-            description="Keep the list close to the raw evidence instead of hiding it behind extra chrome."
-            action={<MerchantHubBadge state="now">Now</MerchantHubBadge>}
+            eyebrow={language.startsWith('vi') ? 'Danh sách phản hồi' : copy.nowLabel}
+            title={language.startsWith('vi') ? 'Đánh giá đã công bố' : 'Published reviews'}
+            description={
+              language.startsWith('vi')
+                ? 'Giữ danh sách phản hồi gần với dữ liệu gốc để chủ quán nhìn đúng vấn đề khách đang nói.'
+                : 'Keep the list close to the raw evidence instead of hiding it behind extra chrome.'
+            }
+            action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
           />
 
           <div className="mt-5 grid gap-3">
             <div className="flex flex-wrap gap-2">
               <MerchantHubPill tone="success">{restaurant?.name ?? 'Restaurant'}</MerchantHubPill>
-              <MerchantHubPill>{formatNumber(reviewTotal, 'en')} reviews</MerchantHubPill>
+              <MerchantHubPill>
+                {formatNumber(reviewTotal, language)} {language.startsWith('vi') ? 'đánh giá' : 'reviews'}
+              </MerchantHubPill>
               <MerchantHubPill tone={detail?.googleMapUrl ? 'success' : 'warning'}>
-                {detail?.googleMapUrl ? 'Source connected' : 'Source missing'}
+                {detail?.googleMapUrl
+                  ? language.startsWith('vi')
+                    ? 'Đã kết nối Google Maps'
+                    : 'Source connected'
+                  : language.startsWith('vi')
+                    ? 'Thiếu nguồn Google Maps'
+                    : 'Source missing'}
               </MerchantHubPill>
             </div>
 
@@ -104,21 +126,23 @@ export function MerchantHubReviewsScreen({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3">
                         <div className="flex size-9 shrink-0 items-center justify-center border border-[#e7ded0] bg-[#fcfaf6] text-[13px] font-black text-[#1f1c18]">
-                          {formatRating(review.rating, 'en')}
+                          {formatRating(review.rating, language)}
                         </div>
                         <div>
                           <div className="text-[13px] font-semibold text-[#1f1c18]">
-                            {review.authorName ?? 'Anonymous guest'}
+                            {review.authorName ?? (language.startsWith('vi') ? 'Khách ẩn danh' : 'Anonymous guest')}
                           </div>
                           <div className="text-[11px] text-[#8f877c]">
                             {review.reviewDate
-                              ? formatReviewDate(review.reviewDate, 'en', 'No source date')
-                              : 'No source date'}
+                              ? formatReviewDate(review.reviewDate, language, language.startsWith('vi') ? 'Không có ngày đánh giá' : 'No source date')
+                              : language.startsWith('vi')
+                                ? 'Không có ngày đánh giá'
+                                : 'No source date'}
                           </div>
                         </div>
                       </div>
                       <p className="mt-3 max-w-3xl text-[13px] leading-6 text-[#5f584e]">
-                        {review.content ?? 'No review content available.'}
+                        {review.content ?? (language.startsWith('vi') ? 'Không có nội dung đánh giá.' : 'No review content available.')}
                       </p>
                     </div>
                     <div
@@ -131,8 +155,12 @@ export function MerchantHubReviewsScreen({
               ))
             ) : (
               <MerchantHubEmptyState
-                title="No reviews yet"
-                description="When published reviews arrive, they will appear here in a single evidence stream."
+                title={language.startsWith('vi') ? 'Chưa có đánh giá để xem' : 'No reviews yet'}
+                description={
+                  language.startsWith('vi')
+                    ? 'Khi các đánh giá đầu tiên được công bố, chúng sẽ hiện tại đây theo một luồng duy nhất.'
+                    : 'When published reviews arrive, they will appear here in a single evidence stream.'
+                }
               />
             )}
           </div>
@@ -140,28 +168,42 @@ export function MerchantHubReviewsScreen({
 
         <MerchantHubPanel className="p-5 lg:p-4">
           <MerchantHubSectionHeader
-            eyebrow="Flow"
-            title="What this screen should do"
-            description="The review screen is not a dashboard clone. It is the place to inspect evidence before deciding the next action."
-            action={<MerchantHubBadge state="next">Next</MerchantHubBadge>}
+            eyebrow={language.startsWith('vi') ? 'Cách dùng màn này' : 'Flow'}
+            title={language.startsWith('vi') ? 'Màn này giúp bạn quyết định nhanh hơn' : 'What this screen should do'}
+            description={
+              language.startsWith('vi')
+                ? 'Mục tiêu của màn đánh giá là giúp bạn đọc đúng phản hồi khách trước khi quyết định việc cần làm tiếp theo.'
+                : 'The review screen is not a dashboard clone. It is the place to inspect evidence before deciding the next action.'
+            }
+            action={<MerchantHubBadge state="next">{copy.nextLabel}</MerchantHubBadge>}
           />
 
           <div className="mt-5 grid gap-3">
             <div className="border border-[#e7ded0] bg-[#fcfaf6] px-4 py-4">
-              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">Now</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">
+                {copy.nowLabel}
+              </div>
               <div className="mt-2 text-[14px] font-bold text-[#1f1c18]">
-                Search and filter are visible in the wireframe.
+                {language.startsWith('vi')
+                  ? 'Bạn có thể lọc nhanh để nhìn đúng nhóm phản hồi mình cần kiểm tra.'
+                  : 'Search and filter are visible in the wireframe.'}
               </div>
               <div className="mt-1 text-[12px] leading-6 text-[#5f584e]">
-                Rating and date filtering stay close to the list so the evidence path stays short.
+                {language.startsWith('vi')
+                  ? 'Bộ lọc điểm và thời gian nằm sát danh sách phản hồi để đường đi từ câu hỏi đến bằng chứng ngắn nhất.'
+                  : 'Rating and date filtering stay close to the list so the evidence path stays short.'}
               </div>
             </div>
 
             <div className="border border-[#e7ded0] bg-white px-4 py-4">
-              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">Next</div>
-              <div className="mt-2 text-[14px] font-bold text-[#1f1c18]">Search index and richer slicing.</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">{copy.nextLabel}</div>
+              <div className="mt-2 text-[14px] font-bold text-[#1f1c18]">
+                {language.startsWith('vi') ? 'Tra cứu sâu và gom cụm phản hồi.' : 'Search index and richer slicing.'}
+              </div>
               <div className="mt-1 text-[12px] leading-6 text-[#5f584e]">
-                The product can later add keyword search, complaint clusters, and saved filter views without changing the structure.
+                {language.startsWith('vi')
+                  ? 'Về sau có thể bổ sung tìm theo từ khóa, gom nhóm phàn nàn và lưu bộ lọc mà không cần đổi cấu trúc màn hình.'
+                  : 'The product can later add keyword search, complaint clusters, and saved filter views without changing the structure.'}
               </div>
             </div>
 
@@ -171,14 +213,14 @@ export function MerchantHubReviewsScreen({
                 className="border border-[#e7ded0] bg-white px-4 py-3 text-[13px] font-semibold text-[#1f1c18]"
                 onClick={onNavigateToActions}
               >
-                Open actions
+                {language.startsWith('vi') ? 'Mở việc cần làm' : 'Open actions'}
               </button>
               <button
                 type="button"
                 className="border border-[#e7ded0] bg-white px-4 py-3 text-[13px] font-semibold text-[#1f1c18]"
                 onClick={onNavigateToSettings}
               >
-                Open settings
+                {language.startsWith('vi') ? 'Mở thiết lập' : 'Open settings'}
               </button>
             </div>
           </div>

@@ -22,7 +22,7 @@ function formatCount(value: number, language: string) {
 
 function formatDate(value: string | null, language: string) {
   if (!value) {
-    return 'Never'
+    return language.startsWith('vi') ? 'Chưa có' : 'Never'
   }
 
   return new Intl.DateTimeFormat(language, {
@@ -38,6 +38,7 @@ function stateTone(state: AccountState) {
 }
 
 export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: AdminUsersPanelProps) {
+  const isVietnamese = language.startsWith('vi')
   const [query, setQuery] = useState({
     search: '',
     role: '',
@@ -70,7 +71,7 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
       )
     } catch (nextError) {
       if (!onSessionExpiry(nextError)) {
-        setError(nextError instanceof Error ? nextError.message : 'Unable to load users.')
+        setError(nextError instanceof Error ? nextError.message : isVietnamese ? 'Không thể tải danh sách người dùng.' : 'Unable to load users.')
       }
     } finally {
       setLoading(false)
@@ -102,7 +103,13 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
         }
       } catch (nextError) {
         if (!cancelled && !onSessionExpiry(nextError)) {
-          setError(nextError instanceof Error ? nextError.message : 'Unable to load user detail.')
+          setError(
+            nextError instanceof Error
+              ? nextError.message
+              : isVietnamese
+                ? 'Không thể tải chi tiết người dùng.'
+                : 'Unable to load user detail.',
+          )
         }
       } finally {
         if (!cancelled) {
@@ -116,7 +123,7 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
     return () => {
       cancelled = true
     }
-  }, [onSessionExpiry, selectedUserId])
+  }, [onSessionExpiry, selectedUserId, isVietnamese])
 
   const selectedSummary = useMemo(
     () => directory?.users.find((user) => user.id === selectedUserId) ?? null,
@@ -136,11 +143,19 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
         role: nextRole,
       })
       setDetail(nextDetail)
-      setActionMessage(`Role updated to ${nextRole}.`)
+      setActionMessage(
+        isVietnamese ? `Đã đổi vai trò sang ${nextRole}.` : `Role updated to ${nextRole}.`,
+      )
       await loadDirectory()
     } catch (nextError) {
       if (!onSessionExpiry(nextError)) {
-        setError(nextError instanceof Error ? nextError.message : 'Unable to update role.')
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : isVietnamese
+              ? 'Không thể cập nhật vai trò.'
+              : 'Unable to update role.',
+        )
       }
     } finally {
       setDetailLoading(false)
@@ -159,42 +174,52 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
       setActionMessage(result.message)
     } catch (nextError) {
       if (!onSessionExpiry(nextError)) {
-        setError(nextError instanceof Error ? nextError.message : 'Unable to trigger password reset.')
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : isVietnamese
+              ? 'Không thể gửi yêu cầu đặt lại mật khẩu.'
+              : 'Unable to trigger password reset.',
+        )
       }
     }
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+    <div data-testid="admin-users-screen" className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
       <SectionCard
-        title="User access administration"
-        description="Manage the internal two-role model, inspect account status, and drill into each user before changing access."
+        title={isVietnamese ? 'Quản lý người dùng' : 'User access administration'}
+        description={
+          isVietnamese
+            ? 'Kiểm tra trạng thái tài khoản, phạm vi truy cập và hoạt động gần đây trước khi thay đổi quyền.'
+            : 'Manage the internal two-role model, inspect account status, and drill into each user before changing access.'
+        }
       >
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_160px_180px_auto]">
           <label className="grid gap-2 text-sm text-slate-300">
-            <span className="font-medium text-white">Search</span>
+            <span className="font-medium text-white">{isVietnamese ? 'Tìm kiếm' : 'Search'}</span>
             <input
               value={query.search}
               onChange={(event) => setQuery((current) => ({ ...current, search: event.target.value }))}
               className="h-11 border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-sky-400/40"
-              placeholder="Search by name or email"
+              placeholder={isVietnamese ? 'Tìm theo tên hoặc email' : 'Search by name or email'}
               type="text"
             />
           </label>
           <label className="grid gap-2 text-sm text-slate-300">
-            <span className="font-medium text-white">Role</span>
+            <span className="font-medium text-white">{isVietnamese ? 'Vai trò' : 'Role'}</span>
             <select
               value={query.role}
               onChange={(event) => setQuery((current) => ({ ...current, role: event.target.value }))}
               className="h-11 border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-sky-400/40"
             >
-              <option value="">All roles</option>
+              <option value="">{isVietnamese ? 'Tất cả vai trò' : 'All roles'}</option>
               <option value="USER">USER</option>
               <option value="ADMIN">ADMIN</option>
             </select>
           </label>
           <label className="grid gap-2 text-sm text-slate-300">
-            <span className="font-medium text-white">State</span>
+            <span className="font-medium text-white">{isVietnamese ? 'Trạng thái' : 'State'}</span>
             <select
               value={query.accountState}
               onChange={(event) =>
@@ -202,7 +227,7 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
               }
               className="h-11 border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-sky-400/40"
             >
-              <option value="">All states</option>
+              <option value="">{isVietnamese ? 'Tất cả trạng thái' : 'All states'}</option>
               <option value="ACTIVE">ACTIVE</option>
               <option value="LOCKED">LOCKED</option>
             </select>
@@ -213,32 +238,40 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
               onClick={() => void loadDirectory()}
               className="inline-flex h-11 items-center justify-center border border-sky-400/20 bg-sky-400/10 px-4 text-sm font-semibold text-sky-100 transition hover:border-sky-400/35 hover:bg-sky-400/15"
             >
-              Refresh users
+              {isVietnamese ? 'Làm mới danh sách' : 'Refresh users'}
             </button>
           </div>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-4">
           <div className="border border-white/8 bg-white/[0.03] p-3">
-            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Visible users</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              {isVietnamese ? 'Người dùng hiển thị' : 'Visible users'}
+            </div>
             <div className="mt-2 text-[1.2rem] font-semibold text-white">
               {formatCount(directory?.summary.visibleUsers ?? 0, language)}
             </div>
           </div>
           <div className="border border-white/8 bg-white/[0.03] p-3">
-            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Admins</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              {isVietnamese ? 'Quản trị viên' : 'Admins'}
+            </div>
             <div className="mt-2 text-[1.2rem] font-semibold text-white">
               {formatCount(directory?.summary.adminCount ?? 0, language)}
             </div>
           </div>
           <div className="border border-white/8 bg-white/[0.03] p-3">
-            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Users</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              {isVietnamese ? 'Người dùng' : 'Users'}
+            </div>
             <div className="mt-2 text-[1.2rem] font-semibold text-white">
               {formatCount(directory?.summary.userCount ?? 0, language)}
             </div>
           </div>
           <div className="border border-white/8 bg-white/[0.03] p-3">
-            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Locked</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              {isVietnamese ? 'Đang khóa' : 'Locked'}
+            </div>
             <div className="mt-2 text-[1.2rem] font-semibold text-white">
               {formatCount(directory?.summary.lockedUserCount ?? 0, language)}
             </div>
@@ -246,7 +279,11 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
         </div>
 
         {error ? <div className="mt-4"><StatusMessage tone="error">{error}</StatusMessage></div> : null}
-        {loading ? <div className="mt-4"><StatusMessage>Loading users...</StatusMessage></div> : null}
+        {loading ? (
+          <div className="mt-4">
+            <StatusMessage>{isVietnamese ? 'Đang tải danh sách người dùng...' : 'Loading users...'}</StatusMessage>
+          </div>
+        ) : null}
 
         <div className="mt-4 grid gap-2">
           {directory?.users.length ? (
@@ -279,31 +316,49 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px] text-slate-400">
-                    <span>{formatCount(user.restaurantCount, language)} memberships</span>
-                    <span>{formatCount(user.activeSessionCount, language)} live sessions</span>
+                    <span>
+                      {formatCount(user.restaurantCount, language)}{' '}
+                      {isVietnamese ? 'liên kết nhà hàng' : 'memberships'}
+                    </span>
+                    <span>
+                      {formatCount(user.activeSessionCount, language)}{' '}
+                      {isVietnamese ? 'phiên đang hoạt động' : 'live sessions'}
+                    </span>
                     <span>{formatDate(user.lastLoginAt, language)}</span>
                   </div>
                 </button>
               )
             })
           ) : !loading ? (
-            <EmptyPanel message="No users match the current filters." />
+            <EmptyPanel
+              message={
+                isVietnamese
+                  ? 'Không có người dùng nào khớp bộ lọc hiện tại.'
+                  : 'No users match the current filters.'
+              }
+            />
           ) : null}
         </div>
       </SectionCard>
 
       <SectionCard
-        title={selectedSummary ? selectedSummary.fullName : 'User detail'}
-        description="Inspect memberships, security posture, and recent admin-facing activity before changing the account."
+        title={selectedSummary ? selectedSummary.fullName : isVietnamese ? 'Chi tiết người dùng' : 'User detail'}
+        description={
+          isVietnamese
+            ? 'Xem phạm vi truy cập, trạng thái bảo mật và hoạt động gần đây trước khi thay đổi tài khoản.'
+            : 'Inspect memberships, security posture, and recent admin-facing activity before changing the account.'
+        }
       >
         {actionMessage ? <StatusMessage>{actionMessage}</StatusMessage> : null}
         {detailLoading ? (
-          <StatusMessage>Loading user detail...</StatusMessage>
+          <StatusMessage>{isVietnamese ? 'Đang tải chi tiết người dùng...' : 'Loading user detail...'}</StatusMessage>
         ) : detail ? (
           <div className="grid gap-4">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end">
               <div className="border border-white/8 bg-white/[0.03] p-4">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Role policy</div>
+                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                  {isVietnamese ? 'Chính sách vai trò' : 'Role policy'}
+                </div>
                 <div className="mt-2 text-sm leading-6 text-slate-300">{detail.user.roleChangePolicy}</div>
               </div>
               {detail.user.canEditRole ? (
@@ -313,14 +368,16 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
                     onClick={() => void handleRoleChange(detail.user.role === 'ADMIN' ? 'USER' : 'ADMIN')}
                     className="inline-flex h-11 items-center justify-center border border-sky-400/20 bg-sky-400/10 px-4 text-sm font-semibold text-sky-100 transition hover:border-sky-400/35 hover:bg-sky-400/15"
                   >
-                    Set role to {detail.user.role === 'ADMIN' ? 'USER' : 'ADMIN'}
+                    {isVietnamese
+                      ? `Đổi vai trò sang ${detail.user.role === 'ADMIN' ? 'USER' : 'ADMIN'}`
+                      : `Set role to ${detail.user.role === 'ADMIN' ? 'USER' : 'ADMIN'}`}
                   </button>
                   <button
                     type="button"
                     onClick={() => void handlePasswordReset()}
                     className="inline-flex h-11 items-center justify-center border border-white/12 bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.07]"
                   >
-                    Send password reset
+                    {isVietnamese ? 'Gửi yêu cầu đặt lại mật khẩu' : 'Send password reset'}
                   </button>
                 </>
               ) : null}
@@ -328,25 +385,33 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div className="border border-white/8 bg-white/[0.03] p-3">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Sessions</div>
+                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                  {isVietnamese ? 'Phiên' : 'Sessions'}
+                </div>
                 <div className="mt-2 text-[1.15rem] font-semibold text-white">
                   {formatCount(detail.security.activeSessionCount, language)}
                 </div>
               </div>
               <div className="border border-white/8 bg-white/[0.03] p-3">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Pending resets</div>
+                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                  {isVietnamese ? 'Yêu cầu đặt lại đang chờ' : 'Pending resets'}
+                </div>
                 <div className="mt-2 text-[1.15rem] font-semibold text-white">
                   {formatCount(detail.security.pendingPasswordResetCount, language)}
                 </div>
               </div>
               <div className="border border-white/8 bg-white/[0.03] p-3">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Failed logins</div>
+                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                  {isVietnamese ? 'Đăng nhập lỗi' : 'Failed logins'}
+                </div>
                 <div className="mt-2 text-[1.15rem] font-semibold text-white">
                   {formatCount(detail.security.failedLoginCount, language)}
                 </div>
               </div>
               <div className="border border-white/8 bg-white/[0.03] p-3">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Last login</div>
+                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                  {isVietnamese ? 'Lần đăng nhập cuối' : 'Last login'}
+                </div>
                 <div className="mt-2 text-sm font-semibold text-white">
                   {formatDate(detail.security.lastLoginAt, language)}
                 </div>
@@ -356,7 +421,7 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
             <div className="grid gap-4 xl:grid-cols-2">
               <div className="space-y-3">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Restaurant memberships
+                  {isVietnamese ? 'Liên kết nhà hàng' : 'Restaurant memberships'}
                 </div>
                 {detail.memberships.length ? (
                   detail.memberships.map((membership) => (
@@ -366,35 +431,57 @@ export function AdminUsersPanel({ language, refreshKey, onSessionExpiry }: Admin
                     </div>
                   ))
                 ) : (
-                  <EmptyPanel message="This account has no restaurant memberships." />
+                  <EmptyPanel
+                    message={
+                      isVietnamese
+                        ? 'Tài khoản này chưa được gắn với nhà hàng nào.'
+                        : 'This account has no restaurant memberships.'
+                    }
+                  />
                 )}
               </div>
 
               <div className="space-y-3">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Recent system activity
+                  {isVietnamese ? 'Hoạt động gần đây' : 'Recent system activity'}
                 </div>
                 {detail.recentIntakeBatches.length || detail.recentCrawlRuns.length ? (
                   <div className="grid gap-2">
                     {detail.recentIntakeBatches.map((batch) => (
                       <div key={batch.id} className="border border-white/8 bg-white/[0.03] p-3 text-sm text-slate-300">
-                        Intake batch <span className="font-semibold text-white">{batch.title || batch.id}</span> for {batch.restaurant.name}
+                        {isVietnamese ? 'Lô nhập liệu' : 'Intake batch'}{' '}
+                        <span className="font-semibold text-white">{batch.title || batch.id}</span>{' '}
+                        {isVietnamese ? 'cho' : 'for'} {batch.restaurant.name}
                       </div>
                     ))}
                     {detail.recentCrawlRuns.map((run) => (
                       <div key={run.id} className="border border-white/8 bg-white/[0.03] p-3 text-sm text-slate-300">
-                        Crawl run <span className="font-semibold text-white">{run.id}</span> finished as {run.status}
+                        {isVietnamese ? 'Lần crawl' : 'Crawl run'}{' '}
+                        <span className="font-semibold text-white">{run.id}</span>{' '}
+                        {isVietnamese ? 'kết thúc với trạng thái' : 'finished as'} {run.status}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <EmptyPanel message="No recent intake or crawl activity is linked to this user." />
+                  <EmptyPanel
+                    message={
+                      isVietnamese
+                        ? 'Chưa có hoạt động nhập liệu hoặc crawl nào gắn với người dùng này.'
+                        : 'No recent intake or crawl activity is linked to this user.'
+                    }
+                  />
                 )}
               </div>
             </div>
           </div>
         ) : (
-          <EmptyPanel message="Select a user to inspect access and activity." />
+          <EmptyPanel
+            message={
+              isVietnamese
+                ? 'Chọn một người dùng để xem quyền truy cập và hoạt động.'
+                : 'Select a user to inspect access and activity.'
+            }
+          />
         )}
       </SectionCard>
     </div>

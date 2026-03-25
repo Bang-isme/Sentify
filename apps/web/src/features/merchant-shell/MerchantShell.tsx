@@ -94,14 +94,16 @@ function getFreshnessLabel(
   language: string,
 ) {
   if (lastPublishedAt) {
-    return `Published ${formatDateTime(lastPublishedAt, language, 'Recently')}`
+    return language.startsWith('vi')
+      ? `Đã cập nhật ${formatDateTime(lastPublishedAt, language, 'Gần đây')}`
+      : `Published ${formatDateTime(lastPublishedAt, language, 'Recently')}`
   }
 
   if (googleMapUrl) {
-    return 'Source connected'
+    return language.startsWith('vi') ? 'Đã kết nối nguồn' : 'Source connected'
   }
 
-  return 'Source missing'
+  return language.startsWith('vi') ? 'Thiếu nguồn dữ liệu' : 'Source missing'
 }
 
 function getPriorityTone(keyword: ComplaintKeyword | null) {
@@ -132,25 +134,33 @@ function buildKpis(
     {
       label: copy.totalReviews,
       value: formatNumber(totalReviews, language),
-      hint: 'Published evidence available for analysis.',
+      hint: language.startsWith('vi')
+        ? 'Số đánh giá đã được công bố và đang dùng để phân tích.'
+        : 'Published evidence available for analysis.',
       tone: 'now',
     },
     {
       label: copy.averageRating,
       value: averageRating > 0 ? averageRating.toFixed(1) : '0.0',
-      hint: 'Current average from the published review set.',
+      hint: language.startsWith('vi')
+        ? 'Điểm trung bình của tập đánh giá hiện đang hiển thị cho chủ quán.'
+        : 'Current average from the published review set.',
       tone: 'now',
     },
     {
       label: copy.negativeShare,
       value: formatPercentage(negativePercentage, language),
-      hint: 'Share of reviews currently marked negative.',
+      hint: language.startsWith('vi')
+        ? 'Tỷ lệ đánh giá tiêu cực trong tập đánh giá hiện tại.'
+        : 'Share of reviews currently marked negative.',
       tone: negativePercentage >= 30 ? 'next' : 'now',
     },
     {
-      label: 'Approved evidence',
+      label: language.startsWith('vi') ? 'Mục đã duyệt' : 'Approved evidence',
       value: formatNumber(approvedItemCount, language),
-      hint: 'Items approved into the current merchant-visible dataset.',
+      hint: language.startsWith('vi')
+        ? 'Số mục đã được duyệt và hiển thị trong dữ liệu của nhà hàng.'
+        : 'Items approved into the current merchant-visible dataset.',
       tone: approvedItemCount > 0 ? 'now' : 'next',
     },
   ]
@@ -173,14 +183,22 @@ function buildHighlight(
     null
 
   return {
-    title: `Focus on ${topComplaint.keyword}`,
+    title: language.startsWith('vi')
+      ? `Ưu tiên xử lý: ${topComplaint.keyword}`
+      : `Focus on ${topComplaint.keyword}`,
     description: `${formatPercentage(
       topComplaint.percentage,
       language,
-    )} of complaint-tagged evidence mentions this issue.`,
+    )} ${
+      language.startsWith('vi')
+        ? 'phản hồi tiêu cực đang nhắc đến vấn đề này.'
+        : 'of complaint-tagged evidence mentions this issue.'
+    }`,
     evidence:
       supportingReview?.content ??
-      `${formatNumber(topComplaint.count, language)} reviews currently mention ${topComplaint.keyword}.`,
+      (language.startsWith('vi')
+        ? `${formatNumber(topComplaint.count, language)} đánh giá đang nhắc đến ${topComplaint.keyword}.`
+        : `${formatNumber(topComplaint.count, language)} reviews currently mention ${topComplaint.keyword}.`),
     status: 'now',
     priority: getPriorityTone(topComplaint),
   }
@@ -195,13 +213,23 @@ function buildActionCards(
   language: string,
 ): MerchantHubActionCard[] {
   return complaints.slice(0, 3).map((keyword, index) => ({
-    title: `${index + 1}. Stabilize ${keyword.keyword}`,
+    title: language.startsWith('vi')
+      ? `${index + 1}. Ổn định vấn đề ${keyword.keyword}`
+      : `${index + 1}. Stabilize ${keyword.keyword}`,
     summary: `${formatPercentage(
       keyword.percentage,
       language,
-    )} of complaint signals mention ${keyword.keyword}. This is strong enough to act on now.`,
-    evidence: `${formatNumber(keyword.count, language)} curated reviews reference ${keyword.keyword}.`,
-    nextStep: `Review the latest evidence cluster for ${keyword.keyword} and confirm the first operational fix.`,
+    )} ${
+      language.startsWith('vi')
+        ? `phản hồi phàn nàn đang nhắc đến ${keyword.keyword}. Đây là tín hiệu đủ mạnh để xử lý ngay.`
+        : `of complaint signals mention ${keyword.keyword}. This is strong enough to act on now.`
+    }`,
+    evidence: language.startsWith('vi')
+      ? `${formatNumber(keyword.count, language)} đánh giá đã duyệt đang nhắc đến ${keyword.keyword}.`
+      : `${formatNumber(keyword.count, language)} curated reviews reference ${keyword.keyword}.`,
+    nextStep: language.startsWith('vi')
+      ? `Đọc lại cụm phản hồi gần nhất về ${keyword.keyword} và chốt bước xử lý đầu tiên.`
+      : `Review the latest evidence cluster for ${keyword.keyword} and confirm the first operational fix.`,
     status: 'now',
     priority: getPriorityTone(keyword),
   }))
@@ -210,26 +238,38 @@ function buildActionCards(
 function buildReviewFilters(
   detailSource: string | null | undefined,
   query: ReviewsQuery,
+  language: string,
 ): MerchantHubReviewFilterChip[] {
   return [
     {
-      label: 'Source',
-      value: detailSource ? 'Connected' : 'Missing',
+      label: language.startsWith('vi') ? 'Nguồn dữ liệu' : 'Source',
+      value: detailSource
+        ? language.startsWith('vi')
+          ? 'Đã kết nối'
+          : 'Connected'
+        : language.startsWith('vi')
+          ? 'Thiếu nguồn'
+          : 'Missing',
       status: detailSource ? 'now' : 'next',
     },
     {
-      label: 'Rating',
-      value: query.rating ?? 'All ratings',
+      label: language.startsWith('vi') ? 'Điểm số' : 'Rating',
+      value: query.rating ?? (language.startsWith('vi') ? 'Tất cả mức điểm' : 'All ratings'),
       status: 'now',
     },
     {
-      label: 'Date range',
-      value: query.from || query.to ? `${query.from ?? 'Start'} - ${query.to ?? 'Now'}` : 'All dates',
+      label: language.startsWith('vi') ? 'Khoảng thời gian' : 'Date range',
+      value:
+        query.from || query.to
+          ? `${query.from ?? (language.startsWith('vi') ? 'Từ đầu' : 'Start')} - ${query.to ?? (language.startsWith('vi') ? 'Hiện tại' : 'Now')}`
+          : language.startsWith('vi')
+            ? 'Toàn bộ thời gian'
+            : 'All dates',
       status: 'now',
     },
     {
-      label: 'Search',
-      value: 'Keyword search planned',
+      label: language.startsWith('vi') ? 'Tra cứu' : 'Search',
+      value: language.startsWith('vi') ? 'Tìm theo từ khóa sẽ có sau' : 'Keyword search planned',
       status: 'next',
     },
   ]
@@ -241,55 +281,70 @@ function buildSettingsBlocks(
   language: string,
   roleLabel: string,
 ) {
+  const isVietnamese = language.startsWith('vi')
   const detail = currentRestaurant
   return {
     profileBlock: {
-      title: 'Profile snapshot',
-      description: 'The current merchant-visible profile for the selected restaurant.',
+      title: isVietnamese ? 'Thông tin đang hiển thị' : 'Profile snapshot',
+      description: isVietnamese
+        ? 'Ảnh chụp nhanh những gì chủ quán và đội vận hành đang thấy ở nhà hàng này.'
+        : 'The current merchant-visible profile for the selected restaurant.',
       status: 'now' as const,
       items: [
-        { label: copy.restaurantNameLabel, value: detail?.name ?? 'No restaurant selected' },
-        { label: 'Slug', value: detail?.slug ?? 'Unassigned' },
-        { label: 'Visible reviews', value: formatNumber(detail?.totalReviews ?? 0, language) },
+        { label: copy.restaurantNameLabel, value: detail?.name ?? (isVietnamese ? 'Chưa chọn nhà hàng' : 'No restaurant selected') },
+        { label: 'Slug', value: detail?.slug ?? (isVietnamese ? 'Chưa gán' : 'Unassigned') },
+        { label: isVietnamese ? 'Đánh giá đang hiển thị' : 'Visible reviews', value: formatNumber(detail?.totalReviews ?? 0, language) },
       ],
     },
     sourceBlock: {
-      title: 'Source status',
-      description: 'The merchant can see source readiness without touching admin diagnostics.',
+      title: isVietnamese ? 'Tình trạng nguồn dữ liệu' : 'Source status',
+      description: isVietnamese
+        ? 'Chủ quán chỉ cần biết nguồn có hoạt động ổn không, không cần nhìn chi tiết điều hành nội bộ.'
+        : 'The merchant can see source readiness without touching admin diagnostics.',
       status: 'now' as const,
       items: [
         {
           label: copy.googleMapsUrlLabel,
-          value: formatSourcePreview(detail?.googleMapUrl ?? null) ?? 'No Google Maps URL',
+          value: formatSourcePreview(detail?.googleMapUrl ?? null) ?? (isVietnamese ? 'Chưa có URL Google Maps' : 'No Google Maps URL'),
         },
         {
-          label: 'Source policy',
-          value: currentRestaurant?.googleMapUrl ? 'Connected source' : 'Needs configuration',
+          label: isVietnamese ? 'Trạng thái nguồn' : 'Source policy',
+          value: currentRestaurant?.googleMapUrl
+            ? isVietnamese
+              ? 'Đã kết nối'
+              : 'Connected source'
+            : isVietnamese
+              ? 'Cần cấu hình'
+              : 'Needs configuration',
         },
         {
-          label: 'Last publish',
-          value: 'See dataset status on the home screen',
+          label: isVietnamese ? 'Lần cập nhật gần nhất' : 'Last publish',
+          value: isVietnamese ? 'Xem ở màn Tổng quan' : 'See dataset status on the home screen',
         },
       ],
     },
     accessBlock: {
-      title: 'Access boundary',
-      description: 'Merchant settings remain product-facing and do not expose control-plane actions.',
+      title: isVietnamese ? 'Giới hạn quyền nhìn thấy' : 'Access boundary',
+      description: isVietnamese
+        ? 'Màn này chỉ dành cho chủ quán, không hiển thị tác vụ điều hành nội bộ.'
+        : 'Merchant settings remain product-facing and do not expose control-plane actions.',
       status: 'now' as const,
       items: [
-        { label: 'Role', value: roleLabel },
-        { label: 'Scope', value: 'Only the selected restaurant is editable here.' },
-        { label: 'Admin controls', value: 'Hidden from the merchant shell.' },
+        { label: isVietnamese ? 'Vai trò' : 'Role', value: roleLabel },
+        { label: isVietnamese ? 'Phạm vi' : 'Scope', value: isVietnamese ? 'Chỉ chỉnh nhà hàng đang chọn ở đây.' : 'Only the selected restaurant is editable here.' },
+        { label: isVietnamese ? 'Điều khiển quản trị' : 'Admin controls', value: isVietnamese ? 'Không hiển thị trong không gian nhà hàng.' : 'Hidden from the merchant shell.' },
       ],
     },
     nextBlock: {
-      title: 'Planned next layer',
-      description: 'Reserved for future workflow polish once merchant execution surfaces grow.',
+      title: isVietnamese ? 'Phần sẽ mở rộng sau' : 'Planned next layer',
+      description: isVietnamese
+        ? 'Dành chỗ cho lớp trải nghiệm tiếp theo khi luồng vận hành của chủ quán cần sâu hơn.'
+        : 'Reserved for future workflow polish once merchant execution surfaces grow.',
       status: 'next' as const,
       items: [
-        { label: 'Saved views', value: 'Planned' },
-        { label: 'Alert rules', value: 'Planned' },
-        { label: 'Action follow-up', value: 'Planned' },
+        { label: isVietnamese ? 'Bộ lọc đã lưu' : 'Saved views', value: isVietnamese ? 'Sẽ có sau' : 'Planned' },
+        { label: isVietnamese ? 'Quy tắc cảnh báo' : 'Alert rules', value: isVietnamese ? 'Sẽ có sau' : 'Planned' },
+        { label: isVietnamese ? 'Theo dõi việc xử lý' : 'Action follow-up', value: isVietnamese ? 'Sẽ có sau' : 'Planned' },
       ],
     },
   }
@@ -381,15 +436,25 @@ export function MerchantShell({
 
   const badges = [
     {
-      label: detail?.googleMapUrl ? 'Source ready' : 'Source missing',
+      label: detail?.googleMapUrl
+        ? language.startsWith('vi')
+          ? 'Nguồn đã sẵn sàng'
+          : 'Source ready'
+        : language.startsWith('vi')
+          ? 'Thiếu nguồn dữ liệu'
+          : 'Source missing',
       tone: detail?.googleMapUrl ? ('success' as const) : ('warning' as const),
     },
     {
-      label: `${formatNumber(totalReviews, language)} reviews`,
+      label: language.startsWith('vi')
+        ? `${formatNumber(totalReviews, language)} đánh giá`
+        : `${formatNumber(totalReviews, language)} reviews`,
       tone: 'neutral' as const,
     },
     {
-      label: `${formatNumber(detail?.datasetStatus.approvedItemCount ?? 0, language)} approved items`,
+      label: language.startsWith('vi')
+        ? `${formatNumber(detail?.datasetStatus.approvedItemCount ?? 0, language)} mục đã duyệt`
+        : `${formatNumber(detail?.datasetStatus.approvedItemCount ?? 0, language)} approved items`,
       tone: detail?.datasetStatus.approvedItemCount ? ('success' as const) : ('neutral' as const),
     },
   ]
@@ -397,20 +462,30 @@ export function MerchantShell({
   const contextSlot = (
     <div className="grid gap-3 border border-white/8 bg-white/[0.04] p-4">
       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-        Merchant context
+        {language.startsWith('vi') ? 'Ngữ cảnh nhà hàng' : 'Merchant context'}
       </div>
       <div className="text-[18px] font-semibold text-white">
-        {currentRestaurant?.name ?? 'Create your first restaurant'}
+        {currentRestaurant?.name ?? (language.startsWith('vi') ? 'Tạo nhà hàng đầu tiên' : 'Create your first restaurant')}
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="border border-white/8 bg-white/[0.03] p-3">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Dataset</div>
+          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+            {language.startsWith('vi') ? 'Dữ liệu' : 'Dataset'}
+          </div>
           <div className="mt-2 text-[13px] font-semibold text-white">{freshnessLabel}</div>
         </div>
         <div className="border border-white/8 bg-white/[0.03] p-3">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Next action</div>
+          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+            {language.startsWith('vi') ? 'Việc nên làm tiếp' : 'Next action'}
+          </div>
           <div className="mt-2 text-[13px] font-semibold text-white">
-            {topIssue ? `Review ${topIssue}` : 'Connect a source and publish evidence'}
+            {topIssue
+              ? language.startsWith('vi')
+                ? `Xem lại phản hồi về ${topIssue}`
+                : `Review ${topIssue}`
+              : language.startsWith('vi')
+                ? 'Kết nối nguồn và công bố đánh giá đầu tiên'
+                : 'Connect a source and publish evidence'}
           </div>
         </div>
       </div>
@@ -436,22 +511,32 @@ export function MerchantShell({
           ))}
         </select>
       </label>
-      <div className="grid gap-2 text-[12px] text-slate-300">
-        <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
-          {detail?.address ?? 'No address on file.'}
-        </div>
-        <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
-          {detail?.googleMapUrl ? 'Source connected' : 'Source missing'}
+        <div className="grid gap-2 text-[12px] text-slate-300">
+          <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
+          {detail?.address ?? (language.startsWith('vi') ? 'Chưa có địa chỉ.' : 'No address on file.')}
+          </div>
+          <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
+          {detail?.googleMapUrl
+            ? language.startsWith('vi')
+              ? 'Đã kết nối nguồn'
+              : 'Source connected'
+            : language.startsWith('vi')
+              ? 'Thiếu nguồn'
+              : 'Source missing'}
+          </div>
         </div>
       </div>
-    </div>
   ) : (
     <div className="space-y-2 text-[12px] leading-6 text-slate-400">
       <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
-        Create the first restaurant to unlock reviews, actions, and settings.
+        {language.startsWith('vi')
+          ? 'Tạo nhà hàng đầu tiên để mở khóa màn Tổng quan, Đánh giá, Việc cần làm và Thiết lập.'
+          : 'Create the first restaurant to unlock reviews, actions, and settings.'}
       </div>
       <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
-        The merchant shell stays focused on insight and action, not admin diagnostics.
+        {language.startsWith('vi')
+          ? 'Không gian nhà hàng chỉ tập trung vào góc nhìn của chủ quán, không hiển thị chẩn đoán quản trị.'
+          : 'The merchant shell stays focused on insight and action, not admin diagnostics.'}
       </div>
     </div>
   )
@@ -472,14 +557,19 @@ export function MerchantShell({
   } else if (route === '/app/reviews') {
     content = (
       <MerchantHubReviewsScreen
+        language={language}
         restaurant={currentRestaurant}
         detail={detail}
         query={reviewFilters}
         reviewCount={detail?.insightSummary.totalReviews ?? 0}
-        filters={buildReviewFilters(detail?.googleMapUrl, reviewFilters)}
+        filters={buildReviewFilters(detail?.googleMapUrl, reviewFilters, language)}
         reviews={reviews.reviews}
-        searchLabel="Search reviews"
-        searchHint="Keyword search is reserved as the next merchant evidence layer."
+        searchLabel={language.startsWith('vi') ? 'Tra cứu đánh giá' : 'Search reviews'}
+        searchHint={
+          language.startsWith('vi')
+            ? 'Tìm theo từ khóa sẽ được bổ sung sau. Hiện tại hãy dùng bộ lọc điểm và thời gian.'
+            : 'Keyword search is reserved as the next merchant evidence layer.'
+        }
         searchStatus="next"
         onNavigateToActions={() => onNavigate('/app/actions')}
         onNavigateToSettings={() => onNavigate('/app/settings')}
@@ -488,12 +578,25 @@ export function MerchantShell({
   } else if (route === '/app/actions') {
     content = (
       <MerchantHubActionsScreen
+        language={language}
         restaurant={currentRestaurant}
         detail={detail}
         topIssue={topIssue}
         actionCards={actionCards}
-        nowSummary={actionCards.length > 0 ? 'Evidence-backed priorities are ready now.' : 'Awaiting stronger evidence.'}
-        nextSummary="Assignments, reminders, and action tracking stay reserved for the next execution layer."
+        nowSummary={
+          actionCards.length > 0
+            ? language.startsWith('vi')
+              ? 'Đã có đủ bằng chứng để ưu tiên xử lý.'
+              : 'Evidence-backed priorities are ready now.'
+            : language.startsWith('vi')
+              ? 'Chưa đủ dữ liệu để chốt ưu tiên.'
+              : 'Awaiting stronger evidence.'
+        }
+        nextSummary={
+          language.startsWith('vi')
+            ? 'Giao việc, nhắc việc và theo dõi tiến độ sẽ nằm ở lớp vận hành tiếp theo.'
+            : 'Assignments, reminders, and action tracking stay reserved for the next execution layer.'
+        }
         onNavigateToReviews={() => onNavigate('/app/reviews')}
         onNavigateToSettings={() => onNavigate('/app/settings')}
       />
@@ -501,6 +604,7 @@ export function MerchantShell({
   } else if (route === '/app/settings') {
     content = (
       <MerchantHubSettingsScreen
+        language={language}
         restaurant={currentRestaurant}
         detail={detail}
         pending={savePending}
@@ -524,6 +628,7 @@ export function MerchantShell({
   } else {
     content = (
       <MerchantHubHomeScreen
+        language={language}
         restaurant={currentRestaurant}
         detail={detail}
         freshnessLabel={freshnessLabel}

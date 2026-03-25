@@ -21,7 +21,6 @@ import {
 import { getAdminOpsLabels } from '../../admin-ops/adminOpsLabels'
 import {
   EmptyPanel,
-  PageIntro,
   SectionCard,
   StatusMessage,
 } from '../../../components/product/workspace/shared'
@@ -40,7 +39,7 @@ function getErrorMessage(error: unknown) {
 
 function formatDateTime(value: string | null | undefined, language: string) {
   if (!value) {
-    return 'Not available'
+    return language.startsWith('vi') ? 'Chưa có dữ liệu' : 'Not available'
   }
 
   const date = new Date(value)
@@ -84,6 +83,7 @@ export function ReviewOpsPanel({
   detail,
   onPublished,
 }: ReviewOpsPanelProps) {
+  const isVietnamese = language.startsWith('vi')
   const labels = getAdminOpsLabels(language)
   const [sourcesResponse, setSourcesResponse] = useState<ReviewOpsSourcesResponse | null>(null)
   const [runsResponse, setRunsResponse] = useState<ReviewOpsRunListResponse | null>(null)
@@ -213,7 +213,7 @@ export function ReviewOpsPanel({
 
   async function handleSyncToDraft() {
     if (!restaurantId || !syncUrl.trim()) {
-      setError('Google Maps URL is required.')
+      setError(isVietnamese ? 'Cần nhập URL Google Maps.' : 'Google Maps URL is required.')
       return
     }
 
@@ -328,41 +328,51 @@ export function ReviewOpsPanel({
     return [
       {
         icon: 'dns',
-        label: `Queue: ${sourcesResponse.queueHealth ? 'reported' : 'no data'}`,
+        label: isVietnamese
+          ? `Queue: ${sourcesResponse.queueHealth ? 'đã có tín hiệu' : 'chưa có dữ liệu'}`
+          : `Queue: ${sourcesResponse.queueHealth ? 'reported' : 'no data'}`,
       },
       {
         icon: 'memory',
-        label: `Worker: ${sourcesResponse.workerHealth ? 'reported' : 'no data'}`,
+        label: isVietnamese
+          ? `Worker: ${sourcesResponse.workerHealth ? 'đã có tín hiệu' : 'chưa có dữ liệu'}`
+          : `Worker: ${sourcesResponse.workerHealth ? 'reported' : 'no data'}`,
       },
       {
         icon: 'warning',
-        label: `${formatCount(sourcesResponse.overdueSourceCount, language)} overdue source(s)`,
+        label: isVietnamese
+          ? `${formatCount(sourcesResponse.overdueSourceCount, language)} nguồn quá hạn`
+          : `${formatCount(sourcesResponse.overdueSourceCount, language)} overdue source(s)`,
       },
     ]
-  }, [language, sourcesResponse])
+  }, [isVietnamese, language, sourcesResponse])
 
   return (
     <div className="grid gap-6">
-      <PageIntro
-        eyebrow={labels.navReviewOps}
-        title={labels.reviewOpsTitle}
-        description={labels.reviewOpsDescription}
-        meta={[
-          {
-            icon: 'storefront',
-            label: detail?.name ?? 'Restaurant',
-          },
-          {
-            icon: detail?.googleMapUrl ? 'task_alt' : 'warning',
-            label: detail?.googleMapUrl ? 'Google Maps source configured' : 'Google Maps source missing',
-            tone: detail?.googleMapUrl ? 'success' : 'warning',
-          },
-          {
-            icon: 'inventory_2',
-            label: `${formatCount(detail?.datasetStatus.pendingBatchCount, language)} pending batch(es)`,
-          },
-        ]}
-      />
+      <div className="flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
+          <span className="material-symbols-outlined text-base text-sky-300">storefront</span>
+          {detail?.name ?? (isVietnamese ? 'Chưa chọn nhà hàng' : 'No restaurant selected')}
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
+          <span className={`material-symbols-outlined text-base ${detail?.googleMapUrl ? 'text-emerald-300' : 'text-amber-300'}`}>
+            {detail?.googleMapUrl ? 'task_alt' : 'warning'}
+          </span>
+          {detail?.googleMapUrl
+            ? isVietnamese
+              ? 'Nguồn Google Maps đã sẵn sàng'
+              : 'Google Maps source configured'
+            : isVietnamese
+              ? 'Thiếu nguồn Google Maps'
+              : 'Google Maps source missing'}
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
+          <span className="material-symbols-outlined text-base text-slate-300">inventory_2</span>
+          {isVietnamese
+            ? `${formatCount(detail?.datasetStatus.pendingBatchCount, language)} lô đang chờ`
+            : `${formatCount(detail?.datasetStatus.pendingBatchCount, language)} pending batch(es)`}
+        </span>
+      </div>
 
       {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
       {notice ? <StatusMessage>{notice}</StatusMessage> : null}

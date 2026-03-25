@@ -42,6 +42,7 @@ export function AdminIntakePanel({
   detail,
   onPublished,
 }: AdminIntakePanelProps) {
+  const isVietnamese = language.startsWith('vi')
   const labels = getAdminIntakeLabels(language)
   const creatableSourceTypes: ReviewIntakeBatch['sourceType'][] = ['MANUAL', 'BULK_PASTE', 'CSV']
   const batchTitleFieldId = 'admin-intake-batch-title'
@@ -136,7 +137,7 @@ export function AdminIntakePanel({
 
       setNewBatchTitle('')
       setNewBatchSourceType('MANUAL')
-      setNotice('Batch created.')
+      setNotice(isVietnamese ? 'Đã tạo lô nhập liệu.' : 'Batch created.')
       await loadBatches(createdBatch.id)
     } catch (nextError) {
       setError(getErrorMessage(nextError))
@@ -159,7 +160,11 @@ export function AdminIntakePanel({
       setBatches((current) =>
         current.map((batch) => (batch.id === updatedBatch.id ? updatedBatch : batch)),
       )
-      setNotice(`${items.length} review item${items.length > 1 ? 's' : ''} added.`)
+      setNotice(
+        isVietnamese
+          ? `Đã thêm ${items.length} mục đánh giá.`
+          : `${items.length} review item${items.length > 1 ? 's' : ''} added.`,
+      )
     } catch (nextError) {
       setError(getErrorMessage(nextError))
     } finally {
@@ -177,7 +182,7 @@ export function AdminIntakePanel({
       setBatches((current) =>
         current.map((batch) => (batch.id === updatedBatch.id ? updatedBatch : batch)),
       )
-      setNotice('Review item updated.')
+      setNotice(isVietnamese ? 'Đã cập nhật mục đánh giá.' : 'Review item updated.')
     } catch (nextError) {
       setError(getErrorMessage(nextError))
     } finally {
@@ -210,34 +215,25 @@ export function AdminIntakePanel({
 
   return (
     <div className="grid gap-6">
-      <section className="rounded-[1.8rem] border border-border-light/70 bg-surface-white/88 p-5 shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-              <span className="size-2 rounded-full bg-primary"></span>
-              {labels.nav}
-            </div>
-            <h1 className="mt-4 text-[1.9rem] font-black tracking-tight text-text-charcoal dark:text-white">
-              {labels.title}
-            </h1>
-            <p className="mt-3 text-sm leading-7 text-text-silver-light dark:text-text-silver-dark">
-              {labels.description}
-            </p>
-          </div>
-
-          <div className="grid gap-2 rounded-[1.4rem] border border-border-light/70 bg-bg-light/70 p-4 text-sm dark:border-border-dark dark:bg-bg-dark/55">
-            <div className="font-semibold text-text-charcoal dark:text-white">
-              {detail?.name ?? 'Restaurant'}
-            </div>
-            <div className="text-text-silver-light dark:text-text-silver-dark">
-              Dataset policy: {detail?.datasetStatus.sourcePolicy ?? 'UNCONFIGURED'}
-            </div>
-            {detail?.datasetStatus.lastPublishedAt ? (
-              <div className="text-text-silver-light dark:text-text-silver-dark">
-                Last publish: {new Date(detail.datasetStatus.lastPublishedAt).toLocaleString(language)}
-              </div>
-            ) : null}
-          </div>
+      <section className="rounded-[1.2rem] border border-border-light/70 bg-surface-white/88 p-4 shadow-[0_18px_48px_-42px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-2 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+            <span className="material-symbols-outlined text-base text-primary">storefront</span>
+            {detail?.name ?? (isVietnamese ? 'Chưa chọn nhà hàng' : 'No restaurant selected')}
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-2 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+            <span className="material-symbols-outlined text-base text-primary">database</span>
+            {(isVietnamese ? 'Chính sách nguồn: ' : 'Source policy: ') +
+              (detail?.datasetStatus.sourcePolicy ?? 'UNCONFIGURED')}
+          </span>
+          {detail?.datasetStatus.lastPublishedAt ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-2 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+              <span className="material-symbols-outlined text-base text-primary">schedule</span>
+              {isVietnamese
+                ? `Công bố gần nhất: ${new Date(detail.datasetStatus.lastPublishedAt).toLocaleString(language)}`
+                : `Last publish: ${new Date(detail.datasetStatus.lastPublishedAt).toLocaleString(language)}`}
+            </span>
+          ) : null}
         </div>
       </section>
 
@@ -319,7 +315,9 @@ export function AdminIntakePanel({
           </div>
 
           {loading ? (
-            <div className="text-sm text-text-silver-light dark:text-text-silver-dark">Loading batches...</div>
+            <div className="text-sm text-text-silver-light dark:text-text-silver-dark">
+              {isVietnamese ? 'Đang tải danh sách lô...' : 'Loading batches...'}
+            </div>
           ) : batches.length === 0 ? (
             <div className="rounded-[1.3rem] border border-dashed border-border-light/80 bg-bg-light/60 p-4 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/45 dark:text-text-silver-dark">
               {labels.emptyBatches}
@@ -349,8 +347,9 @@ export function AdminIntakePanel({
                       </span>
                     </div>
                     <div className="mt-3 text-xs leading-6 text-text-silver-light dark:text-text-silver-dark">
-                      {batch.counts.totalItems} items | {batch.counts.approvedItems} approved |{' '}
-                      {batch.counts.pendingItems} pending
+                      {isVietnamese
+                        ? `${batch.counts.totalItems} mục | ${batch.counts.approvedItems} đã duyệt | ${batch.counts.pendingItems} đang chờ`
+                        : `${batch.counts.totalItems} items | ${batch.counts.approvedItems} approved | ${batch.counts.pendingItems} pending`}
                     </div>
                   </button>
                 )
@@ -395,7 +394,9 @@ export function AdminIntakePanel({
                   </p>
                 </div>
                 {detailLoading ? (
-                  <div className="text-sm text-text-silver-light dark:text-text-silver-dark">Loading batch detail...</div>
+                  <div className="text-sm text-text-silver-light dark:text-text-silver-dark">
+                    {isVietnamese ? 'Đang tải chi tiết lô...' : 'Loading batch detail...'}
+                  </div>
                 ) : (
                   <ReviewCurationTable
                     batch={selectedBatch}

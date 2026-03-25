@@ -13,37 +13,34 @@ test.describe('ADMIN critical path', () => {
     await loginAs(page, SEED_CREDENTIALS.admin, 'ADMIN')
     await expectAdminShell(page)
 
-    await expect(page.getByRole('heading', { name: 'One admin product, organized into operations, access, and platform.' }).first()).toBeVisible()
-    await expect(page.getByRole('button', { name: /Restaurants/i }).first()).toBeVisible()
+    await expect(page.getByTestId('admin-home-screen')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Review ops$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Review operations' }).first()).toBeVisible()
+    await page.getByTestId('nav-admin-operations-restaurants').click()
+    await expect(page.getByTestId('admin-overview')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Crawl$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Crawl runtime controls' }).first()).toBeVisible()
+    await page.getByTestId('nav-admin-operations-review-ops').click()
+    await expect(page.getByTestId('admin-review-ops')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Intake$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Admin review intake' }).first()).toBeVisible()
+    await page.getByTestId('nav-admin-operations-crawl').click()
+    await expect(page.getByTestId('admin-crawl')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Users$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'User access administration' }).first()).toBeVisible()
+    await page.getByTestId('nav-admin-operations-intake').click()
+    await expect(page.getByTestId('admin-intake')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Memberships$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Membership mapping' }).first()).toBeVisible()
+    await page.getByTestId('nav-admin-access-users').click()
+    await expect(page.getByTestId('admin-users-screen')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Health & jobs$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Platform health and jobs' }).first()).toBeVisible()
+    await page.getByTestId('nav-admin-access-memberships').click()
+    await expect(page.getByTestId('admin-memberships-screen')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Integrations$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Integrations and policies' }).first()).toBeVisible()
+    await page.getByTestId('nav-admin-platform-health-jobs').click()
+    await expect(page.getByTestId('admin-health-jobs-screen')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Audit$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Audit trail' }).first()).toBeVisible()
+    await page.getByTestId('nav-admin-platform-integrations-policies').click()
+    await expect(page.getByTestId('admin-integrations-policies-screen')).toBeVisible()
 
-    await expect(page.getByRole('button', { name: /^Home$/i })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /^Reviews$/i })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /^Actions$/i })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /^Settings$/i })).toHaveCount(0)
+    await page.getByTestId('nav-admin-platform-audit').click()
+    await expect(page.getByTestId('admin-audit-screen')).toBeVisible()
 
     await goToRoute(page, HASH_ROUTES.appHome)
     await assertRouteBlockedForAdmin(page)

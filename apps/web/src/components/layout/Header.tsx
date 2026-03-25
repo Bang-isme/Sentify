@@ -4,6 +4,7 @@ import { LANGUAGE_OPTIONS, useLanguage } from '../../contexts/languageContext'
 import { useTheme } from '../../contexts/useTheme'
 import { getAdminNavigation, getMerchantNavigation, getRouteMeta } from '../../features/app-shell/navigation'
 import { isAdminRoute, isProtectedRoute, type AppRoute } from '../../features/app-shell/routes'
+import { getShellChrome } from '../../features/app-shell/shellChrome'
 
 interface HeaderAccountIdentity {
   displayName: string
@@ -25,36 +26,6 @@ interface HeaderProps {
   onLogout: () => void
 }
 
-function isVietnamese(language: string) {
-  return language.startsWith('vi')
-}
-
-function getHeaderStrings(language: string) {
-  if (isVietnamese(language)) {
-    return {
-      openAccountMenu: 'Mo menu tai khoan',
-      languageLabel: 'Ngon ngu',
-      themeLabel: 'Chuyen che do sang toi',
-      merchantApp: 'Merchant app',
-      adminHub: 'Admin hub',
-      viewLabel: 'Dang xem',
-      roleLabel: 'Role',
-      restaurantLabel: 'Restaurant',
-    }
-  }
-
-  return {
-    openAccountMenu: 'Open account menu',
-    languageLabel: 'Language',
-    themeLabel: 'Toggle theme',
-    merchantApp: 'Merchant app',
-    adminHub: 'Admin hub',
-    viewLabel: 'Viewing',
-    roleLabel: 'Role',
-    restaurantLabel: 'Restaurant',
-  }
-}
-
 function MenuDivider() {
   return <div className="my-2 h-px bg-white/8" />
 }
@@ -72,7 +43,7 @@ export function Header({
   const { theme, toggleTheme } = useTheme()
   const { language, setLanguage, copy } = useLanguage()
   const productCopy = getProductUiCopy(language)
-  const labels = getHeaderStrings(language)
+  const { copy: shellCopy, palette } = useMemo(() => getShellChrome(isAdminRoute(route) ? 'admin' : 'merchant', language), [language, route])
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const languageMenuRef = useRef<HTMLDivElement | null>(null)
@@ -83,7 +54,8 @@ export function Header({
   const isAppRoute = isProtectedRoute(route)
   const isAdminShell = isAdminRoute(route)
   const routeMeta = getRouteMeta(route, language)
-  const shellLabel = isAdminShell ? labels.adminHub : labels.merchantApp
+  const shellLabel = isAdminShell ? shellCopy.adminShellLabel : shellCopy.merchantShellLabel
+  const roleChipLabel = isAdminShell ? 'ADMIN' : 'USER'
 
   const restaurantLabel = useMemo(() => {
     if (!user) {
@@ -114,7 +86,7 @@ export function Header({
     return [
       {
         id: 'home',
-        label: isAdminShell ? (isVietnamese(language) ? 'Command center' : 'Command center') : 'Home',
+        label: shellCopy.homeLabel,
         onClick: () => onNavigate(homeRoute),
       },
       ...navItems.slice(0, 4).map((item) => ({
@@ -126,13 +98,13 @@ export function Header({
         ? [
             {
               id: 'landing',
-              label: productCopy.header.landing,
+              label: shellCopy.landingLabel,
               onClick: () => onNavigate('/'),
             },
           ]
         : []),
     ]
-  }, [homeRoute, isAdminShell, isAppRoute, isAuthenticated, language, onNavigate, productCopy.header.landing])
+  }, [homeRoute, isAdminShell, isAppRoute, isAuthenticated, onNavigate, shellCopy.homeLabel, shellCopy.landingLabel])
 
   useEffect(() => {
     if (!isLanguageMenuOpen && !isAccountMenuOpen) {
@@ -172,8 +144,8 @@ export function Header({
   }, [isAccountMenuOpen, isLanguageMenuOpen])
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/8 bg-[#0d1116]/92 backdrop-blur-xl">
-      <div className="flex h-[4.25rem] w-full items-center gap-3 px-3 lg:px-5">
+    <header className={`fixed inset-x-0 top-0 z-50 border-b ${palette.railDivider} ${palette.menuSurface} backdrop-blur-2xl`}>
+      <div className="flex h-[3.75rem] w-full items-center gap-3 px-3 lg:px-5">
         <button
           type="button"
           className="flex shrink-0 items-center gap-3"
@@ -186,28 +158,40 @@ export function Header({
             onScrollToSection('overview')
           }}
         >
-          <div className="flex size-9 items-center justify-center border border-white/10 bg-white/5 text-amber-300">
+          <div className="flex size-8 items-center justify-center rounded-[12px] border border-white/10 bg-white/[0.04] text-primary">
             <span className="material-symbols-outlined text-[18px]">token</span>
           </div>
           <div className="hidden min-w-0 md:block">
             <div className="text-[15px] font-semibold text-white">{copy.header.brand}</div>
-            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-              {isProtectedRoute(route) ? shellLabel : 'Sentiment operations'}
-            </div>
+            {isProtectedRoute(route) ? (
+              <div className="mt-0.5 flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                <span>{shellLabel}</span>
+                <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold text-slate-300">
+                  {roleChipLabel}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                Sentiment operations
+              </div>
+            )}
           </div>
         </button>
 
         <div className="hidden min-w-0 items-center gap-2 xl:flex">
           {isProtectedRoute(route) ? (
             <>
-              <span className="inline-flex border border-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                {labels.viewLabel}
+              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${palette.chipMuted}`}>
+                {shellCopy.roleLabel}
               </span>
-              <span className="inline-flex items-center gap-2 border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[12px] font-semibold text-white">
+              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${palette.chipMuted}`}>
+                {roleChipLabel}
+              </span>
+              <span className={`inline-flex max-w-[26rem] items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-semibold text-white ${palette.chip}`}>
                 <span className="material-symbols-outlined text-[16px] text-slate-400">
                   {isAdminShell ? 'view_kanban' : 'insights'}
                 </span>
-                {routeMeta.title}
+                <span className="truncate">{routeMeta.title}</span>
               </span>
             </>
           ) : (
@@ -228,8 +212,9 @@ export function Header({
           <button
             type="button"
             onClick={(event) => toggleTheme(event)}
-            aria-label={labels.themeLabel}
-            className="flex size-8 items-center justify-center text-slate-400 transition hover:bg-white/5 hover:text-white"
+            aria-label={shellCopy.themeLabel}
+            data-testid="theme-toggle"
+            className="app-shell-surface flex size-8 items-center justify-center rounded-[10px] text-slate-400 transition hover:bg-white/5 hover:text-white"
           >
             <span className="material-symbols-outlined text-lg">
               {theme === 'dark' ? 'dark_mode' : 'light_mode'}
@@ -239,14 +224,15 @@ export function Header({
           <div className="relative" ref={languageMenuRef}>
             <button
               type="button"
+              data-testid="language-menu-trigger"
               onClick={() => {
                 setIsLanguageMenuOpen((current) => !current)
                 setIsAccountMenuOpen(false)
               }}
-              aria-label={labels.languageLabel}
+              aria-label={shellCopy.languageLabel}
               aria-haspopup="menu"
               aria-expanded={isLanguageMenuOpen}
-              className="flex h-8 items-center gap-1.5 border border-white/10 bg-white/5 px-2.5 text-[12px] font-semibold text-white transition hover:border-white/20"
+            className={`app-shell-surface flex h-8 items-center gap-1.5 rounded-[10px] border px-2.5 text-[12px] font-semibold text-white transition hover:border-white/20 ${palette.chip}`}
             >
               <span>{currentLanguage.label}</span>
               <span
@@ -259,13 +245,13 @@ export function Header({
             </button>
 
             <div
-              className={`absolute right-0 top-[calc(100%+0.6rem)] min-w-[10rem] border border-white/10 bg-[#11161c] p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.35)] transition-all duration-150 ${
+              className={`app-shell-surface absolute right-0 top-[calc(100%+0.5rem)] min-w-[10rem] rounded-[12px] border p-1.5 shadow-[0_20px_40px_rgba(0,0,0,0.24)] transition-all duration-150 ${palette.menuSurface} ${
                 isLanguageMenuOpen
                   ? 'pointer-events-auto translate-y-0 opacity-100'
                   : 'pointer-events-none -translate-y-1 opacity-0'
               }`}
               role="menu"
-              aria-label={labels.languageLabel}
+              aria-label={shellCopy.languageLabel}
             >
               {LANGUAGE_OPTIONS.map((option) => {
                 const isActive = option.code === language
@@ -280,7 +266,7 @@ export function Header({
                       setLanguage(option.code)
                       setIsLanguageMenuOpen(false)
                     }}
-                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition ${
+                    className={`flex w-full items-center justify-between rounded-[10px] px-3 py-2 text-left text-sm transition ${
                       isActive
                         ? 'bg-white/8 font-semibold text-white'
                         : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -298,16 +284,17 @@ export function Header({
             <div className="relative" ref={accountMenuRef}>
               <button
                 type="button"
-                aria-label={labels.openAccountMenu}
+                aria-label={shellCopy.openAccountMenu}
                 aria-haspopup="menu"
                 aria-expanded={isAccountMenuOpen}
+                data-testid="account-menu"
                 onClick={() => {
                   setIsAccountMenuOpen((current) => !current)
                   setIsLanguageMenuOpen(false)
                 }}
-                className="group flex h-9 items-center gap-2 border border-white/10 bg-white/5 pl-2 pr-2.5 text-left transition hover:border-white/20"
+                className={`app-shell-surface group flex h-9 items-center gap-2 rounded-[10px] border pl-2 pr-2.5 text-left transition hover:border-white/20 ${palette.chip}`}
               >
-                <span className="flex size-7 items-center justify-center bg-amber-300 text-[11px] font-black text-[#11161c]">
+                <span className="flex size-7 items-center justify-center rounded-[9px] bg-primary text-[11px] font-black text-[#08131b]">
                   {user?.initials ?? 'S'}
                 </span>
                 <span className="hidden min-w-0 md:block">
@@ -328,17 +315,17 @@ export function Header({
               </button>
 
               <div
-                className={`absolute right-0 top-[calc(100%+0.75rem)] w-[min(24rem,calc(100vw-1.5rem))] border border-white/10 bg-[#11161c] p-2 shadow-[0_20px_44px_rgba(0,0,0,0.42)] transition-all duration-150 ${
+                className={`app-shell-surface absolute right-0 top-[calc(100%+0.65rem)] w-[min(24rem,calc(100vw-1.5rem))] rounded-[14px] border p-2 shadow-[0_20px_44px_rgba(0,0,0,0.24)] transition-all duration-150 ${palette.menuSurface} ${
                   isAccountMenuOpen
                     ? 'pointer-events-auto translate-y-0 opacity-100'
                     : 'pointer-events-none -translate-y-1 opacity-0'
                 }`}
                 role="menu"
-                aria-label={labels.openAccountMenu}
+                aria-label={shellCopy.openAccountMenu}
               >
-                <div className="border border-white/8 bg-white/[0.03] p-4">
+                <div className={`app-shell-surface rounded-[12px] border p-4 ${palette.heroPanel}`}>
                   <div className="flex items-start gap-3">
-                    <span className="flex size-11 shrink-0 items-center justify-center bg-amber-300 text-sm font-black text-[#11161c]">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-primary text-sm font-black text-[#08131b]">
                       {user?.initials ?? 'S'}
                     </span>
                     <div className="min-w-0">
@@ -347,16 +334,15 @@ export function Header({
                       </div>
                       <div className="mt-1 truncate text-xs text-slate-500">{user?.email ?? ''}</div>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200">
+                        <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
                           {user?.roleLabel ?? productCopy.header.protectedAccess}
                         </span>
                         {restaurantLabel ? (
-                          <span className="border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+                          <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${palette.chipMuted}`}>
                             {restaurantLabel}
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-3 text-xs leading-5 text-slate-500">{roleDescription}</div>
                     </div>
                   </div>
                 </div>
@@ -385,7 +371,8 @@ export function Header({
                 <button
                   type="button"
                   role="menuitem"
-                  className="flex h-10 w-full items-center px-3 text-left text-sm font-medium text-red-300 transition hover:bg-red-500/10"
+                  data-testid="logout-action"
+                  className="flex h-10 w-full items-center rounded-[10px] px-3 text-left text-sm font-medium text-red-300 transition hover:bg-red-500/10"
                   onClick={() => {
                     setIsAccountMenuOpen(false)
                     onLogout()
@@ -406,7 +393,7 @@ export function Header({
               </button>
               <button
                 type="button"
-                className="flex h-9 items-center justify-center bg-amber-300 px-3.5 text-sm font-semibold text-[#11161c] transition hover:bg-amber-200"
+                className="flex h-9 items-center justify-center rounded-[10px] bg-primary px-3.5 text-sm font-semibold text-[#08131b] transition hover:bg-primary-dark"
                 onClick={() => onNavigate('/signup')}
               >
                 {productCopy.header.signup}

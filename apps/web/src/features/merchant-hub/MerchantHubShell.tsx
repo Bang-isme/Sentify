@@ -1,19 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { MerchantHubRoute, MerchantHubShellContext } from './merchantHubTypes'
-import { merchantHubCopy } from './merchantHubCopy'
+import { getMerchantHubCopy } from './merchantHubCopy'
 import { MerchantHubBadge } from './merchantHubUi'
-
-const MERCHANT_NAV: Array<{
-  route: MerchantHubRoute
-  label: string
-  icon: string
-  description: string
-}> = [
-  { route: 'home', label: merchantHubCopy.nav.home, icon: 'space_dashboard', description: 'At a glance' },
-  { route: 'reviews', label: merchantHubCopy.nav.reviews, icon: 'rate_review', description: 'Evidence board' },
-  { route: 'actions', label: merchantHubCopy.nav.actions, icon: 'target', description: 'Fix first' },
-  { route: 'settings', label: merchantHubCopy.nav.settings, icon: 'settings', description: 'Profile and source' },
-]
 
 function getShellStorageKey() {
   return 'sentify-merchant-hub-rail'
@@ -73,9 +61,39 @@ export function MerchantHubShell({
   onLogout,
   children,
 }: MerchantHubShellContext & { activeView: MerchantHubRoute }) {
+  const merchantHubCopy = getMerchantHubCopy('vi')
+  const merchantNav = useMemo(
+    () => [
+      {
+        route: 'home' as const,
+        label: merchantHubCopy.nav.home,
+        icon: 'space_dashboard',
+        description: 'Nắm tình hình quán trong hôm nay',
+      },
+      {
+        route: 'reviews' as const,
+        label: merchantHubCopy.nav.reviews,
+        icon: 'rate_review',
+        description: 'Đọc lại phản hồi của khách',
+      },
+      {
+        route: 'actions' as const,
+        label: merchantHubCopy.nav.actions,
+        icon: 'target',
+        description: 'Ưu tiên việc nên xử lý trước',
+      },
+      {
+        route: 'settings' as const,
+        label: merchantHubCopy.nav.settings,
+        icon: 'settings',
+        description: 'Cập nhật hồ sơ và nguồn dữ liệu',
+      },
+    ],
+    [merchantHubCopy],
+  )
   const [isRailCollapsed, setIsRailCollapsed] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const currentRestaurantName = currentRestaurant?.name ?? 'No restaurant selected'
+  const currentRestaurantName = currentRestaurant?.name ?? 'Chưa chọn nhà hàng'
   const currentFreshness = currentRestaurantDetail?.googleMapUrl
     ? merchantHubCopy.states.freshnessNow
     : merchantHubCopy.states.freshnessNext
@@ -154,12 +172,12 @@ export function MerchantHubShell({
 
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden items-center gap-2 border border-[#e0d4c1] bg-white px-3 py-2 lg:flex">
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">Role</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">Vai trò</span>
               <span className="text-[13px] font-semibold text-[#1f1c18]">{roleLabel}</span>
             </div>
             <div className="hidden items-center gap-2 border border-[#e0d4c1] bg-white px-3 py-2 lg:flex">
               <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">
-                Current restaurant
+                Nhà hàng hiện tại
               </span>
               <span className="max-w-[16rem] truncate text-[13px] font-semibold text-[#1f1c18]">
                 {currentRestaurantName}
@@ -169,7 +187,7 @@ export function MerchantHubShell({
               type="button"
               onClick={() => setIsRailCollapsed((current) => !current)}
               className="hidden size-10 items-center justify-center border border-[#e0d4c1] bg-white text-[#1f1c18] transition hover:border-[#caa55e] hover:text-[#8a5a44] lg:inline-flex"
-              aria-label={isRailCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={isRailCollapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
             >
               <span className="material-symbols-outlined text-[20px]">
                 {isRailCollapsed ? 'chevron_right' : 'chevron_left'}
@@ -181,7 +199,7 @@ export function MerchantHubShell({
                 onClick={onLogout}
                 className="inline-flex h-10 items-center justify-center border border-[#e0d4c1] bg-white px-4 text-[13px] font-semibold text-[#1f1c18] transition hover:border-[#caa55e] hover:text-[#8a5a44]"
               >
-                Logout
+                Đăng xuất
               </button>
             ) : null}
           </div>
@@ -201,14 +219,14 @@ export function MerchantHubShell({
               </div>
               {!isRailCollapsed ? (
                 <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">Account</div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">Tài khoản</div>
                   <div className="mt-1 text-[16px] font-black tracking-tight text-[#1f1c18]">
                     {account.displayName}
                   </div>
                   <div className="mt-1 text-[12px] leading-5 text-[#5f584e]">{account.email}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <MerchantHubBadge state="now">{roleLabel}</MerchantHubBadge>
-                    <MerchantHubBadge state="next">{account.restaurantCount} restaurants</MerchantHubBadge>
+                    <MerchantHubBadge state="next">{account.restaurantCount} nhà hàng</MerchantHubBadge>
                   </div>
                 </div>
               ) : null}
@@ -216,7 +234,7 @@ export function MerchantHubShell({
                 type="button"
                 className="ml-auto inline-flex size-9 items-center justify-center border border-[#e0d4c1] bg-white text-[#1f1c18] lg:hidden"
                 onClick={() => setIsDrawerOpen(false)}
-                aria-label="Close navigation"
+                aria-label="Đóng điều hướng"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
@@ -224,7 +242,7 @@ export function MerchantHubShell({
           </div>
 
           <nav className="mt-3 grid gap-2">
-            {MERCHANT_NAV.map((item) => (
+            {merchantNav.map((item) => (
               <MerchantRailButton
                 key={item.route}
                 active={activeView === item.route}
@@ -245,18 +263,18 @@ export function MerchantHubShell({
               {!isRailCollapsed ? (
                 <>
                   <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">
-                    Restaurant
+                    Nhà hàng
                   </div>
                   <div className="mt-2 grid gap-2">
                     <label className="grid gap-1">
-                      <span className="text-[12px] font-semibold text-[#1f1c18]">Switch context</span>
+                      <span className="text-[12px] font-semibold text-[#1f1c18]">Chuyển ngữ cảnh</span>
                       <select
                         value={currentRestaurant?.id ?? ''}
                         onChange={(event) => onSelectRestaurant(event.target.value)}
                         className="h-11 border border-[#e7ded0] bg-white px-3 text-[13px] text-[#1f1c18] outline-none transition focus:border-[#caa55e]"
                       >
                         {restaurants.length === 0 ? (
-                          <option value="">No restaurant available</option>
+                            <option value="">Chưa có nhà hàng</option>
                         ) : null}
                         {restaurants.map((restaurant) => (
                           <option key={restaurant.id} value={restaurant.id}>
@@ -266,7 +284,7 @@ export function MerchantHubShell({
                       </select>
                     </label>
                     <div className="text-[12px] leading-5 text-[#5f584e]">
-                      {currentRestaurantDetail?.address ?? 'No address on file'}
+                      {currentRestaurantDetail?.address ?? 'Chưa có địa chỉ'}
                     </div>
                   </div>
                 </>
@@ -281,7 +299,7 @@ export function MerchantHubShell({
               {!isRailCollapsed ? (
                 <>
                   <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">
-                    Shortcuts
+                    Lối tắt
                   </div>
                   <div className="mt-3 grid gap-2">
                     <button
@@ -289,7 +307,7 @@ export function MerchantHubShell({
                       className="flex items-center justify-between border border-[#e7ded0] bg-[#fcfaf6] px-3 py-3 text-left text-[13px] font-semibold text-[#1f1c18]"
                       onClick={() => onNavigate('reviews')}
                     >
-                      <span>Open reviews</span>
+                      <span>Mở đánh giá</span>
                       <span className="material-symbols-outlined text-[18px] text-[#8a5a44]">arrow_forward</span>
                     </button>
                     <button
@@ -297,7 +315,7 @@ export function MerchantHubShell({
                       className="flex items-center justify-between border border-[#e7ded0] bg-[#fcfaf6] px-3 py-3 text-left text-[13px] font-semibold text-[#1f1c18]"
                       onClick={() => onNavigate('actions')}
                     >
-                      <span>Fix first</span>
+                      <span>Xem việc cần làm</span>
                       <span className="material-symbols-outlined text-[18px] text-[#8a5a44]">arrow_forward</span>
                     </button>
                   </div>

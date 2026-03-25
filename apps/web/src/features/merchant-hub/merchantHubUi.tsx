@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { merchantHubCopy } from './merchantHubCopy'
+import { getMerchantHubCopy } from './merchantHubCopy'
 import type { MerchantHubPriority, MerchantHubState } from './merchantHubTypes'
 
 export function MerchantHubBadge({
@@ -79,18 +79,22 @@ export function MerchantHubMetric({
   value,
   hint,
   state = 'now',
+  language = 'vi',
 }: {
   label: string
   value: string
   hint: string
   state?: MerchantHubState
+  language?: string
 }) {
+  const copy = getMerchantHubCopy(language)
+
   return (
     <div className="border border-[#e5ddd0] bg-[#fcfaf6] px-4 py-4">
       <div className="flex items-center justify-between gap-3">
         <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#8f877c]">{label}</div>
         <MerchantHubBadge state={state}>
-          {state === 'now' ? merchantHubCopy.nowLabel : merchantHubCopy.nextLabel}
+          {state === 'now' ? copy.nowLabel : copy.nextLabel}
         </MerchantHubBadge>
       </div>
       <div className="mt-2.5 text-[1.35rem] font-black tracking-tight text-[#1f1c18]">{value}</div>
@@ -124,8 +128,10 @@ export function MerchantHubPill({
 
 export function MerchantHubPriorityPill({
   priority,
+  language = 'vi',
 }: {
   priority: MerchantHubPriority
+  language?: string
 }) {
   const toneClass =
     priority === 'high'
@@ -136,7 +142,13 @@ export function MerchantHubPriorityPill({
 
   return (
     <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${toneClass}`}>
-      {priority}
+      {language.startsWith('vi')
+        ? priority === 'high'
+          ? 'Ưu tiên cao'
+          : priority === 'medium'
+            ? 'Ưu tiên vừa'
+            : 'Ưu tiên thấp'
+        : priority}
     </span>
   )
 }

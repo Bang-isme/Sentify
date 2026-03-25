@@ -21,7 +21,6 @@ import {
 import { getAdminOpsLabels } from '../../admin-ops/adminOpsLabels'
 import {
   EmptyPanel,
-  PageIntro,
   SectionCard,
   StatusMessage,
 } from '../../../components/product/workspace/shared'
@@ -40,7 +39,7 @@ function getErrorMessage(error: unknown) {
 
 function formatDateTime(value: string | null | undefined, language: string) {
   if (!value) {
-    return 'Not available'
+    return language.startsWith('vi') ? 'Chưa có dữ liệu' : 'Not available'
   }
 
   const date = new Date(value)
@@ -84,6 +83,7 @@ export function ReviewCrawlPanel({
   detail,
   onMaterialized,
 }: ReviewCrawlPanelProps) {
+  const isVietnamese = language.startsWith('vi')
   const labels = getAdminOpsLabels(language)
   const [sourcesResponse, setSourcesResponse] = useState<ReviewOpsSourcesResponse | null>(null)
   const [runsResponse, setRunsResponse] = useState<ReviewOpsRunListResponse | null>(null)
@@ -210,7 +210,7 @@ export function ReviewCrawlPanel({
 
   async function handlePreview() {
     if (!restaurantId || !previewUrl.trim()) {
-      setError('Google Maps URL is required.')
+      setError(isVietnamese ? 'Cần nhập URL Google Maps.' : 'Google Maps URL is required.')
       return
     }
 
@@ -239,7 +239,7 @@ export function ReviewCrawlPanel({
 
   async function handleUpsertSource() {
     if (!restaurantId || !sourceUrl.trim()) {
-      setError('Google Maps URL is required.')
+      setError(isVietnamese ? 'Cần nhập URL Google Maps.' : 'Google Maps URL is required.')
       return
     }
 
@@ -268,7 +268,7 @@ export function ReviewCrawlPanel({
 
   async function handleCreateRun() {
     if (!selectedSourceId) {
-      setError('Select a source before creating a run.')
+      setError(isVietnamese ? 'Hãy chọn nguồn trước khi tạo lần chạy.' : 'Select a source before creating a run.')
       return
     }
 
@@ -330,22 +330,24 @@ export function ReviewCrawlPanel({
 
   return (
     <div className="grid gap-6">
-      <PageIntro
-        eyebrow={labels.navReviewCrawl}
-        title={labels.reviewCrawlTitle}
-        description={labels.reviewCrawlDescription}
-        meta={[
-          {
-            icon: 'storefront',
-            label: detail?.name ?? 'Restaurant',
-          },
-          {
-            icon: detail?.googleMapUrl ? 'task_alt' : 'warning',
-            label: detail?.googleMapUrl ? 'Google Maps source configured' : 'Google Maps source missing',
-            tone: detail?.googleMapUrl ? 'success' : 'warning',
-          },
-        ]}
-      />
+      <div className="flex flex-wrap gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
+          <span className="material-symbols-outlined text-base text-sky-300">storefront</span>
+          {detail?.name ?? (isVietnamese ? 'Chưa chọn nhà hàng' : 'No restaurant selected')}
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
+          <span className={`material-symbols-outlined text-base ${detail?.googleMapUrl ? 'text-emerald-300' : 'text-amber-300'}`}>
+            {detail?.googleMapUrl ? 'task_alt' : 'warning'}
+          </span>
+          {detail?.googleMapUrl
+            ? isVietnamese
+              ? 'Nguồn Google Maps đã sẵn sàng'
+              : 'Google Maps source configured'
+            : isVietnamese
+              ? 'Thiếu nguồn Google Maps'
+              : 'Google Maps source missing'}
+        </span>
+      </div>
 
       {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
       {notice ? <StatusMessage>{notice}</StatusMessage> : null}

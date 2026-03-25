@@ -1,5 +1,5 @@
 import type { MerchantHubHomeScreenProps } from './merchantHubTypes'
-import { merchantHubCopy } from './merchantHubCopy'
+import { getMerchantHubCopy } from './merchantHubCopy'
 import {
   MerchantHubBadge,
   MerchantHubEmptyState,
@@ -15,6 +15,7 @@ function formatTrendValue(value: number) {
 }
 
 export function MerchantHubHomeScreen({
+  language,
   restaurant,
   detail,
   freshnessLabel,
@@ -29,28 +30,35 @@ export function MerchantHubHomeScreen({
   onNavigateToActions,
   onNavigateToSettings,
 }: MerchantHubHomeScreenProps) {
+  const copy = getMerchantHubCopy(language)
   const totalReviews = detail?.datasetStatus.approvedItemCount ?? detail?.insightSummary.totalReviews ?? 0
   const topSentiment = sentiment[0] ?? null
 
   return (
-    <div className="grid gap-4">
+    <div data-testid="merchant-home-screen" className="grid gap-4">
       <MerchantHubPanel className="p-5 lg:p-4">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-4xl">
-            <MerchantHubBadge state={freshnessStatus}>{merchantHubCopy.home.freshnessLabel}</MerchantHubBadge>
+            <MerchantHubBadge state={freshnessStatus}>{copy.home.freshnessLabel}</MerchantHubBadge>
             <h1 className="mt-4 text-[1.8rem] font-black tracking-tight text-[#1f1c18] lg:text-[2.25rem]">
-              {restaurant?.name ?? 'Restaurant home'}
+              {restaurant?.name ?? copy.home.title}
             </h1>
             <p className="mt-3 max-w-3xl text-[14px] leading-7 text-[#5f584e]">
-              {detail?.address ?? 'No address on file'}. {merchantHubCopy.home.description}
+              {detail?.address ?? (language.startsWith('vi') ? 'Chưa có địa chỉ' : 'No address on file')}. {copy.home.description}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <MerchantHubPill tone="success">{freshnessLabel}</MerchantHubPill>
-              <MerchantHubPill>{formatNumber(totalReviews, 'en')} reviews</MerchantHubPill>
+              <MerchantHubPill>
+                {formatNumber(totalReviews, language)} {language.startsWith('vi') ? 'đánh giá' : 'reviews'}
+              </MerchantHubPill>
               {detail?.googleMapUrl ? (
-                <MerchantHubPill tone="success">Source connected</MerchantHubPill>
+                <MerchantHubPill tone="success">
+                  {language.startsWith('vi') ? 'Đã kết nối Google Maps' : 'Source connected'}
+                </MerchantHubPill>
               ) : (
-                <MerchantHubPill tone="warning">Source missing</MerchantHubPill>
+                <MerchantHubPill tone="warning">
+                  {language.startsWith('vi') ? 'Thiếu nguồn Google Maps' : 'Source missing'}
+                </MerchantHubPill>
               )}
             </div>
           </div>
@@ -60,14 +68,14 @@ export function MerchantHubHomeScreen({
               className="border border-[#d9c29b] bg-[#ca8a04] px-4 py-3 text-[13px] font-bold text-white transition hover:translate-y-[-1px]"
               onClick={onNavigateToActions}
             >
-              Open actions
+              {language.startsWith('vi') ? 'Xem việc cần làm' : 'Open actions'}
             </button>
             <button
               type="button"
               className="border border-[#e7ded0] bg-white px-4 py-3 text-[13px] font-semibold text-[#1f1c18] transition hover:border-[#caa55e]"
               onClick={onNavigateToReviews}
             >
-              Review evidence
+              {language.startsWith('vi') ? 'Xem đánh giá khách' : 'Review evidence'}
             </button>
           </div>
         </div>
@@ -81,6 +89,7 @@ export function MerchantHubHomeScreen({
             value={item.value}
             hint={item.hint}
             state={item.tone ?? 'now'}
+            language={language}
           />
         ))}
       </div>
@@ -88,12 +97,12 @@ export function MerchantHubHomeScreen({
       <div className="grid gap-4 xl:grid-cols-[1.25fr_0.95fr]">
             <MerchantHubPanel className="p-5 lg:p-4">
               <MerchantHubSectionHeader
-                eyebrow={merchantHubCopy.nowLabel}
-                title={highlight ? highlight.title : merchantHubCopy.home.highlightTitle}
-            description={highlight ? highlight.description : merchantHubCopy.home.emptyHighlight}
+                eyebrow={language.startsWith('vi') ? 'Ưu tiên hôm nay' : copy.nowLabel}
+                title={highlight ? highlight.title : copy.home.highlightTitle}
+            description={highlight ? highlight.description : copy.home.emptyHighlight}
             action={
               <MerchantHubBadge state={highlight?.status ?? 'next'}>
-                {highlight?.status === 'now' ? merchantHubCopy.nowLabel : merchantHubCopy.nextLabel}
+                {highlight?.status === 'now' ? copy.nowLabel : copy.nextLabel}
               </MerchantHubBadge>
             }
           />
@@ -102,7 +111,7 @@ export function MerchantHubHomeScreen({
                 {highlight ? (
                   <div className="border border-[#e7ded0] bg-[#fcfaf6] px-4 py-4">
                     <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">
-                      Why this is first
+                      {language.startsWith('vi') ? 'Vì sao nên xử lý trước' : 'Why this is first'}
                     </div>
                     <div className="mt-2 text-[16px] font-black tracking-tight text-[#1f1c18]">
                       {highlight.evidence}
@@ -111,8 +120,12 @@ export function MerchantHubHomeScreen({
                   </div>
                 ) : (
                   <MerchantHubEmptyState
-                title="No dominant issue yet"
-                description="Keep publishing evidence. The next action will appear here once a pattern is strong enough to act on."
+                title={language.startsWith('vi') ? 'Chưa có vấn đề nào nổi bật' : 'No dominant issue yet'}
+                description={
+                  language.startsWith('vi')
+                    ? 'Hãy tiếp tục cập nhật và công bố đánh giá. Khi một vấn đề lặp lại đủ mạnh, nó sẽ hiện ở đây.'
+                    : 'Keep publishing evidence. The next action will appear here once a pattern is strong enough to act on.'
+                }
               />
             )}
 
@@ -122,10 +135,14 @@ export function MerchantHubHomeScreen({
                 className="border border-[#e7ded0] bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-22px_rgba(24,18,8,0.16)]"
                 onClick={onNavigateToReviews}
               >
-                <MerchantHubBadge state="now">Now</MerchantHubBadge>
-                <div className="mt-3 text-[13px] font-bold text-[#1f1c18]">Open reviews</div>
+                <MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>
+                <div className="mt-3 text-[13px] font-bold text-[#1f1c18]">
+                  {language.startsWith('vi') ? 'Đọc đánh giá liên quan' : 'Open reviews'}
+                </div>
                 <div className="mt-1 text-[12px] leading-5 text-[#5f584e]">
-                  Read the evidence behind the current priority.
+                  {language.startsWith('vi')
+                    ? 'Mở danh sách phản hồi để kiểm tra kỹ bằng chứng phía sau vấn đề hiện tại.'
+                    : 'Read the evidence behind the current priority.'}
                 </div>
               </button>
               <button
@@ -133,10 +150,14 @@ export function MerchantHubHomeScreen({
                 className="border border-[#e7ded0] bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-22px_rgba(24,18,8,0.16)]"
                 onClick={onNavigateToActions}
               >
-                <MerchantHubBadge state="now">Now</MerchantHubBadge>
-                <div className="mt-3 text-[13px] font-bold text-[#1f1c18]">See actions</div>
+                <MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>
+                <div className="mt-3 text-[13px] font-bold text-[#1f1c18]">
+                  {language.startsWith('vi') ? 'Mở danh sách việc cần làm' : 'See actions'}
+                </div>
                 <div className="mt-1 text-[12px] leading-5 text-[#5f584e]">
-                  Translate evidence into the next fix.
+                  {language.startsWith('vi')
+                    ? 'Biến phản hồi thành việc cần xử lý trước và bước tiếp theo rõ ràng.'
+                    : 'Translate evidence into the next fix.'}
                 </div>
               </button>
               <button
@@ -144,10 +165,14 @@ export function MerchantHubHomeScreen({
                 className="border border-[#e7ded0] bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-22px_rgba(24,18,8,0.16)]"
                 onClick={onNavigateToSettings}
               >
-                <MerchantHubBadge state="next">Next</MerchantHubBadge>
-                <div className="mt-3 text-[13px] font-bold text-[#1f1c18]">Refine settings</div>
+                <MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>
+                <div className="mt-3 text-[13px] font-bold text-[#1f1c18]">
+                  {language.startsWith('vi') ? 'Kiểm tra thiết lập nguồn' : 'Refine settings'}
+                </div>
                 <div className="mt-1 text-[12px] leading-5 text-[#5f584e]">
-                  Policies and readiness will sit here in the next layer.
+                  {language.startsWith('vi')
+                    ? 'Đảm bảo thông tin quán và URL Google Maps vẫn đúng để dữ liệu không bị lệch.'
+                    : 'Policies and readiness will sit here in the next layer.'}
                 </div>
               </button>
             </div>
@@ -156,23 +181,28 @@ export function MerchantHubHomeScreen({
 
         <MerchantHubPanel className="p-5 lg:p-4">
           <MerchantHubSectionHeader
-            eyebrow={merchantHubCopy.home.trendTitle}
-            title="Signal at a glance"
-            description="A compact summary of what the current review set says today."
-            action={<MerchantHubBadge state="now">{merchantHubCopy.nowLabel}</MerchantHubBadge>}
+            eyebrow={copy.home.trendTitle}
+            title={language.startsWith('vi') ? 'Tín hiệu cần theo dõi' : 'Signal at a glance'}
+            description={
+              language.startsWith('vi')
+                ? 'Tóm tắt nhanh cảm nhận chung và biến động đánh giá trong tập dữ liệu hiện tại.'
+                : 'A compact summary of what the current review set says today.'
+            }
+            action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
           />
 
           <div className="mt-5 grid gap-3">
             {topSentiment ? (
               <div className="border border-[#e7ded0] bg-[#fcfaf6] px-4 py-4">
                 <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">
-                  Leading sentiment
+                  {language.startsWith('vi') ? 'Cảm nhận chiếm ưu thế' : 'Leading sentiment'}
                 </div>
                 <div className="mt-2 text-[18px] font-black tracking-tight text-[#1f1c18]">
-                  {topSentiment.label} {formatPercentage(topSentiment.percentage, 'en')}
+                  {topSentiment.label} {formatPercentage(topSentiment.percentage, language)}
                 </div>
                 <div className="mt-1 text-[12px] text-[#5f584e]">
-                  {formatNumber(topSentiment.count, 'en')} reviews in this slice
+                  {formatNumber(topSentiment.count, language)}{' '}
+                  {language.startsWith('vi') ? 'đánh giá trong nhóm này' : 'reviews in this slice'}
                 </div>
               </div>
             ) : null}
@@ -183,7 +213,8 @@ export function MerchantHubHomeScreen({
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-[12px] font-semibold text-[#1f1c18]">{point.label}</div>
                       <div className="text-[11px] font-semibold text-[#8f877c]">
-                        {formatRating(point.averageRating, 'en')} average
+                        {formatRating(point.averageRating, language)}{' '}
+                        {language.startsWith('vi') ? 'điểm trung bình' : 'average'}
                       </div>
                     </div>
                     <div className="h-2 bg-[#eee5d7]">
@@ -193,15 +224,20 @@ export function MerchantHubHomeScreen({
                       />
                     </div>
                     <div className="text-[11px] text-[#5f584e]">
-                      {formatTrendValue(point.reviewCount)} reviews vs baseline
+                      {formatTrendValue(point.reviewCount)}{' '}
+                      {language.startsWith('vi') ? 'đánh giá so với mốc trước' : 'reviews vs baseline'}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               <MerchantHubEmptyState
-                title="No trend yet"
-                description="The trend strip will appear once enough reviews are published."
+                title={language.startsWith('vi') ? 'Chưa có xu hướng đủ rõ' : 'No trend yet'}
+                description={
+                  language.startsWith('vi')
+                    ? 'Khi số lượng đánh giá đã công bố đủ lớn, xu hướng sẽ hiện rõ ở đây.'
+                    : 'The trend strip will appear once enough reviews are published.'
+                }
               />
             )}
           </div>
@@ -211,10 +247,14 @@ export function MerchantHubHomeScreen({
       <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <MerchantHubPanel className="p-5 lg:p-4">
           <MerchantHubSectionHeader
-            eyebrow="Sentiment"
-            title="How the current set reads"
-            description="A short diagnostic that turns the current review mix into something easy to scan."
-            action={<MerchantHubBadge state="now">{merchantHubCopy.nowLabel}</MerchantHubBadge>}
+            eyebrow={language.startsWith('vi') ? 'Cảm xúc khách hàng' : 'Sentiment'}
+            title={language.startsWith('vi') ? 'Bức tranh chung của tập đánh giá' : 'How the current set reads'}
+            description={
+              language.startsWith('vi')
+                ? 'Nhìn nhanh tỷ lệ tích cực, trung tính và tiêu cực để hiểu tình trạng hiện tại của quán.'
+                : 'A short diagnostic that turns the current review mix into something easy to scan.'
+            }
+            action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
           />
           <div className="mt-5 grid gap-3">
             {sentiment.map((row) => (
@@ -222,11 +262,14 @@ export function MerchantHubHomeScreen({
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="text-[13px] font-semibold text-[#1f1c18]">{row.label}</div>
                   <div className="text-[11px] font-semibold text-[#8f877c]">
-                    {formatNumber(row.count, 'en')} reviews
+                    {formatNumber(row.count, language)} {language.startsWith('vi') ? 'đánh giá' : 'reviews'}
                   </div>
                 </div>
                 <div className="h-2 bg-[#eee5d7]">
-                  <div className="h-full bg-[#ca8a04]" style={{ width: `${Math.min(row.percentage, 100)}%` }} />
+                    <div className="h-full bg-[#ca8a04]" style={{ width: `${Math.min(row.percentage, 100)}%` }} />
+                </div>
+                <div className="mt-2 text-[11px] text-[#5f584e]">
+                  {formatNumber(row.count, language)} {language.startsWith('vi') ? 'đánh giá' : 'reviews'}
                 </div>
               </div>
             ))}
@@ -235,10 +278,14 @@ export function MerchantHubHomeScreen({
 
         <MerchantHubPanel className="p-5 lg:p-4">
           <MerchantHubSectionHeader
-            eyebrow={merchantHubCopy.home.evidenceTitle}
-            title="Recent evidence"
-            description="The freshest comments that should shape the next decision."
-            action={<MerchantHubBadge state="now">{merchantHubCopy.nowLabel}</MerchantHubBadge>}
+            eyebrow={copy.home.evidenceTitle}
+            title={language.startsWith('vi') ? 'Phản hồi gần đây' : 'Recent evidence'}
+            description={
+              language.startsWith('vi')
+                ? 'Những phản hồi mới nhất đáng để đội vận hành xem lại trước khi đưa ra quyết định.'
+                : 'The freshest comments that should shape the next decision.'
+            }
+            action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
           />
           <div className="mt-5 grid gap-3">
             {recentEvidence.length > 0 ? (
@@ -252,7 +299,7 @@ export function MerchantHubHomeScreen({
                     <MerchantHubPill tone={item.sentiment === 'NEGATIVE' ? 'warning' : 'success'}>
                       {item.sentiment ?? 'UNSPECIFIED'}
                     </MerchantHubPill>
-                    <MerchantHubPill>{formatRating(item.rating, 'en')}</MerchantHubPill>
+                    <MerchantHubPill>{formatRating(item.rating, language)}</MerchantHubPill>
                   </div>
                   <p className="mt-3 text-[13px] leading-6 text-[#5f584e]">
                     {item.content ?? 'No review content available.'}
@@ -261,8 +308,12 @@ export function MerchantHubHomeScreen({
               ))
             ) : (
               <MerchantHubEmptyState
-                title="No recent evidence"
-                description="As reviews arrive, the latest comments will appear here."
+                title={language.startsWith('vi') ? 'Chưa có phản hồi mới' : 'No recent evidence'}
+                description={
+                  language.startsWith('vi')
+                    ? 'Khi có thêm đánh giá được công bố, các phản hồi mới nhất sẽ hiện ở đây.'
+                    : 'As reviews arrive, the latest comments will appear here.'
+                }
               />
             )}
           </div>
@@ -272,15 +323,19 @@ export function MerchantHubHomeScreen({
       {complaintKeywords.length > 0 ? (
         <MerchantHubPanel className="p-5 lg:p-4">
           <MerchantHubSectionHeader
-            eyebrow="Complaint focus"
-            title="What repeats most"
-            description="These keywords give the merchant a sharper read on the current problem set."
-            action={<MerchantHubBadge state="now">{merchantHubCopy.nowLabel}</MerchantHubBadge>}
+            eyebrow={language.startsWith('vi') ? 'Nhóm phàn nàn lặp lại' : 'Complaint focus'}
+            title={language.startsWith('vi') ? 'Những chủ đề lặp lại nhiều nhất' : 'What repeats most'}
+            description={
+              language.startsWith('vi')
+                ? 'Các từ khóa này giúp chủ quán nhìn ra vấn đề lặp lại nhiều nhất trong phản hồi hiện tại.'
+                : 'These keywords give the merchant a sharper read on the current problem set.'
+            }
+            action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
           />
           <div className="mt-5 flex flex-wrap gap-2">
             {complaintKeywords.slice(0, 8).map((keyword) => (
               <MerchantHubPill key={keyword.keyword} tone={keyword.percentage >= 20 ? 'warning' : 'neutral'}>
-                {keyword.keyword} {formatNumber(keyword.count, 'en')}
+                {keyword.keyword} {formatNumber(keyword.count, language)}
               </MerchantHubPill>
             ))}
           </div>

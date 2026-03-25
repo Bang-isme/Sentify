@@ -23,17 +23,17 @@ function getStoredRailState() {
   return window.localStorage.getItem('sentify-admin-hub-rail') === 'collapsed'
 }
 
-function statusTone(status: 'Now' | 'Next') {
-  return status === 'Now'
-    ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
-    : 'border-amber-400/30 bg-amber-400/10 text-amber-100'
+function statusTone(status: string) {
+  return status === 'Next' || status === 'Kế hoạch'
+    ? 'border-amber-400/30 bg-amber-400/10 text-amber-100'
+    : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
 }
 
 export function AdminHubShell({
   activeView,
   adminLabel,
-  restaurantLabel = '0 restaurants',
-  restaurantCountLabel = 'Scope',
+  restaurantLabel = '0 nhà hàng',
+  restaurantCountLabel = 'Phạm vi',
   onNavigate,
   children,
 }: AdminHubShellProps) {
@@ -76,7 +76,7 @@ export function AdminHubShell({
 
             <div className="hidden items-center gap-2 lg:flex">
               <span className="border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
-                Admin control plane
+                Khu điều hành quản trị
               </span>
               <span className="border border-white/8 bg-white/4 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#beb79d]">
                 {adminLabel}
@@ -92,14 +92,14 @@ export function AdminHubShell({
                 className="inline-flex h-9 items-center gap-2 border border-white/8 bg-white/4 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f4edd8] transition hover:border-primary/25 hover:text-primary"
               >
                 <span className="material-symbols-outlined text-[16px]">dark_mode</span>
-                Dark
+                Tối
               </button>
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-2 border border-white/8 bg-white/4 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f4edd8] transition hover:border-primary/25 hover:text-primary"
               >
                 <span className="material-symbols-outlined text-[16px]">translate</span>
-                EN
+                VI
               </button>
               <div className="flex h-9 items-center gap-2 border border-white/8 bg-white/4 px-3">
                 <span className="flex size-6 items-center justify-center bg-primary text-[10px] font-black text-[#11110d]">
@@ -108,7 +108,7 @@ export function AdminHubShell({
                 <div className="hidden leading-tight md:block">
                   <div className="text-[12px] font-semibold text-[#f4edd8]">{adminLabel}</div>
                   <div className="text-[10px] uppercase tracking-[0.16em] text-[#beb79d]">
-                    {activeView === 'home' ? 'Command center' : currentScreen?.label ?? 'Current view'}
+                    {activeView === 'home' ? 'Trung tâm điều hành' : currentScreen?.label ?? 'Màn hiện tại'}
                   </div>
                 </div>
               </div>
@@ -127,19 +127,19 @@ export function AdminHubShell({
                   {!collapsed ? (
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9e977f]">
-                        Command center
+                        Trung tâm điều hành
                       </div>
                       <div className="mt-1 text-[18px] font-semibold tracking-tight text-[#f4edd8]">
                         Admin hub
                       </div>
                       <p className="mt-2 text-[12px] leading-6 text-[#a9a286]">
-                        Three domains, two role-safe surfaces, one full-width control plane.
+                        Một nơi để điều hành nhà hàng, quyền truy cập và nền tảng phía sau.
                       </p>
                     </div>
                   ) : null}
                   <button
                     type="button"
-                    aria-label={collapsed ? 'Expand rail' : 'Collapse rail'}
+                    aria-label={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
                     onClick={() => setCollapsed((current) => !current)}
                     className="inline-flex size-9 items-center justify-center border border-white/8 bg-white/4 text-[#f4edd8] transition hover:border-primary/25 hover:text-primary"
                   >
@@ -153,12 +153,12 @@ export function AdminHubShell({
               <div className="grid gap-2 border border-white/6 bg-white/[0.03] p-3">
                 {!collapsed ? (
                   <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#9e977f]">
-                    Navigate
+                    Điều hướng
                   </div>
                 ) : null}
                 <button
                   type="button"
-                  aria-label="Open home command center"
+                  aria-label="Mở tổng quan"
                   onClick={() => onNavigate?.('home')}
                   className={`flex items-center gap-3 border px-3 py-3 text-left transition ${
                     activeView === 'home'
@@ -171,9 +171,9 @@ export function AdminHubShell({
                   </span>
                   {!collapsed ? (
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[14px] font-semibold">Home</span>
+                      <span className="block text-[14px] font-semibold">Tổng quan</span>
                       <span className="block text-[10px] uppercase tracking-[0.18em] text-[#9e977f]">
-                        Command center
+                        Trung tâm điều hành
                       </span>
                     </span>
                   ) : null}
@@ -188,7 +188,7 @@ export function AdminHubShell({
                     ) : null}
                     <button
                       type="button"
-                      aria-label={`Open ${domain.label}`}
+                      aria-label={`Mở ${domain.label}`}
                       onClick={() => onNavigate?.(domain.screens[0].key)}
                       className={`flex items-center gap-3 border px-3 py-3 text-left transition ${
                         activeDomain === domain.key
@@ -215,7 +215,7 @@ export function AdminHubShell({
                           <button
                             key={screen.key}
                             type="button"
-                            aria-label={`Open ${screen.label}`}
+                            aria-label={`Mở ${screen.label}`}
                             onClick={() => onNavigate?.(screen.key)}
                             className={`flex items-center justify-between gap-2 border px-3 py-2 text-left transition ${
                               activeView === screen.key
@@ -243,7 +243,7 @@ export function AdminHubShell({
               {!collapsed ? (
                 <div className="grid gap-2 border border-white/6 bg-white/[0.03] p-3">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#9e977f]">
-                    Now / Next
+                    Hiện có / Kế hoạch
                   </div>
                   {adminHubHomeStats.map((stat) => (
                     <div
@@ -262,7 +262,7 @@ export function AdminHubShell({
           <main className="min-w-0 px-3 py-4 sm:px-4 lg:px-5 lg:py-5">
             <div className="mb-4 flex flex-wrap items-center gap-2 border border-white/6 bg-white/[0.03] px-4 py-3">
               <span className="border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
-                {activeView === 'home' ? 'Home' : adminHubDomains[activeDomain].label}
+                {activeView === 'home' ? 'Tổng quan' : adminHubDomains[activeDomain].label}
               </span>
               {currentScreen ? (
                 <span className={`border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${statusTone(currentScreen.status)}`}>
@@ -270,7 +270,7 @@ export function AdminHubShell({
                 </span>
               ) : null}
               <span className="text-[12px] text-[#b5ae93]">
-                {currentScreen?.summary ?? 'Command-center overview for all three domains.'}
+                {currentScreen?.summary ?? 'Toàn cảnh vận hành, quyền truy cập và nền tảng trong cùng một nơi.'}
               </span>
             </div>
 

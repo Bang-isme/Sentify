@@ -58,6 +58,7 @@ export interface MerchantHubEvidenceItem
 }
 
 export interface MerchantHubHomeScreenProps {
+  language: string
   restaurant: RestaurantMembership | null
   detail: RestaurantDetail | null
   freshnessLabel: string
@@ -80,6 +81,7 @@ export interface MerchantHubReviewFilterChip {
 }
 
 export interface MerchantHubReviewsScreenProps {
+  language: string
   restaurant: RestaurantMembership | null
   detail: RestaurantDetail | null
   query: ReviewsQuery
@@ -103,6 +105,7 @@ export interface MerchantHubActionCard {
 }
 
 export interface MerchantHubActionsScreenProps {
+  language: string
   restaurant: RestaurantMembership | null
   detail: RestaurantDetail | null
   topIssue: string
@@ -124,6 +127,7 @@ export interface MerchantHubSettingsBlock {
 }
 
 export interface MerchantHubSettingsScreenProps {
+  language: string
   restaurant: RestaurantMembership | null
   detail: RestaurantDetail | null
   pending: boolean

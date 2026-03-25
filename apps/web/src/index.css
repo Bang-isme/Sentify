@@ -409,6 +409,33 @@ body {
   animation: app-shell-panel-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.app-shell-shell {
+  isolation: isolate;
+}
+
+.app-shell-surface {
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.app-shell-rail {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 24px 60px -36px rgba(0, 0, 0, 0.55);
+}
+
+.app-shell-rail-item {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.app-shell-rail-item:hover {
+  transform: translateX(1px);
+}
+
+.app-shell-shell .app-shell-panel {
+  box-shadow: 0 18px 42px -36px rgba(0, 0, 0, 0.55);
+}
+
 .app-hover-lift {
   transition:
     transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),

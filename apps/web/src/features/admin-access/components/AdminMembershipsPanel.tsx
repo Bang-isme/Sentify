@@ -22,6 +22,7 @@ export function AdminMembershipsPanel({
   refreshKey,
   onSessionExpiry,
 }: AdminMembershipsPanelProps) {
+  const isVietnamese = language.startsWith('vi')
   const [data, setData] = useState<AdminMembershipListResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +45,13 @@ export function AdminMembershipsPanel({
       }))
     } catch (nextError) {
       if (!onSessionExpiry(nextError)) {
-        setError(nextError instanceof Error ? nextError.message : 'Unable to load memberships.')
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : isVietnamese
+              ? 'Không thể tải dữ liệu thành viên.'
+              : 'Unable to load memberships.',
+        )
       }
     } finally {
       setLoading(false)
@@ -66,12 +73,20 @@ export function AdminMembershipsPanel({
     try {
       const result = await createAdminMembership(formState)
       setActionMessage(
-        `${result.membership.user.fullName} linked to ${result.membership.restaurant.name}.`,
+        isVietnamese
+          ? `Đã gắn ${result.membership.user.fullName} với ${result.membership.restaurant.name}.`
+          : `${result.membership.user.fullName} linked to ${result.membership.restaurant.name}.`,
       )
       await loadMemberships()
     } catch (nextError) {
       if (!onSessionExpiry(nextError)) {
-        setError(nextError instanceof Error ? nextError.message : 'Unable to create membership.')
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : isVietnamese
+              ? 'Không thể tạo liên kết nhà hàng.'
+              : 'Unable to create membership.',
+        )
       }
     }
   }
@@ -82,37 +97,55 @@ export function AdminMembershipsPanel({
     try {
       const result = await deleteAdminMembership(membershipId)
       setActionMessage(
-        `${result.membership.user.fullName} removed from ${result.membership.restaurant.name}.`,
+        isVietnamese
+          ? `Đã gỡ ${result.membership.user.fullName} khỏi ${result.membership.restaurant.name}.`
+          : `${result.membership.user.fullName} removed from ${result.membership.restaurant.name}.`,
       )
       await loadMemberships()
     } catch (nextError) {
       if (!onSessionExpiry(nextError)) {
-        setError(nextError instanceof Error ? nextError.message : 'Unable to delete membership.')
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : isVietnamese
+              ? 'Không thể xóa liên kết.'
+              : 'Unable to delete membership.',
+        )
       }
     }
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+    <div data-testid="admin-memberships-screen" className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
       <SectionCard
-        title="Membership mapping"
-        description="Manage the restaurant graph for USER accounts and verify which restaurants are visible to each merchant account."
+        title={isVietnamese ? 'Bản đồ liên kết nhà hàng' : 'Membership mapping'}
+        description={
+          isVietnamese
+            ? 'Gán tài khoản USER vào nhà hàng để kiểm soát phạm vi nhìn thấy trong ứng dụng merchant.'
+            : 'Manage the restaurant graph for USER accounts and verify which restaurants are visible to each merchant account.'
+        }
       >
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="border border-white/8 bg-white/[0.03] p-3">
-            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Memberships</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              {isVietnamese ? 'Liên kết' : 'Memberships'}
+            </div>
             <div className="mt-2 text-[1.2rem] font-semibold text-white">
               {formatCount(data?.summary.totalMemberships ?? 0, language)}
             </div>
           </div>
           <div className="border border-white/8 bg-white/[0.03] p-3">
-            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">USER accounts</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              {isVietnamese ? 'Tài khoản USER' : 'USER accounts'}
+            </div>
             <div className="mt-2 text-[1.2rem] font-semibold text-white">
               {formatCount(data?.summary.userCount ?? 0, language)}
             </div>
           </div>
           <div className="border border-white/8 bg-white/[0.03] p-3">
-            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Restaurants</div>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              {isVietnamese ? 'Nhà hàng' : 'Restaurants'}
+            </div>
             <div className="mt-2 text-[1.2rem] font-semibold text-white">
               {formatCount(data?.summary.restaurantCount ?? 0, language)}
             </div>
@@ -121,7 +154,7 @@ export function AdminMembershipsPanel({
 
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
           <label className="grid gap-2 text-sm text-slate-300">
-            <span className="font-medium text-white">USER account</span>
+            <span className="font-medium text-white">{isVietnamese ? 'Tài khoản USER' : 'USER account'}</span>
             <select
               value={formState.userId}
               onChange={(event) => setFormState((current) => ({ ...current, userId: event.target.value }))}
@@ -135,7 +168,7 @@ export function AdminMembershipsPanel({
             </select>
           </label>
           <label className="grid gap-2 text-sm text-slate-300">
-            <span className="font-medium text-white">Restaurant</span>
+            <span className="font-medium text-white">{isVietnamese ? 'Nhà hàng' : 'Restaurant'}</span>
             <select
               value={formState.restaurantId}
               onChange={(event) =>
@@ -156,14 +189,18 @@ export function AdminMembershipsPanel({
               onClick={() => void handleCreateMembership()}
               className="inline-flex h-11 items-center justify-center border border-sky-400/20 bg-sky-400/10 px-4 text-sm font-semibold text-sky-100 transition hover:border-sky-400/35 hover:bg-sky-400/15"
             >
-              Add membership
+              {isVietnamese ? 'Gán thành viên' : 'Add membership'}
             </button>
           </div>
         </div>
 
         {actionMessage ? <div className="mt-4"><StatusMessage>{actionMessage}</StatusMessage></div> : null}
         {error ? <div className="mt-4"><StatusMessage tone="error">{error}</StatusMessage></div> : null}
-        {loading ? <div className="mt-4"><StatusMessage>Loading memberships...</StatusMessage></div> : null}
+        {loading ? (
+          <div className="mt-4">
+            <StatusMessage>{isVietnamese ? 'Đang tải danh sách liên kết...' : 'Loading memberships...'}</StatusMessage>
+          </div>
+        ) : null}
 
         <div className="mt-4 grid gap-2">
           {data?.memberships.length ? (
@@ -188,25 +225,35 @@ export function AdminMembershipsPanel({
                     onClick={() => void handleDeleteMembership(membership.id)}
                     className="inline-flex h-10 items-center justify-center border border-white/12 bg-white/[0.04] px-3 text-sm font-semibold text-white transition hover:border-red-400/35 hover:bg-red-500/10 hover:text-red-100"
                   >
-                    Remove
+                    {isVietnamese ? 'Gỡ' : 'Remove'}
                   </button>
                 </div>
               </div>
             ))
           ) : !loading ? (
-            <EmptyPanel message="No memberships exist yet. Assign a USER to a restaurant to start the merchant flow." />
+            <EmptyPanel
+              message={
+                isVietnamese
+                  ? 'Chưa có liên kết nào. Gán một tài khoản USER vào nhà hàng để bắt đầu flow merchant.'
+                  : 'No memberships exist yet. Assign a USER to a restaurant to start the merchant flow.'
+              }
+            />
           ) : null}
         </div>
       </SectionCard>
 
       <SectionCard
-        title="Coverage view"
-        description="See both sides of the graph so admin can reason about account scope before debugging merchant-facing visibility."
+        title={isVietnamese ? 'Tổng quan phạm vi' : 'Coverage view'}
+        description={
+          isVietnamese
+            ? 'Đối chiếu người dùng và nhà hàng để kiểm tra phạm vi hiển thị trước khi xử lý quyền.'
+            : 'See both sides of the graph so admin can reason about account scope before debugging merchant-facing visibility.'
+        }
       >
         <div className="grid gap-4 xl:grid-cols-2">
           <div>
             <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Users
+              {isVietnamese ? 'Người dùng' : 'Users'}
             </div>
             <div className="grid gap-2">
               {data?.users.length ? (
@@ -215,19 +262,19 @@ export function AdminMembershipsPanel({
                     <div className="text-[13px] font-semibold text-white">{user.fullName}</div>
                     <div className="mt-1 text-[12px] text-slate-400">{user.email}</div>
                     <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-slate-500">
-                      {formatCount(user.restaurantCount, language)} memberships
+                      {formatCount(user.restaurantCount, language)} {isVietnamese ? 'liên kết' : 'memberships'}
                     </div>
                   </div>
                 ))
               ) : (
-                <EmptyPanel message="No USER accounts are available." />
+                <EmptyPanel message={isVietnamese ? 'Chưa có tài khoản USER nào.' : 'No USER accounts are available.'} />
               )}
             </div>
           </div>
 
           <div>
             <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Restaurants
+              {isVietnamese ? 'Nhà hàng' : 'Restaurants'}
             </div>
             <div className="grid gap-2">
               {data?.restaurants.length ? (
@@ -238,12 +285,18 @@ export function AdminMembershipsPanel({
                       {restaurant.address || restaurant.slug}
                     </div>
                     <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-slate-500">
-                      {formatCount(restaurant.memberCount, language)} members
+                      {formatCount(restaurant.memberCount, language)} {isVietnamese ? 'thành viên' : 'members'}
                     </div>
                   </div>
                 ))
               ) : (
-                <EmptyPanel message="No restaurants are available for membership assignment." />
+                <EmptyPanel
+                  message={
+                    isVietnamese
+                      ? 'Chưa có nhà hàng nào để gán thành viên.'
+                      : 'No restaurants are available for membership assignment.'
+                  }
+                />
               )}
             </div>
           </div>

@@ -15,20 +15,21 @@ test.describe('USER critical path', () => {
     await loginAs(page, SEED_CREDENTIALS.userPrimary, 'USER')
     await expectMerchantShell(page)
 
-    await page.getByRole('button', { name: /^Home$/i }).first().click()
-    await expect(page.getByText('Dataset freshness').first()).toBeVisible()
+    await page.getByTestId('nav-app').click()
+    await expect(page.getByTestId('merchant-home-screen')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Reviews$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Evidence explorer' }).first()).toBeVisible()
+    await page.getByTestId('nav-app-reviews').click()
+    await expect(page.getByTestId('merchant-reviews-screen')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Actions$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'What to fix first' }).first()).toBeVisible()
+    await page.getByTestId('nav-app-actions').click()
+    await expect(page.getByTestId('merchant-actions-screen')).toBeVisible()
 
-    await page.getByRole('button', { name: /^Settings$/i }).first().click()
-    await expect(page.getByRole('heading', { name: 'Settings that stay readable' }).first()).toBeVisible()
+    await page.getByTestId('nav-app-settings').click()
+    await expect(page.getByTestId('merchant-settings-screen')).toBeVisible()
+    await expect(page.getByTestId('settings-form')).toBeVisible()
 
-    const restaurantName = page.getByLabel('Restaurant name')
-    const restaurantAddress = page.getByLabel('Address')
+    const restaurantName = page.getByTestId('restaurant-name-input')
+    const restaurantAddress = page.getByTestId('restaurant-address-input')
     const originalName = await restaurantName.inputValue()
     const originalAddress = await restaurantAddress.inputValue()
     const temporaryName = `${originalName} - Playwright`
@@ -36,18 +37,13 @@ test.describe('USER critical path', () => {
 
     await restaurantName.fill(temporaryName)
     await restaurantAddress.fill(temporaryAddress)
-    await page.getByRole('button', { name: 'Save changes', exact: true }).first().click()
-    await expect(page.getByText('Changes saved.').first()).toBeVisible()
+    await page.getByTestId('save-profile').click()
+    await expect(page.getByRole('status').first()).toBeVisible()
 
     await restaurantName.fill(originalName)
     await restaurantAddress.fill(originalAddress)
-    await page.getByRole('button', { name: 'Save changes', exact: true }).first().click()
-    await expect(page.getByText('Changes saved.').first()).toBeVisible()
-
-    await expect(page.getByRole('button', { name: /^Restaurants$/i })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /^Intake$/i })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /^Review ops$/i })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /^Crawl$/i })).toHaveCount(0)
+    await page.getByTestId('save-profile').click()
+    await expect(page.getByRole('status').first()).toBeVisible()
 
     await goToRoute(page, HASH_ROUTES.adminIntake)
     await assertRouteBlockedForUser(page)

@@ -95,6 +95,7 @@ export function AuthScreen({
   return (
     <main
       id="main-content"
+      data-testid="auth-shell"
       className="relative min-h-screen overflow-hidden bg-bg-light pt-28 pb-14 dark:bg-bg-dark"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.08),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(212,175,55,0.06),transparent_36%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(242,208,13,0.09),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(242,208,13,0.06),transparent_36%)]"></div>
@@ -156,10 +157,11 @@ export function AuthScreen({
               className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
             >
               <span>{copy.emailLabel}</span>
-              <input
-                id="auth-email"
-                required
-                maxLength={FIELD_LIMITS.email}
+                <input
+                  id="auth-email"
+                  data-testid="auth-email"
+                  required
+                  maxLength={FIELD_LIMITS.email}
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value)
@@ -178,10 +180,11 @@ export function AuthScreen({
               className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
             >
               <span>{copy.passwordLabel}</span>
-              <input
-                id="auth-password"
-                required
-                minLength={8}
+                <input
+                  id="auth-password"
+                  data-testid="auth-password"
+                  required
+                  minLength={8}
                 value={password}
                 onChange={(event) => {
                   setPassword(event.target.value)
@@ -203,6 +206,7 @@ export function AuthScreen({
 
             <button
               type="submit"
+              data-testid="auth-submit"
               disabled={pending}
               className="mt-2 inline-flex h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
             >

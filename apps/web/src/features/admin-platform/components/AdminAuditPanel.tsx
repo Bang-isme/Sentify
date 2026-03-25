@@ -16,6 +16,7 @@ function formatDate(value: string, language: string) {
 }
 
 export function AdminAuditPanel({ language, refreshKey, onSessionExpiry }: AdminAuditPanelProps) {
+  const isVietnamese = language.startsWith('vi')
   const [data, setData] = useState<AdminAuditResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +35,13 @@ export function AdminAuditPanel({ language, refreshKey, onSessionExpiry }: Admin
         }
       } catch (nextError) {
         if (!cancelled && !onSessionExpiry(nextError)) {
-          setError(nextError instanceof Error ? nextError.message : 'Unable to load audit feed.')
+          setError(
+            nextError instanceof Error
+              ? nextError.message
+              : isVietnamese
+                ? 'Không thể tải nhật ký kiểm toán.'
+                : 'Unable to load audit feed.',
+          )
         }
       } finally {
         if (!cancelled) {
@@ -48,20 +55,26 @@ export function AdminAuditPanel({ language, refreshKey, onSessionExpiry }: Admin
     return () => {
       cancelled = true
     }
-  }, [onSessionExpiry, refreshKey])
+  }, [onSessionExpiry, refreshKey, isVietnamese])
 
   return (
-    <div className="grid gap-4">
+    <div data-testid="admin-audit-screen" className="grid gap-4">
       <SectionCard
-        title="Audit trail"
-        description="Trace publish events, membership assignments, crawl state changes, and system history without leaving the admin shell."
+        title={isVietnamese ? 'Nhật ký kiểm toán' : 'Audit trail'}
+        description={
+          isVietnamese
+            ? 'Theo dõi publish, gán thành viên, thay đổi trạng thái crawl và lịch sử hệ thống trong một luồng duy nhất.'
+            : 'Trace publish events, membership assignments, crawl state changes, and system history without leaving the admin shell.'
+        }
       >
         {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
-        {loading ? <StatusMessage>Loading audit feed...</StatusMessage> : null}
+        {loading ? <StatusMessage>{isVietnamese ? 'Đang tải nhật ký...' : 'Loading audit feed...'}</StatusMessage> : null}
         {data ? (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="border border-white/8 bg-white/[0.03] p-3">
-              <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Events</div>
+              <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                {isVietnamese ? 'Số sự kiện' : 'Events'}
+              </div>
               <div className="mt-2 text-[1.2rem] font-semibold text-white">{data.summary.totalEvents}</div>
             </div>
             {Object.entries(data.summary.byAction)
@@ -77,8 +90,12 @@ export function AdminAuditPanel({ language, refreshKey, onSessionExpiry }: Admin
       </SectionCard>
 
       <SectionCard
-        title="Recent events"
-        description="A single event stream makes it easier to explain to FE which backend flows already happen and which actor triggered them."
+        title={isVietnamese ? 'Sự kiện gần đây' : 'Recent events'}
+        description={
+          isVietnamese
+            ? 'Một luồng sự kiện duy nhất giúp FE hiểu flow nào đã chạy và ai là người kích hoạt.'
+            : 'A single event stream makes it easier to explain to FE which backend flows already happen and which actor triggered them.'
+        }
       >
         {data?.items.length ? (
           <div className="grid gap-2">
@@ -98,13 +115,19 @@ export function AdminAuditPanel({ language, refreshKey, onSessionExpiry }: Admin
                   </div>
                 </div>
                 <div className="text-[12px] text-slate-400">
-                  {item.actor ? `${item.actor.fullName} (${item.actor.role})` : 'System event'}
+                  {item.actor
+                    ? isVietnamese
+                      ? `${item.actor.fullName} (${item.actor.role})`
+                      : `${item.actor.fullName} (${item.actor.role})`
+                    : isVietnamese
+                      ? 'Sự kiện hệ thống'
+                      : 'System event'}
                 </div>
               </div>
             ))}
           </div>
         ) : !loading ? (
-          <EmptyPanel message="No audit events are available yet." />
+          <EmptyPanel message={isVietnamese ? 'Chưa có sự kiện kiểm toán nào.' : 'No audit events are available yet.'} />
         ) : null}
       </SectionCard>
     </div>

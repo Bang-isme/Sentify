@@ -12,15 +12,15 @@ export type UserRoleDescriptor = AccessDescriptor
 function getLocalizedStrings(language: string) {
   if (language.startsWith('vi')) {
     return {
-      userLabel: 'User workspace',
-      userDescription: 'Xem dashboard, reviews, settings va doi nha hang trong cung mot flow.',
-      adminLabel: 'Admin control plane',
+      userLabel: 'Không gian nhà hàng',
+      userDescription: 'Theo dõi quán, đọc phản hồi khách, chọn việc nên làm và cập nhật thông tin vận hành.',
+      adminLabel: 'Khu điều hành quản trị',
       adminDescription:
-        'Quan ly restaurant overview, intake, review ops va crawl runtime trong mot khu dieu khien rieng.',
-      unknownLabel: 'Unknown access',
-      unknownDescription: 'Fail-closed: cho den khi backend tra ve user.role hop le.',
-      deniedAdminNotice: 'Trang admin khong ho tro role hien tai.',
-      deniedMerchantNotice: 'Trang user khong ho tro role hien tai.',
+        'Quản lý nhà hàng, nhập liệu, tài khoản, thành viên và sức khỏe hệ thống trong control plane riêng.',
+      unknownLabel: 'Không xác định quyền truy cập',
+      unknownDescription: 'Hệ thống đang chặn hiển thị cho tới khi backend trả về user.role hợp lệ.',
+      deniedAdminNotice: 'Tài khoản hiện tại không có quyền vào khu quản trị.',
+      deniedMerchantNotice: 'Tài khoản quản trị không đi qua luồng nhà hàng.',
     }
   }
 

@@ -11,13 +11,13 @@ export interface LanguageContextValue {
 
 export const LanguageContext = createContext<LanguageContextValue | undefined>(undefined)
 
-export const LANGUAGES: Language[] = ['en', 'vi', 'ja']
+export const LANGUAGES: Language[] = ['vi', 'en', 'ja']
 export const LANGUAGE_OPTIONS: Array<{ code: Language; label: string }> = [
-  { code: 'en', label: 'English' },
   { code: 'vi', label: 'Tiếng Việt' },
+  { code: 'en', label: 'English' },
   { code: 'ja', label: '日本語' },
 ]
-export const DEFAULT_LANGUAGE: Language = 'en'
+export const DEFAULT_LANGUAGE: Language = 'vi'
 export const LANGUAGE_STORAGE_KEY = 'sentify-language'
 
 export function getLanguageCopy(language: Language) {

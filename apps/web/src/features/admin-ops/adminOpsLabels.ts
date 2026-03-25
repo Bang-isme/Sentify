@@ -189,6 +189,118 @@ const englishLabels: AdminOpsLabels = {
   },
 }
 
-export function getAdminOpsLabels(_language: string): AdminOpsLabels {
-  return englishLabels
+const vietnameseLabels: AdminOpsLabels = {
+  shellEyebrow: 'Điều hành quản trị',
+  shellDescription:
+    'Điều hành luồng đánh giá theo ba mô-đun backend liên kết: nhập liệu chuẩn, đồng bộ nguồn, và theo dõi thu thập.',
+  navOverview: 'Nhà hàng',
+  navIntake: 'Nhập liệu',
+  navReviewOps: 'Đồng bộ đánh giá',
+  navReviewCrawl: 'Thu thập đánh giá',
+  overviewTitle: 'Tổng quan nhà hàng',
+  overviewDescription:
+    'Tìm nhà hàng, xem mức sẵn sàng, rồi đi vào màn vận hành phù hợp cho từng nhà hàng.',
+  reviewOpsTitle: 'Đồng bộ đánh giá',
+  reviewOpsDescription:
+    'Đi từ URL Google Maps đến draft, duyệt mục hợp lệ và công bố khi đã đủ điều kiện.',
+  syncCardTitle: 'Đồng bộ Google Maps vào draft',
+  syncCardDescription:
+    'Đây là điểm vào chính của người vận hành: cập nhật source, xếp hàng run và đưa kết quả vào draft để duyệt.',
+  syncUrlLabel: 'URL Google Maps',
+  syncStrategyLabel: 'Chiến lược đồng bộ',
+  syncPriorityLabel: 'Độ ưu tiên hàng đợi',
+  syncMaxPagesLabel: 'Số trang tối đa',
+  syncMaxReviewsLabel: 'Số đánh giá tối đa',
+  syncAction: 'Đồng bộ vào draft',
+  sourcesTitle: 'Nguồn đang quản lý',
+  sourcesDescription:
+    'Danh sách nguồn crawl do backend quản lý cho nhà hàng đang chọn. Chọn một nguồn để xem lịch và các lần chạy gần đây.',
+  noSources: 'Nhà hàng này chưa có nguồn crawl nào được đăng ký.',
+  latestRunLabel: 'Lần chạy gần nhất',
+  openDraftLabel: 'Draft đang mở',
+  overdueLabel: 'Quá hạn đồng bộ',
+  queueHealthTitle: 'Tình trạng hàng đợi và worker',
+  runsTitle: 'Các lần chạy của nguồn',
+  runsDescription:
+    'Xem các lần chạy gần đây để biết hàng đợi có khỏe không, có thể tiếp tục không, và đã sẵn sàng đổ vào intake chưa.',
+  noRuns: 'Nguồn đang chọn chưa có lần chạy nào.',
+  runDetailTitle: 'Chi tiết lần chạy',
+  runDetailDescription:
+    'Chi tiết run gồm trạng thái crawl, trạng thái job trong queue, chuẩn đoán coverage và liên kết đến draft batch.',
+  noRunDetail: 'Chọn một lần chạy để xem chi tiết và mức sẵn sàng của draft.',
+  enableAction: 'Bật nguồn',
+  disableAction: 'Tắt nguồn',
+  approveAction: 'Duyệt mục hợp lệ',
+  publishAction: 'Công bố batch draft',
+  readinessTitle: 'Mức sẵn sàng để công bố',
+  readinessDescription:
+    'Thẻ này cho biết batch draft hiện tại đã công bố được chưa và còn bị chặn bởi lỗi kiểm tra nào.',
+  blockingReasonsTitle: 'Lý do đang bị chặn',
+  diagnosticsTitle: 'Chuẩn đoán crawl',
+  syncSuccess: 'Đã nhận yêu cầu đồng bộ và làm mới luồng draft.',
+  sourceEnabled: 'Đã bật nguồn.',
+  sourceDisabled: 'Đã tắt nguồn.',
+  approveSuccess: 'Đã duyệt các mục hợp lệ trong draft.',
+  publishSuccess: 'Đã công bố batch draft vào tập đánh giá chuẩn.',
+  reviewCrawlTitle: 'Điều khiển thu thập đánh giá',
+  reviewCrawlDescription:
+    'Dùng các endpoint crawl mức thấp để xem trước dữ liệu, cấu hình source, xếp run và đổ kết quả vào draft intake.',
+  previewTitle: 'Xem trước kết quả thu thập',
+  previewDescription:
+    'Chạy crawler Google Maps mà không tạo run lưu trữ để kiểm tra nhanh chất lượng trích xuất trước khi xếp hàng thật.',
+  previewAction: 'Xem trước crawl',
+  previewWarningsTitle: 'Cảnh báo từ bản xem trước',
+  sourceConfigTitle: 'Cấu hình nguồn',
+  sourceConfigDescription:
+    'Lưu source crawl cho nhà hàng này, bao gồm locale và chính sách đồng bộ định kỳ.',
+  sourceLanguageLabel: 'Ngôn ngữ',
+  sourceRegionLabel: 'Khu vực',
+  sourceSyncEnabledLabel: 'Bật đồng bộ định kỳ',
+  sourceSyncIntervalLabel: 'Chu kỳ đồng bộ (phút)',
+  upsertSourceAction: 'Lưu nguồn crawl',
+  runControlTitle: 'Điều khiển lần chạy',
+  runControlDescription:
+    'Xếp một lần chạy mới cho nguồn đang chọn, sau đó xem, hủy, tiếp tục hoặc đổ kết quả vào draft.',
+  selectedSourceLabel: 'Nguồn đang chọn',
+  runStrategyLabel: 'Chiến lược chạy',
+  runPriorityLabel: 'Độ ưu tiên',
+  runPageSizeLabel: 'Kích thước trang',
+  runDelayLabel: 'Độ trễ (ms)',
+  createRunAction: 'Tạo lần chạy',
+  materializeAction: 'Đưa vào draft',
+  cancelAction: 'Hủy chạy',
+  resumeAction: 'Tiếp tục chạy',
+  refreshRunAction: 'Làm mới run',
+  materializeSuccess: 'Đã đưa lần chạy vào draft intake.',
+  previewSuccess: 'Đã chạy bản xem trước. Kiểm tra cảnh báo và mẫu đánh giá trích xuất bên dưới.',
+  sourceUpsertSuccess: 'Đã lưu nguồn crawl.',
+  runCreateSuccess: 'Đã xếp hàng lần chạy crawl.',
+  statuses: {
+    ACTIVE: 'Đang hoạt động',
+    DISABLED: 'Đã tắt',
+    QUEUED: 'Đang chờ',
+    RUNNING: 'Đang chạy',
+    PARTIAL: 'Chưa hoàn tất',
+    COMPLETED: 'Hoàn tất',
+    FAILED: 'Thất bại',
+    CANCELLED: 'Đã hủy',
+    DRAFT: 'Bản nháp',
+    IN_REVIEW: 'Đang duyệt',
+    READY_TO_PUBLISH: 'Sẵn sàng công bố',
+    PUBLISHED: 'Đã công bố',
+    ARCHIVED: 'Lưu trữ',
+  },
+  priorities: {
+    HIGH: 'Cao',
+    NORMAL: 'Bình thường',
+    LOW: 'Thấp',
+  },
+  strategies: {
+    INCREMENTAL: 'Tăng dần',
+    BACKFILL: 'Bù lịch sử',
+  },
+}
+
+export function getAdminOpsLabels(language: string): AdminOpsLabels {
+  return language.startsWith('vi') ? vietnameseLabels : englishLabels
 }

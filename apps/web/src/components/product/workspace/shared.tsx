@@ -33,7 +33,7 @@ export function PageIntro({
         : 'border-border-light/70 bg-bg-light/70 text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white'
 
   return (
-    <section className="app-shell-panel rounded-[0.82rem] border border-border-light/70 bg-surface-white/90 p-3.5 shadow-[0_16px_42px_-30px_rgba(0,0,0,0.28)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/84 sm:p-4">
+    <section className="app-shell-panel rounded-[0.9rem] border border-border-light/70 bg-surface-white/92 p-3.5 dark:border-border-dark/80 dark:bg-surface-dark/88 sm:p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
           {eyebrow ? (
@@ -43,17 +43,17 @@ export function PageIntro({
             </div>
           ) : null}
           <h1
-            className={`text-[1.32rem] font-black tracking-tight text-text-charcoal dark:text-white sm:text-[1.48rem] ${
+            className={`text-[1.15rem] font-black tracking-tight text-text-charcoal dark:text-white sm:text-[1.28rem] ${
               eyebrow ? 'mt-3' : ''
             }`}
           >
             {title}
           </h1>
-          <p className="mt-2 text-[14px] leading-6 text-text-silver-light dark:text-text-silver-dark">
+          <p className="mt-2 text-[13px] leading-6 text-text-silver-light dark:text-text-silver-dark">
             {description}
           </p>
           {meta?.length ? (
-            <div className="mt-2.5 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
               {meta.map((item) => (
                 <div
                   key={`${item.icon}-${item.label}`}
@@ -93,7 +93,7 @@ export function SectionCard({
 }) {
   return (
     <section
-      className={`app-shell-panel rounded-[0.82rem] border p-3.5 shadow-[0_16px_42px_-30px_rgba(0,0,0,0.28)] backdrop-blur sm:p-4 ${
+      className={`app-shell-panel rounded-[0.9rem] border p-3.5 sm:p-4 ${
         tone === 'accent'
           ? 'border-primary/18 bg-primary/[0.04] dark:border-primary/15 dark:bg-primary/[0.05]'
           : 'border-border-light/70 bg-surface-white/88 dark:border-border-dark/70 dark:bg-surface-dark/82'
@@ -101,11 +101,11 @@ export function SectionCard({
     >
       <div className="mb-3.5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-[1.05rem] font-bold tracking-tight text-text-charcoal dark:text-white sm:text-[1.08rem]">
+          <h2 className="text-[1rem] font-bold tracking-tight text-text-charcoal dark:text-white sm:text-[1.04rem]">
             {title}
           </h2>
           {description ? (
-            <p className="mt-1.5 max-w-3xl text-[14px] leading-6 text-text-silver-light dark:text-text-silver-dark">
+            <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-text-silver-light dark:text-text-silver-dark">
               {description}
             </p>
           ) : null}
@@ -154,7 +154,7 @@ export function StatusMessage({
 }) {
   return (
     <div
-      className={`rounded-[0.72rem] border px-3.5 py-2.5 text-[14px] ${
+      className={`rounded-[0.75rem] border px-3.5 py-2.5 text-[13px] ${
         tone === 'error'
           ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200'
           : 'border-border-light/70 bg-surface-white/80 text-text-silver-light dark:border-border-dark dark:bg-surface-dark/70 dark:text-text-silver-dark'
@@ -176,7 +176,7 @@ export function FieldError({ message }: { message?: string }) {
 
 export function EmptyPanel({ message }: { message: string }) {
   return (
-    <div className="rounded-[0.78rem] border border-dashed border-border-light/90 bg-bg-light/70 p-4 text-[14px] leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/60 dark:text-text-silver-dark">
+    <div className="rounded-[0.8rem] border border-dashed border-border-light/90 bg-bg-light/70 p-4 text-[13px] leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/60 dark:text-text-silver-dark">
       {message}
     </div>
   )

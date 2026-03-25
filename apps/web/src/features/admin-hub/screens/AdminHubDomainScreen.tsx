@@ -6,8 +6,10 @@ interface AdminHubDomainScreenProps {
   onNavigate?: (view: AdminHubViewKey) => void
 }
 
-function statusTone(status: 'Now' | 'Next') {
-  return status === 'Now'
+function statusTone(status: string) {
+  const isNow = status === 'Now' || status === 'Hiện có'
+
+  return isNow
     ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
     : 'border-amber-400/30 bg-amber-400/10 text-amber-100'
 }
@@ -75,24 +77,18 @@ export function AdminHubDomainScreen({
 
           <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="border border-white/6 bg-[#15140f] p-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#a19a81]">
-                Proof
-              </div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#a19a81]">Khi nào dùng màn này</div>
               <div className="mt-2 text-[13px] leading-7 text-[#f4edd8]">{selectedScreen.proof}</div>
             </div>
             <div className="border border-white/6 bg-[#15140f] p-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#a19a81]">
-                Endpoint hint
-              </div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#a19a81]">Vai trò trong luồng admin</div>
               <div className="mt-2 text-[13px] leading-7 text-[#f4edd8]">{selectedScreen.endpointHint}</div>
             </div>
           </div>
         </article>
 
         <article className="border border-white/6 bg-white/[0.03] p-5">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#a19a81]">
-            Capabilities
-          </div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#a19a81]">Khả năng hiện có</div>
           <div className="mt-4 grid gap-2">
             {selectedScreen.capabilities.map((item) => (
               <div key={item} className="flex items-center justify-between border border-white/6 bg-[#15140f] px-3 py-3">
@@ -103,19 +99,20 @@ export function AdminHubDomainScreen({
           </div>
         </article>
 
-        <article className="border border-white/6 bg-white/[0.03] p-5">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#a19a81]">
-            Status model
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="border border-emerald-400/20 bg-emerald-400/10 p-4 text-emerald-100">
-              `Now` means the current backend already supports this surface.
+        <div className="grid gap-3 sm:grid-cols-2">
+          <article className="border border-emerald-400/20 bg-emerald-400/10 p-4 text-emerald-100">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em]">Hiện có</div>
+            <div className="mt-2 text-[13px] leading-6">
+              Backend đã có dữ liệu hoặc thao tác chính cho màn này. FE có thể bám vào contract hiện tại.
             </div>
-            <div className="border border-amber-400/20 bg-amber-400/10 p-4 text-amber-100">
-              `Next` means the wireframe is reserved now and needs backend work later.
+          </article>
+          <article className="border border-amber-400/20 bg-amber-400/10 p-4 text-amber-100">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em]">Kế hoạch</div>
+            <div className="mt-2 text-[13px] leading-6">
+              IA đã chừa chỗ cho lớp mở rộng tiếp theo, nhưng chưa nên xem là luồng vận hành thật.
             </div>
-          </div>
-        </article>
+          </article>
+        </div>
       </section>
     </div>
   )

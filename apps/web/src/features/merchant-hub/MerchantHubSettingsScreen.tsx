@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { FIELD_LIMITS, isGoogleMapsUrl, normalizeText } from '../../lib/validation'
 import type { MerchantHubSettingsScreenProps } from './merchantHubTypes'
-import { merchantHubCopy } from './merchantHubCopy'
+import { getMerchantHubCopy } from './merchantHubCopy'
 import { MerchantHubBadge, MerchantHubPanel, MerchantHubSectionHeader } from './merchantHubUi'
 
 function SettingsBlock({
@@ -9,7 +9,10 @@ function SettingsBlock({
   description,
   status,
   items,
-}: MerchantHubSettingsScreenProps['profileBlock']) {
+  language = 'vi',
+}: MerchantHubSettingsScreenProps['profileBlock'] & { language?: string }) {
+  const copy = getMerchantHubCopy(language)
+
   return (
     <div className="border border-[#e7ded0] bg-white px-4 py-4">
       <div className="flex items-start justify-between gap-3">
@@ -18,7 +21,7 @@ function SettingsBlock({
           <div className="mt-1 text-[12px] leading-6 text-[#5f584e]">{description}</div>
         </div>
         <MerchantHubBadge state={status}>
-          {status === 'now' ? merchantHubCopy.nowLabel : merchantHubCopy.nextLabel}
+          {status === 'now' ? copy.nowLabel : copy.nextLabel}
         </MerchantHubBadge>
       </div>
       <div className="mt-4 grid gap-3">
@@ -42,6 +45,7 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export function MerchantHubSettingsScreen({
+  language,
   restaurant,
   detail,
   pending,
@@ -61,6 +65,8 @@ export function MerchantHubSettingsScreen({
   onNavigateToReviews,
   onNavigateToActions,
 }: MerchantHubSettingsScreenProps) {
+  const copy = getMerchantHubCopy(language)
+  void nextBlock
   const [name, setName] = useState(detail?.name ?? restaurant?.name ?? '')
   const [address, setAddress] = useState(detail?.address ?? '')
   const [googleMapUrl, setGoogleMapUrl] = useState(detail?.googleMapUrl ?? '')
@@ -143,38 +149,49 @@ export function MerchantHubSettingsScreen({
   }
 
   return (
-    <div className="grid gap-4">
+    <div data-testid="merchant-settings-screen" className="grid gap-4">
       <MerchantHubPanel className="p-5 lg:p-4">
         <MerchantHubSectionHeader
-          eyebrow={merchantHubCopy.settings.title}
-          title="Settings that stay readable"
-          description={merchantHubCopy.settings.description}
-          action={<MerchantHubBadge state="now">Now</MerchantHubBadge>}
+          eyebrow={copy.settings.title}
+          title={language.startsWith('vi') ? 'Thiết lập nhà hàng' : 'Settings that stay readable'}
+          description={copy.settings.description}
+          action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
         />
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <MerchantHubBadge state="now">{restaurant?.name ?? 'Restaurant'}</MerchantHubBadge>
+          <MerchantHubBadge state="now">{restaurant?.name ?? (language.startsWith('vi') ? 'Nhà hàng' : 'Restaurant')}</MerchantHubBadge>
           <MerchantHubBadge state={detail?.googleMapUrl ? 'now' : 'next'}>
-            {detail?.googleMapUrl ? 'Source connected' : 'Source missing'}
+            {detail?.googleMapUrl
+              ? language.startsWith('vi')
+                ? 'Đã kết nối Google Maps'
+                : 'Source connected'
+              : language.startsWith('vi')
+                ? 'Thiếu nguồn Google Maps'
+                : 'Source missing'}
           </MerchantHubBadge>
         </div>
       </MerchantHubPanel>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <div className="grid gap-4">
-          <SettingsBlock {...profileBlock} />
+          <SettingsBlock {...profileBlock} language={language} />
           <MerchantHubPanel className="p-5 lg:p-4">
             <MerchantHubSectionHeader
-              eyebrow="Now"
-              title="Update restaurant profile"
-              description="Keep the merchant-visible profile current without leaving the product flow."
-              action={<MerchantHubBadge state="now">Now</MerchantHubBadge>}
+              eyebrow={copy.nowLabel}
+              title={language.startsWith('vi') ? 'Cập nhật thông tin quán' : 'Update restaurant profile'}
+              description={
+                language.startsWith('vi')
+                  ? 'Giữ tên và địa chỉ nhà hàng luôn chính xác ngay trong luồng làm việc của chủ quán.'
+                  : 'Keep the merchant-visible profile current without leaving the product flow.'
+              }
+              action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
             />
-            <form className="mt-5 grid gap-4" onSubmit={handleSaveProfile}>
+            <form data-testid="settings-form" className="mt-5 grid gap-4" onSubmit={handleSaveProfile}>
               <label className="grid gap-2 text-[13px] font-semibold text-[#1f1c18]">
                 <span>{restaurantNameLabel}</span>
                 <input
                   aria-label={restaurantNameLabel}
+                  data-testid="restaurant-name-input"
                   type="text"
                   maxLength={FIELD_LIMITS.restaurantName}
                   value={name}
@@ -191,6 +208,7 @@ export function MerchantHubSettingsScreen({
                 <span>{restaurantAddressLabel}</span>
                 <input
                   aria-label={restaurantAddressLabel}
+                  data-testid="restaurant-address-input"
                   type="text"
                   maxLength={FIELD_LIMITS.restaurantAddress}
                   value={address}
@@ -206,6 +224,7 @@ export function MerchantHubSettingsScreen({
               <div>
                 <button
                   type="submit"
+                  data-testid="save-profile"
                   disabled={pending}
                   className="inline-flex h-11 items-center justify-center border border-[#d9c29b] bg-[#ca8a04] px-4 text-[13px] font-bold text-white transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-70"
                 >
@@ -217,13 +236,17 @@ export function MerchantHubSettingsScreen({
         </div>
 
         <div className="grid gap-4">
-          <SettingsBlock {...sourceBlock} />
+          <SettingsBlock {...sourceBlock} language={language} />
           <MerchantHubPanel className="p-5 lg:p-4">
             <MerchantHubSectionHeader
-              eyebrow="Now"
-              title="Update source URL"
-              description="Source configuration stays visible and editable from the merchant side."
-              action={<MerchantHubBadge state="now">Now</MerchantHubBadge>}
+              eyebrow={copy.nowLabel}
+              title={language.startsWith('vi') ? 'Cập nhật nguồn Google Maps' : 'Update source URL'}
+              description={
+                language.startsWith('vi')
+                  ? 'Chủ quán vẫn nhìn thấy và chỉnh được URL nguồn để dữ liệu luôn đúng thực tế.'
+                  : 'Source configuration stays visible and editable from the merchant side.'
+              }
+              action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
             />
             <form className="mt-5 grid gap-4" onSubmit={handleSaveSource}>
               <label className="grid gap-2 text-[13px] font-semibold text-[#1f1c18]">
@@ -245,6 +268,7 @@ export function MerchantHubSettingsScreen({
               <div>
                 <button
                   type="submit"
+                  data-testid="save-source"
                   disabled={pending}
                   className="inline-flex h-11 items-center justify-center border border-[#e7ded0] bg-white px-4 text-[13px] font-semibold text-[#1f1c18] transition hover:border-[#caa55e] disabled:cursor-not-allowed disabled:opacity-70"
                 >
@@ -256,10 +280,26 @@ export function MerchantHubSettingsScreen({
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <SettingsBlock {...accessBlock} />
-        <SettingsBlock {...nextBlock} />
-      </div>
+      <MerchantHubPanel className="p-5 lg:p-4">
+        <MerchantHubSectionHeader
+          eyebrow={language.startsWith('vi') ? 'Lưu ý cho chủ quán' : copy.nowLabel}
+          title={language.startsWith('vi') ? 'Những gì bạn có thể chỉnh ở đây' : 'What you can change here'}
+          description={
+            language.startsWith('vi')
+              ? 'Màn thiết lập chỉ giữ lại các mục mà chủ quán cần chỉnh trực tiếp. Điều khiển quản trị nội bộ và các lớp mở rộng sau này không hiển thị ở đây.'
+              : accessBlock.description
+          }
+          action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
+        />
+        <div className="mt-5 grid gap-3 xl:grid-cols-3">
+          {accessBlock.items.map((item) => (
+            <div key={item.label} className="border border-[#e7ded0] bg-white px-4 py-4">
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">{item.label}</div>
+              <div className="mt-2 text-[13px] font-semibold leading-6 text-[#1f1c18]">{item.value}</div>
+            </div>
+          ))}
+        </div>
+      </MerchantHubPanel>
 
       <MerchantHubPanel className="p-5 lg:p-4">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -268,14 +308,14 @@ export function MerchantHubSettingsScreen({
             className="border border-[#e7ded0] bg-white px-4 py-3 text-[13px] font-semibold text-[#1f1c18]"
             onClick={onNavigateToReviews}
           >
-            Open reviews
+            {language.startsWith('vi') ? 'Mở danh sách đánh giá' : 'Open reviews'}
           </button>
           <button
             type="button"
             className="border border-[#e7ded0] bg-white px-4 py-3 text-[13px] font-semibold text-[#1f1c18]"
             onClick={onNavigateToActions}
           >
-            Open actions
+            {language.startsWith('vi') ? 'Mở việc cần làm' : 'Open actions'}
           </button>
         </div>
       </MerchantHubPanel>
