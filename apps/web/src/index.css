@@ -53,6 +53,16 @@
   --font-serif: "Playfair Display", serif;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-display);
+}
+
 /* Make interactive affordances explicit across the app shell. */
 :where(
     a[href],
@@ -159,6 +169,18 @@
   0% {
     opacity: 0;
     transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-shell-panel-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
   }
 
   100% {
@@ -383,6 +405,23 @@
   animation: fade-in-up 0.8s ease-out forwards;
 }
 
+.app-shell-panel {
+  animation: app-shell-panel-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-hover-lift {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.app-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px -30px rgba(0, 0, 0, 0.38);
+}
+
 .app-calendar-panel-enter {
   animation: calendar-panel-enter 180ms cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: top center;
@@ -411,6 +450,17 @@
 .bento-card:hover {
   box-shadow: 0 20px 40px -12px rgba(212, 175, 55, 0.25),
     inset 0 0 20px rgba(255, 255, 255, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 :where(.dark) .bento-card:hover {

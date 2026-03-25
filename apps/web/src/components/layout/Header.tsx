@@ -193,10 +193,10 @@ export function Header({
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-2 z-50 flex justify-center md:top-3">
-      <div className="pointer-events-auto mx-4 flex min-h-16 w-full max-w-[1260px] items-center gap-3 rounded-full border border-border-light/70 bg-surface-white/86 px-4 shadow-[0_8px_34px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300 hover:border-primary/30 dark:border-border-dark/70 dark:bg-surface-dark/90 dark:shadow-[0_8px_34px_rgba(0,0,0,0.5)] md:px-6">
+      <div className="pointer-events-auto mx-3 flex min-h-14 w-full max-w-[1500px] items-center gap-2 rounded-full border border-border-light/70 bg-surface-white/84 px-3 shadow-[0_8px_28px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300 hover:border-primary/26 dark:border-border-dark/70 dark:bg-surface-dark/88 dark:shadow-[0_8px_28px_rgba(0,0,0,0.45)] md:px-4">
         <button
           type="button"
-          className="group mr-2 flex shrink-0 items-center gap-3"
+          className="group mr-1 flex shrink-0 items-center gap-2.5"
           onClick={() => {
             if (isAuthenticated) {
               onNavigate(homeRoute)
@@ -206,26 +206,21 @@ export function Header({
             onScrollToSection('overview')
           }}
         >
-          <div className="flex size-9 items-center justify-center rounded-full border border-primary/25 bg-primary/8 text-primary transition-transform duration-500 group-hover:rotate-180">
-            <span className="material-symbols-outlined text-[20px]">token</span>
+          <div className="flex size-8 items-center justify-center rounded-full border border-primary/25 bg-primary/8 text-primary transition-transform duration-500 group-hover:rotate-180">
+            <span className="material-symbols-outlined text-[18px]">token</span>
           </div>
-          <span className="hidden text-lg font-bold tracking-tight text-text-charcoal dark:text-white sm:block">
+          <span className="hidden text-base font-bold tracking-tight text-text-charcoal dark:text-white sm:block">
             {copy.header.brand}
           </span>
         </button>
 
-        <nav className="hidden items-center gap-2 lg:flex">
+        <nav className="hidden items-center gap-2 xl:flex">
           {isAppRoute && isAuthenticated ? (
             <div className="flex items-center gap-2">
               {currentViewLabel ? (
-                <div className="inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
+                <div className="inline-flex h-9 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
                   <span className="size-2 rounded-full bg-primary"></span>
                   <span>{currentViewLabel}</span>
-                </div>
-              ) : null}
-              {user?.roleLabel ? (
-                <div className="inline-flex h-10 items-center rounded-full border border-primary/20 bg-primary/8 px-4 text-xs font-bold uppercase tracking-[0.16em] text-primary">
-                  {user.roleLabel}
                 </div>
               ) : null}
             </div>
@@ -234,7 +229,7 @@ export function Header({
               <button
                 key={item.sectionId}
                 type="button"
-                className="inline-flex h-10 items-center justify-center rounded-full px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary"
+                className="inline-flex h-9 items-center justify-center rounded-full px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary"
                 onClick={() => onScrollToSection(item.sectionId)}
               >
                 {item.label}
@@ -248,7 +243,7 @@ export function Header({
             type="button"
             onClick={(event) => toggleTheme(event)}
             aria-label={copy.header.themeLabel}
-            className="flex size-9 items-center justify-center rounded-full text-text-silver-light transition-all duration-200 hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 dark:text-text-silver-dark dark:hover:bg-white/5"
+            className="flex size-8 items-center justify-center rounded-full text-text-silver-light transition-all duration-200 hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-90 dark:text-text-silver-dark dark:hover:bg-white/5"
           >
             <span className="material-symbols-outlined text-lg">
               {theme === 'dark' ? 'dark_mode' : 'light_mode'}
@@ -265,7 +260,7 @@ export function Header({
               aria-label={copy.header.languageLabel}
               aria-haspopup="menu"
               aria-expanded={isLanguageMenuOpen}
-              className="flex h-9 items-center gap-2 rounded-full border border-border-light px-3 text-xs font-bold text-text-charcoal transition-all duration-200 hover:border-primary/40 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:text-white"
+              className="flex h-8 items-center gap-2 rounded-full border border-border-light px-3 text-[11px] font-bold text-text-charcoal transition-all duration-200 hover:border-primary/40 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:text-white"
             >
               <span className="hidden sm:block">{currentLanguage.label}</span>
               <span className="sm:hidden">{currentLanguage.code.toUpperCase()}</span>
@@ -328,13 +323,13 @@ export function Header({
                     setIsAccountMenuOpen((current) => !current)
                     setIsLanguageMenuOpen(false)
                   }}
-                  className="group flex h-10 items-center gap-2 rounded-full border border-border-light/80 bg-surface-white/70 pl-2 pr-3 text-left transition hover:border-primary/35 hover:bg-primary/6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:bg-surface-dark/78"
+                  className="group flex h-9 items-center gap-2 rounded-full border border-border-light/80 bg-surface-white/70 pl-2 pr-3 text-left transition hover:border-primary/35 hover:bg-primary/6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-border-dark dark:bg-surface-dark/78"
                 >
-                  <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-black text-bg-dark">
+                  <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[11px] font-black text-bg-dark">
                     {user?.initials ?? 'S'}
                   </span>
                   <span className="hidden min-w-0 md:block">
-                    <span className="block truncate text-sm font-semibold text-text-charcoal dark:text-white">
+                    <span className="block truncate text-[13px] font-semibold text-text-charcoal dark:text-white">
                       {user?.displayName ?? productCopy.header.accountFallback}
                     </span>
                     <span className="block truncate text-[11px] text-text-silver-light dark:text-text-silver-dark">
