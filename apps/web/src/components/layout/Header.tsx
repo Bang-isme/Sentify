@@ -192,8 +192,8 @@ export function Header({
     : []
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-2 z-50 flex justify-center md:top-3">
-      <div className="pointer-events-auto mx-3 flex min-h-14 w-full max-w-[1500px] items-center gap-2 rounded-full border border-border-light/70 bg-surface-white/84 px-3 shadow-[0_8px_28px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300 hover:border-primary/26 dark:border-border-dark/70 dark:bg-surface-dark/88 dark:shadow-[0_8px_28px_rgba(0,0,0,0.45)] md:px-4">
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-2 pt-2 md:px-3 md:pt-3">
+      <div className="pointer-events-auto flex min-h-14 w-full items-center gap-2 rounded-[1.45rem] border border-border-light/70 bg-surface-white/84 px-3 shadow-[0_8px_28px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300 hover:border-primary/26 dark:border-border-dark/70 dark:bg-surface-dark/88 dark:shadow-[0_8px_28px_rgba(0,0,0,0.45)] md:px-4">
         <button
           type="button"
           className="group mr-1 flex shrink-0 items-center gap-2.5"

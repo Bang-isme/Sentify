@@ -183,9 +183,9 @@ export function WorkspaceScaffold<RouteId extends string>({
   }
 
   return (
-    <main className="min-h-screen bg-bg-light pb-8 pt-20 dark:bg-bg-dark sm:pt-22">
-      <div className="mx-auto max-w-[1580px] px-3 sm:px-4 xl:px-6">
-        <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
+    <main className="min-h-screen bg-bg-light pb-6 pt-[4.7rem] dark:bg-bg-dark sm:pt-[5rem]">
+      <div className="w-full px-2 sm:px-3 xl:px-4 2xl:px-5">
+        <div className="grid items-start gap-3 lg:grid-cols-[auto_minmax(0,1fr)] xl:gap-4">
           <div
             className={`fixed inset-0 z-40 bg-bg-dark/45 backdrop-blur-sm transition-opacity duration-200 lg:hidden ${
               isMobileSidebarOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
@@ -399,9 +399,11 @@ export function WorkspaceScaffold<RouteId extends string>({
             </div>
           </aside>
 
-          <div className="min-w-0 space-y-4">
-            <section className={`app-shell-panel rounded-[1.35rem] border px-4 py-3 shadow-[0_18px_60px_-36px_rgba(0,0,0,0.42)] backdrop-blur sm:px-4 sm:py-3.5 ${toneClasses.surface}`}>
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 space-y-3">
+            <section
+              className={`app-shell-panel rounded-[1.3rem] border px-3 py-3 shadow-[0_18px_60px_-36px_rgba(0,0,0,0.42)] backdrop-blur sm:px-4 ${toneClasses.surface}`}
+            >
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <button
@@ -412,7 +414,9 @@ export function WorkspaceScaffold<RouteId extends string>({
                     >
                       <span className="material-symbols-outlined text-[18px]">menu</span>
                     </button>
-                    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] ${toneClasses.chip}`}>
+                    <span
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] ${toneClasses.chip}`}
+                    >
                       <span className="size-2 rounded-full bg-current"></span>
                       {shellEyebrow}
                     </span>
@@ -424,37 +428,45 @@ export function WorkspaceScaffold<RouteId extends string>({
                         {activeNavItem.label}
                       </span>
                     ) : null}
+                    <span className="hidden truncate text-sm font-semibold text-text-charcoal/85 dark:text-white/90 2xl:inline">
+                      {shellTitle}
+                    </span>
                   </div>
-                  <div className="mt-3 text-sm font-semibold text-text-charcoal dark:text-white">
-                    {shellTitle}
-                  </div>
-                  <p className="mt-1 max-w-3xl text-[13px] leading-5 text-text-silver-light dark:text-text-silver-dark">
+                  <div className="mt-2 hidden max-w-4xl text-[13px] leading-5 text-text-silver-light dark:text-text-silver-dark 2xl:block">
                     {shellDescription}
-                  </p>
+                  </div>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2 xl:w-[320px] xl:grid-cols-2">
-                  <div className="rounded-[1.2rem] border border-border-light/70 bg-surface-white/72 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/52">
+                <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[520px]">
+                  <div className="rounded-[1.15rem] border border-border-light/70 bg-surface-white/72 px-3 py-2.5 dark:border-border-dark dark:bg-bg-dark/52">
                     <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
                       {labels.currentRole}
                     </div>
-                    <div className="mt-2 text-sm font-semibold text-text-charcoal dark:text-white">
+                    <div className="mt-1.5 text-sm font-semibold text-text-charcoal dark:text-white">
                       {roleDescriptor.label}
                     </div>
                   </div>
-                  <div className="rounded-[1.2rem] border border-border-light/70 bg-surface-white/72 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/52">
+                  <div className="rounded-[1.15rem] border border-border-light/70 bg-surface-white/72 px-3 py-2.5 dark:border-border-dark dark:bg-bg-dark/52">
                     <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
                       {labels.currentRestaurant}
                     </div>
-                    <div className="mt-2 truncate text-sm font-semibold text-text-charcoal dark:text-white">
+                    <div className="mt-1.5 truncate text-sm font-semibold text-text-charcoal dark:text-white">
                       {currentRestaurant?.name ?? copy.anonymousGuest}
+                    </div>
+                  </div>
+                  <div className="rounded-[1.15rem] border border-border-light/70 bg-surface-white/72 px-3 py-2.5 dark:border-border-dark dark:bg-bg-dark/52">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                      {labels.activeFlow}
+                    </div>
+                    <div className="mt-1.5 truncate text-sm font-semibold text-text-charcoal dark:text-white">
+                      {activeNavItem?.label ?? shellEyebrow}
                     </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            <section className="grid gap-4">{children}</section>
+            <section className="grid gap-3 xl:gap-4">{children}</section>
           </div>
         </div>
       </div>
