@@ -50,19 +50,19 @@ type DashboardShowcaseCopy = {
 }
 
 const panelClass =
-  'rounded-[1.35rem] border border-[#eee2d4] bg-white/92 shadow-[0_18px_44px_rgba(68,34,11,0.045)] dark:border-white/10 dark:bg-[#18120e]/84 dark:shadow-[0_24px_54px_rgba(0,0,0,0.34)]'
+  'rounded-[1.15rem] border border-[#eee2d4] bg-white/92 shadow-[0_1rem_2.2rem_rgba(68,34,11,0.042)] dark:border-white/10 dark:bg-[#18120e]/84 dark:shadow-[0_1.3rem_2.8rem_rgba(0,0,0,0.34)]'
 
 const softInnerClass =
-  'rounded-[1.1rem] border border-[#f2e7da] bg-[#fcfaf7]/96 dark:border-white/8 dark:bg-[#211812]/82'
+  'rounded-[0.95rem] border border-[#f2e7da] bg-[#fcfaf7]/96 dark:border-white/8 dark:bg-[#211812]/82'
 
 const kpiLabelClass =
-  'text-[11px] font-semibold uppercase tracking-[0.08em] text-[#736153] dark:text-[#ccb59a]'
+  'text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-[#736153] dark:text-[#ccb59a] md:text-[0.75rem]'
 
 const kpiValueClass =
-  'font-serif text-[2.35rem] font-bold leading-none text-[#2b211b] dark:text-[#fff3e6] md:text-[2.55rem]'
+  'font-serif text-[2rem] font-bold leading-none text-[#2b211b] dark:text-[#fff3e6] md:text-[2.2rem]'
 
 const monoMetaClass =
-  'text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a7568] dark:text-[#bda48a]'
+  'text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-[#8a7568] dark:text-[#bda48a] md:text-[0.75rem]'
 
 const numericClass = 'tabular-nums lining-nums'
 
@@ -342,12 +342,12 @@ export function BentoFeatures() {
   const showcase = getLocaleWithFallback(dashboardShowcaseCopy, language)
 
   return (
-    <section id="dashboard" className="content-visibility-auto relative overflow-hidden py-24 lg:py-28">
+    <section id="dashboard" className="content-visibility-auto relative overflow-hidden py-20 lg:py-24">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(162,63,0,0.022)_1px,transparent_1px),linear-gradient(90deg,rgba(162,63,0,0.022)_1px,transparent_1px)] [background-size:40px_40px]" />
       </div>
 
-      <div className="relative z-10 mx-auto w-full px-4 md:px-6 lg:px-10 xl:px-14">
+      <div className="relative z-10 mx-auto w-full max-w-[88rem] px-4 md:px-6 lg:px-8 xl:px-10">
         <div ref={ref}>
           <div className={`${LANDING_SECTION_HEADER_MARGIN_CLASS} ${LANDING_SECTION_HEADER_CLASS} ${revealClass()}`} style={revealStyle(0)}>
             <span className={LANDING_EYEBROW_CLASS}>{dashboard.eyebrow}</span>
@@ -355,29 +355,29 @@ export function BentoFeatures() {
               <span className="block">{dashboard.titleLine1}</span>
               <span className={LANDING_SECTION_ACCENT_CLASS}>{dashboard.titleLine2}</span>
             </h2>
-            <p className={`${LANDING_BODY_CLASS} max-w-[48rem]`}>{dashboard.description}</p>
+            <p className={`${LANDING_BODY_CLASS} max-w-[44rem]`}>{dashboard.description}</p>
           </div>
 
-          <div className={`space-y-6 lg:space-y-7 ${revealClass()}`} style={revealStyle(120)}>
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-3 lg:gap-6">
+          <div className={`space-y-5 lg:space-y-6 ${revealClass()}`} style={revealStyle(120)}>
+            <div className="grid grid-cols-1 gap-4.5 md:grid-cols-3 lg:gap-5">
               {showcase.metrics.map((metric, index) => (
                 <article
                   key={metric.label}
-                  className={`${panelClass} flex min-h-[11.2rem] flex-col p-7 transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(68,34,11,0.08)] md:p-8 dark:hover:shadow-[0_24px_52px_rgba(0,0,0,0.4)] ${revealClass()}`}
+                  className={`${panelClass} flex min-h-[9.75rem] flex-col p-[1.35rem] transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-[0_1.35rem_2.8rem_rgba(68,34,11,0.08)] md:p-6 dark:hover:shadow-[0_1.5rem_3rem_rgba(0,0,0,0.4)] ${revealClass()}`}
                   style={revealStyle(180 + index * 70)}
                 >
                   <p className={kpiLabelClass}>{metric.label}</p>
-                  <div className="mt-3 flex min-h-[3.6rem] items-end gap-3">
+                  <div className="mt-2.5 flex min-h-[3rem] items-end gap-2.5">
                     <h3 className={`${kpiValueClass} ${numericClass} whitespace-nowrap`}>{metric.value}</h3>
                     {metric.delta ? (
-                      <span className={`pb-2 text-[14px] font-bold text-emerald-600 ${numericClass}`}>{metric.delta}</span>
+                      <span className={`pb-1.5 text-[0.8125rem] font-bold text-emerald-600 ${numericClass}`}>{metric.delta}</span>
                     ) : null}
                     {metric.stars ? (
-                      <div className="flex items-center gap-0.5 pb-2 text-[#b8612d]">
+                      <div className="flex items-center gap-0.5 pb-1.5 text-[#b8612d]">
                         {Array.from({ length: metric.stars }).map((_, index) => (
                           <span
                             key={`${metric.label}-${index}`}
-                            className="material-symbols-outlined text-[15px]"
+                            className="material-symbols-outlined text-[0.875rem]"
                             style={{ fontVariationSettings: "'FILL' 1, 'wght' 300, 'opsz' 24" }}
                           >
                             star
@@ -386,31 +386,31 @@ export function BentoFeatures() {
                       </div>
                     ) : null}
                   </div>
-                  <p className={`mt-auto pt-5 text-[13px] leading-6 text-[#7a6658] dark:text-[#ccb59a] md:text-[14px] ${numericClass}`}>{metric.note}</p>
+                  <p className={`mt-auto pt-4 text-[0.8125rem] leading-[1.55] text-[#7a6658] dark:text-[#ccb59a] md:text-[0.875rem] ${numericClass}`}>{metric.note}</p>
                 </article>
               ))}
             </div>
 
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,0.95fr)] lg:gap-6">
-              <article className={`${panelClass} p-7 md:p-8`}>
-                <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <h3 className="font-serif text-[1.8rem] font-bold text-[#2c211b] dark:text-[#fff3e6] md:text-[2rem]">
+            <div className="grid grid-cols-1 gap-4.5 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,0.92fr)] lg:gap-5">
+              <article className={`${panelClass} p-[1.35rem] md:p-6`}>
+                <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <h3 className="font-serif text-[1.5rem] font-bold text-[#2c211b] dark:text-[#fff3e6] md:text-[1.65rem]">
                     {showcase.chartTitle}
                   </h3>
-                  <div className="flex flex-wrap items-center gap-4 text-[12px] font-medium text-[#7a6759] dark:text-[#ccb59a]">
+                  <div className="flex flex-wrap items-center gap-3 text-[0.75rem] font-medium text-[#7a6759] dark:text-[#ccb59a]">
                     <LegendDot color="bg-[#a23f00]" label={showcase.legend.positive} />
                     <LegendDot color="bg-[#d8cec4]" label={showcase.legend.neutral} />
                     <LegendDot color="bg-[#d19580]" label={showcase.legend.negative} />
                   </div>
                 </div>
 
-                <div className={`${softInnerClass} h-[21rem] px-4 pb-5 pt-6 md:h-[22rem] md:px-6`}>
-                  <div className="flex h-full items-end justify-between gap-3 md:gap-4">
+                <div className={`${softInnerClass} h-[17rem] px-3.5 pb-4 pt-5 md:h-[18rem] md:px-5`}>
+                  <div className="flex h-full items-end justify-between gap-2.5 md:gap-3.5">
                     {chartColumns.map((column, index) => (
                       <div key={showcase.days[index]} className="flex h-full flex-1 flex-col items-center gap-3">
                         <div className="flex h-full w-full flex-col justify-end gap-1">
                           <div
-                            className="w-full rounded-t-[0.85rem] bg-[#d19580]/35 transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                            className="w-full rounded-t-[0.75rem] bg-[#d19580]/35 transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                             style={{
                               height: `${column.negative}%`,
                               opacity: visible ? 1 : 0.3,
@@ -420,7 +420,7 @@ export function BentoFeatures() {
                             }}
                           />
                           <div
-                            className="w-full rounded-t-[0.85rem] bg-[#ece4db] transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                            className="w-full rounded-t-[0.75rem] bg-[#ece4db] transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                             style={{
                               height: `${column.neutral}%`,
                               opacity: visible ? 1 : 0.3,
@@ -430,7 +430,7 @@ export function BentoFeatures() {
                             }}
                           />
                           <div
-                            className="w-full rounded-t-[1.25rem] bg-[#f3871c] transition-[transform,opacity,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                            className="w-full rounded-t-[1rem] bg-[#f3871c] transition-[transform,opacity,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                             style={{
                               height: `${column.positive}%`,
                               opacity: visible ? 1 : 0.45,
@@ -448,23 +448,23 @@ export function BentoFeatures() {
                 </div>
               </article>
 
-              <aside className={`${panelClass} p-7 md:p-8`}>
-                <h3 className="mb-6 font-serif text-[1.8rem] font-bold text-[#2c211b] dark:text-[#fff3e6] md:text-[2rem]">
+              <aside className={`${panelClass} p-[1.35rem] md:p-6`}>
+                <h3 className="mb-5 font-serif text-[1.5rem] font-bold text-[#2c211b] dark:text-[#fff3e6] md:text-[1.65rem]">
                   {showcase.liveFeedTitle}
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                   {showcase.feed.map((item, index) => (
                     <article
                       key={`${item.author}-${item.time}`}
-                      className={`${softInnerClass} p-4 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(68,34,11,0.06)] ${revealClass()}`}
+                      className={`${softInnerClass} p-3.5 transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_1rem_2rem_rgba(68,34,11,0.06)] ${revealClass()}`}
                       style={revealStyle(260 + index * 90)}
                     >
-                      <div className="mb-3 flex items-start justify-between gap-4">
+                      <div className="mb-2.5 flex items-start justify-between gap-3">
                         <div className="flex origin-left scale-[0.82] text-[#b8612d]">
                           {Array.from({ length: item.rating }).map((_, index) => (
                             <span
                               key={`${item.author}-${index}`}
-                              className="material-symbols-outlined text-[16px]"
+                              className="material-symbols-outlined text-[0.9375rem]"
                               style={{ fontVariationSettings: "'FILL' 1, 'wght' 300, 'opsz' 24" }}
                             >
                               star
@@ -473,10 +473,10 @@ export function BentoFeatures() {
                         </div>
                         <span className={`${monoMetaClass} ${numericClass}`}>{item.time}</span>
                       </div>
-                      <p className="text-[14px] italic leading-7 text-[#675449] dark:text-[#dcc4a9] md:text-[15px]">
+                      <p className="text-[0.875rem] italic leading-[1.65] text-[#675449] dark:text-[#dcc4a9] md:text-[0.9375rem]">
                         "{item.quote}"
                       </p>
-                      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9a8577] dark:text-[#bda48a]">
+                      <p className="mt-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-[#9a8577] dark:text-[#bda48a] md:text-[0.75rem]">
                         — {item.author}
                       </p>
                     </article>
@@ -485,22 +485,22 @@ export function BentoFeatures() {
               </aside>
             </div>
 
-            <article className={`${panelClass} p-7 md:p-8`}>
-              <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <h3 className="font-serif text-[1.8rem] font-bold text-[#2c211b] dark:text-[#fff3e6] md:text-[2rem]">
+            <article className={`${panelClass} p-[1.35rem] md:p-6`}>
+              <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <h3 className="font-serif text-[1.5rem] font-bold text-[#2c211b] dark:text-[#fff3e6] md:text-[1.65rem]">
                   {showcase.staffTitle}
                 </h3>
-                <button className="inline-flex items-center gap-1 text-[14px] font-semibold text-[#b25a24] transition-colors hover:text-[#8f430f] dark:text-[#f0b37a] dark:hover:text-[#ffd0a0]">
+                <button className="inline-flex items-center gap-1 text-[0.875rem] font-semibold text-[#b25a24] transition-colors hover:text-[#8f430f] dark:text-[#f0b37a] dark:hover:text-[#ffd0a0]">
                   {showcase.staffAction}
-                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  <span className="material-symbols-outlined text-[1rem]">arrow_forward</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 xl:gap-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4.5">
                 {showcase.staff.map((member, index) => (
                   <div
                     key={member.name}
-                    className={`${revealClass()} flex items-center gap-4 rounded-[1rem] bg-[#fcfaf7]/88 p-4 transition-[transform,background-color] duration-300 hover:-translate-y-1 hover:bg-white dark:bg-[#211812]/82 dark:hover:bg-[#281d16]`}
+                    className={`${revealClass()} flex items-center gap-3.5 rounded-[0.95rem] bg-[#fcfaf7]/88 p-3.5 transition-[transform,background-color] duration-300 hover:-translate-y-1 hover:bg-white dark:bg-[#211812]/82 dark:hover:bg-[#281d16]`}
                     style={revealStyle(340 + index * 70)}
                   >
                     <div className="relative">
@@ -508,20 +508,20 @@ export function BentoFeatures() {
                         src={member.image}
                         alt={member.name}
                         loading="lazy"
-                        className="h-14 w-14 rounded-full object-cover grayscale"
+                        className="h-12 w-12 rounded-full object-cover grayscale"
                       />
                       <span
-                        className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-white dark:border-[#18120e] ${
+                        className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-[#18120e] ${
                           member.accent === 'green' ? 'bg-emerald-500' : 'bg-orange-400'
                         }`}
                       />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-serif text-[1.05rem] font-bold leading-tight text-[#2c211b] dark:text-[#fff3e6]">
+                      <h4 className="font-serif text-[0.98rem] font-bold leading-tight text-[#2c211b] dark:text-[#fff3e6]">
                         {member.name}
                       </h4>
-                      <p className="mt-1 text-[13px] text-[#7a6658] dark:text-[#ccb59a]">{member.role}</p>
-                      <p className="mt-2 text-[12px] font-semibold text-[#b8612d] dark:text-[#f0b37a]">{member.note}</p>
+                      <p className="mt-1 text-[0.8125rem] text-[#7a6658] dark:text-[#ccb59a]">{member.role}</p>
+                      <p className="mt-1.5 text-[0.75rem] font-semibold text-[#b8612d] dark:text-[#f0b37a]">{member.note}</p>
                     </div>
                   </div>
                 ))}
@@ -537,7 +537,7 @@ export function BentoFeatures() {
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
+      <span className={`h-2 w-2 rounded-full ${color}`} />
       <span>{label}</span>
     </div>
   )

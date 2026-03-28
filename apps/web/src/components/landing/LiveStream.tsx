@@ -161,12 +161,12 @@ export function LiveStream() {
   ] as const
 
   return (
-    <section id="signals" className="content-visibility-auto relative overflow-hidden bg-transparent py-28 lg:py-32">
+    <section id="signals" className="content-visibility-auto relative overflow-hidden bg-transparent py-20 lg:py-24">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-x-[8%] top-0 h-[26rem] rounded-full bg-[radial-gradient(circle,rgba(162,63,0,0)_0%,transparent_70%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(235,122,28,0.12)_0%,rgba(242,176,77,0.05)_38%,transparent_70%)]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-[1600px] px-6 md:px-10">
+      <div className="relative z-10 mx-auto max-w-[88rem] px-5 md:px-7 lg:px-8 xl:px-10">
         <div ref={ref}>
           <header className={`${LANDING_SECTION_HEADER_CLASS} ${LANDING_SECTION_HEADER_MARGIN_CLASS} ${revealClass()}`} style={revealStyle(0)}>
             <span className={LANDING_EYEBROW_CLASS}>
@@ -178,10 +178,10 @@ export function LiveStream() {
             </h2>
           </header>
 
-          <div className={`grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 ${revealClass()}`} style={revealStyle(120)}>
+          <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-4.5 ${revealClass()}`} style={revealStyle(120)}>
             {signalTiles.map((tile) => (
               <article key={tile.title} className="group">
-                <div className="relative h-[29rem] overflow-hidden rounded-[1.3rem] bg-[#1b1511] shadow-[0_22px_52px_rgba(68,34,11,0.1)]">
+                <div className="relative h-[25.5rem] overflow-hidden rounded-[1.1rem] bg-[#1b1511] shadow-[0_1.35rem_2.9rem_rgba(68,34,11,0.1)]">
                   <img
                     src={tile.imageSrc}
                     alt={tile.imageAlt}
@@ -191,28 +191,28 @@ export function LiveStream() {
                   />
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,12,9,0.08)_0%,rgba(17,12,9,0.24)_30%,rgba(17,12,9,0.68)_62%,rgba(17,12,9,0.96)_100%)]" />
 
-                  <div className="absolute inset-x-5 top-5 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[rgba(243,160,77,0.14)] px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#f1b172] backdrop-blur-sm">
-                      <span className="material-symbols-outlined text-[16px]">{tile.icon}</span>
+                  <div className="absolute inset-x-4 top-4 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(243,160,77,0.14)] px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[#f1b172] backdrop-blur-sm md:text-[0.75rem]">
+                      <span className="material-symbols-outlined text-[0.875rem]">{tile.icon}</span>
                       {tile.label}
                     </span>
                   </div>
 
-                  <div className="absolute inset-x-5 bottom-5">
-                    <h3 className="max-w-[12rem] font-serif text-[1.9rem] leading-[1.02] text-white">
+                  <div className="absolute inset-x-4 bottom-4">
+                    <h3 className="max-w-[11rem] font-serif text-[1.55rem] leading-[1.03] text-white md:text-[1.7rem]">
                       {tile.title}
                     </h3>
-                    <div className="mt-3 flex items-end gap-2">
-                      <span className="font-serif text-[3.6rem] font-bold leading-none text-white">{tile.metric.value}</span>
+                    <div className="mt-2.5 flex items-end gap-2">
+                      <span className="font-serif text-[3rem] font-bold leading-none text-white md:text-[3.15rem]">{tile.metric.value}</span>
                       {tile.metric.suffix ? (
-                        <span className="pb-2 text-[1.15rem] font-medium text-[#efe0d5]">{tile.metric.suffix}</span>
+                        <span className="pb-1.5 text-[1rem] font-medium text-[#efe0d5]">{tile.metric.suffix}</span>
                       ) : null}
                     </div>
-                    <p className="mt-2 text-[14px] font-medium text-[#f1e4d7]/92">{tile.note}</p>
+                    <p className="mt-1.5 text-[0.8125rem] font-medium text-[#f1e4d7]/92 md:text-[0.875rem]">{tile.note}</p>
 
                     <button
                       type="button"
-                      className="mt-5 inline-flex min-w-[6.25rem] justify-center rounded-[0.8rem] bg-white/10 px-4 py-2 text-[13px] font-semibold text-white backdrop-blur-sm ring-1 ring-white/16 transition-colors hover:bg-white/16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                      className="mt-4 inline-flex min-w-[5.5rem] justify-center rounded-[0.7rem] bg-white/10 px-3.5 py-1.5 text-[0.75rem] font-semibold text-white backdrop-blur-sm ring-1 ring-white/16 transition-colors hover:bg-white/16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:text-[0.8125rem]"
                     >
                       {ui.detailLabel}
                     </button>
@@ -223,49 +223,49 @@ export function LiveStream() {
           </div>
 
           <div
-            className={`mt-10 grid grid-cols-1 gap-6 xl:grid-cols-[1.04fr_0.96fr] ${revealClass()}`}
+            className={`mt-8 grid grid-cols-1 gap-5 xl:grid-cols-[1.04fr_0.96fr] xl:gap-5 ${revealClass()}`}
             style={revealStyle(240)}
           >
-            <article className={`${LANDING_PANEL_SOFT_CLASS} p-7 md:p-8`}>
-              <span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-primary md:text-[13px]">
+            <article className={`${LANDING_PANEL_SOFT_CLASS} p-[1.35rem] md:p-6`}>
+              <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-primary md:text-[0.75rem]">
                 {ui.recommendationEyebrow}
               </span>
-              <h3 className="mt-4 font-serif text-[2rem] leading-tight text-[#2f241d] dark:text-[#fff7ef]">
+              <h3 className="mt-3 font-serif text-[1.65rem] leading-tight text-[#2f241d] dark:text-[#fff7ef] md:text-[1.8rem]">
                 {ui.recommendationTitle}
               </h3>
 
-              <div className="mt-7 space-y-5">
+              <div className="mt-6 space-y-4.5">
                 {recommendationItems.map((item, index) => (
                   <div key={item.title} className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
-                      <span className="text-[13px] font-bold">{index + 1}</span>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+                      <span className="text-[0.75rem] font-bold">{index + 1}</span>
                     </div>
 
                     <div className="min-w-0">
-                      <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9b7d67] dark:text-[#d8c1a6] md:text-[13px]">
+                      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[#9b7d67] dark:text-[#d8c1a6] md:text-[0.75rem]">
                         {item.label}
                       </p>
-                      <h4 className="mt-1 font-serif text-[1.45rem] leading-tight text-[#33271f] dark:text-[#fff7ef]">
+                      <h4 className="mt-1 font-serif text-[1.25rem] leading-tight text-[#33271f] dark:text-[#fff7ef] md:text-[1.35rem]">
                         {item.title}
                       </h4>
-                      <p className="mt-2 text-[15px] leading-7 text-[#6f5a4a] dark:text-[#ccb59a]">{item.description}</p>
+                      <p className="mt-2 text-[0.875rem] leading-[1.65] text-[#6f5a4a] dark:text-[#ccb59a] md:text-[0.9375rem]">{item.description}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </article>
 
-            <article className={`${LANDING_PANEL_CLASS} p-7 ring-1 ring-outline-variant/20 md:p-8`}>
+            <article className={`${LANDING_PANEL_CLASS} p-[1.35rem] ring-1 ring-outline-variant/20 md:p-6`}>
               <div className="flex h-full flex-col justify-between">
-                <blockquote className="max-w-[28rem] font-serif text-[2rem] italic leading-[1.45] text-[#3a2d24] dark:text-[#fff7ef]">
+                <blockquote className="max-w-[25rem] font-serif text-[1.65rem] italic leading-[1.45] text-[#3a2d24] dark:text-[#fff7ef] md:text-[1.8rem]">
                   {ui.quote}
                 </blockquote>
 
-                <div className="mt-10 flex items-center gap-4">
+                <div className="mt-8 flex items-center gap-4">
                   <div className="h-px w-12 bg-primary" />
                   <div>
-                    <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-primary">{ui.quoteAuthor}</p>
-                    <p className="mt-1 text-[14px] uppercase tracking-[0.16em] text-[#8a7566] dark:text-[#ccb59a]">
+                    <p className="text-[0.75rem] font-semibold uppercase tracking-[0.18em] text-primary md:text-[0.8125rem]">{ui.quoteAuthor}</p>
+                    <p className="mt-1 text-[0.8125rem] uppercase tracking-[0.16em] text-[#8a7566] dark:text-[#ccb59a] md:text-[0.875rem]">
                       {ui.quoteRole}
                     </p>
                   </div>

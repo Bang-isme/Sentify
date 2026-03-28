@@ -43,14 +43,14 @@ interface HeroVisualCopy {
 const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
   en: {
     eyebrow: 'Restaurant review intelligence',
-    searchPlaceholder: 'Paste your Google Maps URL...',
+    searchPlaceholder: 'Paste Google Maps URL...',
     searchActionLabel: 'Open the restaurant review workflow',
     helperNote: 'Start with one restaurant. Add the Google Maps URL after creating your account.',
     examplePrompt: 'Try a sample source:',
     exampleLinkLabel: 'Bep Co Mai',
     supportedSourcesLabel: 'Review sources already used by teams',
     supportedSources: ['Google Maps', 'Facebook', 'ShopeeFood', 'Grab', 'TikTok'],
-    scanningLabel: 'Scanning review patterns...',
+    scanningLabel: 'Loading...',
     dashboardLabel: 'Restaurant dashboard',
     totalReviewsLabel: 'Total reviews',
     averageRatingLabel: 'Avg rating',
@@ -65,7 +65,7 @@ const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
     pulseTitle: 'Live pulse',
     pulseSubtitle: 'Sources gaining traction',
     pulseFooter: 'Continuous updates',
-    sourcePills: ['Google Maps', 'Facebook', 'ShopeeFood'],
+    sourcePills: ['7 days', '1 restaurant', 'Auto refresh', 'Themes', 'Priority'],
     pulseItems: [
       { label: 'Google Maps', value: '86', width: '86%', delay: '0ms' },
       { label: 'Facebook', value: '72', width: '72%', delay: '180ms' },
@@ -76,14 +76,14 @@ const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
   },
   vi: {
     eyebrow: 'Phân tích review cho nhà hàng',
-    searchPlaceholder: 'Dán link Google Maps của nhà hàng...',
+    searchPlaceholder: 'Dán link Google Maps...',
     searchActionLabel: 'Mở luồng phân tích review nhà hàng',
     helperNote: 'Bắt đầu với một nhà hàng. Thêm link Google Maps sau khi tạo tài khoản.',
     examplePrompt: 'Thử với nguồn mẫu:',
     exampleLinkLabel: 'Bếp Cô Mai',
     supportedSourcesLabel: 'Nguồn review đội ngũ đang dùng để theo dõi',
     supportedSources: ['Google Maps', 'Facebook', 'ShopeeFood', 'Grab', 'TikTok'],
-    scanningLabel: 'Đang quét tín hiệu review...',
+    scanningLabel: 'Loading...',
     dashboardLabel: 'Dashboard nhà hàng',
     totalReviewsLabel: 'Tổng review',
     averageRatingLabel: 'Điểm trung bình',
@@ -98,7 +98,7 @@ const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
     pulseTitle: 'Nhịp review',
     pulseSubtitle: 'Nguồn đang nhắc nhiều hơn',
     pulseFooter: 'Cập nhật liên tục',
-    sourcePills: ['Google Maps', 'Facebook', 'ShopeeFood'],
+    sourcePills: ['7 ngày', '1 nhà hàng', 'Tự động cập nhật', 'Theo chủ đề', 'Ưu tiên'],
     pulseItems: [
       { label: 'Google Maps', value: '86', width: '86%', delay: '0ms' },
       { label: 'Facebook', value: '72', width: '72%', delay: '180ms' },
@@ -109,14 +109,14 @@ const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
   },
   ja: {
     eyebrow: 'レストランレビュー分析',
-    searchPlaceholder: 'Google MapsのURLを貼り付け...',
+    searchPlaceholder: 'Google Maps URLを貼り付け...',
     searchActionLabel: 'レビュー分析を開く',
     helperNote: 'まずは1店舗から始めます。アカウント作成後にGoogle MapsのURLを追加してください。',
     examplePrompt: 'サンプルで試す:',
     exampleLinkLabel: 'ベップ・コー・マイ',
     supportedSourcesLabel: 'チームが確認に使うレビューソース',
     supportedSources: ['Google Maps', 'Facebook', 'ShopeeFood', 'Grab', 'TikTok'],
-    scanningLabel: 'レビューの傾向を確認中...',
+    scanningLabel: 'Loading...',
     dashboardLabel: 'レストランダッシュボード',
     totalReviewsLabel: 'レビュー総数',
     averageRatingLabel: '平均評価',
@@ -131,7 +131,7 @@ const HERO_VISUAL_COPY: Record<Language, HeroVisualCopy> = {
     pulseTitle: 'レビュー動向',
     pulseSubtitle: '言及が増えている媒体',
     pulseFooter: '継続更新中',
-    sourcePills: ['Google Maps', 'Facebook', 'ShopeeFood'],
+    sourcePills: ['7日間', '1店舗', '自動更新', 'テーマ別', '優先順'],
     pulseItems: [
       { label: 'Google Maps', value: '86', width: '86%', delay: '0ms' },
       { label: 'Facebook', value: '72', width: '72%', delay: '180ms' },
@@ -157,14 +157,14 @@ function HeroStatCard({
 }) {
   return (
     <div
-      className="rounded-[1.65rem] border border-[#f2e5d6] bg-white/92 p-5 shadow-[0_16px_30px_-22px_rgba(49,28,11,0.14)] backdrop-blur dark:border-[#493424] dark:bg-[#1a130f]/92 dark:shadow-[0_20px_40px_-24px_rgba(0,0,0,0.55)]"
+      className="rounded-[1.05rem] border border-[#f2e5d6] bg-white/92 p-3 shadow-[0_0.75rem_1.35rem_-1.1rem_rgba(49,28,11,0.14)] backdrop-blur dark:border-[#493424] dark:bg-[#1a130f]/92 dark:shadow-[0_0.9rem_1.7rem_-1.2rem_rgba(0,0,0,0.55)]"
       style={{
         animation: `fade-in-up 0.8s ease-out ${delayMs}ms forwards, dashboard-stat-drift 5.2s ease-in-out ${960 + delayMs}ms infinite`,
         opacity: 0,
       }}
     >
-      <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#9f8772] dark:text-[#b89b7d] md:text-[13px]">{label}</p>
-      <p className="mt-2 text-[2.6rem] font-black leading-none text-[#201611] dark:text-[#fff7ef] md:text-[2.95rem]">{value}</p>
+      <p className="text-[0.53125rem] font-bold uppercase tracking-[0.1em] text-[#9f8772] dark:text-[#b89b7d] md:text-[0.59375rem]">{label}</p>
+      <p className="mt-1.5 text-[1.5rem] font-black leading-none text-[#201611] dark:text-[#fff7ef] md:text-[1.72rem]">{value}</p>
     </div>
   )
 }
@@ -195,13 +195,70 @@ function HeroOutlineCluster({
   )
 }
 
+function HeroSourceWordmark({ source, index }: { source: string; index: number }) {
+  const shellClassName =
+    'inline-flex min-h-[2.35rem] w-full items-center justify-center gap-1.5 text-[#7f6f60] transition duration-300 hover:text-[#5f4d3d] dark:text-[#dac3a7] dark:hover:text-[#f4ddc2]'
+  const animationStyle = {
+    animation: `fade-in-up 0.72s ease-out ${180 + index * 85}ms forwards`,
+    opacity: 0,
+  } as const
+
+  if (source === 'Google Maps') {
+    return (
+      <span className={shellClassName} style={animationStyle}>
+        <span className="font-black tracking-[-0.045em] text-[1rem]">Google</span>
+        <span className="text-[0.58rem] font-bold uppercase tracking-[0.14em]">Maps</span>
+      </span>
+    )
+  }
+
+  if (source === 'Facebook') {
+    return (
+      <span className={shellClassName} style={animationStyle}>
+        <span className="font-black tracking-[-0.04em] text-[1.03rem] lowercase">facebook</span>
+      </span>
+    )
+  }
+
+  if (source === 'ShopeeFood') {
+    return (
+      <span className={shellClassName} style={animationStyle}>
+        <span className="font-black tracking-[-0.04em] text-[0.98rem]">Shopee</span>
+        <span className="text-[0.78rem] font-extrabold tracking-[-0.03em]">Food</span>
+      </span>
+    )
+  }
+
+  if (source === 'Grab') {
+    return (
+      <span className={shellClassName} style={animationStyle}>
+        <span className="font-black tracking-[-0.055em] text-[1.06rem] italic">Grab</span>
+      </span>
+    )
+  }
+
+  if (source === 'TikTok') {
+    return (
+      <span className={shellClassName} style={animationStyle}>
+        <span className="font-black tracking-[-0.05em] text-[1rem]">TikTok</span>
+      </span>
+    )
+  }
+
+  return (
+    <span className={shellClassName} style={animationStyle}>
+      <span className="font-extrabold tracking-[-0.035em] text-[0.98rem]">{source}</span>
+    </span>
+  )
+}
+
 function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
   const pulseItems = ui.pulseItems
 
   return (
-    <div className="relative mx-auto w-full max-w-[53.5rem] px-1 py-4 md:px-3 md:py-5 lg:ml-auto lg:mr-0 lg:translate-x-8 xl:translate-x-10">
-      <div className="pointer-events-none absolute inset-x-8 top-6 h-[31rem] rounded-[3.4rem] bg-[radial-gradient(circle,rgba(235,122,28,0.2)_0%,rgba(235,122,28,0.06)_40%,transparent_72%)] blur-[38px]" />
-      <div className="pointer-events-none absolute inset-x-16 top-14 hidden h-[26rem] rounded-[3rem] border border-[#f5dcc0]/60 md:block" />
+    <div className="relative mx-auto w-full max-w-[35.25rem] px-0 py-1 md:px-0.5 md:py-1 lg:ml-auto lg:mr-0">
+      <div className="pointer-events-none absolute inset-x-4 top-1 h-[22.75rem] rounded-[2.1rem] bg-[radial-gradient(circle,rgba(235,122,28,0.12)_0%,rgba(235,122,28,0.035)_40%,transparent_72%)] blur-[18px]" />
+      <div className="pointer-events-none absolute inset-x-8 top-4 hidden h-[19.75rem] rounded-[1.8rem] border border-[#f5dcc0]/60 md:block" />
       <span className="pointer-events-none absolute left-4 top-16 hidden text-[2rem] font-light text-[#eb7a1c]/24 animate-float-slow md:block">
         +
       </span>
@@ -209,9 +266,9 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
         +
       </span>
 
-      <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_14.75rem] lg:items-start">
-        <section className="space-y-4">
-          <div className="animate-dashboard-panel relative overflow-hidden rounded-[2.55rem] border border-white/80 bg-[rgba(255,252,247,0.88)] p-5 shadow-[0_38px_90px_-48px_rgba(53,30,11,0.28)] backdrop-blur-xl dark:border-[#463224] dark:bg-[rgba(22,15,11,0.9)] dark:shadow-[0_42px_96px_-46px_rgba(0,0,0,0.68)] md:p-6">
+      <div className="relative grid gap-3 lg:min-h-[30.5rem] lg:grid-cols-[minmax(0,1fr)_8.65rem] lg:items-stretch">
+        <section className="space-y-3 lg:flex lg:h-full lg:flex-col lg:space-y-0">
+          <div className="animate-dashboard-panel relative overflow-hidden rounded-[1.25rem] border border-white/80 bg-[rgba(255,252,247,0.88)] p-3 shadow-[0_1.15rem_2.55rem_-2.3rem_rgba(53,30,11,0.28)] backdrop-blur-xl dark:border-[#463224] dark:bg-[rgba(22,15,11,0.9)] dark:shadow-[0_1.35rem_2.8rem_-2.3rem_rgba(0,0,0,0.68)] md:p-[0.8125rem] lg:flex lg:flex-1 lg:flex-col">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <span
@@ -227,33 +284,33 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
                   style={{ animationDelay: '360ms' }}
                 />
               </div>
-              <p className="whitespace-nowrap text-[12px] font-bold uppercase tracking-[0.16em] text-[#aa927d] dark:text-[#c3a589] md:text-[13px]">
+              <p className="whitespace-nowrap text-[0.53125rem] font-bold uppercase tracking-[0.1em] text-[#aa927d] dark:text-[#c3a589] md:text-[0.59375rem]">
                 {ui.dashboardLabel}
               </p>
             </div>
 
-            <div className="mt-5 grid gap-3.5 md:grid-cols-2">
+            <div className="mt-2.75 grid gap-2.25 md:grid-cols-2">
               <HeroStatCard value="1,240" label={ui.totalReviewsLabel} delayMs={160} />
               <HeroStatCard value="4.8" label={ui.averageRatingLabel} delayMs={240} />
             </div>
 
             <div
-              className="animate-fade-in-up relative mt-6 overflow-hidden rounded-[2.05rem] border border-[#f4e7d8] bg-white/82 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)] dark:border-[#3f2d20] dark:bg-[#16100c]/82 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+              className="animate-fade-in-up relative mt-3.5 overflow-hidden rounded-[1rem] border border-[#f4e7d8] bg-white/82 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)] dark:border-[#3f2d20] dark:bg-[#16100c]/82 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] lg:flex lg:flex-1 lg:flex-col"
               style={{ animationDelay: '300ms', opacity: 0 }}
             >
               <span
                 aria-hidden
                 className="animate-dashboard-sheen pointer-events-none absolute inset-y-10 left-[-34%] w-[34%] rotate-[12deg] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.42),transparent)] blur-xl"
               />
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <p className="text-[1.02rem] font-bold text-[#3e3024] dark:text-[#fff3e4] md:text-[1.08rem]">{ui.chartTitle}</p>
-                <span className="animate-dashboard-pill rounded-xl bg-[#fff1df] px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.12em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:text-[13px]">
+              <div className="mb-3.5 flex items-center justify-between gap-2.5">
+                <p className="text-[0.625rem] font-bold text-[#3e3024] dark:text-[#fff3e4] md:text-[0.6875rem]">{ui.chartTitle}</p>
+                <span className="animate-dashboard-pill rounded-xl bg-[#fff1df] px-2 py-0.5 text-[0.46875rem] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:text-[0.53125rem]">
                   +12 %
                 </span>
               </div>
 
-              <div className="rounded-[1.65rem] bg-[#fff8f1] px-4 pb-3 pt-5 dark:bg-[#21160f]">
-                <div className="animate-dashboard-chart flex h-[11rem] items-end gap-2 md:h-[11.6rem]">
+              <div className="rounded-[0.82rem] bg-[#fff8f1] px-2.25 pb-3 pt-2.75 dark:bg-[#21160f] lg:flex lg:flex-1 lg:flex-col">
+                <div className="animate-dashboard-chart flex h-[7.2rem] items-end gap-0.75 md:h-[7.7rem] lg:h-full lg:min-h-[9.9rem]">
                   {HERO_CHART_HEIGHTS.map((height, index) => (
                     <div key={`${height}-${index}`} className="flex flex-1 self-end" style={{ height: `${height}%` }}>
                       <div
@@ -273,11 +330,11 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
                   ))}
                 </div>
 
-                <div className="mt-3.5 flex gap-2">
+                <div className="mt-2 flex gap-0.75">
                   {ui.chartAxisLabels.map((label) => (
                     <span
                       key={label}
-                      className="flex-1 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#9a8069] dark:text-[#bea183] md:text-[12px]"
+                      className="flex-1 text-center text-[0.4375rem] font-bold uppercase tracking-[0.04em] text-[#9a8069] dark:text-[#bea183] md:text-[0.5rem]"
                     >
                       {label}
                     </span>
@@ -285,11 +342,11 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2.5">
+              <div className="mt-2.25 flex flex-wrap gap-0.75 lg:mt-3">
                 {ui.sourcePills.map((pill, index) => (
                   <span
                     key={pill}
-                    className="whitespace-nowrap rounded-full border border-[#ecd4b8] bg-white px-4 py-2.5 text-[12px] font-semibold text-[#7b6652] shadow-[0_10px_18px_-16px_rgba(53,30,11,0.18)] dark:border-[#493525] dark:bg-[#20160f] dark:text-[#e0cab2] dark:shadow-[0_14px_28px_-18px_rgba(0,0,0,0.45)] md:text-[13px]"
+                    className="whitespace-nowrap rounded-full border border-[#ecd4b8] bg-white px-1.75 py-0.75 text-[0.4375rem] font-semibold text-[#7b6652] shadow-[0_0.75rem_1.125rem_-1rem_rgba(53,30,11,0.18)] dark:border-[#493525] dark:bg-[#20160f] dark:text-[#e0cab2] dark:shadow-[0_0.95rem_1.6rem_-1.1rem_rgba(0,0,0,0.45)] md:text-[0.5rem]"
                     style={{
                       animation: `fade-in-up 0.8s ease-out ${780 + index * 80}ms forwards, dashboard-chip-drift 4.8s ease-in-out ${1460 + index * 180}ms infinite`,
                       opacity: 0,
@@ -302,70 +359,70 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
             </div>
           </div>
 
-          <div className="pt-1">
-            <div className="animate-hero-card-b min-h-[7.7rem] w-full rounded-[1.75rem] border border-[#f1e2d2] bg-white/96 p-4 shadow-[0_24px_54px_-34px_rgba(53,30,11,0.2)] backdrop-blur dark:border-[#483425] dark:bg-[#1a130f]/95 dark:shadow-[0_26px_56px_-30px_rgba(0,0,0,0.54)] md:p-5">
-              <p className="max-w-[34rem] text-[14px] italic leading-7 text-[#7f6956] dark:text-[#d7bea2] md:text-[15px]">
+          <div className="pt-0.5 lg:mt-3 lg:pt-0">
+            <div className="animate-hero-card-b w-full rounded-[0.92rem] border border-[#f1e2d2] bg-white/96 px-[0.9375rem] py-[0.75rem] shadow-[0_0.85rem_1.85rem_-1.75rem_rgba(53,30,11,0.2)] backdrop-blur dark:border-[#483425] dark:bg-[#1a130f]/95 dark:shadow-[0_0.95rem_2rem_-1.65rem_rgba(0,0,0,0.54)] md:px-[1rem] md:py-[0.8125rem]">
+              <p className="max-w-[20rem] text-[0.53125rem] italic leading-[0.9rem] text-[#7f6956] dark:text-[#d7bea2] md:text-[0.59375rem]">
                 "{ui.reviewCardQuote}"
               </p>
-              <div className="mt-4 flex items-center gap-2 text-[12px] font-bold text-[#eb7a1c] md:text-[13px]">
-                <span className="h-px w-5 bg-[#eb7a1c]" />
+              <div className="mt-1.5 flex items-center gap-2 text-[0.4375rem] font-bold text-[#eb7a1c] md:text-[0.5rem]">
+                <span className="h-px w-4 bg-[#eb7a1c]" />
                 <span>{ui.quoteSource}</span>
               </div>
             </div>
           </div>
         </section>
 
-        <aside className="grid gap-4">
-          <div className="animate-hero-card-a rounded-[1.8rem] border border-white/85 bg-white/95 p-3.5 shadow-[0_24px_56px_-34px_rgba(53,30,11,0.22)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_28px_60px_-32px_rgba(0,0,0,0.58)]">
-            <div className="relative overflow-hidden rounded-[1.5rem] border border-[#f6e8d7] bg-[radial-gradient(circle_at_24%_18%,#fffaf0_0%,#f8ecde_60%,#f0e2cf_100%)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-[#413023] dark:bg-[radial-gradient(circle_at_24%_18%,#322117_0%,#21150f_62%,#170f0b_100%)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <aside className="grid gap-3 lg:h-full lg:grid-rows-[auto_auto_1fr]">
+          <div className="animate-hero-card-a rounded-[0.92rem] border border-white/85 bg-white/95 p-2.5 shadow-[0_0.9rem_1.9rem_-1.7rem_rgba(53,30,11,0.22)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_1rem_2.1rem_-1.65rem_rgba(0,0,0,0.58)]">
+            <div className="relative overflow-hidden rounded-[0.85rem] border border-[#f6e8d7] bg-[radial-gradient(circle_at_24%_18%,#fffaf0_0%,#f8ecde_60%,#f0e2cf_100%)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-[#413023] dark:bg-[radial-gradient(circle_at_24%_18%,#322117_0%,#21150f_62%,#170f0b_100%)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <div className="pointer-events-none absolute inset-x-6 top-1 h-16 rounded-full bg-[rgba(255,255,255,0.34)] blur-2xl" />
               <img
                 src={HERO_REVIEW_IMAGE}
                 alt={ui.galleryAltPrefix}
                 loading="lazy"
                 decoding="async"
-                className="relative aspect-square w-full rounded-[1.2rem] object-cover shadow-[0_18px_30px_-26px_rgba(53,30,11,0.22)]"
+                className="relative aspect-square w-full rounded-[0.85rem] object-cover shadow-[0_14px_24px_-22px_rgba(53,30,11,0.22)]"
               />
             </div>
 
-            <div className="mt-3.5 flex items-center justify-between gap-3">
+            <div className="mt-2 flex items-center justify-between gap-2">
               <div className="flex items-center gap-0 text-[#f28d2b]">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <span key={star} className="material-symbols-outlined text-[17px] leading-none">
+                  <span key={star} className="material-symbols-outlined text-[10px] leading-none">
                     star
                   </span>
                 ))}
               </div>
-              <span className="rounded-lg bg-[#f7f3ed] px-2.5 py-1.5 text-[12px] font-bold text-[#a18668] dark:bg-[#2a1c13] dark:text-[#e5cdb2] md:text-[13px]">4.8</span>
+              <span className="rounded-lg bg-[#f7f3ed] px-1.5 py-0.75 text-[0.4375rem] font-bold text-[#a18668] dark:bg-[#2a1c13] dark:text-[#e5cdb2] md:text-[0.5rem]">4.8</span>
             </div>
           </div>
 
-          <div className="animate-hero-card-c rounded-[1.8rem] border border-white/85 bg-white/94 p-4.5 shadow-[0_24px_54px_-32px_rgba(53,30,11,0.18)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_24px_56px_-30px_rgba(0,0,0,0.54)]">
+          <div className="animate-hero-card-c min-h-[8.7rem] rounded-[0.92rem] border border-white/85 bg-white/94 p-2.75 shadow-[0_0.9rem_1.9rem_-1.7rem_rgba(53,30,11,0.18)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_1rem_2.1rem_-1.65rem_rgba(0,0,0,0.54)]">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#9f7d5c] dark:text-[#c1a184] md:text-[13px]">{ui.signalLabel}</span>
-              <span className="inline-flex min-w-[5.75rem] items-center justify-center rounded-full bg-[#fff1df] px-3 py-1.5 text-center text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:min-w-[6rem] md:text-[13px]">
+              <span className="text-[0.5rem] font-bold uppercase tracking-[0.09em] text-[#9f7d5c] dark:text-[#c1a184] md:text-[0.5625rem]">{ui.signalLabel}</span>
+              <span className="inline-flex min-w-[3.45rem] items-center justify-center rounded-full bg-[#fff1df] px-1.75 py-0.75 text-center text-[0.4375rem] font-bold uppercase tracking-[0.04em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:min-w-[3.7rem] md:text-[0.5rem]">
                 {ui.reviewCardTime}
               </span>
             </div>
 
-            <p className="mt-4 min-h-[3rem] text-[1.02rem] font-bold leading-6 text-[#201611] dark:text-[#fff6ec] md:text-[1.08rem]">
+            <p className="mt-1.75 min-h-[1.9rem] text-[0.625rem] font-bold leading-[0.95rem] text-[#201611] dark:text-[#fff6ec] md:text-[0.6875rem]">
               {ui.reviewCardTitle}
             </p>
 
-            <div className="mt-5 space-y-4">
+            <div className="mt-3.5 space-y-2.5">
               <div>
-                <div className="mb-1.5 flex justify-end">
-                  <span className="text-[12px] font-bold text-[#d96f1d] md:text-[13px]">86%</span>
+                <div className="mb-1 flex justify-end">
+                  <span className="text-[0.5rem] font-bold text-[#d96f1d] md:text-[0.5625rem]">86%</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#fde8cf] dark:bg-[#352419]">
+                <div className="h-1.5 overflow-hidden rounded-full bg-[#fde8cf] dark:bg-[#352419]">
                   <div className="animate-dashboard-meter h-full w-[86%] rounded-full bg-[#f28d2b]" />
                 </div>
               </div>
               <div>
-                <div className="mb-1.5 flex justify-end">
-                  <span className="text-[12px] font-bold text-[#34c97a] md:text-[13px]">96%</span>
+                <div className="mb-1 flex justify-end">
+                  <span className="text-[0.5rem] font-bold text-[#34c97a] md:text-[0.5625rem]">96%</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#dff4e6] dark:bg-[#16251b]">
+                <div className="h-1.5 overflow-hidden rounded-full bg-[#dff4e6] dark:bg-[#16251b]">
                   <div
                     className="animate-dashboard-meter h-full w-[96%] rounded-full bg-[#34c97a]"
                     style={{ animationDelay: '180ms' }}
@@ -375,29 +432,29 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
             </div>
           </div>
 
-          <div className="animate-hero-card-d rounded-[1.8rem] border border-white/85 bg-white/94 p-4.5 shadow-[0_24px_54px_-32px_rgba(53,30,11,0.18)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_24px_56px_-30px_rgba(0,0,0,0.54)]">
+          <div className="animate-hero-card-d min-h-[9.4rem] rounded-[0.92rem] border border-white/85 bg-white/94 p-2.75 shadow-[0_0.9rem_1.9rem_-1.7rem_rgba(53,30,11,0.18)] backdrop-blur dark:border-[#463224] dark:bg-[#1b140f]/94 dark:shadow-[0_1rem_2.1rem_-1.65rem_rgba(0,0,0,0.54)] lg:h-full">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className="animate-dashboard-live-dot size-2 rounded-full bg-[#34c97a]" />
-                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#9f7d5c] dark:text-[#c1a184] md:text-[13px]">{ui.pulseTitle}</p>
+                <p className="text-[0.5rem] font-bold uppercase tracking-[0.09em] text-[#9f7d5c] dark:text-[#c1a184] md:text-[0.5625rem]">{ui.pulseTitle}</p>
               </div>
-              <span className="inline-flex min-w-[4.35rem] items-center justify-center rounded-md bg-[#fff3e6] px-3 py-1.5 text-center text-[12px] font-bold uppercase tracking-[0.06em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:min-w-[4.5rem] md:text-[13px]">
+              <span className="inline-flex min-w-[3rem] items-center justify-center rounded-md bg-[#fff3e6] px-1.75 py-0.75 text-center text-[0.4375rem] font-bold uppercase tracking-[0.04em] text-[#d96f1d] dark:bg-[#2b1b11] dark:text-[#f4b167] md:min-w-[3.3rem] md:text-[0.5rem]">
                 {ui.liveLabel}
               </span>
             </div>
 
-            <p className="mt-4 min-h-[2.75rem] text-[14px] font-bold leading-6 text-[#201611] dark:text-[#fff6ec] md:text-[15px]">
+            <p className="mt-1.75 min-h-[1.8rem] text-[0.5625rem] font-bold leading-[0.9rem] text-[#201611] dark:text-[#fff6ec] md:text-[0.625rem]">
               {ui.pulseSubtitle}
             </p>
 
-            <div className="mt-5 space-y-4.5">
+            <div className="mt-3.5 space-y-2.5">
               {pulseItems.map((item) => (
                 <div key={item.label} className="animate-dashboard-mini-row" style={{ animationDelay: item.delay }}>
-                  <div className="mb-2 flex items-center justify-between gap-3 text-[12px] font-bold md:text-[13px]">
+                  <div className="mb-1 flex items-center justify-between gap-3 text-[0.5rem] font-bold md:text-[0.5625rem]">
                     <span className="whitespace-nowrap text-[#5f4b3b] dark:text-[#dcc7ae]">{item.label}</span>
                     <span className="text-[#d96f1d]">{item.value}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[#f8ebdc] dark:bg-[#312218]">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[#f8ebdc] dark:bg-[#312218]">
                     <div
                       className="animate-dashboard-meter h-full rounded-full bg-[linear-gradient(90deg,#f2b24d_0%,#eb7a1c_100%)]"
                       style={{ width: item.width, animationDelay: item.delay }}
@@ -407,10 +464,10 @@ function HeroDashboardMockup({ ui }: { ui: HeroVisualCopy }) {
               ))}
             </div>
 
-            <div className="mt-7 flex items-center justify-center gap-2 text-[12px] font-bold uppercase tracking-[0.12em] text-[#917760] dark:text-[#c3aa8f] md:text-[13px]">
-              <span className="h-px w-5 shrink-0 bg-[#e6d3bf] dark:bg-[#4c3727]" />
+            <div className="mt-4 flex items-center justify-center gap-2 text-[0.4375rem] font-bold uppercase tracking-[0.08em] text-[#917760] dark:text-[#c3aa8f] md:text-[0.5rem]">
+              <span className="h-px w-4 shrink-0 bg-[#e6d3bf] dark:bg-[#4c3727]" />
               <span className="text-center leading-[1.15]">{ui.pulseFooter}</span>
-              <span className="h-px w-5 shrink-0 bg-[#e6d3bf] dark:bg-[#4c3727]" />
+              <span className="h-px w-4 shrink-0 bg-[#e6d3bf] dark:bg-[#4c3727]" />
             </div>
           </div>
         </aside>
@@ -433,13 +490,13 @@ export function HeroSection({
   const isBrandLeadHero = copy.hero.titleLine1.trim() === copy.header.brand
   const secondaryLine = copy.hero.titleLine2
   const heroEyebrowClass =
-    'mt-3 block max-w-fit text-[10px] font-bold uppercase tracking-[0.22em] leading-[1.2] text-primary sm:mt-3.5 sm:text-[11px] sm:whitespace-nowrap xl:text-[12px]'
+    'mt-2 block max-w-fit text-[0.53125rem] font-bold uppercase tracking-[0.17em] leading-[1.2] text-primary sm:mt-2.5 sm:text-[0.59375rem] sm:whitespace-nowrap xl:text-[0.65625rem]'
   const heroAccentClass =
     language === 'en'
-      ? 'mt-3 block max-w-fit font-serif text-[clamp(1.05rem,3vw,2.95rem)] italic leading-[0.95] text-[#e87a20] lg:whitespace-nowrap'
+      ? 'mt-2 block max-w-fit font-serif text-[clamp(0.92rem,1.75vw,1.75rem)] italic leading-[0.98] text-[#e87a20] lg:whitespace-nowrap'
       : language === 'ja'
-        ? 'mt-3 block max-w-fit font-serif text-[clamp(1.1rem,2.9vw,2.8rem)] italic leading-[1] text-[#e87a20] lg:whitespace-nowrap'
-        : 'mt-3 block max-w-fit font-serif text-[clamp(1.05rem,3.05vw,3rem)] italic leading-[0.98] text-[#e87a20] lg:whitespace-nowrap'
+        ? 'mt-2 block max-w-fit font-serif text-[clamp(0.92rem,1.65vw,1.65rem)] italic leading-[1] text-[#e87a20] lg:whitespace-nowrap'
+        : 'mt-2 block max-w-fit font-serif text-[clamp(0.92rem,1.8vw,1.8rem)] italic leading-[0.98] text-[#e87a20] lg:whitespace-nowrap'
 
   useEffect(() => {
     if (!isScanning) return
@@ -472,38 +529,46 @@ export function HeroSection({
     >
       <div className="absolute inset-0 overflow-hidden">
         <HeroOutlineCluster
-          className="left-[-6%] top-[7.75rem] h-[33rem] w-[21rem] -rotate-[11deg]"
-          outerClassName="left-0 top-0 h-[31rem] w-[18rem]"
-          middleClassName="left-[2.6rem] top-[1.6rem] h-[26rem] w-[14rem]"
-          innerClassName="left-[5rem] top-[3rem] h-[21rem] w-[10rem]"
+          className="left-[-4.25%] top-[8rem] h-[27.5rem] w-[17rem] -rotate-[11deg]"
+          outerClassName="left-0 top-0 h-[25.75rem] w-[14rem]"
+          middleClassName="left-[2rem] top-[1.35rem] h-[21rem] w-[10.8rem]"
+          innerClassName="left-[3.7rem] top-[2.55rem] h-[16.75rem] w-[7.75rem]"
         />
         <HeroOutlineCluster
-          className="right-[-6%] top-[7.75rem] h-[33rem] w-[21rem] rotate-[11deg]"
-          outerClassName="right-0 top-0 h-[31rem] w-[18rem]"
-          middleClassName="right-[2.6rem] top-[1.6rem] h-[26rem] w-[14rem]"
-          innerClassName="right-[5rem] top-[3rem] h-[21rem] w-[10rem]"
+          className="right-[-4.25%] top-[8rem] h-[27.5rem] w-[17rem] rotate-[11deg]"
+          outerClassName="right-0 top-0 h-[25.75rem] w-[14rem]"
+          middleClassName="right-[2rem] top-[1.35rem] h-[21rem] w-[10.8rem]"
+          innerClassName="right-[3.7rem] top-[2.55rem] h-[16.75rem] w-[7.75rem]"
         />
         <HeroOutlineCluster
-          className="bottom-[2.5rem] left-[-3.5%] h-[18rem] w-[12rem] rotate-[15deg] opacity-80"
-          outerClassName="left-0 top-0 h-[16rem] w-[9rem]"
-          middleClassName="left-[1.55rem] top-[1.1rem] h-[13rem] w-[6.75rem]"
-          innerClassName="left-[2.95rem] top-[2.1rem] h-[10rem] w-[4.6rem]"
+          className="bottom-[4rem] left-[-2.25%] h-[14.5rem] w-[9.25rem] rotate-[15deg] opacity-70"
+          outerClassName="left-0 top-0 h-[13rem] w-[7.15rem]"
+          middleClassName="left-[1.25rem] top-[0.9rem] h-[10.45rem] w-[5.45rem]"
+          innerClassName="left-[2.3rem] top-[1.7rem] h-[8.1rem] w-[3.75rem]"
         />
         <HeroOutlineCluster
-          className="bottom-[2.5rem] right-[-3.5%] h-[18rem] w-[12rem] -rotate-[15deg] opacity-80"
-          outerClassName="right-0 top-0 h-[16rem] w-[9rem]"
-          middleClassName="right-[1.55rem] top-[1.1rem] h-[13rem] w-[6.75rem]"
-          innerClassName="right-[2.95rem] top-[2.1rem] h-[10rem] w-[4.6rem]"
+          className="bottom-[4rem] right-[-2.25%] h-[14.5rem] w-[9.25rem] -rotate-[15deg] opacity-70"
+          outerClassName="right-0 top-0 h-[13rem] w-[7.15rem]"
+          middleClassName="right-[1.25rem] top-[0.9rem] h-[10.45rem] w-[5.45rem]"
+          innerClassName="right-[2.3rem] top-[1.7rem] h-[8.1rem] w-[3.75rem]"
+        />
+        <div
+          aria-hidden
+          className="absolute hidden lg:block left-[-5.25%] top-[16.25rem] h-[24.5rem] w-[13rem] rotate-[17deg] rounded-[999px] border border-[#e7c79f]/36 opacity-52"
+        />
+        <div
+          aria-hidden
+          className="absolute hidden lg:block right-[-5.25%] top-[16.25rem] h-[24.5rem] w-[13rem] -rotate-[17deg] rounded-[999px] border border-[#ddb889]/33 opacity-52"
         />
       </div>
 
-      <div className="relative mx-auto flex min-h-[100svh] max-w-[1680px] items-center px-4 pb-8 pt-20 md:px-8 md:pb-10 lg:px-10 lg:pb-12 lg:pt-28 xl:px-14">
-        <div className="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:gap-14 xl:gap-16">
-          <div className="relative z-10 max-w-[41rem] space-y-5 md:space-y-6 lg:space-y-7 lg:-translate-x-8 lg:pr-8 xl:-translate-x-10">
-            <div className="space-y-7 md:space-y-8">
+      <div className="relative mx-auto flex min-h-[100svh] max-w-[78rem] items-center px-4 pb-5 pt-15 md:px-6 md:pb-6 lg:px-7 lg:pb-8 lg:pt-20 xl:px-8">
+        <div className="grid w-full items-center gap-5 lg:grid-cols-[minmax(0,0.74fr)_minmax(0,1fr)] lg:gap-3 xl:gap-4">
+          <div className="relative z-10 max-w-[29.5rem] space-y-3.5 md:space-y-[1.125rem] lg:translate-x-6 lg:pr-1 xl:translate-x-8">
+            <div className="space-y-4 md:space-y-[1.125rem]">
               {isBrandLeadHero ? (
-                <h1 className="mt-5">
-                  <span className="block font-display text-[clamp(4.9rem,10vw,7.8rem)] font-black leading-[0.86] tracking-[-0.085em] text-[#201611] dark:text-white">
+                <h1 className="mt-2">
+                  <span className="relative -top-2 block font-display text-[clamp(2.55rem,4.15vw,4rem)] font-black leading-[0.88] tracking-[-0.068em] text-[#201611] dark:text-white md:-top-3">
                     {copy.hero.titleLine1}
                   </span>
                   <span className={heroEyebrowClass}>
@@ -514,8 +579,8 @@ export function HeroSection({
                   </span>
                 </h1>
               ) : (
-                <h1 className="mt-5 font-display text-[clamp(4rem,8vw,6.8rem)] font-black leading-[0.88] tracking-[-0.065em] text-[#201611] dark:text-white">
-                  <span className="block">{copy.hero.titleLine1}</span>
+                <h1 className="mt-2 font-display text-[clamp(2.4rem,3.95vw,3.6rem)] font-black leading-[0.9] tracking-[-0.055em] text-[#201611] dark:text-white">
+                  <span className="relative -top-2 block md:-top-3">{copy.hero.titleLine1}</span>
                   <span className={heroEyebrowClass}>
                     {ui.eyebrow}
                   </span>
@@ -525,15 +590,15 @@ export function HeroSection({
                 </h1>
               )}
 
-              <p className="max-w-[36rem] text-balance text-base leading-[2.08rem] text-[#665244] md:text-lg md:leading-[2.2rem] dark:text-[#d2bda1]">
+              <p className="max-w-[24rem] text-balance text-[0.84rem] leading-[1.5rem] text-[#665244] md:text-[0.9rem] md:leading-[1.65rem] dark:text-[#d2bda1]">
                 {copy.hero.description}
               </p>
 
             </div>
 
-            <div className="max-w-[39rem] rounded-[2rem] border border-[#e6d1bb] bg-white/78 p-3 shadow-[0_28px_60px_-38px_rgba(53,30,11,0.24)] backdrop-blur dark:border-white/10 dark:bg-white/7">
+            <div className="animate-hero-search-shell max-w-[33rem] rounded-[1.3rem] border border-[#e6d1bb] bg-white/78 p-[0.4375rem] shadow-[0_1.2rem_2.3rem_-1.9rem_rgba(53,30,11,0.24)] backdrop-blur dark:border-white/10 dark:bg-white/7">
               <form
-                className="flex flex-col gap-3 sm:flex-row"
+                className="grid gap-[0.5rem] sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center"
                 onSubmit={(event) => {
                   event.preventDefault()
                   if (isScanning) return
@@ -541,7 +606,7 @@ export function HeroSection({
                   setIsScanning(true)
                 }}
               >
-                <label className="relative min-w-0 flex-1">
+                <label className="relative min-w-0">
                   <span className="sr-only">{ui.searchPlaceholder}</span>
                   <input
                     type="text"
@@ -549,10 +614,10 @@ export function HeroSection({
                     onChange={(event) => setDraftQuery(event.target.value)}
                     placeholder={ui.searchPlaceholder}
                     disabled={isScanning}
-                    className="w-full rounded-[1.45rem] border border-[#ddc2a6] bg-[#fffdfa] px-5 py-4 pl-12 text-[15px] text-[#201611] shadow-[inset_0_0_0_1px_rgba(138,106,74,0.18)] outline-none transition placeholder:text-[#7d654f]/82 hover:border-[#d5b48e] focus:border-[#e87a20] focus:shadow-[inset_0_0_0_1px_rgba(232,122,32,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/12 dark:bg-white/8 dark:text-white dark:placeholder:text-white/42 md:text-base"
+                    className="w-full rounded-[1rem] border border-[#ddc2a6] bg-[#fffdfa] px-4 py-[0.6875rem] pl-12 text-[0.8rem] text-[#201611] shadow-[inset_0_0_0_1px_rgba(138,106,74,0.18)] outline-none transition placeholder:text-[#7d654f]/82 hover:border-[#d5b48e] focus:border-[#e87a20] focus:shadow-[inset_0_0_0_1px_rgba(232,122,32,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/12 dark:bg-white/8 dark:text-white dark:placeholder:text-white/42 md:text-[0.84rem]"
                   />
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8a6a4a] dark:text-[#ccb79b]">
-                    <span className="material-symbols-outlined text-[20px]">search</span>
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 items-center justify-center text-[#8a6a4a] dark:text-[#ccb79b]">
+                    <span className="material-symbols-outlined animate-hero-search-icon text-[19px] leading-none">search</span>
                   </span>
                 </label>
 
@@ -560,7 +625,7 @@ export function HeroSection({
                   type="submit"
                   aria-label={ui.searchActionLabel}
                   disabled={isScanning}
-                  className="inline-flex h-[3.6rem] w-full items-center justify-center gap-2 rounded-[1.45rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-6 text-base font-bold text-white shadow-[0_20px_36px_-20px_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_40px_-18px_rgba(217,95,22,0.85)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-w-[11.5rem] sm:w-auto"
+                  className="inline-flex h-[2.8rem] w-full items-center justify-center gap-2 whitespace-nowrap rounded-[1rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-4.5 text-[0.82rem] font-bold text-white shadow-[0_0.95rem_1.8rem_-1rem_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_1.15rem_2rem_-1rem_rgba(217,95,22,0.85)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-w-[10rem] sm:w-auto md:text-[0.84rem]"
                 >
                   <span>{isScanning ? ui.scanningLabel : primaryLabel}</span>
                   <span className="material-symbols-outlined text-[18px]">arrow_outward</span>
@@ -579,11 +644,11 @@ export function HeroSection({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-medium text-[#836856] dark:text-[#d5bfa4] md:text-[14px]">
+            <div className="flex max-w-[33rem] flex-wrap items-center gap-x-2 gap-y-1.5 text-[0.6875rem] font-medium text-[#836856] dark:text-[#d5bfa4] md:text-[0.75rem]">
               <span>{ui.examplePrompt}</span>
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-full border border-[#e7d4c2] bg-white/72 px-3 py-1.5 text-[#b55a19] transition hover:border-[#dfb992] hover:bg-white dark:border-white/10 dark:bg-white/6 dark:text-[#f0b37a] dark:hover:bg-white/10"
+                className="inline-flex items-center gap-1 rounded-full border border-[#e7d4c2] bg-white/72 px-3 py-1 text-[#b55a19] transition hover:border-[#dfb992] hover:bg-white dark:border-white/10 dark:bg-white/6 dark:text-[#f0b37a] dark:hover:bg-white/10"
                 onClick={() => setDraftQuery(HERO_EXAMPLE_URL)}
               >
                 <span className="material-symbols-outlined text-[15px]">link</span>
@@ -591,39 +656,34 @@ export function HeroSection({
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 md:gap-[1.15rem]">
+            <div className="flex max-w-[33rem] flex-wrap items-center gap-2.5 md:gap-3">
               <button
                 type="button"
-                className="inline-flex h-11 min-w-[10.5rem] items-center justify-center rounded-full border border-[#ead4bd] bg-white/72 px-5 text-sm font-semibold text-[#201611] shadow-[0_14px_28px_-22px_rgba(53,30,11,0.18)] transition hover:border-[#eb7a1c]/40 hover:text-[#c65f17] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:border-white/10 dark:bg-white/7 dark:text-white"
+                className="inline-flex h-[2.3rem] min-w-[8.8rem] items-center justify-center rounded-full border border-transparent bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-4 text-[0.75rem] font-semibold text-white shadow-[0_0.95rem_1.8rem_-1.1rem_rgba(217,95,22,0.55)] transition hover:-translate-y-0.5 hover:shadow-[0_1.1rem_2rem_-1rem_rgba(217,95,22,0.7)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary dark:text-white"
                 onClick={onSecondaryAction}
               >
                 {secondaryLabel}
               </button>
-              <span className={`${LANDING_CHIP_CLASS} inline-flex h-11 items-center gap-2 bg-[#fff1df] text-[12px] font-semibold uppercase tracking-[0.14em] text-[#bf6519] dark:bg-white/7 dark:text-[#f3c47f] md:text-[13px]`}>
+              <span className={`${LANDING_CHIP_CLASS} inline-flex h-[2.3rem] items-center gap-2 rounded-full bg-[#fff1df] px-3.5 text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-[#bf6519] shadow-[0_0.9rem_1.65rem_-1.45rem_rgba(235,122,28,0.35)] dark:bg-white/7 dark:text-[#f3c47f] md:text-[0.6875rem]`}>
                 <span className="size-2 rounded-full bg-[#eb7a1c]" />
                 <span className="whitespace-nowrap">{ui.liveSnapshotLabel}</span>
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3.5 rounded-[1.15rem] border border-[#ebdac8]/80 bg-white/58 px-4 py-3 backdrop-blur-sm dark:border-white/10 dark:bg-white/6">
-              <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#866b58] dark:text-[#cdb69a] md:text-[13px]">
+            <div className="flex max-w-[33rem] flex-col gap-2.5 px-0.25 py-0.5">
+              <span className="text-[0.53125rem] font-semibold uppercase tracking-[0.09em] leading-[1.35] text-[#866b58] dark:text-[#cdb69a] md:text-[0.59375rem]">
                 {ui.supportedSourcesLabel}
               </span>
-              <div className="grid w-full grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-                {ui.supportedSources.map((source) => (
-                  <span
-                    key={source}
-                    className="inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-[#ead8c5] bg-white/82 px-3 py-1.5 text-center text-[12px] font-semibold text-[#6a5647] shadow-[0_10px_18px_-18px_rgba(53,30,11,0.14)] dark:border-white/10 dark:bg-white/5 dark:text-[#dec6ac] md:text-[13px]"
-                  >
-                    {source}
-                  </span>
+              <div className="grid w-full grid-cols-2 items-center gap-x-3 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-5">
+                {ui.supportedSources.map((source, index) => (
+                  <HeroSourceWordmark key={source} source={source} index={index} />
                 ))}
               </div>
             </div>
 
           </div>
 
-          <div className="relative lg:pl-0">
+          <div className="relative lg:-translate-x-4 xl:-translate-x-6">
             <HeroDashboardMockup ui={ui} />
           </div>
         </div>
