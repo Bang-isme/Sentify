@@ -76,6 +76,15 @@ async function upsertSourceByCanonicalIdentity(identity, createData, updateData)
     })
 }
 
+async function findSourceByCanonicalIdentity(identity, options = {}) {
+    return prisma.reviewCrawlSource.findUnique({
+        where: {
+            restaurantId_provider_canonicalCid: identity,
+        },
+        include: buildSourceInclude(options),
+    })
+}
+
 async function findSourceById(sourceId, options = {}) {
     return prisma.reviewCrawlSource.findUnique({
         where: { id: sourceId },
@@ -272,6 +281,7 @@ module.exports = {
     findActiveRunBySourceId,
     findRawReviewsBySourceAndKeys,
     findRunById,
+    findSourceByCanonicalIdentity,
     findSourceById,
     isActiveRunUniqueViolation,
     listDueSources,

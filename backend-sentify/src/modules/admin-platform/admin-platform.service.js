@@ -22,28 +22,111 @@ const PROOF_ARTIFACTS = [
         key: 'merchantReadLoad',
         label: 'Merchant reads local load',
         fileName: 'merchant-reads-smb-local.json',
+        scope: 'local',
     },
     {
         key: 'crawlQueueSmoke',
         label: 'Review crawl queue smoke',
         fileName: 'review-crawl-queue-smoke-redis-local.json',
+        scope: 'local',
     },
     {
         key: 'operatorDraftSmoke',
         label: 'Review ops sync-to-draft smoke',
         fileName: 'review-ops-sync-draft-smoke-redis-local.json',
+        scope: 'local',
     },
     {
         key: 'shadowRecovery',
         label: 'Staging recovery drill',
         fileName: 'staging-recovery-drill-local.json',
+        scope: 'local',
     },
     {
         key: 'logicalRecovery',
         label: 'Backend recovery drill',
         fileName: 'backend-recovery-drill-local.json',
+        scope: 'local',
+    },
+    {
+        key: 'managedReleaseEvidence',
+        label: 'Managed release evidence',
+        fileName: 'managed-release-evidence.json',
+        scope: 'managed',
+        required: false,
+    },
+    {
+        key: 'managedSignoffPreflight',
+        label: 'Managed sign-off preflight',
+        fileName: 'managed-signoff-preflight.json',
+        scope: 'managed',
+        required: false,
     },
 ]
+
+const DEFAULT_LOCAL_PROOF_MAX_AGE_HOURS = 24
+const DEFAULT_MANAGED_PROOF_MAX_AGE_HOURS = 72
+const LOCAL_PROOF_MAX_AGE_MINUTES =
+    readPositiveInteger(
+        process.env.ADMIN_PLATFORM_LOCAL_PROOF_MAX_AGE_HOURS,
+        DEFAULT_LOCAL_PROOF_MAX_AGE_HOURS,
+    ) * 60
+const MANAGED_PROOF_MAX_AGE_MINUTES =
+    readPositiveInteger(
+        process.env.ADMIN_PLATFORM_MANAGED_PROOF_MAX_AGE_HOURS,
+        DEFAULT_MANAGED_PROOF_MAX_AGE_HOURS,
+    ) * 60
+
+function readPositiveInteger(value, fallback) {
+    const parsed = Number.parseInt(value ?? '', 10)
+
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function getArtifactFreshnessWindowMinutes(artifact) {
+    return (artifact.scope || 'local') === 'managed'
+        ? MANAGED_PROOF_MAX_AGE_MINUTES
+        : LOCAL_PROOF_MAX_AGE_MINUTES
+}
+
+function buildArtifactFreshness(updatedAt, freshnessWindowMinutes) {
+    if (!updatedAt) {
+        return {
+            freshnessStatus: 'MISSING',
+            ageMinutes: null,
+            freshnessWindowMinutes,
+            stale: false,
+        }
+    }
+
+    const updatedAtTimestamp = new Date(updatedAt).getTime()
+
+    if (!Number.isFinite(updatedAtTimestamp)) {
+        return {
+            freshnessStatus: 'UNKNOWN',
+            ageMinutes: null,
+            freshnessWindowMinutes,
+            stale: true,
+        }
+    }
+
+    const ageMinutes = Math.max(
+        0,
+        Math.floor((Date.now() - updatedAtTimestamp) / 60000),
+    )
+    const stale = ageMinutes > freshnessWindowMinutes
+
+    return {
+        freshnessStatus: stale ? 'STALE' : 'FRESH',
+        ageMinutes,
+        freshnessWindowMinutes,
+        stale,
+    }
+}
+
+function findProofArtifact(proofArtifacts, key) {
+    return proofArtifacts.find((artifact) => artifact.key === key) ?? null
+}
 
 async function ensureAdminAccess(userId) {
     return getUserRoleAccess({
@@ -63,6 +146,7 @@ function buildHealthStatus(configured, healthy) {
 function summarizeProofArtifacts() {
     return PROOF_ARTIFACTS.map((artifact) => {
         const artifactPath = path.join(REPORT_DIRECTORY, artifact.fileName)
+        const freshnessWindowMinutes = getArtifactFreshnessWindowMinutes(artifact)
 
         if (!fs.existsSync(artifactPath)) {
             return {
@@ -70,42 +154,201 @@ function summarizeProofArtifacts() {
                 label: artifact.label,
                 available: false,
                 fileName: artifact.fileName,
+                scope: artifact.scope || 'local',
+                required: artifact.required !== false,
                 updatedAt: null,
+                ...buildArtifactFreshness(null, freshnessWindowMinutes),
             }
         }
 
         const stats = fs.statSync(artifactPath)
+        const updatedAt = stats.mtime.toISOString()
 
         return {
             key: artifact.key,
             label: artifact.label,
             available: true,
             fileName: artifact.fileName,
-            updatedAt: stats.mtime.toISOString(),
+            scope: artifact.scope || 'local',
+            required: artifact.required !== false,
+            updatedAt,
+            ...buildArtifactFreshness(updatedAt, freshnessWindowMinutes),
         }
     })
 }
 
+function readManagedReleaseEvidence() {
+    const artifact = PROOF_ARTIFACTS.find((item) => item.key === 'managedReleaseEvidence')
+
+    if (!artifact) {
+        return null
+    }
+
+    const artifactPath = path.join(REPORT_DIRECTORY, artifact.fileName)
+
+    if (!fs.existsSync(artifactPath)) {
+        return null
+    }
+
+    try {
+        return JSON.parse(fs.readFileSync(artifactPath, 'utf8'))
+    } catch (error) {
+        return {
+            overallStatus: 'COMPATIBILITY_PROOF_FAILED',
+            readiness: {
+                localCompatibilityProofStatus: 'COMPATIBILITY_PROOF_FAILED',
+                managedEnvProofStatus: 'MANAGED_SIGNOFF_BLOCKED',
+                gaps: ['Managed release evidence artifact could not be parsed'],
+            },
+        }
+    }
+}
+
+function readManagedSignoffPreflight() {
+    const artifact = PROOF_ARTIFACTS.find((item) => item.key === 'managedSignoffPreflight')
+
+    if (!artifact) {
+        return null
+    }
+
+    const artifactPath = path.join(REPORT_DIRECTORY, artifact.fileName)
+
+    if (!fs.existsSync(artifactPath)) {
+        return null
+    }
+
+    try {
+        return JSON.parse(fs.readFileSync(artifactPath, 'utf8'))
+    } catch (_error) {
+        return {
+            readiness: {
+                status: 'MANAGED_SIGNOFF_PENDING',
+                blockers: ['Managed sign-off preflight artifact could not be parsed'],
+            },
+        }
+    }
+}
+
 function buildReleaseReadiness(proofArtifacts) {
-    const requiredLocalArtifactKeys = PROOF_ARTIFACTS.map((artifact) => artifact.key)
-    const availableKeys = proofArtifacts
+    const requiredLocalArtifacts = proofArtifacts.filter(
+        (artifact) => artifact.scope === 'local' && artifact.required,
+    )
+    const requiredLocalArtifactKeys = requiredLocalArtifacts.map((artifact) => artifact.key)
+    const availableKeys = requiredLocalArtifacts
         .filter((artifact) => artifact.available)
         .map((artifact) => artifact.key)
-    const missingLocalArtifactKeys = requiredLocalArtifactKeys.filter(
-        (key) => !availableKeys.includes(key),
+    const missingLocalArtifactKeys = requiredLocalArtifacts
+        .filter((artifact) => !artifact.available)
+        .map((artifact) => artifact.key)
+    const staleLocalArtifactKeys = requiredLocalArtifacts
+        .filter((artifact) => artifact.freshnessStatus !== 'FRESH')
+        .map((artifact) => artifact.key)
+    const freshLocalArtifactKeys = requiredLocalArtifacts
+        .filter((artifact) => artifact.freshnessStatus === 'FRESH')
+        .map((artifact) => artifact.key)
+    const managedReleaseArtifact = findProofArtifact(
+        proofArtifacts,
+        'managedReleaseEvidence',
     )
+    const managedSignoffPreflightArtifact = findProofArtifact(
+        proofArtifacts,
+        'managedSignoffPreflight',
+    )
+    const managedReleaseEvidence = readManagedReleaseEvidence()
+    const managedSignoffPreflight = readManagedSignoffPreflight()
+    const rawCompatibilityProofStatus =
+        managedReleaseEvidence?.readiness?.localCompatibilityProofStatus ||
+        managedReleaseEvidence?.overallStatus ||
+        'PENDING'
+    const rawManagedSignoffPreflightStatus =
+        managedSignoffPreflight?.readiness?.status || 'PENDING'
+    const managedSignoffPreflightBlockers =
+        managedSignoffPreflight?.readiness?.blockers ?? []
+    const compatibilityProofStatus =
+        managedReleaseArtifact?.freshnessStatus === 'STALE' &&
+        rawCompatibilityProofStatus !== 'PENDING'
+            ? 'COMPATIBILITY_PROOF_STALE'
+            : rawCompatibilityProofStatus
+    const managedSignoffPreflightStatus =
+        managedSignoffPreflightArtifact?.freshnessStatus === 'STALE' &&
+        rawManagedSignoffPreflightStatus !== 'PENDING'
+            ? 'MANAGED_SIGNOFF_STALE'
+            : rawManagedSignoffPreflightStatus
+    const managedEnvProofStatus =
+        managedReleaseArtifact?.freshnessStatus === 'STALE'
+            ? 'MANAGED_SIGNOFF_STALE'
+            : !managedReleaseEvidence &&
+                managedSignoffPreflightArtifact?.freshnessStatus === 'STALE'
+              ? 'MANAGED_SIGNOFF_STALE'
+              : managedReleaseEvidence?.readiness?.managedEnvProofStatus ||
+                (managedSignoffPreflightStatus === 'MANAGED_SIGNOFF_READY'
+                    ? 'MANAGED_SIGNOFF_PENDING'
+                    : managedSignoffPreflightStatus) ||
+                compatibilityProofStatus ||
+                'PENDING'
+    const freshnessGaps = []
+
+    if (staleLocalArtifactKeys.length > 0) {
+        freshnessGaps.push(
+            `Local proof artifacts are stale: ${staleLocalArtifactKeys.join(', ')}`,
+        )
+    }
+
+    if (managedReleaseArtifact?.freshnessStatus === 'STALE') {
+        freshnessGaps.push(
+            `Managed release evidence artifact is stale (${managedReleaseArtifact.ageMinutes} minutes old)`,
+        )
+    }
+
+    if (
+        !managedReleaseEvidence &&
+        managedSignoffPreflightArtifact?.freshnessStatus === 'STALE'
+    ) {
+        freshnessGaps.push(
+            `Managed sign-off preflight artifact is stale (${managedSignoffPreflightArtifact.ageMinutes} minutes old)`,
+        )
+    }
+
+    const managedEnvGap =
+        freshnessGaps.length > 0
+            ? freshnessGaps.join('; ')
+            : managedReleaseEvidence
+              ? Array.isArray(managedReleaseEvidence?.readiness?.gaps) &&
+                managedReleaseEvidence.readiness.gaps.length > 0
+                  ? managedReleaseEvidence.readiness.gaps.join('; ')
+                  : 'Managed release evidence artifact is present and no open managed-environment gaps were reported.'
+              : managedSignoffPreflight
+                ? managedSignoffPreflightStatus === 'MANAGED_SIGNOFF_READY'
+                    ? 'Managed sign-off preflight is ready. Run the heavy release-evidence bundle against the external targets to complete sign-off.'
+                    : managedSignoffPreflightBlockers.join('; ')
+                : 'Managed staging or production-like backup, restore, queue, and release evidence has not been verified from this local environment yet.'
+    const managedProofTargets =
+        managedReleaseEvidence?.targets ?? managedSignoffPreflight?.targets ?? null
 
     return {
         localProofStatus:
-            missingLocalArtifactKeys.length === 0 ? 'LOCAL_PROOF_COMPLETE' : 'LOCAL_PROOF_PARTIAL',
+            missingLocalArtifactKeys.length > 0
+                ? 'LOCAL_PROOF_PARTIAL'
+                : staleLocalArtifactKeys.length > 0
+                  ? 'LOCAL_PROOF_STALE'
+                  : 'LOCAL_PROOF_COMPLETE',
         localProofCoverage: {
             requiredArtifactKeys: requiredLocalArtifactKeys,
             availableArtifactKeys: availableKeys,
             missingArtifactKeys: missingLocalArtifactKeys,
+            freshArtifactKeys: freshLocalArtifactKeys,
+            staleArtifactKeys: staleLocalArtifactKeys,
         },
-        managedEnvProofStatus: 'PENDING',
-        managedEnvGap:
-            'Managed staging or production-like backup, restore, queue, and release evidence has not been verified from this local environment yet.',
+        compatibilityProofStatus,
+        compatibilityProofFreshnessStatus:
+            managedReleaseArtifact?.freshnessStatus || 'MISSING',
+        managedEnvProofStatus,
+        managedEnvGap,
+        managedProofTargets,
+        managedSignoffPreflightStatus,
+        managedSignoffPreflightFreshnessStatus:
+            managedSignoffPreflightArtifact?.freshnessStatus || 'MISSING',
+        managedSignoffPreflightBlockers,
     }
 }
 
@@ -358,6 +601,17 @@ async function getIntegrationsPolicies({ userId }) {
         policies: {
             sourcePolicy: 'ADMIN_CURATED',
             publishPolicy: 'MANUAL_PUBLISH',
+            sourceSubmissionIngress: {
+                autoBootstrapEnabled:
+                    controls.sourceSubmissionAutoBootstrapEnabled,
+                autoBootstrapMaxPerTick:
+                    controls.sourceSubmissionAutoBootstrapMaxPerTick,
+                laneOrder: ['PRIORITY', 'STANDARD'],
+                laneRunPriority: {
+                    PRIORITY: 'HIGH',
+                    STANDARD: 'NORMAL',
+                },
+            },
             crawlDefaults: {
                 queueName: env.REVIEW_CRAWL_QUEUE_NAME,
                 runtimeMode: env.REVIEW_CRAWL_RUNTIME_MODE,
@@ -436,7 +690,30 @@ function buildAuditEvent({
 async function getAuditFeed({ userId, limit = 25 }) {
     await ensureAdminAccess(userId)
 
-    const [users, memberships, intakeBatches, crawlRuns, crawlSources, platformControls] = await Promise.all([
+    const [auditEvents, users, crawlRuns] = await Promise.all([
+        prisma.auditEvent.findMany({
+            take: limit,
+            orderBy: {
+                createdAt: 'desc',
+            },
+            include: {
+                actor: {
+                    select: {
+                        id: true,
+                        email: true,
+                        fullName: true,
+                        role: true,
+                    },
+                },
+                restaurant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                    },
+                },
+            },
+        }),
         prisma.user.findMany({
             take: limit,
             orderBy: {
@@ -448,52 +725,6 @@ async function getAuditFeed({ userId, limit = 25 }) {
                 fullName: true,
                 role: true,
                 createdAt: true,
-            },
-        }),
-        prisma.restaurantUser.findMany({
-            take: limit,
-            orderBy: {
-                createdAt: 'desc',
-            },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        email: true,
-                        fullName: true,
-                        role: true,
-                    },
-                },
-                restaurant: {
-                    select: {
-                        id: true,
-                        name: true,
-                        slug: true,
-                    },
-                },
-            },
-        }),
-        prisma.reviewIntakeBatch.findMany({
-            take: limit,
-            orderBy: {
-                createdAt: 'desc',
-            },
-            include: {
-                createdBy: {
-                    select: {
-                        id: true,
-                        email: true,
-                        fullName: true,
-                        role: true,
-                    },
-                },
-                restaurant: {
-                    select: {
-                        id: true,
-                        name: true,
-                        slug: true,
-                    },
-                },
             },
         }),
         prisma.reviewCrawlRun.findMany({
@@ -519,30 +750,25 @@ async function getAuditFeed({ userId, limit = 25 }) {
                 },
             },
         }),
-        prisma.reviewCrawlSource.findMany({
-            take: limit,
-            orderBy: {
-                updatedAt: 'desc',
-            },
-            include: {
-                restaurant: {
-                    select: {
-                        id: true,
-                        name: true,
-                        slug: true,
-                    },
-                },
-            },
-        }),
-        prisma.platformControl.findMany({
-            take: 1,
-            orderBy: {
-                updatedAt: 'desc',
-            },
-        }),
     ])
 
     const events = []
+
+    for (const event of auditEvents) {
+        events.push(
+            buildAuditEvent({
+                id: event.id,
+                timestamp: event.createdAt,
+                action: event.action,
+                resourceType: event.resourceType,
+                resourceId: event.resourceId,
+                restaurant: event.restaurant ?? null,
+                actor: event.actor ?? null,
+                summary: event.summary,
+                metadata: event.metadataJson ?? {},
+            }),
+        )
+    }
 
     for (const user of users) {
         events.push(
@@ -560,62 +786,6 @@ async function getAuditFeed({ userId, limit = 25 }) {
                 },
             }),
         )
-    }
-
-    for (const membership of memberships) {
-        events.push(
-            buildAuditEvent({
-                id: `membership-created:${membership.id}`,
-                timestamp: membership.createdAt,
-                action: 'MEMBERSHIP_ASSIGNED',
-                resourceType: 'membership',
-                resourceId: membership.id,
-                actor: null,
-                restaurant: membership.restaurant,
-                summary: `${membership.user.email} is linked to ${membership.restaurant.name}.`,
-                metadata: {
-                    userId: membership.user.id,
-                    restaurantId: membership.restaurant.id,
-                },
-            }),
-        )
-    }
-
-    for (const batch of intakeBatches) {
-        events.push(
-            buildAuditEvent({
-                id: `batch-created:${batch.id}`,
-                timestamp: batch.createdAt,
-                action: 'INTAKE_BATCH_CREATED',
-                resourceType: 'reviewBatch',
-                resourceId: batch.id,
-                actor: batch.createdBy,
-                restaurant: batch.restaurant,
-                summary: `Draft batch ${batch.title || batch.id} was created for ${batch.restaurant.name}.`,
-                metadata: {
-                    sourceType: batch.sourceType,
-                    status: batch.status,
-                },
-            }),
-        )
-
-        if (batch.publishedAt) {
-            events.push(
-                buildAuditEvent({
-                    id: `batch-published:${batch.id}`,
-                    timestamp: batch.publishedAt,
-                    action: 'INTAKE_BATCH_PUBLISHED',
-                    resourceType: 'reviewBatch',
-                    resourceId: batch.id,
-                    actor: null,
-                    restaurant: batch.restaurant,
-                    summary: `Batch ${batch.title || batch.id} was published into the canonical dataset.`,
-                    metadata: {
-                        sourceType: batch.sourceType,
-                    },
-                }),
-            )
-        }
     }
 
     for (const run of crawlRuns) {
@@ -655,50 +825,6 @@ async function getAuditFeed({ userId, limit = 25 }) {
                 }),
             )
         }
-    }
-
-    for (const source of crawlSources) {
-        events.push(
-            buildAuditEvent({
-                id: `crawl-source-updated:${source.id}`,
-                timestamp: source.updatedAt,
-                action:
-                    source.status === 'DISABLED'
-                        ? 'CRAWL_SOURCE_DISABLED'
-                        : 'CRAWL_SOURCE_ACTIVE',
-                resourceType: 'crawlSource',
-                resourceId: source.id,
-                actor: null,
-                restaurant: source.restaurant,
-                summary: `Source ${source.placeName || source.canonicalCid} is currently ${source.status}.`,
-                metadata: {
-                    provider: source.provider,
-                    syncEnabled: source.syncEnabled,
-                },
-            }),
-        )
-    }
-
-    for (const controls of platformControls) {
-        events.push(
-            buildAuditEvent({
-                id: `platform-controls-updated:${controls.id}:${controls.updatedAt.toISOString()}`,
-                timestamp: controls.updatedAt,
-                action: 'PLATFORM_CONTROLS_UPDATED',
-                resourceType: 'platformControl',
-                resourceId: controls.id,
-                actor: null,
-                restaurant: null,
-                summary: 'Platform runtime controls were updated.',
-                metadata: {
-                    crawlQueueWritesEnabled: controls.crawlQueueWritesEnabled,
-                    crawlMaterializationEnabled: controls.crawlMaterializationEnabled,
-                    intakePublishEnabled: controls.intakePublishEnabled,
-                    note: controls.note ?? null,
-                    updatedByUserId: controls.updatedByUserId ?? null,
-                },
-            }),
-        )
     }
 
     const sorted = events

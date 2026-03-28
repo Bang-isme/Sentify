@@ -6,6 +6,7 @@ const { INTERNAL_OPERATOR_ROLES } = require('../../lib/user-roles')
 const { revokeAllUserTokens } = require('../../services/refresh-token.service')
 const { requestPasswordReset } = require('../../services/password-reset.service')
 const { ensureRestaurantExists } = require('../../services/restaurant-access.service')
+const { appendAuditEvent, appendAuditEvents } = require('../../services/audit-event.service')
 const { buildUserAccountState } = require('../../services/user-account-state.service')
 const { getUserRoleAccess } = require('../../services/user-access.service')
 
@@ -51,7 +52,7 @@ function mapUserSummary(user, now = new Date()) {
             user.passwordResetTokens,
             now,
         ),
-        createdIntakeBatchCount: user._count?.intakeBatches ?? 0,
+        createdIntakeBatchCount: user._count?.intakeBatchesCreated ?? 0,
         requestedCrawlRunCount: user._count?.requestedCrawlRuns ?? 0,
         failedLoginCount: user.failedLoginCount ?? 0,
         tokenVersion: user.tokenVersion ?? 0,
@@ -80,6 +81,39 @@ function mapMembership(membership) {
             slug: membership.restaurant.slug,
             address: membership.restaurant.address ?? null,
             googleMapUrl: membership.restaurant.googleMapUrl ?? null,
+        },
+    }
+}
+
+function buildMembershipAuditSummary(action, membership, reason = null) {
+    const userEmail = membership.user.email
+    const restaurantName = membership.restaurant.name
+
+    switch (action) {
+        case 'MEMBERSHIP_REMOVED':
+            return reason === 'ROLE_CHANGED_TO_ADMIN'
+                ? `${userEmail} lost access to ${restaurantName} because the account was promoted to ADMIN.`
+                : `${userEmail} was removed from ${restaurantName}.`
+        case 'MEMBERSHIP_ASSIGNED':
+        default:
+            return `${userEmail} was assigned to ${restaurantName}.`
+    }
+}
+
+function buildMembershipAuditEvent({ action, actorUserId, membership, reason = null }) {
+    return {
+        action,
+        resourceType: 'membership',
+        resourceId: membership.id,
+        restaurantId: membership.restaurant.id,
+        actorUserId,
+        summary: buildMembershipAuditSummary(action, membership, reason),
+        metadata: {
+            userId: membership.user.id,
+            userEmail: membership.user.email,
+            restaurantId: membership.restaurant.id,
+            restaurantSlug: membership.restaurant.slug,
+            reason,
         },
     }
 }
@@ -206,7 +240,7 @@ async function listAdminUsers({ userId, filters }) {
                     },
                     _count: {
                         select: {
-                            intakeBatches: true,
+                            intakeBatchesCreated: true,
                             requestedCrawlRuns: true,
                         },
                     },
@@ -312,7 +346,7 @@ async function ensureTargetUserExists(targetUserId) {
             },
             _count: {
                 select: {
-                    intakeBatches: true,
+                    intakeBatchesCreated: true,
                     requestedCrawlRuns: true,
                 },
             },
@@ -518,12 +552,40 @@ async function createAdminUser({ userId, input }) {
     })
 
     if (input.role === 'USER' && input.restaurantId) {
-        await prisma.restaurantUser.create({
+        const membership = await prisma.restaurantUser.create({
             data: {
                 userId: createdUser.id,
                 restaurantId: input.restaurantId,
             },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        email: true,
+                        fullName: true,
+                        role: true,
+                    },
+                },
+                restaurant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        address: true,
+                        googleMapUrl: true,
+                    },
+                },
+            },
         })
+
+        await appendAuditEvent(
+            buildMembershipAuditEvent({
+                action: 'MEMBERSHIP_ASSIGNED',
+                actorUserId: userId,
+                membership,
+                reason: 'USER_CREATED_WITH_RESTAURANT',
+            }),
+        )
     }
 
     return getAdminUserDetail({
@@ -548,6 +610,33 @@ async function updateAdminUserRole({ userId, targetUserId, role }) {
     }
 
     const operations = []
+    const membershipsRemovedForAdminRole =
+        role === 'ADMIN'
+            ? await prisma.restaurantUser.findMany({
+                  where: {
+                      userId: targetUserId,
+                  },
+                  include: {
+                      user: {
+                          select: {
+                              id: true,
+                              email: true,
+                              fullName: true,
+                              role: true,
+                          },
+                      },
+                      restaurant: {
+                          select: {
+                              id: true,
+                              name: true,
+                              slug: true,
+                              address: true,
+                              googleMapUrl: true,
+                          },
+                      },
+                  },
+              })
+            : []
 
     if (role === 'ADMIN') {
         operations.push(
@@ -571,6 +660,19 @@ async function updateAdminUserRole({ userId, targetUserId, role }) {
     )
 
     await buildTransaction(prisma, operations)
+
+    if (membershipsRemovedForAdminRole.length > 0) {
+        await appendAuditEvents(
+            membershipsRemovedForAdminRole.map((membership) =>
+                buildMembershipAuditEvent({
+                    action: 'MEMBERSHIP_REMOVED',
+                    actorUserId: userId,
+                    membership,
+                    reason: 'ROLE_CHANGED_TO_ADMIN',
+                }),
+            ),
+        )
+    }
 
     return getAdminUserDetail({
         userId,
@@ -853,6 +955,15 @@ async function createMembership({ userId, input }) {
         },
     })
 
+    await appendAuditEvent(
+        buildMembershipAuditEvent({
+            action: 'MEMBERSHIP_ASSIGNED',
+            actorUserId: userId,
+            membership,
+            reason: 'MANUAL_ASSIGNMENT',
+        }),
+    )
+
     return {
         membership: mapMembership(membership),
     }
@@ -894,6 +1005,15 @@ async function deleteMembership({ userId, membershipId }) {
             id: membershipId,
         },
     })
+
+    await appendAuditEvent(
+        buildMembershipAuditEvent({
+            action: 'MEMBERSHIP_REMOVED',
+            actorUserId: userId,
+            membership,
+            reason: 'MANUAL_REMOVAL',
+        }),
+    )
 
     return {
         membership: mapMembership(membership),

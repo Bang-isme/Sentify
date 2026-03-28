@@ -74,6 +74,7 @@ realDbTest('real DB publish smoke updates canonical reviews, dataset status, and
         })
 
         assert.equal(publishResult.batch.status, 'PUBLISHED')
+        assert.equal(publishResult.batch.publishedByUserId, adminUserId)
         assert.equal(publishResult.publishedCount, 2)
 
         const totalReviews = await prisma.review.count({
@@ -120,6 +121,80 @@ realDbTest('real DB publish smoke updates canonical reviews, dataset status, and
         assert.equal(detail.datasetStatus.lastPublishedSourceType, 'MANUAL')
         assert.equal(detail.datasetStatus.pendingBatchCount, 0)
         assert.ok(detail.datasetStatus.lastPublishedAt)
+
+        const reviewedItems = await prisma.reviewIntakeItem.findMany({
+            where: {
+                batchId: createdBatch.id,
+            },
+            select: {
+                id: true,
+                approvalStatus: true,
+                canonicalReviewId: true,
+                lastReviewedAt: true,
+                lastReviewedByUserId: true,
+            },
+        })
+
+        assert.equal(reviewedItems.length, 2)
+        assert.equal(
+            reviewedItems.every(
+                (item) =>
+                    item.approvalStatus === 'APPROVED' &&
+                    item.lastReviewedByUserId === adminUserId &&
+                    item.lastReviewedAt instanceof Date,
+            ),
+            true,
+        )
+
+        const publishEvents = await prisma.reviewPublishEvent.findMany({
+            where: {
+                batchId: createdBatch.id,
+            },
+            select: {
+                reviewId: true,
+                intakeItemId: true,
+                rawReviewId: true,
+                publishedByUserId: true,
+            },
+        })
+
+        assert.equal(publishEvents.length, 2)
+        assert.equal(
+            publishEvents.every(
+                (event) =>
+                    event.publishedByUserId === adminUserId &&
+                    event.rawReviewId === null &&
+                    reviewedItems.some(
+                        (item) =>
+                            item.id === event.intakeItemId &&
+                            item.canonicalReviewId === event.reviewId,
+                    ),
+            ),
+            true,
+        )
+
+        const auditEvents = await prisma.auditEvent.findMany({
+            where: {
+                restaurantId,
+            },
+            select: {
+                action: true,
+                actorUserId: true,
+            },
+        })
+
+        assert.equal(
+            auditEvents.filter((event) => event.action === 'INTAKE_ITEM_APPROVED').length,
+            2,
+        )
+        assert.equal(
+            auditEvents.some(
+                (event) =>
+                    event.action === 'INTAKE_BATCH_PUBLISHED' &&
+                    event.actorUserId === adminUserId,
+            ),
+            true,
+        )
     } finally {
         if (restaurantId) {
             await prisma.restaurant.delete({

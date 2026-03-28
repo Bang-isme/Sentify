@@ -1,0 +1,44 @@
+{
+  "provider": {
+    "name": "Example Managed Postgres",
+    "service": "postgresql"
+  },
+  "environment": "staging",
+  "database": {
+    "engine": "postgresql",
+    "sourceIdentifier": "sentify-prod-cluster",
+    "targetIdentifier": "sentify-staging-restore"
+  },
+  "proofType": "PITR",
+  "recoveryTarget": {
+    "type": "time",
+    "value": "2026-03-28T01:00:00.000Z"
+  },
+  "restore": {
+    "requestedAt": "2026-03-28T01:05:00.000Z",
+    "restoredAt": "2026-03-28T01:18:00.000Z",
+    "status": "COMPLETED"
+  },
+  "verification": {
+    "health": {
+      "status": "PASS",
+      "checkedAt": "2026-03-28T01:20:00.000Z"
+    },
+    "readSmoke": {
+      "status": "PASS",
+      "checkedAt": "2026-03-28T01:22:00.000Z"
+    },
+    "dataIntegrity": {
+      "status": "PASS",
+      "checkedAt": "2026-03-28T01:24:00.000Z"
+    },
+    "rollback": {
+      "status": "PASS",
+      "checkedAt": "2026-03-28T01:26:00.000Z"
+    }
+  },
+  "artifacts": {
+    "ticket": "INC-1234",
+    "dashboardLink": "https://provider.example.com/restore/INC-1234"
+  }
+}

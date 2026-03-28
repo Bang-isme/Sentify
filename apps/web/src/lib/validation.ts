@@ -18,6 +18,7 @@ export const FIELD_LIMITS = {
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const SUPPORTED_GOOGLE_MAPS_SHORT_HOSTS = new Set(['maps.app.goo.gl', 'g.co', 'goo.gl'])
 
 function canParseUrl(value: string) {
   try {
@@ -49,7 +50,19 @@ export function isGoogleMapsUrl(value: string) {
     } as const
   }
 
-  if (!parsedUrl.hostname.toLowerCase().includes('google')) {
+  const hostname = parsedUrl.hostname.toLowerCase()
+
+  if (SUPPORTED_GOOGLE_MAPS_SHORT_HOSTS.has(hostname)) {
+    return {
+      valid: true,
+      reason: null,
+    } as const
+  }
+
+  if (
+    !['google.com', 'www.google.com', 'maps.google.com'].includes(hostname) ||
+    !parsedUrl.pathname.startsWith('/maps')
+  ) {
     return {
       valid: false,
       reason: 'not_google',

@@ -82,6 +82,7 @@ function printUsage() {
             '  --reviews-per-page <n>    Synthetic raw reviews per page (default: 20).',
             '  --step-ms <n>             Delay between synthetic page checkpoints (default: 40).',
             '  --sample-ms <n>           Poll interval for observed concurrency (default: 100).',
+            '  --queue-name <name>       Review crawl queue name to isolate the load harness.',
             '  --output <file>           Write JSON report to a file.',
             '',
             'Behavior:',
@@ -595,10 +596,13 @@ async function main() {
         reviewsPerPage: parsePositiveInt(readFlag(args, '--reviews-per-page'), 20),
         stepMs: parsePositiveInt(readFlag(args, '--step-ms'), 40),
         sampleMs: parsePositiveInt(readFlag(args, '--sample-ms'), 100),
+        queueName:
+            readFlag(args, '--queue-name') ||
+            `review-crawl-load-${process.pid}-${Date.now()}`,
         output: readFlag(args, '--output'),
     }
 
-    process.env.NODE_ENV = 'test'
+    process.env.NODE_ENV = 'development'
     process.env.LOG_FORMAT = process.env.LOG_FORMAT || 'json'
     process.env.JWT_SECRET =
         process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex')
@@ -606,6 +610,7 @@ async function main() {
     process.env.JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'sentify-web'
     process.env.REVIEW_CRAWL_RUNTIME_MODE = 'processor'
     process.env.REVIEW_CRAWL_WORKER_CONCURRENCY = String(options.concurrency)
+    process.env.REVIEW_CRAWL_QUEUE_NAME = options.queueName
 
     const redisState = await startLocalRedisIfNeeded()
     const queueMode = redisState.mode
@@ -771,6 +776,7 @@ async function main() {
                 reviewsPerPage: options.reviewsPerPage,
                 stepMs: options.stepMs,
                 sampleMs: options.sampleMs,
+                queueName: options.queueName,
             },
             execution: {
                 enqueueDurationMs,
@@ -822,7 +828,7 @@ async function main() {
             notes: [
                 'This harness queues real ReviewCrawlRun rows and persists synthetic ReviewCrawlRawReview checkpoints page-by-page, so database write pressure is real.',
                 queueMode === 'redis'
-                    ? 'Redis was available, so BullMQ transport and the real worker runtime were exercised.'
+                    ? `Redis was available, so BullMQ transport and the real worker runtime were exercised on the isolated queue ${options.queueName}.`
                     : 'Redis was not available, so the harness fell back to inline queue mode and an in-process worker pool. This proves local worker orchestration and checkpoint pressure, but not Redis transport behavior.',
             ],
         }

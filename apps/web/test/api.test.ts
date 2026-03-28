@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getSession, logout } from '../src/lib/api'
+import { getSession, getTrend, listReviewIntakeBatches, listReviewOpsSourceRuns, listReviewOpsSources, logout } from '../src/lib/api'
 import { ApiClientError } from '../src/lib/api'
 
 function jsonResponse(body: unknown, status = 200) {
@@ -142,5 +142,52 @@ describe('api client auth handshake', () => {
     await expect(getSession()).rejects.toBeInstanceOf(ApiClientError)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/auth/session')
+  })
+
+  it('builds query endpoints without duplicating the api prefix', async () => {
+    const fetchMock = vi.fn(async (requestUrl: URL | string) => {
+      const url = String(requestUrl)
+
+      if (url.includes('/admin/review-ops/sources/source-1/runs')) {
+        return jsonResponse({ data: { source: null, pagination: {}, runs: [] } })
+      }
+
+      if (url.includes('/admin/review-ops/sources')) {
+        return jsonResponse({ data: { restaurantId: 'restaurant-1', sources: [] } })
+      }
+
+      if (url.includes('/admin/review-batches')) {
+        return jsonResponse({ data: [] })
+      }
+
+      if (url.includes('/dashboard/trend')) {
+        return jsonResponse({ data: [] })
+      }
+
+      throw new Error(`Unexpected fetch call: ${url}`)
+    })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    await listReviewOpsSources('restaurant-1')
+    await listReviewOpsSourceRuns('source-1', 2, 25)
+    await listReviewIntakeBatches('restaurant-1')
+    await getTrend('restaurant-1', 'month')
+
+    const calledUrls = fetchMock.mock.calls.map(([requestUrl]) => String(requestUrl))
+
+    expect(calledUrls).toContain(
+      'http://localhost:3000/api/admin/review-ops/sources?restaurantId=restaurant-1',
+    )
+    expect(calledUrls).toContain(
+      'http://localhost:3000/api/admin/review-ops/sources/source-1/runs?page=2&limit=25',
+    )
+    expect(calledUrls).toContain(
+      'http://localhost:3000/api/admin/review-batches?restaurantId=restaurant-1',
+    )
+    expect(calledUrls).toContain(
+      'http://localhost:3000/api/restaurants/restaurant-1/dashboard/trend?period=month',
+    )
+    expect(calledUrls.some((url) => url.includes('/api/api/'))).toBe(false)
   })
 })

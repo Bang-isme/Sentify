@@ -85,10 +85,26 @@ async function getTopIssue(req, res) {
     }
 }
 
+async function getMerchantActions(req, res) {
+    try {
+        const result = await dashboardService.getMerchantActions({
+            userId: req.user.userId,
+            restaurantId: req.params.id,
+        })
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 module.exports = {
     getKpi,
     getSentimentBreakdown,
     getTrend,
     getComplaintKeywords,
     getTopIssue,
+    getMerchantActions,
 }

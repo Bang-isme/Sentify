@@ -352,6 +352,10 @@ export interface AdminHealthJobsResponse {
       available: boolean
       fileName: string
       updatedAt: string | null
+      freshnessStatus: string
+      ageMinutes: number | null
+      freshnessWindowMinutes: number
+      stale: boolean
     }>
     releaseReadiness: {
       localProofStatus: string
@@ -359,9 +363,34 @@ export interface AdminHealthJobsResponse {
         requiredArtifactKeys: string[]
         availableArtifactKeys: string[]
         missingArtifactKeys: string[]
+        freshArtifactKeys: string[]
+        staleArtifactKeys: string[]
       }
+      compatibilityProofStatus: string
+      compatibilityProofFreshnessStatus: string
       managedEnvProofStatus: string
       managedEnvGap: string
+      managedProofTargets: {
+        managedRedis: {
+          configured: boolean
+          scope: string
+          hostname: string | null
+        }
+        stagingApi: {
+          configured: boolean
+          scope: string
+          hostname: string | null
+        }
+        managedDbProofArtifact: {
+          provided: boolean
+          exists: boolean
+          path: string | null
+          fileName: string | null
+        }
+      } | null
+      managedSignoffPreflightStatus: string
+      managedSignoffPreflightFreshnessStatus: string
+      managedSignoffPreflightBlockers: string[]
     }
   }
 }

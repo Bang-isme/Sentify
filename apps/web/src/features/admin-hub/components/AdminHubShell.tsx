@@ -259,7 +259,7 @@ export function AdminHubShell({
             </div>
           </aside>
 
-          <main className="min-w-0 px-3 py-4 sm:px-4 lg:px-5 lg:py-5">
+          <main className="flex-1 min-w-0 px-3 py-4 sm:px-4 lg:px-5 lg:py-5">
             <div className="mb-4 flex flex-wrap items-center gap-2 border border-white/6 bg-white/[0.03] px-4 py-3">
               <span className="border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
                 {activeView === 'home' ? 'Tổng quan' : adminHubDomains[activeDomain].label}

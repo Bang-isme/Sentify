@@ -12,7 +12,7 @@ export function OnboardingPanel({
   onCreateRestaurant: (input: CreateRestaurantInput) => Promise<void>
 }) {
   return (
-    <div className="grid gap-6">
+    <div data-testid="merchant-onboarding-panel" className="grid gap-6">
       <section className="rounded-[2rem] border border-border-light/70 bg-surface-white/88 p-6 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.32)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 sm:p-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
           <span className="size-2 rounded-full bg-primary"></span>

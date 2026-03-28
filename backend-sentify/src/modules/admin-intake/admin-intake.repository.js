@@ -134,16 +134,23 @@ async function deleteBatch(batchId) {
 
 async function publishApprovedItems({
     batchId,
+    restaurantId,
+    batchCrawlSourceId,
     batchStatus,
     batchPublishedAt,
+    batchPublishedByUserId,
     items,
 }) {
     return prisma.$transaction(async (tx) => {
         const publishedReviewIds = []
+        const publishLineageRows = []
         const newItems = []
         const reviewPayloads = items
             .filter((item) => !item.canonicalReviewId)
             .map((item) => item.reviewPayload)
+        const crawlExternalKeys = batchCrawlSourceId
+            ? [...new Set(items.map((item) => item.sourceExternalId).filter(Boolean))]
+            : []
         const existingReviewIdByExternalId =
             reviewPayloads.length > 0
                 ? new Map(
@@ -163,6 +170,47 @@ async function publishApprovedItems({
                       ).map((review) => [review.externalId, review.id]),
                   )
                 : new Map()
+        const rawReviewByExternalKey =
+            batchCrawlSourceId && crawlExternalKeys.length > 0
+                ? new Map(
+                      (
+                          await tx.reviewCrawlRawReview.findMany({
+                              where: {
+                                  sourceId: batchCrawlSourceId,
+                                  externalReviewKey: {
+                                      in: crawlExternalKeys,
+                                  },
+                              },
+                              select: {
+                                  id: true,
+                                  externalReviewKey: true,
+                                  firstSeenRunId: true,
+                                  lastSeenRunId: true,
+                              },
+                          })
+                      ).map((entry) => [entry.externalReviewKey, entry]),
+                  )
+                : new Map()
+
+        function appendPublishLineage(item, reviewId) {
+            const rawReview =
+                batchCrawlSourceId && item.sourceExternalId
+                    ? rawReviewByExternalKey.get(item.sourceExternalId) ?? null
+                    : null
+
+            publishLineageRows.push({
+                reviewId,
+                restaurantId,
+                batchId,
+                intakeItemId: item.id,
+                crawlSourceId: batchCrawlSourceId ?? null,
+                crawlRunId: rawReview?.lastSeenRunId ?? rawReview?.firstSeenRunId ?? null,
+                rawReviewId: rawReview?.id ?? null,
+                rawReviewExternalKey: item.sourceExternalId ?? null,
+                publishedByUserId: batchPublishedByUserId ?? null,
+                publishedAt: batchPublishedAt,
+            })
+        }
 
         for (const item of items) {
             const reviewPayload = item.reviewPayload
@@ -176,6 +224,7 @@ async function publishApprovedItems({
                 })
 
                 publishedReviewIds.push(item.canonicalReviewId)
+                appendPublishLineage(item, item.canonicalReviewId)
                 continue
             }
 
@@ -195,6 +244,8 @@ async function publishApprovedItems({
                     where: { id: item.id },
                     data: { canonicalReviewId: existingReviewId },
                 })
+
+                appendPublishLineage(item, existingReviewId)
 
                 continue
             }
@@ -234,6 +285,7 @@ async function publishApprovedItems({
                 }
 
                 publishedReviewIds.push(reviewId)
+                appendPublishLineage(item, reviewId)
 
                 return tx.reviewIntakeItem.update({
                     where: { id: item.id },
@@ -244,6 +296,13 @@ async function publishApprovedItems({
             await Promise.all(updatePromises)
         }
 
+        if (publishLineageRows.length > 0) {
+            await tx.reviewPublishEvent.createMany({
+                data: publishLineageRows,
+                skipDuplicates: true,
+            })
+        }
+
         const updatedBatch = await tx.reviewIntakeBatch.update({
             where: {
                 id: batchId,
@@ -251,6 +310,7 @@ async function publishApprovedItems({
             data: {
                 status: batchStatus,
                 publishedAt: batchPublishedAt,
+                publishedByUserId: batchPublishedByUserId ?? null,
             },
             include: buildBatchInclude(true),
         })

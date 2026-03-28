@@ -7,6 +7,8 @@ import {
   listReviewIntakeBatches,
   publishReviewIntakeBatch,
   updateReviewIntakeItem,
+  deleteReviewIntakeBatch,
+  deleteReviewIntakeItem,
   type CreateReviewIntakeItemInput,
   type RestaurantDetail,
   type ReviewIntakeBatch,
@@ -16,16 +18,15 @@ import { getAdminIntakeLabels } from '../adminIntakeLabels'
 import { PublishBatchCard } from './PublishBatchCard'
 import { ReviewCurationTable } from './ReviewCurationTable'
 import { ReviewEntryForm } from './ReviewEntryForm'
+import { AdminCard, AdminBadge, AdminButton, AdminStatusMessage } from '../../admin-shell/components/AdminPrimitives'
 
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiClientError) {
     return error.message
   }
-
   if (error instanceof Error) {
     return error.message
   }
-
   return 'Something went wrong.'
 }
 
@@ -121,20 +122,15 @@ export function AdminIntakePanel({
   }, [selectedBatchId, loadBatchDetail])
 
   async function handleCreateBatch() {
-    if (!restaurantId) {
-      return
-    }
-
+    if (!restaurantId) return
     setPending(true)
     setNotice(null)
-
     try {
       const createdBatch = await createReviewIntakeBatch({
         restaurantId,
         sourceType: newBatchSourceType,
         title: newBatchTitle.trim() || undefined,
       })
-
       setNewBatchTitle('')
       setNewBatchSourceType('MANUAL')
       setNotice(isVietnamese ? 'Đã tạo lô nhập liệu.' : 'Batch created.')
@@ -147,13 +143,9 @@ export function AdminIntakePanel({
   }
 
   async function handleAddItems(items: CreateReviewIntakeItemInput[]) {
-    if (!selectedBatch) {
-      return
-    }
-
+    if (!selectedBatch) return
     setPending(true)
     setNotice(null)
-
     try {
       const updatedBatch = await addReviewIntakeItems(selectedBatch.id, items)
       setSelectedBatch(updatedBatch)
@@ -175,7 +167,6 @@ export function AdminIntakePanel({
   async function handleSaveItem(itemId: string, input: UpdateReviewIntakeItemInput) {
     setPending(true)
     setNotice(null)
-
     try {
       const updatedBatch = await updateReviewIntakeItem(itemId, input)
       setSelectedBatch(updatedBatch)
@@ -190,14 +181,42 @@ export function AdminIntakePanel({
     }
   }
 
-  async function handlePublish() {
-    if (!selectedBatch) {
-      return
-    }
-
+  async function handleDeleteItem(itemId: string) {
     setPending(true)
     setNotice(null)
+    try {
+      await deleteReviewIntakeItem(itemId)
+      setNotice(isVietnamese ? 'Đã xóa mục đánh giá.' : 'Review item deleted.')
+      if (selectedBatchId) {
+        await loadBatchDetail(selectedBatchId)
+      }
+    } catch (nextError) {
+      setError(getErrorMessage(nextError))
+    } finally {
+      setPending(false)
+    }
+  }
 
+  async function handleDeleteBatch() {
+    if (!selectedBatchId) return
+    setPending(true)
+    setNotice(null)
+    try {
+      await deleteReviewIntakeBatch(selectedBatchId)
+      setNotice(isVietnamese ? 'Đã xóa lô nhập liệu.' : 'Batch deleted.')
+      await loadBatches()
+      onPublished() // Trigger a re-render of global stats
+    } catch (nextError) {
+      setError(getErrorMessage(nextError))
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function handlePublish() {
+    if (!selectedBatch) return
+    setPending(true)
+    setNotice(null)
     try {
       const result = await publishReviewIntakeBatch(selectedBatch.id)
       setSelectedBatch(result.batch)
@@ -214,74 +233,52 @@ export function AdminIntakePanel({
   }
 
   return (
-    <div className="grid gap-6">
-      <section className="rounded-[1.2rem] border border-border-light/70 bg-surface-white/88 p-4 shadow-[0_18px_48px_-42px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
+    <div className="grid gap-4">
+      <AdminCard>
         <div className="flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-2 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
-            <span className="material-symbols-outlined text-base text-primary">storefront</span>
+          <div className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:bg-white/10 dark:text-zinc-300">
+            <span className="material-symbols-outlined text-base">storefront</span>
             {detail?.name ?? (isVietnamese ? 'Chưa chọn nhà hàng' : 'No restaurant selected')}
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-2 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
-            <span className="material-symbols-outlined text-base text-primary">database</span>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:bg-white/10 dark:text-zinc-300">
+            <span className="material-symbols-outlined text-base">database</span>
             {(isVietnamese ? 'Chính sách nguồn: ' : 'Source policy: ') +
               (detail?.datasetStatus.sourcePolicy ?? 'UNCONFIGURED')}
-          </span>
+          </div>
           {detail?.datasetStatus.lastPublishedAt ? (
-            <span className="inline-flex items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-2 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
-              <span className="material-symbols-outlined text-base text-primary">schedule</span>
+            <div className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:bg-white/10 dark:text-zinc-300">
+              <span className="material-symbols-outlined text-base">schedule</span>
               {isVietnamese
                 ? `Công bố gần nhất: ${new Date(detail.datasetStatus.lastPublishedAt).toLocaleString(language)}`
                 : `Last publish: ${new Date(detail.datasetStatus.lastPublishedAt).toLocaleString(language)}`}
-            </span>
+            </div>
           ) : null}
         </div>
-      </section>
+      </AdminCard>
 
-      {error ? (
-        <div className="rounded-[1.3rem] border border-red-300/35 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-400/25 dark:bg-red-500/12 dark:text-red-200">
-          {error}
-        </div>
-      ) : null}
-      {notice ? (
-        <div className="rounded-[1.3rem] border border-emerald-300/35 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-500/12 dark:text-emerald-200">
-          {notice}
-        </div>
-      ) : null}
+      {error ? <AdminStatusMessage tone="error">{error}</AdminStatusMessage> : null}
+      {notice ? <AdminStatusMessage tone="success">{notice}</AdminStatusMessage> : null}
 
-      <section className="rounded-[1.55rem] border border-border-light/70 bg-surface-white/88 p-5 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
-        <div className="mb-4">
-          <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-            {labels.createBatchTitle}
-          </div>
-          <p className="mt-2 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
-            {labels.createBatchDescription}
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_auto]">
-          <label
-            htmlFor={batchTitleFieldId}
-            className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
-          >
+      <AdminCard title={labels.createBatchTitle} description={labels.createBatchDescription}>
+        <div className="grid gap-4 md:grid-cols-[1.3fr_0.9fr_auto] items-end">
+          <label htmlFor={batchTitleFieldId} className="grid gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-300">
             <span>{labels.batchTitleLabel}</span>
             <input
               id={batchTitleFieldId}
-              aria-label={labels.batchTitleLabel}
+              data-testid="admin-intake-batch-title-input"
               value={newBatchTitle}
               onChange={(event) => setNewBatchTitle(event.target.value)}
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b]"
             />
           </label>
-          <label
-            htmlFor={batchSourceFieldId}
-            className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
-          >
+          <label htmlFor={batchSourceFieldId} className="grid gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-300">
             <span>{labels.batchSourceLabel}</span>
             <select
               id={batchSourceFieldId}
-              aria-label={labels.batchSourceLabel}
+              data-testid="admin-intake-batch-source-select"
               value={newBatchSourceType}
               onChange={(event) => setNewBatchSourceType(event.target.value as ReviewIntakeBatch['sourceType'])}
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b]"
             >
               {creatableSourceTypes.map((value) => (
                 <option key={value} value={value}>
@@ -290,63 +287,51 @@ export function AdminIntakePanel({
               ))}
             </select>
           </label>
-          <div className="flex items-end">
-            <button
-              type="button"
-              disabled={pending || !restaurantId}
-              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-55 dark:text-bg-dark"
-              onClick={() => void handleCreateBatch()}
-            >
-              {labels.batchCreateAction}
-            </button>
-          </div>
+          <AdminButton
+            variant="primary"
+            disabled={pending || !restaurantId}
+            onClick={() => void handleCreateBatch()}
+            dataTestId="admin-intake-create-batch-button"
+          >
+            {labels.batchCreateAction}
+          </AdminButton>
         </div>
-      </section>
+      </AdminCard>
 
-      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <section className="rounded-[1.55rem] border border-border-light/70 bg-surface-white/88 p-5 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
-          <div className="mb-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-              {labels.inboxTitle}
-            </div>
-            <p className="mt-2 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
-              {labels.inboxDescription}
-            </p>
-          </div>
-
+      <div className="grid gap-4 xl:grid-cols-[320px_1fr] items-start">
+        <AdminCard title={labels.inboxTitle} description={labels.inboxDescription} className="h-full">
           {loading ? (
-            <div className="text-sm text-text-silver-light dark:text-text-silver-dark">
+            <div className="text-sm text-slate-500 dark:text-zinc-400">
               {isVietnamese ? 'Đang tải danh sách lô...' : 'Loading batches...'}
             </div>
           ) : batches.length === 0 ? (
-            <div className="rounded-[1.3rem] border border-dashed border-border-light/80 bg-bg-light/60 p-4 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/45 dark:text-text-silver-dark">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-400">
               {labels.emptyBatches}
             </div>
           ) : (
-            <div className="grid gap-3">
+            <div className="flex flex-col gap-2">
               {batches.map((batch) => {
                 const isActive = selectedBatchId === batch.id
-
                 return (
                   <button
                     key={batch.id}
-                    type="button"
-                    className={`rounded-[1.35rem] border p-4 text-left transition ${
-                      isActive
-                        ? 'border-primary/35 bg-primary/8'
-                        : 'border-border-light/70 bg-bg-light/70 hover:border-primary/25 hover:bg-primary/6 dark:border-border-dark dark:bg-bg-dark/55'
-                    }`}
                     onClick={() => setSelectedBatchId(batch.id)}
+                    data-testid={`admin-intake-batch-select-${batch.id}`}
+                    className={`flex flex-col gap-2 p-3 text-left rounded-xl border transition-all ${
+                      isActive
+                        ? 'border-indigo-500/30 bg-indigo-50/50 dark:border-white/20 dark:bg-white/10 ring-1 ring-indigo-500/20 dark:ring-white/10'
+                        : 'border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-white/5 dark:bg-transparent dark:hover:bg-white/5'
+                    }`}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-semibold text-text-charcoal dark:text-white">
-                        {batch.title || labels.sourceTypes[batch.sourceType]}
+                    <div className="flex items-center justify-between gap-3 w-full">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm text-slate-900 dark:text-white break-words">
+                          {batch.title || labels.sourceTypes[batch.sourceType]}
+                        </div>
                       </div>
-                      <span className="rounded-full border border-border-light/70 bg-surface-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
-                        {labels.statuses[batch.status]}
-                      </span>
+                      <AdminBadge label={labels.statuses[batch.status]} tone={batch.status === 'PUBLISHED' ? 'success' : 'neutral'} />
                     </div>
-                    <div className="mt-3 text-xs leading-6 text-text-silver-light dark:text-text-silver-dark">
+                    <div className="text-[12px] font-medium text-slate-500 dark:text-zinc-400">
                       {isVietnamese
                         ? `${batch.counts.totalItems} mục | ${batch.counts.approvedItems} đã duyệt | ${batch.counts.pendingItems} đang chờ`
                         : `${batch.counts.totalItems} items | ${batch.counts.approvedItems} approved | ${batch.counts.pendingItems} pending`}
@@ -356,71 +341,60 @@ export function AdminIntakePanel({
               })}
             </div>
           )}
-        </section>
+        </AdminCard>
 
-        <div className="grid gap-6">
-          {selectedBatch ? (
-            <>
-              <section className="rounded-[1.55rem] border border-border-light/70 bg-surface-white/88 p-5 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
-                <div className="mb-4 flex flex-wrap items-center gap-3">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-                    {labels.quickEntryTitle}
-                  </div>
-                  <span className="rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
-                    {labels.sourceTypes[selectedBatch.sourceType]}
-                  </span>
-                  <span className="rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
-                    {labels.statuses[selectedBatch.status]}
-                  </span>
+        {selectedBatch ? (
+          <div className="grid gap-4">
+            <AdminCard>
+              <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4 dark:border-white/5">
+                <div className="text-[15px] font-bold text-slate-900 dark:text-white">
+                  {labels.quickEntryTitle}
                 </div>
-                <p className="mb-5 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
-                  {labels.quickEntryDescription}
-                </p>
-                <ReviewEntryForm
-                  labels={labels}
-                  pending={pending}
-                  onAddSingle={async (item) => handleAddItems([item])}
-                  onAddBulk={handleAddItems}
-                />
-              </section>
-
-              <section className="rounded-[1.55rem] border border-border-light/70 bg-surface-white/88 p-5 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82">
-                <div className="mb-4">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-                    {labels.reviewQueueTitle}
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
-                    {labels.reviewQueueDescription}
-                  </p>
-                </div>
-                {detailLoading ? (
-                  <div className="text-sm text-text-silver-light dark:text-text-silver-dark">
-                    {isVietnamese ? 'Đang tải chi tiết lô...' : 'Loading batch detail...'}
-                  </div>
-                ) : (
-                  <ReviewCurationTable
-                    batch={selectedBatch}
-                    labels={labels}
-                    pending={pending}
-                    onSaveItem={handleSaveItem}
-                  />
-                )}
-              </section>
-
-              <PublishBatchCard
-                batch={selectedBatch}
+                <AdminBadge label={labels.sourceTypes[selectedBatch.sourceType]} />
+                <AdminBadge label={labels.statuses[selectedBatch.status]} tone={selectedBatch.status === 'PUBLISHED' ? 'success' : 'neutral'} />
+              </div>
+              <p className="mb-5 text-[13px] leading-relaxed text-slate-500 dark:text-zinc-400">
+                {labels.quickEntryDescription}
+              </p>
+              <ReviewEntryForm
                 labels={labels}
                 pending={pending}
-                onPublish={handlePublish}
+                onAddSingle={async (item) => handleAddItems([item])}
+                onAddBulk={handleAddItems}
               />
-            </>
-          ) : (
-            <section className="rounded-[1.55rem] border border-dashed border-border-light/80 bg-bg-light/60 p-6 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/45 dark:text-text-silver-dark">
-              {labels.emptyBatches}
-            </section>
-          )}
+            </AdminCard>
 
-        </div>
+            <AdminCard title={labels.reviewQueueTitle} description={labels.reviewQueueDescription}>
+              {detailLoading ? (
+                <div className="text-sm text-slate-500 dark:text-zinc-400">
+                  {isVietnamese ? 'Đang tải chi tiết lô...' : 'Loading batch detail...'}
+                </div>
+              ) : (
+                <ReviewCurationTable
+                  batch={selectedBatch}
+                  labels={labels}
+                  pending={pending}
+                  onSaveItem={handleSaveItem}
+                  onDeleteItem={handleDeleteItem}
+                />
+              )}
+            </AdminCard>
+
+            <PublishBatchCard
+              batch={selectedBatch}
+              labels={labels}
+              pending={pending}
+              onPublish={handlePublish}
+              onDelete={handleDeleteBatch}
+            />
+          </div>
+        ) : (
+          <AdminCard className="h-full flex items-center justify-center min-h-[400px]">
+            <div className="text-sm text-slate-500 dark:text-zinc-400">
+              {labels.emptyBatches}
+            </div>
+          </AdminCard>
+        )}
       </div>
     </div>
   )

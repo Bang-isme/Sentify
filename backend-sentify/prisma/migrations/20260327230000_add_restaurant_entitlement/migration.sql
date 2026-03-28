@@ -1,0 +1,3 @@
+-- No-op.
+-- This migration name was reserved during an earlier entitlement spike, but the
+-- stable entitlement model now ships in 20260327221500_add_restaurant_entitlement_and_lane_source.

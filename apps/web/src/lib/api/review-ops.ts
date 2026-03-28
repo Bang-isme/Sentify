@@ -1,4 +1,4 @@
-import { buildUrl, request } from './client'
+import { buildPath, request } from './client'
 import type {
   PublishReviewIntakeBatchResult,
   ReviewOpsApproveValidResult,
@@ -19,13 +19,13 @@ export function syncGoogleMapsToDraft(input: ReviewOpsSyncDraftInput) {
 }
 
 export function listReviewOpsSources(restaurantId: string) {
-  const url = buildUrl('/admin/review-ops/sources', { restaurantId })
-  return request<ReviewOpsSourcesResponse>(`${url.pathname}${url.search}`)
+  return request<ReviewOpsSourcesResponse>(buildPath('/admin/review-ops/sources', { restaurantId }))
 }
 
 export function listReviewOpsSourceRuns(sourceId: string, page = 1, limit = 20) {
-  const url = buildUrl(`/admin/review-ops/sources/${sourceId}/runs`, { page, limit })
-  return request<ReviewOpsRunListResponse>(`${url.pathname}${url.search}`)
+  return request<ReviewOpsRunListResponse>(
+    buildPath(`/admin/review-ops/sources/${sourceId}/runs`, { page, limit }),
+  )
 }
 
 export function getReviewOpsRunDetail(runId: string) {

@@ -107,14 +107,33 @@ Critical-path browser validation:
 
 ```powershell
 cd "D:\Project 3\apps\web"
-npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.ts
+npx playwright test e2e --workers=1
 ```
+
+That browser gate now self-manages an isolated real stack:
+
+- resets the local baseline by default
+- runs the FE test server on `127.0.0.1:4173`
+- runs the backend API on `127.0.0.1:3100`
+- runs the crawl worker on the dedicated queue `review-crawl-playwright`
+- tears the isolated API and worker down after the suite
 
 What that suite proves now:
 
 - `USER` can login, land in the merchant app, move across `Home`, `Reviews`, `Actions`, and `Settings`, update settings, and logout
 - `ADMIN` can login, land in the admin hub, move across live `Operations`, `Access`, and `Platform` screens, and logout
+- `ADMIN` can reset a user password and promote that user to `ADMIN`, and the promoted account can log into the admin shell
+- admin membership changes propagate to merchant-visible restaurant scope
+- platform publish controls block review-ops publish from the browser flow when disabled
+- a merchant-saved Google Maps URL can move through the full admin publication chain and become merchant-visible published data
+- merchant and admin can stay live in separate browser sessions while that source-operationalization flow completes
+- review-ops keeps publish blocked until at least one draft item is approved
+- manual intake works end-to-end: create batch, add evidence, curate, approve, publish, and verify the evidence appears in the merchant product
+- a merchant can stay logged into the reviews surface while an admin manually publishes fresh evidence, then see it after a same-session refresh
+- crawl operations works end-to-end: preview a Google Maps source, upsert it, create a crawl run, materialize it into intake, and verify the resulting draft is approvable
 - direct cross-role routes fail closed
+- runner policy stays on `--workers=1` because the suite still mutates shared seeded restaurants, platform controls, and queue state
+- latest clean-baseline run on `2026-03-27`: `12 passed`
 
 ## Runtime Docs
 

@@ -132,13 +132,52 @@ Browser E2E:
 
 ```bash
 cd D:\Project 3\apps\web
-npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.ts
+npx playwright test e2e --workers=1
 ```
 
-The first-wave browser coverage proves:
+The browser suite now manages its own isolated real stack automatically:
+
+- resets the shared Postgres baseline before the run unless `PLAYWRIGHT_SKIP_DB_RESET=1`
+- starts an isolated backend API on `http://127.0.0.1:3100`
+- starts the browser-facing Vite server on `http://127.0.0.1:4173`
+- uses the dedicated queue namespace `review-crawl-playwright`
+- tears down the isolated API and worker after the run unless `PLAYWRIGHT_PRESERVE_BACKEND_STACK=1`
+
+For the most reliable local rerun of the two concurrency-heavy admin/user proofs on this Windows workstation, keep one preview server alive and let Playwright reuse it:
+
+```bash
+cd D:\Project 3\apps\web
+node .\scripts\playwright-preview.js --host 127.0.0.1 --port 4173 --strictPort
+```
+
+Then, from a second terminal:
+
+```bash
+cd D:\Project 3\apps\web
+npx playwright test e2e/admin-user-concurrent-full-flow.spec.ts e2e/admin-user-parallel-live-flow.spec.ts --workers=1 --reporter=line
+```
+
+That dual-suite command was re-verified on `2026-03-27` with `2/2 passed`.
+
+The same dual-suite command was also re-verified again on `2026-03-27` without prestarting preview manually:
+
+```bash
+cd D:\Project 3\apps\web
+npx playwright test e2e/admin-user-concurrent-full-flow.spec.ts e2e/admin-user-parallel-live-flow.spec.ts --workers=1 --reporter=line
+```
+
+That rerun also passed `2/2`, and the current Playwright harness successfully auto-started the isolated backend stack plus the managed frontend preview on its own. Keep the manual preview-reuse path above as a fallback if an interrupted local run leaves port `4173` sticky.
+
+Current browser coverage proves:
 
 - `USER` can login, land in the merchant app, move across `Home`, `Reviews`, `Actions`, and `Settings`, update settings, and logout
 - `ADMIN` can login, land in the admin hub, inspect live `Operations`, `Access`, and `Platform` screens
+- `ADMIN` can complete manual intake end-to-end
+- `ADMIN` can preview, run, and materialize crawl output from `/admin/operations/crawl`
+- merchant-to-admin publication and guardrail flows stay green on the isolated real queue-backed stack
+- the two most concurrency-sensitive proofs now have a dedicated rerun path:
+  - merchant/admin concurrent source operationalization
+  - merchant/admin concurrent manual-intake live publish
 - cross-role direct-route attempts are redirected fail-closed
 
 ## Current FE scope

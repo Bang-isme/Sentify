@@ -9,6 +9,13 @@ const updateControlsSchema = z
         crawlQueueWritesEnabled: z.boolean().optional(),
         crawlMaterializationEnabled: z.boolean().optional(),
         intakePublishEnabled: z.boolean().optional(),
+        sourceSubmissionAutoBootstrapEnabled: z.boolean().optional(),
+        sourceSubmissionAutoBootstrapMaxPerTick: z.coerce
+            .number()
+            .int()
+            .positive()
+            .max(100)
+            .optional(),
         note: z
             .string()
             .trim()
@@ -21,6 +28,14 @@ const updateControlsSchema = z
             Object.prototype.hasOwnProperty.call(value, 'crawlQueueWritesEnabled') ||
             Object.prototype.hasOwnProperty.call(value, 'crawlMaterializationEnabled') ||
             Object.prototype.hasOwnProperty.call(value, 'intakePublishEnabled') ||
+            Object.prototype.hasOwnProperty.call(
+                value,
+                'sourceSubmissionAutoBootstrapEnabled',
+            ) ||
+            Object.prototype.hasOwnProperty.call(
+                value,
+                'sourceSubmissionAutoBootstrapMaxPerTick',
+            ) ||
             Object.prototype.hasOwnProperty.call(value, 'note'),
         {
             message: 'At least one control field must be provided',

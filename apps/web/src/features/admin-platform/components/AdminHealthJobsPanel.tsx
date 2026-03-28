@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAdminHealthJobs, type AdminHealthJobsResponse } from '../../../lib/api'
-import { EmptyPanel, SectionCard, StatusMessage } from '../../../components/product/workspace/shared'
+import { AdminCard, AdminDataCell, AdminBadge, AdminStatusMessage } from '../../admin-shell/components/AdminPrimitives'
 
 interface AdminHealthJobsPanelProps {
   language: string
@@ -25,14 +25,14 @@ function formatDate(value: string | null, language: string) {
 
 function statusTone(status: string) {
   if (status === 'HEALTHY' || status === 'UP') {
-    return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200'
+    return 'success'
   }
 
   if (status === 'DEGRADED' || status === 'DOWN') {
-    return 'border-red-500/20 bg-red-500/10 text-red-200'
+    return 'danger'
   }
 
-  return 'border-white/10 bg-white/[0.05] text-slate-200'
+  return 'neutral'
 }
 
 export function AdminHealthJobsPanel({
@@ -83,7 +83,7 @@ export function AdminHealthJobsPanel({
 
   return (
     <div data-testid="admin-health-jobs-screen" className="grid gap-4">
-      <SectionCard
+      <AdminCard
         title={isVietnamese ? 'Sức khỏe hệ thống và hàng đợi' : 'Platform health and jobs'}
         description={
           isVietnamese
@@ -91,108 +91,90 @@ export function AdminHealthJobsPanel({
             : 'Inspect the backend, queue, workers, and recovery evidence before debugging admin operations or crawl runtime.'
         }
       >
-        {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
+        {error ? <AdminStatusMessage tone="error">{error}</AdminStatusMessage> : null}
         {loading ? (
-          <StatusMessage>{isVietnamese ? 'Đang tải trạng thái hệ thống...' : 'Loading platform health...'}</StatusMessage>
+          <div className="text-sm text-slate-500 dark:text-zinc-400">{isVietnamese ? 'Đang tải trạng thái hệ thống...' : 'Loading platform health...'}</div>
         ) : null}
         {data ? (
-          <div className="grid gap-3 lg:grid-cols-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: isVietnamese ? 'API' : 'API', value: data.services.api.status },
               { label: isVietnamese ? 'CSDL' : 'Database', value: data.services.database.status },
               { label: isVietnamese ? 'Hàng đợi' : 'Queue', value: data.services.queue.status },
               { label: isVietnamese ? 'Worker' : 'Workers', value: data.services.workers.status },
             ].map((item) => (
-              <div key={item.label} className={`border p-3 ${statusTone(item.value)}`}>
-                <div className="text-[11px] uppercase tracking-[0.16em]">{item.label}</div>
-                <div className="mt-2 text-[1.15rem] font-semibold">{item.value}</div>
+              <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#18181b] flex flex-col justify-between items-start">
+                <div className="text-[12px] font-bold uppercase tracking-wider text-slate-500">{item.label}</div>
+                <div className="mt-4">
+                  <AdminBadge label={item.value} tone={statusTone(item.value) as any} />
+                </div>
               </div>
             ))}
           </div>
         ) : null}
-      </SectionCard>
+      </AdminCard>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <SectionCard
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-start">
+        <AdminCard
           title={isVietnamese ? 'Trạng thái hàng đợi' : 'Queue posture'}
           description={
             isVietnamese
               ? 'Số job đang chờ và chế độ chạy hiện tại của hàng đợi crawl.'
               : 'Live job counts and runtime mode for the review crawl queue.'
           }
+          className="h-full"
         >
           {data ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="border border-white/8 bg-white/[0.03] p-3">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  {isVietnamese ? 'Đang chờ' : 'Queued'}
-                </div>
-                <div className="mt-2 text-[1.15rem] font-semibold text-white">
-                  {formatCount(data.jobs.counts.queued, language)}
-                </div>
-              </div>
-              <div className="border border-white/8 bg-white/[0.03] p-3">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  {isVietnamese ? 'Đang chạy' : 'Running'}
-                </div>
-                <div className="mt-2 text-[1.15rem] font-semibold text-white">
-                  {formatCount(data.jobs.counts.running, language)}
-                </div>
-              </div>
-              <div className="border border-white/8 bg-white/[0.03] p-3">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  {isVietnamese ? 'Hoàn tất' : 'Completed'}
-                </div>
-                <div className="mt-2 text-[1.15rem] font-semibold text-white">
-                  {formatCount(data.jobs.counts.completed, language)}
-                </div>
-              </div>
-              <div className="border border-white/8 bg-white/[0.03] p-3">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                  {isVietnamese ? 'Độ song song' : 'Concurrency'}
-                </div>
-                <div className="mt-2 text-[1.15rem] font-semibold text-white">
-                  {formatCount(data.jobs.concurrency, language)}
-                </div>
-              </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <AdminDataCell label={isVietnamese ? 'Đang chờ' : 'Queued'} value={formatCount(data.jobs.counts.queued, language)} />
+              <AdminDataCell label={isVietnamese ? 'Đang chạy' : 'Running'} value={formatCount(data.jobs.counts.running, language)} />
+              <AdminDataCell label={isVietnamese ? 'Hoàn tất' : 'Completed'} value={formatCount(data.jobs.counts.completed, language)} />
+              <AdminDataCell label={isVietnamese ? 'Độ song song' : 'Concurrency'} value={formatCount(data.jobs.concurrency, language)} />
             </div>
           ) : (
-            <EmptyPanel message={isVietnamese ? 'Không có dữ liệu sức khỏe.' : 'Health data is unavailable.'} />
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-400">
+              {isVietnamese ? 'Không có dữ liệu sức khỏe.' : 'Health data is unavailable.'}
+            </div>
           )}
-        </SectionCard>
+        </AdminCard>
 
-        <SectionCard
+        <AdminCard
           title={isVietnamese ? 'Các job crawl gần đây' : 'Recent crawl jobs'}
           description={
             isVietnamese
               ? 'Dùng các job gần đây để đối chiếu vấn đề nhập liệu với trạng thái hàng đợi hoặc worker.'
               : 'Use recent runs to correlate intake issues with queue or worker state.'
           }
+          className="h-full"
         >
           {data?.jobs.recentRuns.length ? (
-            <div className="grid gap-2">
+            <div className="flex flex-col gap-2">
               {data.jobs.recentRuns.map((run) => (
-                <div key={run.id} className="grid gap-2 border border-white/8 bg-white/[0.03] p-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
-                  <div>
-                    <div className="text-[13px] font-semibold text-white">{run.restaurant.name}</div>
-                    <div className="mt-1 text-[12px] text-slate-400">{run.id}</div>
+                <div
+                  key={run.id}
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#18181b] grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto_auto] items-center"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[14px] font-bold text-slate-900 dark:text-white">{run.restaurant.name}</div>
+                    <div className="mt-1 break-words text-[13px] text-slate-500 dark:text-zinc-400">{run.id}</div>
                   </div>
-                  <div className="text-sm text-slate-300">
-                    {run.status} · {run.strategy}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AdminBadge label={run.status} tone={run.status === 'COMPLETED' ? 'success' : run.status === 'FAILED' ? 'danger' : 'neutral'} />
+                    <AdminBadge label={run.strategy} tone="neutral" />
                   </div>
-                  <div className="text-sm text-slate-400">{formatDate(run.finishedAt || run.queuedAt, language)}</div>
+                  <div className="text-[12px] text-slate-500 dark:text-zinc-400 text-right">{formatDate(run.finishedAt || run.queuedAt, language)}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <EmptyPanel
-              message={isVietnamese ? 'Chưa có crawl run nào.' : 'No crawl runs have been recorded yet.'}
-            />
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-400">
+              {isVietnamese ? 'Chưa có crawl run nào.' : 'No crawl runs have been recorded yet.'}
+            </div>
           )}
-        </SectionCard>
+        </AdminCard>
       </div>
 
-      <SectionCard
+      <AdminCard
         title={isVietnamese ? 'Bằng chứng khôi phục' : 'Recovery proof artifacts'}
         description={
           isVietnamese
@@ -201,28 +183,26 @@ export function AdminHealthJobsPanel({
         }
       >
         {data?.recovery.proofArtifacts.length ? (
-          <div className="grid gap-2 lg:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             {data.recovery.proofArtifacts.map((artifact) => (
-              <div key={artifact.key} className="border border-white/8 bg-white/[0.03] p-3">
+              <div key={artifact.key} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#18181b]">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-white">{artifact.label}</div>
-                  <span className={`border px-2 py-1 text-[10px] font-semibold uppercase ${artifact.available ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200' : 'border-white/10 bg-white/[0.05] text-slate-300'}`}>
-                    {artifact.available ? (isVietnamese ? 'Có sẵn' : 'Available') : isVietnamese ? 'Thiếu' : 'Missing'}
-                  </span>
+                  <div className="text-[14px] font-bold text-slate-900 dark:text-white">{artifact.label}</div>
+                  <AdminBadge label={artifact.available ? (isVietnamese ? 'Có sẵn' : 'Available') : isVietnamese ? 'Thiếu' : 'Missing'} tone={artifact.available ? 'success' : 'neutral'} />
                 </div>
-                <div className="mt-2 text-[12px] text-slate-400">{artifact.fileName}</div>
-                <div className="mt-2 text-[12px] text-slate-500">
+                <div className="mt-2 text-[13px] text-slate-500 dark:text-zinc-400">{artifact.fileName}</div>
+                <div className="mt-2 text-[12px] text-slate-400 dark:text-zinc-500">
                   {isVietnamese ? 'Cập nhật' : 'Updated'} {formatDate(artifact.updatedAt, language)}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <EmptyPanel
-            message={isVietnamese ? 'Chưa có artifact khôi phục.' : 'No recovery artifacts are available yet.'}
-          />
+           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-400">
+            {isVietnamese ? 'Chưa có artifact khôi phục.' : 'No recovery artifacts are available yet.'}
+          </div>
         )}
-      </SectionCard>
+      </AdminCard>
     </div>
   )
 }

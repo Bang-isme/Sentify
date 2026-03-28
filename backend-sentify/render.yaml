@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: sentify-backend-staging
+    env: node
+    rootDir: backend-sentify
+    plan: free
+    autoDeploy: false
+    buildCommand: npm install && npm run db:generate
+    preDeployCommand: npm run db:migrate:deploy
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_FORMAT
+        value: json
+      - key: TRUST_PROXY
+        value: "true"
+      - key: BODY_LIMIT
+        value: 100kb
+      - key: AUTH_COOKIE_SECURE
+        value: "true"
+      - key: AUTH_COOKIE_SAME_SITE
+        value: lax
+      - key: EMAIL_PROVIDER
+        value: console
+      - key: REVIEW_CRAWL_INLINE_QUEUE_MODE
+        value: "false"
+      - key: REVIEW_CRAWL_RUNTIME_MODE
+        value: both
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_SECRET_PREVIOUS
+        sync: false
+      - key: JWT_ISSUER
+        value: sentify-api
+      - key: JWT_AUDIENCE
+        value: sentify-web
+      - key: CORS_ORIGIN
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: AUTH_COOKIE_DOMAIN
+        sync: false

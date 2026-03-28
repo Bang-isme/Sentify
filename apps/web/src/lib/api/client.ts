@@ -48,6 +48,20 @@ export function buildUrl(path: string, query?: Record<string, string | number | 
   return url
 }
 
+export function buildPath(path: string, query?: Record<string, string | number | undefined>) {
+  const url = new URL(path, 'http://sentify.local')
+
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== '') {
+        url.searchParams.set(key, String(value))
+      }
+    }
+  }
+
+  return `${url.pathname}${url.search}`
+}
+
 function readCookie(name: string) {
   if (typeof document === 'undefined' || !document.cookie) {
     return null

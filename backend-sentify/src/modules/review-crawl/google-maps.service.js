@@ -27,6 +27,9 @@ const SESSION_BOOTSTRAP_WARMUP_MS = 2000
 const FIRST_PAGE_SESSION_RECOVERY_DELAYS_MS = [500, 1000, 1500, 2000, 3000]
 const EMPTY_PAGE_RETRY_DELAYS_MS = [500, 1000]
 const CURSOR_SESSION_RECOVERY_DELAYS_MS = [1000, 2000, 4000]
+const TEXT_FETCH_RETRY_DELAYS_MS = [500, 1500]
+const TEXT_FETCH_TIMEOUT_MS = 15000
+const RETRYABLE_TEXT_FETCH_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504])
 const RETRYABLE_SESSION_ERROR_CODES = new Set([
     'GOOGLE_MAPS_FETCH_FAILED',
     'GOOGLE_MAPS_RATE_LIMITED',
@@ -271,31 +274,6 @@ function validateReviewForIntake(review) {
     }
 }
 
-async function fetchText(url, headers = {}) {
-    const response = await fetch(url, {
-        headers,
-    })
-
-    if (!response.ok) {
-        if (response.status === 429) {
-            throw tooManyRequests(
-                'GOOGLE_MAPS_RATE_LIMITED',
-                'Google Maps rate-limited the crawl request',
-            )
-        }
-
-        throw badGateway(
-            'GOOGLE_MAPS_FETCH_FAILED',
-            `Failed to fetch Google Maps resource: ${response.status} ${response.statusText}`,
-        )
-    }
-
-    return {
-        url: response.url,
-        text: await response.text(),
-    }
-}
-
 async function createBrowserLikeClient(language) {
     return new Impit({
         browser: 'chrome',
@@ -304,9 +282,134 @@ async function createBrowserLikeClient(language) {
     })
 }
 
+function isRetryableTextFetchError(error) {
+    return error?.details?.retryable === true
+}
+
+function buildFetchFailureMessage(error) {
+    const causeMessage =
+        error?.cause?.message ||
+        error?.message ||
+        'Unknown upstream fetch failure'
+
+    return truncate(causeMessage, 240)
+}
+
+async function performResponseFetch(url, headers = {}, options = {}) {
+    const timeoutMs = options.timeoutMs ?? TEXT_FETCH_TIMEOUT_MS
+    const controller = new AbortController()
+    let timeoutId = null
+
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            controller.abort()
+            const timeoutError = new Error(`Request timed out after ${timeoutMs}ms`)
+            timeoutError.name = 'AbortError'
+            reject(timeoutError)
+        }, timeoutMs)
+    })
+
+    try {
+        const requestPromise = options.client
+            ? options.client.fetch(url, {
+                  headers,
+                  signal: controller.signal,
+              })
+            : fetch(url, {
+                  headers,
+                  signal: controller.signal,
+              })
+        return await Promise.race([requestPromise, timeoutPromise])
+    } finally {
+        if (timeoutId) {
+            clearTimeout(timeoutId)
+        }
+    }
+}
+
+async function performTextFetch(url, headers = {}, options = {}) {
+    const failureCode = options.failureCode ?? 'GOOGLE_MAPS_FETCH_FAILED'
+    const failureMessagePrefix =
+        options.failureMessagePrefix ?? 'Failed to fetch Google Maps resource'
+    const rateLimitCode = options.rateLimitCode ?? 'GOOGLE_MAPS_RATE_LIMITED'
+    const rateLimitMessage =
+        options.rateLimitMessage ?? 'Google Maps rate-limited the crawl request'
+
+    try {
+        const response = await performResponseFetch(url, headers, options)
+
+        if (!response.ok) {
+            const details = compactValue({
+                url,
+                status: response.status,
+                statusText: response.statusText || null,
+                retryable: RETRYABLE_TEXT_FETCH_STATUS_CODES.has(response.status),
+            })
+
+            if (response.status === 429) {
+                throw tooManyRequests(rateLimitCode, rateLimitMessage, details)
+            }
+
+            throw badGateway(
+                failureCode,
+                `${failureMessagePrefix}: ${response.status} ${response.statusText}`,
+                details,
+            )
+        }
+
+        return {
+            url: response.url || url,
+            text: await response.text(),
+        }
+    } catch (error) {
+        if (error?.code === rateLimitCode || error?.code === failureCode) {
+            throw error
+        }
+
+        const details = compactValue({
+            url,
+            retryable: true,
+            reason: buildFetchFailureMessage(error),
+        })
+
+        throw badGateway(
+            failureCode,
+            `${failureMessagePrefix}: ${buildFetchFailureMessage(error)}`,
+            details,
+        )
+    }
+}
+
+async function fetchText(url, headers = {}, options = {}) {
+    const retryDelaysMs = Array.isArray(options.retryDelaysMs)
+        ? options.retryDelaysMs
+        : TEXT_FETCH_RETRY_DELAYS_MS
+
+    let lastError
+
+    for (let attemptIndex = 0; attemptIndex <= retryDelaysMs.length; attemptIndex += 1) {
+        try {
+            return await performTextFetch(url, headers, options)
+        } catch (error) {
+            lastError = error
+
+            if (!isRetryableTextFetchError(error) || attemptIndex >= retryDelaysMs.length) {
+                throw error
+            }
+
+            await sleep(retryDelaysMs[attemptIndex])
+        }
+    }
+
+    throw lastError
+}
+
 async function resolveGoogleMapsSource(input) {
     const headers = buildGoogleHeaders(input.language)
-    const initialPage = await fetchText(input.url, headers)
+    const client = await createBrowserLikeClient(input.language)
+    const initialPage = await fetchText(input.url, headers, {
+        client,
+    })
     const canonicalUrl = buildCanonicalMapsUrl(
         input.url,
         initialPage.url,
@@ -317,7 +420,9 @@ async function resolveGoogleMapsSource(input) {
 
     if (canonicalUrl && canonicalUrl !== initialPage.url) {
         try {
-            previewPage = await fetchText(canonicalUrl, headers)
+            previewPage = await fetchText(canonicalUrl, headers, {
+                client,
+            })
         } catch {
             previewPage = initialPage
         }
@@ -337,7 +442,9 @@ async function resolveGoogleMapsSource(input) {
     }
 
     const previewUrl = buildPreviewUrl(previewFetchPath)
-    const previewResponse = await fetchText(previewUrl, headers)
+    const previewResponse = await fetchText(previewUrl, headers, {
+        client,
+    })
     const previewPayload = parseGoogleJsonResponse(previewResponse.text)
     const preview = parsePreviewPlacePayload(previewPayload, {
         inputUrl: input.url,
@@ -368,23 +475,19 @@ async function resolveGoogleMapsSource(input) {
 async function initializeGoogleMapsReviewSession(input) {
     const resolved = input.place && input.source ? input : await resolveGoogleMapsSource(input)
     const client = await createBrowserLikeClient(resolved.source.language)
-    const sourceResponse = await client.fetch(resolved.source.sourcePageUrl)
-
-    if (!sourceResponse.ok) {
-        if (sourceResponse.status === 429) {
-            throw tooManyRequests(
-                'GOOGLE_MAPS_RATE_LIMITED',
+    const sourceResponse = await fetchText(
+        resolved.source.sourcePageUrl,
+        buildGoogleHeaders(resolved.source.language),
+        {
+            client,
+            failureCode: 'GOOGLE_MAPS_SESSION_INIT_FAILED',
+            failureMessagePrefix:
+                'Failed to initialize Google Maps review session',
+            rateLimitMessage:
                 'Google Maps rate-limited the review session bootstrap',
-            )
-        }
-
-        throw badGateway(
-            'GOOGLE_MAPS_FETCH_FAILED',
-            `Failed to initialize Google Maps review session: ${sourceResponse.status} ${sourceResponse.statusText}`,
-        )
-    }
-
-    const sourceHtml = await sourceResponse.text()
+        },
+    )
+    const sourceHtml = sourceResponse.text
     const sessionToken = extractSessionTokenFromHtml(sourceHtml)
 
     if (!sessionToken) {
@@ -411,6 +514,7 @@ async function fetchGoogleMapsReviewPage({
     pageSize,
     language,
     region,
+    timeoutMs,
 }) {
     const url = buildReviewsRpcUrl({
         placeHexId,
@@ -423,23 +527,15 @@ async function fetchGoogleMapsReviewPage({
         region,
     })
 
-    const response = await client.fetch(url)
+    const response = await fetchText(url, buildGoogleHeaders(language), {
+        client,
+        timeoutMs,
+        failureCode: 'GOOGLE_MAPS_REVIEW_FETCH_FAILED',
+        failureMessagePrefix: 'Failed to fetch Google Maps reviews',
+        rateLimitMessage: 'Google Maps rate-limited the review page request',
+    })
 
-    if (!response.ok) {
-        if (response.status === 429) {
-            throw tooManyRequests(
-                'GOOGLE_MAPS_RATE_LIMITED',
-                'Google Maps rate-limited the review page request',
-            )
-        }
-
-        throw badGateway(
-            'GOOGLE_MAPS_REVIEW_FETCH_FAILED',
-            `Failed to fetch Google Maps reviews: ${response.status} ${response.statusText}`,
-        )
-    }
-
-    const page = parseReviewPagePayload(parseGoogleJsonResponse(await response.text()))
+    const page = parseReviewPagePayload(parseGoogleJsonResponse(response.text))
     return {
         ...page,
         reviews: page.reviews.map((review) =>
@@ -867,6 +963,7 @@ module.exports = {
     buildValidatedIntakeItems,
     crawlGoogleMapsReviews,
     determineCrawlCompleteness,
+    fetchText,
     fetchGoogleMapsReviewPage,
     fetchGoogleMapsReviewPageWithRecovery,
     initializeGoogleMapsReviewSession,

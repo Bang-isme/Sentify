@@ -109,6 +109,7 @@ function createAdminAccessPrismaOverrides() {
             requestedByUserId: USER_ID,
         },
     ]
+    const auditEvents = []
 
     let observedUserListWhere = null
     let resetRequestCount = 0
@@ -418,6 +419,41 @@ function createAdminAccessPrismaOverrides() {
                 return { count: before - memberships.length }
             },
         },
+        auditEvent: {
+            create: async ({ data }) => {
+                const created = {
+                    id: `audit-${auditEvents.length + 1}`,
+                    action: data.action,
+                    resourceType: data.resourceType,
+                    resourceId: data.resourceId,
+                    summary: data.summary,
+                    restaurantId: data.restaurantId ?? null,
+                    actorUserId: data.actorUserId ?? null,
+                    metadataJson: data.metadataJson ?? {},
+                    createdAt: new Date('2026-03-25T03:00:00Z'),
+                }
+                auditEvents.push(created)
+                return created
+            },
+            createMany: async ({ data }) => {
+                for (const entry of data) {
+                    auditEvents.push({
+                        id: `audit-${auditEvents.length + 1}`,
+                        action: entry.action,
+                        resourceType: entry.resourceType,
+                        resourceId: entry.resourceId,
+                        summary: entry.summary,
+                        restaurantId: entry.restaurantId ?? null,
+                        actorUserId: entry.actorUserId ?? null,
+                        metadataJson: entry.metadataJson ?? {},
+                        createdAt: new Date('2026-03-25T03:00:00Z'),
+                    })
+                }
+
+                return { count: data.length }
+            },
+            findMany: async ({ take } = {}) => auditEvents.slice(0, take ?? auditEvents.length),
+        },
         reviewIntakeBatch: {
             findMany: async ({ where }) =>
                 recentIntakeBatches.filter((batch) => batch.createdByUserId === where.createdByUserId),
@@ -433,6 +469,7 @@ function createAdminAccessPrismaOverrides() {
         state: {
             users,
             memberships,
+            auditEvents,
             get observedUserListWhere() {
                 return observedUserListWhere
             },
@@ -506,6 +543,15 @@ test('admin access endpoints expose user directory, detail, role changes, and re
     assert.equal(roleResponse.body.data.memberships.length, 0)
     assert.equal(state.users.find((user) => user.id === USER_ID)?.role, 'ADMIN')
     assert.equal(state.memberships.length, 0)
+    assert.equal(
+        state.auditEvents.some(
+            (event) =>
+                event.action === 'MEMBERSHIP_REMOVED' &&
+                event.metadataJson.reason === 'ROLE_CHANGED_TO_ADMIN' &&
+                event.metadataJson.userId === USER_ID,
+        ),
+        true,
+    )
 
     const resetResponse = await request(
         server,
@@ -554,6 +600,14 @@ test('admin access lifecycle endpoints create users and manage account state saf
     assert.equal(createResponse.body.data.user.accountState, 'ACTIVE')
     assert.equal(createResponse.body.data.memberships.length, 1)
     assert.equal(state.createdUserCount, 1)
+    assert.equal(
+        state.auditEvents.some(
+            (event) =>
+                event.action === 'MEMBERSHIP_ASSIGNED' &&
+                event.metadataJson.reason === 'USER_CREATED_WITH_RESTAURANT',
+        ),
+        true,
+    )
 
     const createdUserId = createResponse.body.data.user.id
 
@@ -661,6 +715,15 @@ test('admin membership endpoints expose the graph and support create/delete', as
     assert.equal(deleteResponse.status, 200)
     assert.equal(deleteResponse.body.data.membership.id, MEMBERSHIP_ID)
     assert.equal(state.memberships.length, 0)
+    assert.equal(
+        state.auditEvents.some(
+            (event) =>
+                event.action === 'MEMBERSHIP_REMOVED' &&
+                event.resourceId === MEMBERSHIP_ID &&
+                event.metadataJson.reason === 'MANUAL_REMOVAL',
+        ),
+        true,
+    )
 
     const createResponse = await request(server, 'POST', '/api/admin/memberships', {
         token: auth,
@@ -673,6 +736,15 @@ test('admin membership endpoints expose the graph and support create/delete', as
     assert.equal(createResponse.body.data.membership.user.id, USER_ID)
     assert.equal(createResponse.body.data.membership.restaurant.id, RESTAURANT_ID)
     assert.equal(state.memberships.length, 1)
+    assert.equal(
+        state.auditEvents.some(
+            (event) =>
+                event.action === 'MEMBERSHIP_ASSIGNED' &&
+                event.metadataJson.reason === 'MANUAL_ASSIGNMENT' &&
+                event.metadataJson.userId === USER_ID,
+        ),
+        true,
+    )
 })
 
 test('admin access endpoints stay hidden from non-admin users', async (t) => {

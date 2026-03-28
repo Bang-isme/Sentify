@@ -1,4 +1,4 @@
-import { buildUrl, request } from './client'
+import { buildPath, request } from './client'
 import type {
   ComplaintKeyword,
   InsightSummary,
@@ -16,8 +16,9 @@ export function getSentimentBreakdown(restaurantId: string) {
 }
 
 export function getTrend(restaurantId: string, period: TrendPeriod) {
-  const url = buildUrl(`/restaurants/${restaurantId}/dashboard/trend`, { period })
-  return request<TrendPoint[]>(`${url.pathname}${url.search}`)
+  return request<TrendPoint[]>(
+    buildPath(`/restaurants/${restaurantId}/dashboard/trend`, { period }),
+  )
 }
 
 export function getComplaintKeywords(restaurantId: string) {

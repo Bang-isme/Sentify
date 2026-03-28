@@ -1,6 +1,6 @@
 # Sentify API Reference
 
-Updated: 2026-03-26
+Updated: 2026-03-27
 Base URL: `http://localhost:3000/api`
 
 This document describes the API surface that exists in the backend today.
@@ -327,6 +327,13 @@ Returned fields:
 - `slug`
 - `googleMapUrl`
 - `totalReviews`
+- `entitlement`
+  - `planTier`
+  - `effectivePolicy.sourceSubmissionLane`
+  - `effectivePolicy.sourceSyncIntervalMinutes`
+  - `effectivePolicy.actionCardsLimit`
+  - `effectivePolicy.prioritySync`
+  - `effectivePolicy.processingClass`
 
 ### `GET /api/restaurants/:id`
 
@@ -335,6 +342,8 @@ Returns:
 - restaurant summary
 - `datasetStatus`
 - `insightSummary`
+- `entitlement`
+- `sourceSubmission`
 
 Important note:
 
@@ -353,6 +362,9 @@ Current contract:
 
 - any `USER` who belongs to the restaurant may update it
 - there is no owner-only sub-role gate anymore
+- responses now also include:
+  - `entitlement`
+  - `sourceSubmission`
 
 ### `GET /api/restaurants/:id/reviews`
 
@@ -373,9 +385,92 @@ Query params:
 - `GET /api/restaurants/:id/dashboard/trend`
 - `GET /api/restaurants/:id/dashboard/complaints`
 - `GET /api/restaurants/:id/dashboard/top-issue`
+- `GET /api/restaurants/:id/dashboard/actions`
 
 These routes only read canonical published data.
 They do not expose draft intake state or internal operator notes.
+
+### `GET /api/restaurants/:id/dashboard/actions`
+
+Returns the merchant-facing prioritization payload built from canonical published reviews only.
+
+Top-level shape:
+
+```json
+{
+  "data": {
+    "summary": {
+      "state": "ACTIONABLE_NOW",
+      "focusCode": "FIX_RESPONSE_TIME",
+      "headline": "Focus on slow service first.",
+      "detail": "3 published negative reviews mention slow service...",
+      "generatedAt": "2026-03-27T00:00:00.000Z"
+    },
+    "snapshot": {
+      "hasSourceUrl": true,
+      "totalReviews": 25,
+      "averageRating": 4.2,
+      "negativePercentage": 20
+    },
+    "entitlement": {
+      "planTier": "PREMIUM",
+      "effectivePolicy": {
+        "planTier": "PREMIUM",
+        "sourceSubmissionLane": "PRIORITY",
+        "sourceSyncIntervalMinutes": 360,
+        "actionCardsLimit": 3,
+        "prioritySync": true,
+        "processingClass": "PRIORITY_QUEUE"
+      }
+    },
+    "capabilities": {
+      "sourceSubmissionLane": "PRIORITY",
+      "sourceSyncIntervalMinutes": 360,
+      "actionCardsLimit": 3,
+      "prioritySync": true,
+      "processingClass": "PRIORITY_QUEUE"
+    },
+    "executionLayer": {
+      "currentFocusCode": "FIX_RESPONSE_TIME",
+      "currentFocus": "Use published complaints to tighten speed of service first.",
+      "nextCapabilityCode": "ASSIGN_AND_TRACK",
+      "nextCapability": "Turn the top issue into ownership, follow-up, and repeat measurement in later publishes."
+    },
+    "topIssue": {
+      "keyword": "slow service",
+      "affectedReviewCount": 3,
+      "affectedReviewPercentage": 60,
+      "priority": "HIGH",
+      "recommendationCode": "FIX_RESPONSE_TIME",
+      "recommendation": "Check staffing and order handoff during peak hours...",
+      "evidenceSummary": "Recent evidence mentioning slow service...",
+      "evidenceReview": {
+        "id": "uuid",
+        "authorName": "Guest",
+        "rating": 2,
+        "sentiment": "NEGATIVE",
+        "content": "Slow service again...",
+        "reviewDate": "2026-03-27T00:00:00.000Z"
+      }
+    },
+    "actionCards": []
+  }
+}
+```
+
+Current `summary.state` values:
+
+- `AWAITING_SOURCE`
+- `AWAITING_FIRST_PUBLISH`
+- `ACTIONABLE_NOW`
+- `MONITORING`
+
+Important contract note:
+
+- this endpoint is read-only
+- it uses only canonical published complaint keywords and published negative review evidence
+- it exists so FE does not have to infer merchant priorities from `complaints` and `top-issue` heuristics alone
+- it now also carries the backend-owned merchant entitlement/capability contract so FE does not infer free-vs-premium behavior from internal queue state
 
 ## Admin Routes
 
@@ -403,6 +498,7 @@ Returned fields include:
 - `pendingBatchCount`
 - `activeSourceCount`
 - `insightSummary`
+- `entitlement`
 
 ### `GET /api/admin/restaurants/:id`
 
@@ -418,7 +514,10 @@ Top-level shape:
       "name": "Cafe One",
       "slug": "cafe-one",
       "memberCount": 2,
-      "totalReviews": 25
+      "totalReviews": 25,
+      "entitlement": {
+        "planTier": "FREE"
+      }
     },
     "userFlow": {
       "datasetStatus": {
@@ -451,6 +550,45 @@ Why this endpoint exists:
 
 - admin should not need to borrow user-facing routes to understand a restaurant
 - the endpoint makes the user-visible state and admin next steps visible in one payload
+
+### `PATCH /api/admin/restaurants/:id/entitlement`
+
+Updates the merchant-facing plan contract for one restaurant.
+
+Request:
+
+```json
+{
+  "planTier": "PREMIUM"
+}
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "restaurantId": "uuid",
+    "entitlement": {
+      "planTier": "PREMIUM",
+      "effectivePolicy": {
+        "planTier": "PREMIUM",
+        "sourceSubmissionLane": "PRIORITY",
+        "sourceSyncIntervalMinutes": 360,
+        "actionCardsLimit": 3,
+        "prioritySync": true,
+        "processingClass": "PRIORITY_QUEUE"
+      }
+    }
+  }
+}
+```
+
+Important contract note:
+
+- `RestaurantEntitlement.planTier` is the only persisted merchant-facing entitlement truth
+- pending source submissions that still use `ENTITLEMENT_DEFAULT` lane source will be re-aligned to the new plan default
+- submissions already marked `ADMIN_OVERRIDE` keep their operator-selected lane
 
 ## Admin Intake Routes
 

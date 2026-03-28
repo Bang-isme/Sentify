@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ApiClientError,
   approveValidBatchItems,
@@ -19,11 +19,7 @@ import {
   type ReviewCrawlRunStrategy,
 } from '../../../lib/api'
 import { getAdminOpsLabels } from '../../admin-ops/adminOpsLabels'
-import {
-  EmptyPanel,
-  SectionCard,
-  StatusMessage,
-} from '../../../components/product/workspace/shared'
+import { AdminCard, AdminStatusMessage } from '../../admin-shell/components/AdminPrimitives'
 
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiClientError) {
@@ -70,6 +66,26 @@ function parseOptionalInteger(value: string) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
 }
 
+function isInlineReviewOpsMode(value: Record<string, unknown> | null | undefined) {
+  return value?.inlineMode === true
+}
+
+function formatQueueJobState(value: string | null | undefined) {
+  if (!value) {
+    return 'No job data'
+  }
+
+  if (value === 'queued-inline') {
+    return 'Queued (inline local)'
+  }
+
+  if (value === 'processed-inline') {
+    return 'Processed inline by API'
+  }
+
+  return value
+}
+
 interface ReviewOpsPanelProps {
   language: string
   restaurantId: string | null
@@ -102,13 +118,43 @@ export function ReviewOpsPanel({
   const [actionPending, setActionPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const syncUrlHydratedRestaurantIdRef = useRef<string | null>(null)
+  const [syncUrlDirty, setSyncUrlDirty] = useState(false)
 
   const selectedSource =
     sourcesResponse?.sources.find((source) => source.id === selectedSourceId) ?? null
+  const inlineQueueMode =
+    isInlineReviewOpsMode(
+      (sourcesResponse?.queueHealth as Record<string, unknown> | null | undefined) ?? null,
+    ) ||
+    isInlineReviewOpsMode(
+      (sourcesResponse?.workerHealth as Record<string, unknown> | null | undefined) ?? null,
+    )
+  const activeRunId = runDetail?.run.id ?? selectedRunId
+  const shouldPollSelectedRun = Boolean(
+    activeRunId &&
+      (
+        inlineQueueMode
+          ? !batchReadiness
+          : runDetail && ['QUEUED', 'RUNNING'].includes(runDetail.run.status)
+      ),
+  )
 
   useEffect(() => {
-    setSyncUrl(detail?.googleMapUrl ?? '')
-  }, [detail?.googleMapUrl, restaurantId])
+    const nextSyncUrl = detail?.googleMapUrl ?? ''
+    const restaurantChanged = syncUrlHydratedRestaurantIdRef.current !== restaurantId
+
+    if (restaurantChanged) {
+      syncUrlHydratedRestaurantIdRef.current = restaurantId
+      setSyncUrlDirty(false)
+      setSyncUrl(nextSyncUrl)
+      return
+    }
+
+    if (!syncUrlDirty) {
+      setSyncUrl(nextSyncUrl)
+    }
+  }, [detail?.googleMapUrl, restaurantId, syncUrlDirty])
 
   async function loadSources(preferredSourceId?: string | null) {
     if (!restaurantId) {
@@ -127,11 +173,11 @@ export function ReviewOpsPanel({
     try {
       const nextResponse = await listReviewOpsSources(restaurantId)
       const nextSourceId =
-        preferredSourceId && nextResponse.sources.some((source) => source.id === preferredSourceId)
-          ? preferredSourceId
-          : selectedSourceId && nextResponse.sources.some((source) => source.id === selectedSourceId)
+        preferredSourceId ?? (
+          selectedSourceId && nextResponse.sources.some((source) => source.id === selectedSourceId)
             ? selectedSourceId
             : nextResponse.sources[0]?.id ?? null
+        )
 
       setSourcesResponse(nextResponse)
       setSelectedSourceId(nextSourceId)
@@ -149,11 +195,11 @@ export function ReviewOpsPanel({
     try {
       const nextResponse = await listReviewOpsSourceRuns(sourceId)
       const nextRunId =
-        preferredRunId && nextResponse.runs.some((run) => run.id === preferredRunId)
-          ? preferredRunId
-          : selectedRunId && nextResponse.runs.some((run) => run.id === selectedRunId)
+        preferredRunId ?? (
+          selectedRunId && nextResponse.runs.some((run) => run.id === selectedRunId)
             ? selectedRunId
             : nextResponse.runs[0]?.id ?? null
+        )
 
       setRunsResponse(nextResponse)
       setSelectedRunId(nextRunId)
@@ -185,6 +231,32 @@ export function ReviewOpsPanel({
     }
   }
 
+  async function refreshSelectedRun() {
+    if (!activeRunId) {
+      return
+    }
+
+    if (selectedSourceId) {
+      await loadSources(selectedSourceId)
+    }
+
+    if (selectedSourceId) {
+      await loadRuns(selectedSourceId, activeRunId)
+    }
+
+    await loadRunDetail(activeRunId)
+  }
+
+  function scheduleSyncFollowUpRefresh(sourceId: string, runId: string) {
+    for (const delayMs of [2000, 5000, 9000]) {
+      window.setTimeout(() => {
+        void loadSources(sourceId)
+        void loadRuns(sourceId, runId)
+        void loadRunDetail(runId)
+      }, delayMs)
+    }
+  }
+
   useEffect(() => {
     void loadSources()
   }, [restaurantId])
@@ -211,6 +283,18 @@ export function ReviewOpsPanel({
     void loadRunDetail(selectedRunId)
   }, [selectedRunId])
 
+  useEffect(() => {
+    if (!shouldPollSelectedRun) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void refreshSelectedRun()
+    }, 2000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [activeRunId, shouldPollSelectedRun, selectedSourceId, runDetail?.run.status])
+
   async function handleSyncToDraft() {
     if (!restaurantId || !syncUrl.trim()) {
       setError(isVietnamese ? 'Cần nhập URL Google Maps.' : 'Google Maps URL is required.')
@@ -233,9 +317,12 @@ export function ReviewOpsPanel({
       })
 
       setNotice(labels.syncSuccess)
+      setSelectedSourceId(result.source.id)
+      setSelectedRunId(result.run.id)
       await loadSources(result.source.id)
       await loadRuns(result.source.id, result.run.id)
       await loadRunDetail(result.run.id)
+      scheduleSyncFollowUpRefresh(result.source.id, result.run.id)
     } catch (nextError) {
       setError(getErrorMessage(nextError))
     } finally {
@@ -325,6 +412,32 @@ export function ReviewOpsPanel({
       return []
     }
 
+    const queueHealth =
+      (sourcesResponse.queueHealth as Record<string, unknown> | null | undefined) ?? null
+    const workerHealth =
+      (sourcesResponse.workerHealth as Record<string, unknown> | null | undefined) ?? null
+    const inlineMode =
+      isInlineReviewOpsMode(queueHealth) || isInlineReviewOpsMode(workerHealth)
+
+    if (inlineMode) {
+      return [
+        {
+          icon: 'dns',
+          label: 'Queue: inline local mode',
+        },
+        {
+          icon: 'memory',
+          label: isVietnamese ? 'Worker: xu ly ngay trong API' : 'Worker: handled inline by API',
+        },
+        {
+          icon: 'warning',
+          label: isVietnamese
+            ? `${formatCount(sourcesResponse.overdueSourceCount, language)} nguon qua han`
+            : `${formatCount(sourcesResponse.overdueSourceCount, language)} overdue source(s)`,
+        },
+      ]
+    }
+
     return [
       {
         icon: 'dns',
@@ -348,13 +461,13 @@ export function ReviewOpsPanel({
   }, [isVietnamese, language, sourcesResponse])
 
   return (
-    <div className="grid gap-6">
+    <div data-testid="review-ops-panel" className="grid gap-4">
       <div className="flex flex-wrap gap-2">
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
+        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-300">
           <span className="material-symbols-outlined text-base text-sky-300">storefront</span>
           {detail?.name ?? (isVietnamese ? 'Chưa chọn nhà hàng' : 'No restaurant selected')}
         </span>
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
+        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-300">
           <span className={`material-symbols-outlined text-base ${detail?.googleMapUrl ? 'text-emerald-300' : 'text-amber-300'}`}>
             {detail?.googleMapUrl ? 'task_alt' : 'warning'}
           </span>
@@ -366,7 +479,7 @@ export function ReviewOpsPanel({
               ? 'Thiếu nguồn Google Maps'
               : 'Google Maps source missing'}
         </span>
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-200">
+        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-300">
           <span className="material-symbols-outlined text-base text-slate-300">inventory_2</span>
           {isVietnamese
             ? `${formatCount(detail?.datasetStatus.pendingBatchCount, language)} lô đang chờ`
@@ -374,60 +487,71 @@ export function ReviewOpsPanel({
         </span>
       </div>
 
-      {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
-      {notice ? <StatusMessage>{notice}</StatusMessage> : null}
+      {error ? <AdminStatusMessage tone="error">{error}</AdminStatusMessage> : null}
+      {notice ? <AdminStatusMessage>{notice}</AdminStatusMessage> : null}
+      {inlineQueueMode ? (
+        <AdminStatusMessage>
+          {isVietnamese
+            ? 'Local mode dang xu ly crawl inline trong API. Flow nghiep vu van giong production, chi khong can worker Redis rieng.'
+            : 'Local mode is processing crawl jobs inline in the API. The business flow stays the same, but no separate Redis worker is required.'}
+        </AdminStatusMessage>
+      ) : null}
 
-      <SectionCard title={labels.syncCardTitle} description={labels.syncCardDescription} tone="accent">
+      <AdminCard title={labels.syncCardTitle} description={labels.syncCardDescription} className="bg-slate-50 dark:bg-white/5">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_repeat(4,minmax(0,0.7fr))]">
-          <label className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white">
+          <label className="grid gap-2 text-sm font-semibold text-slate-900 dark:text-white">
             <span>{labels.syncUrlLabel}</span>
             <input
+              data-testid="review-ops-sync-url-input"
               value={syncUrl}
-              onChange={(event) => setSyncUrl(event.target.value)}
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              onChange={(event) => {
+                setSyncUrlDirty(true)
+                setSyncUrl(event.target.value)
+              }}
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b]"
               placeholder="https://maps.google.com/..."
               type="url"
             />
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white">
+          <label className="grid gap-2 text-sm font-semibold text-slate-900 dark:text-white">
             <span>{labels.syncStrategyLabel}</span>
             <select
               value={syncStrategy}
               onChange={(event) => setSyncStrategy(event.target.value as ReviewCrawlRunStrategy)}
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b]"
             >
               <option value="INCREMENTAL">{labels.strategies.INCREMENTAL}</option>
               <option value="BACKFILL">{labels.strategies.BACKFILL}</option>
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white">
+          <label className="grid gap-2 text-sm font-semibold text-slate-900 dark:text-white">
             <span>{labels.syncPriorityLabel}</span>
             <select
               value={syncPriority}
               onChange={(event) => setSyncPriority(event.target.value as ReviewCrawlRunPriority)}
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b]"
             >
               <option value="HIGH">{labels.priorities.HIGH}</option>
               <option value="NORMAL">{labels.priorities.NORMAL}</option>
               <option value="LOW">{labels.priorities.LOW}</option>
             </select>
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white">
+          <label className="grid gap-2 text-sm font-semibold text-slate-900 dark:text-white">
             <span>{labels.syncMaxPagesLabel}</span>
             <input
               value={syncMaxPages}
               onChange={(event) => setSyncMaxPages(event.target.value)}
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b]"
               inputMode="numeric"
               placeholder="Optional"
             />
           </label>
-          <label className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white">
+          <label className="grid gap-2 text-sm font-semibold text-slate-900 dark:text-white">
             <span>{labels.syncMaxReviewsLabel}</span>
             <input
               value={syncMaxReviews}
               onChange={(event) => setSyncMaxReviews(event.target.value)}
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b]"
               inputMode="numeric"
               placeholder="Optional"
             />
@@ -437,8 +561,9 @@ export function ReviewOpsPanel({
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             type="button"
+            data-testid="review-ops-sync-button"
             disabled={actionPending || !restaurantId}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-55 dark:text-bg-dark"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
             onClick={() => void handleSyncToDraft()}
           >
             {labels.syncAction}
@@ -446,19 +571,19 @@ export function ReviewOpsPanel({
           {queueHealthSummary.map((item) => (
             <div
               key={`${item.icon}-${item.label}`}
-              className="inline-flex items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-white"
             >
               <span className="material-symbols-outlined text-[16px] text-primary">{item.icon}</span>
               <span>{item.label}</span>
             </div>
           ))}
         </div>
-      </SectionCard>
+      </AdminCard>
 
-      <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <SectionCard title={labels.sourcesTitle} description={labels.sourcesDescription}>
-          {loadingSources ? <StatusMessage>Loading sources...</StatusMessage> : null}
-          {!loadingSources && !sourcesResponse?.sources.length ? <EmptyPanel message={labels.noSources} /> : null}
+      <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+        <AdminCard title={labels.sourcesTitle} description={labels.sourcesDescription}>
+          {loadingSources ? <AdminStatusMessage>Loading sources...</AdminStatusMessage> : null}
+          {!loadingSources && !sourcesResponse?.sources.length ? <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-400">{labels.noSources}</div> : null}
           {!loadingSources && sourcesResponse?.sources.length ? (
             <div className="grid gap-3">
               {sourcesResponse.sources.map((source) => {
@@ -468,25 +593,25 @@ export function ReviewOpsPanel({
                   <button
                     key={source.id}
                     type="button"
-                    className={`rounded-[1.35rem] border p-4 text-left transition ${
+                    className={`rounded-xl border p-4 text-left transition ${
                       isActive
                         ? 'border-primary/35 bg-primary/8'
-                        : 'border-border-light/70 bg-bg-light/70 hover:border-primary/25 hover:bg-primary/6 dark:border-border-dark dark:bg-bg-dark/55'
+                        : 'border-slate-200 bg-slate-50 hover:border-primary/25 hover:bg-primary/6 dark:border-white/10 dark:bg-white/5'
                     }`}
                     onClick={() => setSelectedSourceId(source.id)}
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="text-sm font-semibold text-text-charcoal dark:text-white">
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">
                         {source.placeName ?? 'Google Maps source'}
                       </div>
-                      <span className="rounded-full border border-border-light/70 bg-surface-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-900 dark:border-white/10 dark:bg-[#18181b] dark:text-white">
                         {labels.statuses[source.status] ?? source.status}
                       </span>
                     </div>
-                    <div className="mt-2 text-xs leading-6 text-text-silver-light dark:text-text-silver-dark">
+                    <div className="mt-2 text-xs leading-6 text-slate-500 dark:text-zinc-400">
                       {source.inputUrl}
                     </div>
-                    <div className="mt-3 grid gap-1 text-xs text-text-silver-light dark:text-text-silver-dark">
+                    <div className="mt-3 grid gap-1 text-xs text-slate-500 dark:text-zinc-400">
                       <div>
                         {labels.latestRunLabel}: {source.latestRun ? formatDateTime(source.latestRun.updatedAt, language) : 'None'}
                       </div>
@@ -503,18 +628,18 @@ export function ReviewOpsPanel({
               })}
             </div>
           ) : null}
-        </SectionCard>
+        </AdminCard>
 
-        <div className="grid gap-6">
-          <SectionCard
+        <div className="grid gap-4">
+          <AdminCard
             title={labels.runsTitle}
             description={labels.runsDescription}
-            headerAside={
+            headerAction={
               selectedSource ? (
                 <button
                   type="button"
                   disabled={actionPending}
-                  className="inline-flex h-10 items-center justify-center rounded-full border border-border-light px-4 text-sm font-semibold text-text-charcoal transition hover:border-primary/35 hover:text-primary disabled:cursor-not-allowed disabled:opacity-55 dark:border-border-dark dark:text-white"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-transparent dark:text-zinc-300 dark:hover:bg-white/5"
                   onClick={() =>
                     void handleSourceStatusToggle(selectedSource.status === 'ACTIVE' ? 'disable' : 'enable')
                   }
@@ -524,8 +649,8 @@ export function ReviewOpsPanel({
               ) : null
             }
           >
-            {loadingRuns ? <StatusMessage>Loading runs...</StatusMessage> : null}
-            {!loadingRuns && !runsResponse?.runs.length ? <EmptyPanel message={labels.noRuns} /> : null}
+            {loadingRuns ? <AdminStatusMessage>Loading runs...</AdminStatusMessage> : null}
+            {!loadingRuns && !runsResponse?.runs.length ? <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-400">{labels.noRuns}</div> : null}
             {!loadingRuns && runsResponse?.runs.length ? (
               <div className="grid gap-3">
                 {runsResponse.runs.map((run) => {
@@ -535,25 +660,25 @@ export function ReviewOpsPanel({
                     <button
                       key={run.id}
                       type="button"
-                      className={`rounded-[1.3rem] border p-4 text-left transition ${
+                      className={`rounded-xl border p-4 text-left transition ${
                         isActive
                           ? 'border-primary/35 bg-primary/8'
-                          : 'border-border-light/70 bg-bg-light/70 hover:border-primary/25 hover:bg-primary/6 dark:border-border-dark dark:bg-bg-dark/55'
+                          : 'border-slate-200 bg-slate-50 hover:border-primary/25 hover:bg-primary/6 dark:border-white/10 dark:bg-white/5'
                       }`}
                       onClick={() => setSelectedRunId(run.id)}
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-sm font-semibold text-text-charcoal dark:text-white">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
                           {labels.strategies[run.strategy] ?? run.strategy}
                         </div>
-                        <span className="rounded-full border border-border-light/70 bg-surface-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
+                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-900 dark:border-white/10 dark:bg-[#18181b] dark:text-white">
                           {labels.statuses[run.status] ?? run.status}
                         </span>
-                        <span className="rounded-full border border-border-light/70 bg-surface-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
+                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-900 dark:border-white/10 dark:bg-[#18181b] dark:text-white">
                           {labels.priorities[run.priority] ?? run.priority}
                         </span>
                       </div>
-                      <div className="mt-3 grid gap-1 text-xs text-text-silver-light dark:text-text-silver-dark">
+                      <div className="mt-3 grid gap-1 text-xs text-slate-500 dark:text-zinc-400">
                         <div>Extracted {formatCount(run.extractedCount, language)} review(s)</div>
                         <div>Warnings {formatCount(run.warningCount, language)}</div>
                         <div>Updated {formatDateTime(run.updatedAt, language)}</div>
@@ -563,43 +688,59 @@ export function ReviewOpsPanel({
                 })}
               </div>
             ) : null}
-          </SectionCard>
+          </AdminCard>
 
-          <SectionCard title={labels.runDetailTitle} description={labels.runDetailDescription}>
-            {loadingRunDetail ? <StatusMessage>Loading run detail...</StatusMessage> : null}
-            {!loadingRunDetail && !runDetail ? <EmptyPanel message={labels.noRunDetail} /> : null}
+          <AdminCard
+            title={labels.runDetailTitle}
+            description={labels.runDetailDescription}
+            headerAction={
+              selectedRunId ? (
+                <button
+                  type="button"
+                  data-testid="review-ops-refresh-run-button"
+                  disabled={actionPending || loadingRunDetail}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-transparent dark:text-zinc-300 dark:hover:bg-white/5"
+                  onClick={() => void refreshSelectedRun()}
+                >
+                  {isVietnamese ? 'Làm mới' : 'Refresh'}
+                </button>
+              ) : null
+            }
+          >
+            {loadingRunDetail ? <AdminStatusMessage>Loading run detail...</AdminStatusMessage> : null}
+            {!loadingRunDetail && !runDetail ? <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-400">{labels.noRunDetail}</div> : null}
             {!loadingRunDetail && runDetail ? (
               <div className="grid gap-5">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-[1.25rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
                       Status
                     </div>
-                    <div className="mt-2 text-base font-bold text-text-charcoal dark:text-white">
+                    <div className="mt-2 text-base font-bold text-slate-900 dark:text-white">
                       {labels.statuses[runDetail.run.status] ?? runDetail.run.status}
                     </div>
                   </div>
-                  <div className="rounded-[1.25rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
                       Coverage
                     </div>
-                    <div className="mt-2 text-base font-bold text-text-charcoal dark:text-white">
+                    <div className="mt-2 text-base font-bold text-slate-900 dark:text-white">
                       {runDetail.run.crawlCoverage?.completeness ?? 'Unknown'}
                     </div>
                   </div>
-                  <div className="rounded-[1.25rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
                       Queue job
                     </div>
-                    <div className="mt-2 text-base font-bold text-text-charcoal dark:text-white">
-                      {runDetail.queueJob?.state ?? 'No job info'}
+                    <div className="mt-2 text-base font-bold text-slate-900 dark:text-white">
+                      {formatQueueJobState(runDetail.queueJob?.state)}
                     </div>
                   </div>
-                  <div className="rounded-[1.25rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
                       Draft batch
                     </div>
-                    <div className="mt-2 text-base font-bold text-text-charcoal dark:text-white">
+                    <div className="mt-2 text-base font-bold text-slate-900 dark:text-white">
                       {runDetail.run.intakeBatch ? labels.statuses[runDetail.run.intakeBatch.status] ?? runDetail.run.intakeBatch.status : 'Not materialized'}
                     </div>
                   </div>
@@ -607,7 +748,7 @@ export function ReviewOpsPanel({
 
                 <div className="flex flex-wrap gap-3">
                   {runDetail.run.resumable ? (
-                    <div className="rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+                    <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-white">
                       Resumable
                     </div>
                   ) : null}
@@ -616,42 +757,44 @@ export function ReviewOpsPanel({
                       Materializable
                     </div>
                   ) : null}
-                  <div className="rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+                  <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-white">
                     Extracted {formatCount(runDetail.run.extractedCount, language)}
                   </div>
-                  <div className="rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+                  <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-white">
                     Valid {formatCount(runDetail.run.validCount, language)}
                   </div>
-                  <div className="rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+                  <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-white">
                     Skipped {formatCount(runDetail.run.skippedCount, language)}
                   </div>
                 </div>
 
                 {runDetail.run.warnings.length ? (
-                  <div className="rounded-[1.3rem] border border-amber-300/35 bg-amber-500/10 p-4 text-sm leading-6 text-amber-800 dark:border-amber-400/25 dark:bg-amber-500/12 dark:text-amber-100">
+                  <div className="rounded-xl border border-amber-300/35 bg-amber-500/10 p-4 text-sm leading-6 text-amber-800 dark:border-amber-400/25 dark:bg-amber-500/12 dark:text-amber-100">
                     {runDetail.run.warnings.join(' ')}
                   </div>
                 ) : null}
               </div>
             ) : null}
-          </SectionCard>
+          </AdminCard>
 
           {batchReadiness ? (
-            <SectionCard
+            <AdminCard
               title={labels.readinessTitle}
               description={labels.readinessDescription}
-              headerAside={
+              headerAction={
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
+                    data-testid="review-ops-approve-valid-button"
                     disabled={actionPending || batchReadiness.bulkApprovableCount === 0}
-                    className="inline-flex h-10 items-center justify-center rounded-full border border-border-light px-4 text-sm font-semibold text-text-charcoal transition hover:border-primary/35 hover:text-primary disabled:cursor-not-allowed disabled:opacity-55 dark:border-border-dark dark:text-white"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-transparent dark:text-zinc-300 dark:hover:bg-white/5"
                     onClick={() => void handleApproveValid()}
                   >
                     {labels.approveAction}
                   </button>
                   <button
                     type="button"
+                    data-testid="review-ops-publish-button"
                     disabled={actionPending || !batchReadiness.publishAllowed}
                     className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-55 dark:text-bg-dark"
                     onClick={() => void handlePublishBatch()}
@@ -663,31 +806,31 @@ export function ReviewOpsPanel({
             >
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                 <div className="grid gap-3">
-                  <div className="rounded-[1.25rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
                       Batch status
                     </div>
-                    <div className="mt-2 text-base font-bold text-text-charcoal dark:text-white">
+                    <div className="mt-2 text-base font-bold text-slate-900 dark:text-white">
                       {labels.statuses[batchReadiness.batch.status] ?? batchReadiness.batch.status}
                     </div>
-                    <div className="mt-3 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+                    <div className="mt-3 text-sm leading-6 text-slate-500 dark:text-zinc-400">
                       Publish allowed: {batchReadiness.publishAllowed ? 'Yes' : 'No'}
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-[1.25rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
                         Approved
                       </div>
-                      <div className="mt-2 text-base font-bold text-text-charcoal dark:text-white">
+                      <div className="mt-2 text-base font-bold text-slate-900 dark:text-white">
                         {formatCount(batchReadiness.counts.approvedItems, language)}
                       </div>
                     </div>
-                    <div className="rounded-[1.25rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
                         Pending
                       </div>
-                      <div className="mt-2 text-base font-bold text-text-charcoal dark:text-white">
+                      <div className="mt-2 text-base font-bold text-slate-900 dark:text-white">
                         {formatCount(batchReadiness.counts.pendingItems, language)}
                       </div>
                     </div>
@@ -695,17 +838,17 @@ export function ReviewOpsPanel({
                 </div>
 
                 <div className="grid gap-3">
-                  <div className="rounded-[1.25rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
                       {labels.blockingReasonsTitle}
                     </div>
                     {batchReadiness.blockingReasons.length ? (
-                      <ul className="mt-3 grid gap-2 text-sm leading-6 text-text-charcoal dark:text-white">
+                      <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-900 dark:text-white">
                         {batchReadiness.blockingReasons.map((reason) => (
-                          <li key={reason.code} className="rounded-2xl border border-border-light/70 bg-surface-white/80 px-4 py-3 dark:border-border-dark dark:bg-surface-dark/70">
+                          <li key={reason.code} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#18181b]">
                             <div className="font-semibold">{reason.message}</div>
                             {typeof reason.count === 'number' ? (
-                              <div className="mt-1 text-xs text-text-silver-light dark:text-text-silver-dark">
+                              <div className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
                                 Count: {formatCount(reason.count, language)}
                               </div>
                             ) : null}
@@ -719,15 +862,15 @@ export function ReviewOpsPanel({
                     )}
                   </div>
 
-                  <div className="rounded-[1.25rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-zinc-400">
                       {labels.diagnosticsTitle}
                     </div>
-                    <div className="mt-3 grid gap-2 text-sm leading-6 text-text-charcoal dark:text-white">
+                    <div className="mt-3 grid gap-2 text-sm leading-6 text-slate-900 dark:text-white">
                       <div>Skipped invalid reviews: {formatCount(batchReadiness.crawlDiagnostics.skippedInvalidCount, language)}</div>
                       {batchReadiness.crawlDiagnostics.topValidationIssues.length ? (
                         batchReadiness.crawlDiagnostics.topValidationIssues.map((issue) => (
-                          <div key={issue.code} className="rounded-2xl border border-border-light/70 bg-surface-white/80 px-4 py-3 dark:border-border-dark dark:bg-surface-dark/70">
+                          <div key={issue.code} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#18181b]">
                             {issue.code} ({formatCount(issue.count, language)})
                           </div>
                         ))
@@ -738,7 +881,7 @@ export function ReviewOpsPanel({
                   </div>
                 </div>
               </div>
-            </SectionCard>
+            </AdminCard>
           ) : null}
         </div>
       </div>

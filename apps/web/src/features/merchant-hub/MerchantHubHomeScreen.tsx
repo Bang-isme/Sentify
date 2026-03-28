@@ -14,6 +14,22 @@ function formatTrendValue(value: number) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}`
 }
 
+function getSourcePillCopy(
+  hasGoogleMapUrl: boolean,
+  language: string,
+) {
+  if (hasGoogleMapUrl) {
+    return {
+      label: language.startsWith('vi') ? '\u0110\u00e3 l\u01b0u URL Google Maps' : 'Google Maps URL on file',
+      tone: 'neutral' as const,
+    }
+  }
+
+  return {
+    label: language.startsWith('vi') ? '\u0054hi\u1ebfu URL Google Maps' : 'Google Maps URL missing',
+    tone: 'warning' as const,
+  }
+}
 export function MerchantHubHomeScreen({
   language,
   restaurant,
@@ -31,8 +47,9 @@ export function MerchantHubHomeScreen({
   onNavigateToSettings,
 }: MerchantHubHomeScreenProps) {
   const copy = getMerchantHubCopy(language)
-  const totalReviews = detail?.datasetStatus.approvedItemCount ?? detail?.insightSummary.totalReviews ?? 0
+  const totalReviews = detail?.insightSummary.totalReviews ?? 0
   const topSentiment = sentiment[0] ?? null
+  const sourcePill = getSourcePillCopy(Boolean(detail?.googleMapUrl), language)
 
   return (
     <div data-testid="merchant-home-screen" className="grid gap-4">
@@ -47,19 +64,15 @@ export function MerchantHubHomeScreen({
               {detail?.address ?? (language.startsWith('vi') ? 'Chưa có địa chỉ' : 'No address on file')}. {copy.home.description}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <MerchantHubPill tone="success">{freshnessLabel}</MerchantHubPill>
+              <MerchantHubPill tone={freshnessStatus === 'now' ? 'success' : 'warning'}>
+                <span data-testid="merchant-home-freshness-pill">{freshnessLabel}</span>
+              </MerchantHubPill>
               <MerchantHubPill>
                 {formatNumber(totalReviews, language)} {language.startsWith('vi') ? 'đánh giá' : 'reviews'}
               </MerchantHubPill>
-              {detail?.googleMapUrl ? (
-                <MerchantHubPill tone="success">
-                  {language.startsWith('vi') ? 'Đã kết nối Google Maps' : 'Source connected'}
-                </MerchantHubPill>
-              ) : (
-                <MerchantHubPill tone="warning">
-                  {language.startsWith('vi') ? 'Thiếu nguồn Google Maps' : 'Source missing'}
-                </MerchantHubPill>
-              )}
+              <MerchantHubPill tone={sourcePill.tone}>
+                <span data-testid="merchant-home-source-pill">{sourcePill.label}</span>
+              </MerchantHubPill>
             </div>
           </div>
           <div className="grid gap-2 sm:min-w-[18rem]">

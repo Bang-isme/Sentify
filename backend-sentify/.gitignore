@@ -1,7 +1,10 @@
 .env
+.env.release-evidence
 .env.local
 .env.*.local
 .tmp/
+.local-runtime/
+load-reports/*.json
 node_modules/
 # Local generated artifacts are not the runtime source of truth.
 # The app uses @prisma/client from prisma/schema.prisma.

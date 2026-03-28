@@ -1,18 +1,21 @@
 #!/usr/bin/env node
 
-require('dotenv').config()
-
 const crypto = require('crypto')
 const fs = require('fs')
 const http = require('http')
 const net = require('net')
 const path = require('path')
 const { spawn, spawnSync } = require('child_process')
+const { loadEnvFiles } = require('./load-env-files')
 
 const jwt = require('jsonwebtoken')
 const { Client } = require('pg')
 const { PrismaPg } = require('@prisma/adapter-pg')
 const { PrismaClient } = require('@prisma/client')
+
+loadEnvFiles({
+    includeReleaseEvidence: true,
+})
 
 const prisma = require('../src/lib/prisma')
 const { countRestaurantState, seedDemoData } = require('../prisma/seed-data')
@@ -72,7 +75,10 @@ function printUsage() {
             '  node scripts/staging-recovery-drill.js [options]',
             '',
             'Options:',
-            '  --restaurant-slug <slug>   Limit the drill to one or more seeded demo restaurants',
+            '  --source-mode <mode>       Source mode: seeded-local or existing (default: seeded-local)',
+            '  --source-db-url <url>      Optional source database URL override (falls back to DATABASE_URL)',
+            '  --restaurant-slug <slug>   Limit the drill to one or more source restaurants',
+            '  --smoke-user-id <id>       Optional USER account id for authenticated smoke in existing-source mode',
             '  --target-db-url <url>      Optional restore target database URL',
             '  --target-database <name>   Optional restore target database name when a target DB URL is not provided',
             '  --port <n>                 Optional base port override for smoke servers',
@@ -81,9 +87,11 @@ function printUsage() {
             '  --help                     Show this help message',
             '',
             'Default behavior:',
-            '  The drill seeds the source DB, restores into a shadow database, boots the backend',
-            '  against the restored target, verifies health plus read routes, then rehearses',
-            '  rollback by booting the backend against the source DB again.',
+            '  In seeded-local mode, the drill seeds the source DB first.',
+            '  In existing mode, the drill reads an existing source DB without seeding it.',
+            '  Both modes restore into a shadow database, boot the backend against the restored',
+            '  target, verify health plus read routes, then rehearse rollback by booting the',
+            '  backend against the source DB again.',
         ].join('\n'),
     )
 }
@@ -159,12 +167,100 @@ function createDigest(value) {
         .digest('hex')
 }
 
+function getSnapshotCollectionKeys(snapshot) {
+    return Object.keys(snapshot).filter((key) => Array.isArray(snapshot[key]))
+}
+
+function getSnapshotRowKey(collectionName, row, index) {
+    if (row && typeof row === 'object' && row.id) {
+        return String(row.id)
+    }
+
+    return `${collectionName}:${index}`
+}
+
+function buildNormalizedCollectionMap(collectionName, rows = []) {
+    const collectionMap = new Map()
+
+    rows.forEach((row, index) => {
+        collectionMap.set(
+            getSnapshotRowKey(collectionName, row, index),
+            normalizeForDigest(row),
+        )
+    })
+
+    return collectionMap
+}
+
+function describeSnapshotMismatch(sourceSnapshot, targetSnapshot) {
+    const mismatches = []
+
+    for (const collectionName of getSnapshotCollectionKeys(sourceSnapshot)) {
+        const sourceRows = sourceSnapshot[collectionName] || []
+        const targetRows = targetSnapshot[collectionName] || []
+        const sourceMap = buildNormalizedCollectionMap(collectionName, sourceRows)
+        const targetMap = buildNormalizedCollectionMap(collectionName, targetRows)
+
+        if (sourceRows.length !== targetRows.length) {
+            mismatches.push({
+                collection: collectionName,
+                type: 'count_mismatch',
+                sourceCount: sourceRows.length,
+                targetCount: targetRows.length,
+            })
+            continue
+        }
+
+        const missingKeys = [...sourceMap.keys()].filter((key) => !targetMap.has(key))
+        if (missingKeys.length > 0) {
+            mismatches.push({
+                collection: collectionName,
+                type: 'missing_rows',
+                rowKeys: missingKeys.slice(0, 5),
+            })
+            continue
+        }
+
+        const differingKey = [...sourceMap.keys()].find((key) => {
+            return JSON.stringify(sourceMap.get(key)) !== JSON.stringify(targetMap.get(key))
+        })
+
+        if (differingKey) {
+            mismatches.push({
+                collection: collectionName,
+                type: 'row_mismatch',
+                rowKey: differingKey,
+                source: sourceMap.get(differingKey),
+                target: targetMap.get(differingKey),
+            })
+        }
+    }
+
+    return mismatches
+}
+
 function safeDatabaseName(value) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
         throw new Error(`Invalid database name "${value}"`)
     }
 
     return value
+}
+
+function normalizeSourceMode(value) {
+    const mode = (value || 'seeded-local').toLowerCase()
+
+    if (mode === 'seeded-local' || mode === 'seeded' || mode === 'local') {
+        return 'seeded-local'
+    }
+
+    if (mode === 'existing') {
+        return 'existing'
+    }
+
+    throw new Error(
+        `Unsupported source mode "${value}". Expected "seeded-local" or "existing".`,
+    )
 }
 
 function buildShadowDatabaseName() {
@@ -339,7 +435,7 @@ async function captureSmokeSuite(baseUrl, seededUser, targetRestaurantId) {
     }
 }
 
-function selectTargets(seedSummary, slugs) {
+function selectSeededTargets(seedSummary, slugs) {
     const availableTargets = Object.values(seedSummary.restaurants)
 
     if (!slugs.length) {
@@ -367,63 +463,159 @@ function selectTargets(seedSummary, slugs) {
     })
 }
 
-async function backupSeededSlice(sourceClient, seedSummary, targets) {
-    const restaurantIds = targets.map((target) => target.restaurantId)
+async function selectExistingTargets(sourceClient, slugs) {
+    if (!slugs.length) {
+        throw new Error(
+            'At least one --restaurant-slug is required when --source-mode=existing',
+        )
+    }
+
     const restaurants = await sourceClient.restaurant.findMany({
         where: {
-            id: {
-                in: restaurantIds,
+            slug: {
+                in: slugs,
             },
         },
         orderBy: [{ slug: 'asc' }],
-    })
-    const restaurantUsers = await sourceClient.restaurantUser.findMany({
-        where: {
-            restaurantId: {
-                in: restaurantIds,
-            },
+        select: {
+            id: true,
+            slug: true,
         },
-        orderBy: [{ restaurantId: 'asc' }, { userId: 'asc' }],
-    })
-    const batches = await sourceClient.reviewIntakeBatch.findMany({
-        where: {
-            restaurantId: {
-                in: restaurantIds,
-            },
-        },
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    })
-    const runs = await sourceClient.reviewCrawlRun.findMany({
-        where: {
-            restaurantId: {
-                in: restaurantIds,
-            },
-        },
-        orderBy: [{ queuedAt: 'asc' }, { id: 'asc' }],
     })
 
-    const userIds = [
-        ...new Set(
-            [
-                ...Object.values(seedSummary.users).map((user) => user.id),
-                ...restaurantUsers.map((membership) => membership.userId),
-                ...batches.map((batch) => batch.createdByUserId),
-                ...runs.map((run) => run.requestedByUserId).filter(Boolean),
-            ].filter(Boolean),
-        ),
-    ]
+    return slugs.map((slug) => {
+        const match = restaurants.find((restaurant) => restaurant.slug === slug)
 
-    const sourceIds = [...new Set(runs.map((run) => run.sourceId))]
+        if (!match) {
+            throw new Error(
+                `Unknown source restaurant slug "${slug}". Available matches: ${restaurants
+                    .map((restaurant) => restaurant.slug)
+                    .join(', ') || 'none'}`,
+            )
+        }
 
-    const [users, reviews, insightRows, keywords, items, sources, rawReviews] =
+        return {
+            restaurantId: match.id,
+            slug: match.slug,
+        }
+    })
+}
+
+async function selectSmokeUser(sourceClient, restaurantId, explicitUserId) {
+    if (explicitUserId) {
+        const [user, membership] = await Promise.all([
+            sourceClient.user.findUnique({
+                where: { id: explicitUserId },
+                select: {
+                    id: true,
+                    email: true,
+                    fullName: true,
+                    role: true,
+                    tokenVersion: true,
+                    deactivatedAt: true,
+                    manuallyLockedAt: true,
+                },
+            }),
+            sourceClient.restaurantUser.findFirst({
+                where: {
+                    userId: explicitUserId,
+                    restaurantId,
+                },
+            }),
+        ])
+
+        if (!user) {
+            throw new Error(`Smoke user ${explicitUserId} was not found in the source database`)
+        }
+
+        if (user.role !== 'USER') {
+            throw new Error(`Smoke user ${explicitUserId} must have role USER`)
+        }
+
+        if (user.deactivatedAt || user.manuallyLockedAt) {
+            throw new Error(`Smoke user ${explicitUserId} must be active and unlocked`)
+        }
+
+        if (!membership) {
+            throw new Error(
+                `Smoke user ${explicitUserId} does not belong to restaurant ${restaurantId}`,
+            )
+        }
+
+        return user
+    }
+
+    const memberships = await sourceClient.restaurantUser.findMany({
+        where: {
+            restaurantId,
+        },
+        orderBy: [{ createdAt: 'asc' }],
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    email: true,
+                    fullName: true,
+                    role: true,
+                    tokenVersion: true,
+                    deactivatedAt: true,
+                    manuallyLockedAt: true,
+                },
+            },
+        },
+    })
+
+    const smokeUser = memberships
+        .map((membership) => membership.user)
+        .find(
+            (user) =>
+                user.role === 'USER' && !user.deactivatedAt && !user.manuallyLockedAt,
+        )
+
+    if (!smokeUser) {
+        throw new Error(
+            `Could not find an active USER membership for restaurant ${restaurantId} in existing-source mode`,
+        )
+    }
+
+    return smokeUser
+}
+
+async function backupSourceSlice(sourceClient, targets, options = {}) {
+    const restaurantIds = targets.map((target) => target.restaurantId)
+    const [restaurants, restaurantUsers, batches, runs, reviews, insightRows, keywords, items, sources, platformControls] =
         await Promise.all([
-            sourceClient.user.findMany({
+            sourceClient.restaurant.findMany({
                 where: {
                     id: {
-                        in: userIds,
+                        in: restaurantIds,
                     },
                 },
-                orderBy: [{ email: 'asc' }],
+                orderBy: [{ slug: 'asc' }],
+            }),
+            sourceClient.restaurantUser.findMany({
+                where: {
+                    restaurantId: {
+                        in: restaurantIds,
+                    },
+                },
+                orderBy: [{ restaurantId: 'asc' }, { userId: 'asc' }],
+            }),
+            sourceClient.reviewIntakeBatch.findMany({
+                where: {
+                    restaurantId: {
+                        in: restaurantIds,
+                    },
+                },
+                orderBy: [{ id: 'asc' }],
+            }),
+            sourceClient.reviewCrawlRun.findMany({
+                where: {
+                    restaurantId: {
+                        in: restaurantIds,
+                    },
+                },
+                orderBy: [{ queuedAt: 'asc' }, { id: 'asc' }],
             }),
             sourceClient.review.findMany({
                 where: {
@@ -463,19 +655,74 @@ async function backupSeededSlice(sourceClient, seedSummary, targets) {
                         in: restaurantIds,
                     },
                 },
-                orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+                orderBy: [{ id: 'asc' }],
             }),
-            sourceIds.length > 0
-                ? sourceClient.reviewCrawlRawReview.findMany({
-                      where: {
-                          sourceId: {
-                              in: sourceIds,
-                          },
-                      },
-                      orderBy: [{ sourceId: 'asc' }, { externalReviewKey: 'asc' }],
+            options.includePlatformControls
+                ? sourceClient.platformControl.findMany({
+                      orderBy: [{ id: 'asc' }],
                   })
                 : [],
         ])
+
+    const sourceIds = [...new Set(sources.map((source) => source.id))]
+
+    const [rawReviews, auditEvents, publishEvents] = await Promise.all([
+        sourceIds.length > 0
+            ? sourceClient.reviewCrawlRawReview.findMany({
+                  where: {
+                      sourceId: {
+                          in: sourceIds,
+                      },
+                  },
+                  orderBy: [{ sourceId: 'asc' }, { externalReviewKey: 'asc' }],
+              })
+            : [],
+        sourceClient.auditEvent.findMany({
+            where: {
+                restaurantId: {
+                    in: restaurantIds,
+                },
+            },
+            orderBy: [{ id: 'asc' }],
+        }),
+        sourceClient.reviewPublishEvent.findMany({
+            where: {
+                restaurantId: {
+                    in: restaurantIds,
+                },
+            },
+            orderBy: [{ publishedAt: 'asc' }, { id: 'asc' }],
+        }),
+    ])
+
+    const userIds = [
+        ...new Set(
+            [
+                ...(options.explicitUserIds || []),
+                ...restaurantUsers.map((membership) => membership.userId),
+                ...batches.flatMap((batch) => [
+                    batch.createdByUserId,
+                    batch.publishedByUserId,
+                ]),
+                ...runs.map((run) => run.requestedByUserId),
+                ...items.map((item) => item.lastReviewedByUserId),
+                ...auditEvents.map((event) => event.actorUserId),
+                ...publishEvents.map((event) => event.publishedByUserId),
+                ...platformControls.map((control) => control.updatedByUserId),
+            ].filter(Boolean),
+        ),
+    ]
+
+    const users = userIds.length
+        ? await sourceClient.user.findMany({
+              where: {
+                  id: {
+                      in: userIds,
+                  },
+              },
+              orderBy: [{ email: 'asc' }],
+          })
+        : []
 
     return {
         users,
@@ -489,6 +736,9 @@ async function backupSeededSlice(sourceClient, seedSummary, targets) {
         sources,
         runs,
         rawReviews,
+        auditEvents,
+        publishEvents,
+        platformControls,
     }
 }
 
@@ -496,7 +746,7 @@ async function summarizeState(client, restaurantIds) {
     const perRestaurant = []
 
     for (const restaurantId of restaurantIds) {
-        const [coreCounts, intakeItems, crawlSources, rawReviews, complaintKeywords, insightRows] =
+        const [coreCounts, intakeItems, crawlSources, rawReviews, complaintKeywords, insightRows, auditEvents, publishEvents] =
             await Promise.all([
                 countRestaurantState(client, restaurantId),
                 client.reviewIntakeItem.count({
@@ -518,6 +768,12 @@ async function summarizeState(client, restaurantIds) {
                 client.insightSummary.count({
                     where: { restaurantId },
                 }),
+                client.auditEvent.count({
+                    where: { restaurantId },
+                }),
+                client.reviewPublishEvent.count({
+                    where: { restaurantId },
+                }),
             ])
 
         perRestaurant.push({
@@ -529,6 +785,8 @@ async function summarizeState(client, restaurantIds) {
                 rawReviews,
                 complaintKeywords,
                 insightRows,
+                auditEvents,
+                publishEvents,
             },
         })
     }
@@ -550,77 +808,84 @@ function summarizeBackup(snapshot) {
         rawReviews: snapshot.rawReviews.length,
         insightRows: snapshot.insightRows.length,
         complaintKeywords: snapshot.keywords.length,
+        auditEvents: snapshot.auditEvents.length,
+        reviewPublishEvents: snapshot.publishEvents.length,
+        platformControls: snapshot.platformControls.length,
     }
 }
 
 async function restoreSeededSlice(targetClient, snapshot) {
-    await targetClient.$transaction(async (tx) => {
-        for (const user of snapshot.users) {
-            await tx.user.create({
-                data: sanitizeRow(user),
-            })
-        }
+    const sanitized = {
+        users: snapshot.users.map((row) => sanitizeRow(row)),
+        restaurants: snapshot.restaurants.map((row) => sanitizeRow(row)),
+        platformControls: snapshot.platformControls.map((row) => sanitizeRow(row)),
+        restaurantUsers: snapshot.restaurantUsers.map((row) => sanitizeRow(row)),
+        sources: snapshot.sources.map((row) => sanitizeRow(row)),
+        batches: snapshot.batches.map((row) => sanitizeRow(row)),
+        runs: snapshot.runs.map((row) => sanitizeRow(row)),
+        rawReviews: snapshot.rawReviews.map((row) => sanitizeRow(row)),
+        reviews: snapshot.reviews.map((row) => sanitizeRow(row)),
+        items: snapshot.items.map((row) => sanitizeRow(row)),
+        insightRows: snapshot.insightRows.map((row) => sanitizeRow(row)),
+        keywords: snapshot.keywords.map((row) => sanitizeRow(row)),
+        auditEvents: snapshot.auditEvents.map((row) => sanitizeRow(row)),
+        publishEvents: snapshot.publishEvents.map((row) => sanitizeRow(row)),
+    }
 
-        for (const restaurant of snapshot.restaurants) {
-            await tx.restaurant.create({
-                data: sanitizeRow(restaurant),
-            })
+    async function createRowsInBatches(rows, batchSize, createRow) {
+        for (let index = 0; index < rows.length; index += batchSize) {
+            const batch = rows.slice(index, index + batchSize)
+            await Promise.all(batch.map((row) => createRow(row)))
         }
+    }
 
-        for (const restaurantUser of snapshot.restaurantUsers) {
-            await tx.restaurantUser.create({
-                data: sanitizeRow(restaurantUser),
-            })
-        }
+    await createRowsInBatches(sanitized.users, 25, (row) =>
+        targetClient.user.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.restaurants, 25, (row) =>
+        targetClient.restaurant.create({ data: row }),
+    )
 
-        for (const source of snapshot.sources) {
-            await tx.reviewCrawlSource.create({
-                data: sanitizeRow(source),
-            })
-        }
+    if (sanitized.platformControls.length > 0) {
+        await targetClient.platformControl.deleteMany({})
+        await createRowsInBatches(sanitized.platformControls, 10, (row) =>
+            targetClient.platformControl.create({ data: row }),
+        )
+    }
 
-        for (const batch of snapshot.batches) {
-            await tx.reviewIntakeBatch.create({
-                data: sanitizeRow(batch),
-            })
-        }
-
-        for (const run of snapshot.runs) {
-            await tx.reviewCrawlRun.create({
-                data: sanitizeRow(run),
-            })
-        }
-
-        for (const rawReview of snapshot.rawReviews) {
-            await tx.reviewCrawlRawReview.create({
-                data: sanitizeRow(rawReview),
-            })
-        }
-
-        for (const review of snapshot.reviews) {
-            await tx.review.create({
-                data: sanitizeRow(review),
-            })
-        }
-
-        for (const item of snapshot.items) {
-            await tx.reviewIntakeItem.create({
-                data: sanitizeRow(item),
-            })
-        }
-
-        for (const insightRow of snapshot.insightRows) {
-            await tx.insightSummary.create({
-                data: sanitizeRow(insightRow),
-            })
-        }
-
-        for (const keyword of snapshot.keywords) {
-            await tx.complaintKeyword.create({
-                data: sanitizeRow(keyword),
-            })
-        }
-    })
+    await createRowsInBatches(sanitized.restaurantUsers, 25, (row) =>
+        targetClient.restaurantUser.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.sources, 25, (row) =>
+        targetClient.reviewCrawlSource.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.batches, 25, (row) =>
+        targetClient.reviewIntakeBatch.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.runs, 25, (row) =>
+        targetClient.reviewCrawlRun.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.rawReviews, 50, (row) =>
+        targetClient.reviewCrawlRawReview.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.reviews, 25, (row) =>
+        targetClient.review.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.items, 25, (row) =>
+        targetClient.reviewIntakeItem.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.insightRows, 25, (row) =>
+        targetClient.insightSummary.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.keywords, 25, (row) =>
+        targetClient.complaintKeyword.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.auditEvents, 50, (row) =>
+        targetClient.auditEvent.create({ data: row }),
+    )
+    await createRowsInBatches(sanitized.publishEvents, 50, (row) =>
+        targetClient.reviewPublishEvent.create({ data: row }),
+    )
 }
 
 async function getAdminClient(databaseUrl) {
@@ -673,6 +938,7 @@ async function assertTargetDatabaseIsEmpty(targetClient) {
     const [
         users,
         restaurants,
+        platformControls,
         reviews,
         batches,
         items,
@@ -681,9 +947,12 @@ async function assertTargetDatabaseIsEmpty(targetClient) {
         rawReviews,
         insightRows,
         complaintKeywords,
+        auditEvents,
+        reviewPublishEvents,
     ] = await Promise.all([
         targetClient.user.count(),
         targetClient.restaurant.count(),
+        targetClient.platformControl.count(),
         targetClient.review.count(),
         targetClient.reviewIntakeBatch.count(),
         targetClient.reviewIntakeItem.count(),
@@ -692,11 +961,14 @@ async function assertTargetDatabaseIsEmpty(targetClient) {
         targetClient.reviewCrawlRawReview.count(),
         targetClient.insightSummary.count(),
         targetClient.complaintKeyword.count(),
+        targetClient.auditEvent.count(),
+        targetClient.reviewPublishEvent.count(),
     ])
 
     const occupied = {
         users,
         restaurants,
+        platformControls,
         reviews,
         batches,
         items,
@@ -705,9 +977,19 @@ async function assertTargetDatabaseIsEmpty(targetClient) {
         rawReviews,
         insightRows,
         complaintKeywords,
+        auditEvents,
+        reviewPublishEvents,
     }
 
-    const nonZeroEntries = Object.entries(occupied).filter(([, value]) => value > 0)
+    if (platformControls > 1) {
+        throw new Error(
+            `Target database must not contain multiple platform control rows before restore. Found platformControls=${platformControls}`,
+        )
+    }
+
+    const nonZeroEntries = Object.entries(occupied).filter(
+        ([key, value]) => key !== 'platformControls' && value > 0,
+    )
 
     if (nonZeroEntries.length > 0) {
         throw new Error(
@@ -825,36 +1107,72 @@ async function main() {
         return
     }
 
-    const sourceDbUrl = process.env.DATABASE_URL
+    const sourceDbUrl = readFlag(args, '--source-db-url') || process.env.DATABASE_URL
 
     if (!sourceDbUrl) {
-        throw new Error('DATABASE_URL is required')
+        throw new Error('A source database URL is required via --source-db-url or DATABASE_URL')
     }
 
     const outputPath = readFlag(args, '--output') || DEFAULT_OUTPUT_PATH
+    const sourceMode = normalizeSourceMode(readFlag(args, '--source-mode'))
     const explicitTargetDbUrl = readFlag(args, '--target-db-url')
     const explicitTargetDatabase =
         readFlag(args, '--target-database') || readFlag(args, '--target-schema')
+    const explicitSmokeUserId = readFlag(args, '--smoke-user-id')
     const keepTargetDatabase =
         hasFlag(args, '--keep-target-database') || hasFlag(args, '--keep-target-schema')
     const restaurantSlugs = readFlags(args, '--restaurant-slug')
     const startedAt = new Date()
 
-    process.stdout.write('Seeding source database for staging-compatible drill...\n')
-    const seedSummary = await seedDemoData({ prisma })
-    const targets = selectTargets(seedSummary, restaurantSlugs)
-    const sourceSnapshot = await backupSeededSlice(prisma, seedSummary, targets)
+    let targets = []
+    let smokeUser = null
+    let sourcePreparation = null
+
+    if (sourceMode === 'seeded-local') {
+        process.stdout.write('Seeding source database for staging-compatible drill...\n')
+        const seedSummary = await seedDemoData({ prisma })
+        targets = selectSeededTargets(seedSummary, restaurantSlugs)
+        smokeUser = await selectSmokeUser(
+            prisma,
+            targets[0].restaurantId,
+            seedSummary.users.userPrimary.id,
+        )
+        sourcePreparation = {
+            mode: sourceMode,
+            seeded: true,
+            seedUsers: seedSummary.users,
+        }
+    } else {
+        process.stdout.write('Reading existing source database for staging-compatible drill...\n')
+        targets = await selectExistingTargets(prisma, restaurantSlugs)
+        smokeUser = await selectSmokeUser(
+            prisma,
+            targets[0].restaurantId,
+            explicitSmokeUserId,
+        )
+        sourcePreparation = {
+            mode: sourceMode,
+            seeded: false,
+            sourceDbUrlProvided: Boolean(readFlag(args, '--source-db-url')),
+            smokeUserId: smokeUser.id,
+        }
+    }
+
+    const sourceSnapshot = await backupSourceSlice(prisma, targets, {
+        explicitUserIds: smokeUser ? [smokeUser.id] : [],
+        includePlatformControls: true,
+    })
     const sourceDigest = createDigest(sourceSnapshot)
     const sourceState = await summarizeState(
         prisma,
         targets.map((target) => target.restaurantId),
     )
-    const seededUser = sourceSnapshot.users.find(
-        (user) => user.id === seedSummary.users.userPrimary.id,
+    const snapshotSmokeUser = sourceSnapshot.users.find(
+        (user) => user.id === smokeUser?.id,
     )
 
-    if (!seededUser) {
-        throw new Error('Seeded user was not found in the backup slice')
+    if (!snapshotSmokeUser) {
+        throw new Error('Smoke user was not found in the backup slice')
     }
 
     let targetDatabase = null
@@ -903,7 +1221,10 @@ async function main() {
         process.stdout.write('Restoring backup slice into the target database...\n')
         await restoreSeededSlice(targetClient, sourceSnapshot)
 
-        const targetSnapshot = await backupSeededSlice(targetClient, seedSummary, targets)
+        const targetSnapshot = await backupSourceSlice(targetClient, targets, {
+            explicitUserIds: [snapshotSmokeUser.id],
+            includePlatformControls: true,
+        })
         const targetDigest = createDigest(targetSnapshot)
 
         if (sourceDigest !== targetDigest) {
@@ -920,7 +1241,7 @@ async function main() {
         targetServer = await startServer(targetDbUrl, targetPort)
         const targetHttpSmoke = await captureSmokeSuite(
             targetServer.baseUrl,
-            seededUser,
+            snapshotSmokeUser,
             targets[0].restaurantId,
         )
 
@@ -928,7 +1249,7 @@ async function main() {
         rollbackServer = await startServer(sourceDbUrl, rollbackPort)
         const rollbackHttpSmoke = await captureSmokeSuite(
             rollbackServer.baseUrl,
-            seededUser,
+            snapshotSmokeUser,
             targets[0].restaurantId,
         )
 
@@ -944,12 +1265,14 @@ async function main() {
                 finishedAt,
                 durationMs: finishedAt.getTime() - startedAt.getTime(),
                 mode: 'shadow_database_staging_recovery_drill',
+                sourceMode,
                 sourceDatabase: parseDatabaseFromUrl(sourceDbUrl),
                 targetDatabase,
                 targetDatabaseUrlProvided: Boolean(explicitTargetDbUrl),
                 createdShadowDatabase,
                 keepTargetDatabase,
             },
+            sourcePreparation,
             backup: {
                 summary: summarizeBackup(sourceSnapshot),
                 sourceDigest,
@@ -970,8 +1293,11 @@ async function main() {
                 rollback: rollbackHttpSmoke,
             },
             notes: [
-                'This drill restores a seeded demo backup slice into a separately migrated Postgres database and verifies backend health plus authenticated read routes there.',
+                sourceMode === 'seeded-local'
+                    ? 'This drill restores a seeded demo backup slice into a separately migrated Postgres database and verifies backend health plus authenticated read routes there.'
+                    : 'This drill copies an explicit restaurant slice from an existing source database into a separately migrated Postgres target and verifies backend health plus authenticated read routes there.',
                 'Rollback in this drill means falling back to the original source database URL after the target smoke completes. It is a shadow-database rollback rehearsal, not an infrastructure deploy rollback.',
+                'This proof now includes durable audit rows, platform controls, and review publish-lineage rows inside the restored slice.',
                 'Real deployed staging proof and managed backup or rollback controls are still required separately.',
             ],
         }

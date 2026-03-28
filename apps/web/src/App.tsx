@@ -1,13 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import './index.css'
-import { AuthScreen } from './components/product/AuthScreen'
-import { LandingPage } from './components/landing/LandingPage'
 import { Header } from './components/layout/Header'
 import { getProductUiCopy } from './content/productUiCopy'
 import { LanguageProvider } from './contexts/LanguageProvider'
 import { useLanguage } from './contexts/languageContext'
 import { ThemeProvider } from './contexts/ThemeContext'
-import { AdminShell } from './features/admin-shell/AdminShell'
 import {
   getAdminAccessDeniedMessage,
   getMerchantAccessDeniedMessage,
@@ -21,7 +18,6 @@ import {
   isProtectedRoute,
   type AppRoute,
 } from './features/app-shell/routes'
-import { MerchantShell } from './features/merchant-shell/MerchantShell'
 import {
   ApiClientError,
   createRestaurant,
@@ -56,6 +52,18 @@ interface UserIdentityViewModel {
 }
 
 const SELECTED_RESTAURANT_STORAGE_KEY = 'sentify-selected-restaurant'
+const AuthScreen = lazy(() =>
+  import('./components/product/AuthScreen').then((module) => ({ default: module.AuthScreen })),
+)
+const LandingPage = lazy(() =>
+  import('./components/landing/LandingPage').then((module) => ({ default: module.LandingPage })),
+)
+const MerchantShell = lazy(() =>
+  import('./features/merchant-shell/MerchantShell').then((module) => ({ default: module.MerchantShell })),
+)
+const AdminShell = lazy(() =>
+  import('./features/admin-shell/AdminShell').then((module) => ({ default: module.AdminShell })),
+)
 
 function loadSelectedRestaurantId() {
   const raw = localStorage.getItem(SELECTED_RESTAURANT_STORAGE_KEY)?.trim()
@@ -560,6 +568,16 @@ function SentifyShell() {
     ? productCopy.landing.ctaSecondaryAuthenticated
     : productCopy.landing.ctaSecondary
   const redirectingProtectedRoute = !authBootLoading && isProtectedRoute(route) && !session
+  const shellLoadingState = (
+    <main
+      id="main-content"
+      className="flex min-h-screen items-center justify-center bg-bg-light px-6 pb-14 pt-28 dark:bg-bg-dark"
+    >
+      <div className="rounded-[1.8rem] border border-border-light/70 bg-surface-white/88 px-6 py-5 text-sm font-semibold text-text-charcoal shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 dark:text-white">
+        {productCopy.feedback.loadingSession}
+      </div>
+    </main>
+  )
 
   return (
     <div className="bg-bg-light font-display text-text-charcoal transition-colors duration-300 dark:bg-bg-dark dark:text-white">
@@ -590,114 +608,104 @@ function SentifyShell() {
       ) : null}
 
       {authBootLoading && route !== '/' ? (
-        <main
-          id="main-content"
-          className="flex min-h-screen items-center justify-center bg-bg-light px-6 pb-14 pt-28 dark:bg-bg-dark"
-        >
-          <div className="rounded-[1.8rem] border border-border-light/70 bg-surface-white/88 px-6 py-5 text-sm font-semibold text-text-charcoal shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 dark:text-white">
-            {productCopy.feedback.loadingSession}
-          </div>
-        </main>
+        shellLoadingState
       ) : redirectingProtectedRoute ? (
-        <main
-          id="main-content"
-          className="flex min-h-screen items-center justify-center bg-bg-light px-6 pb-14 pt-28 dark:bg-bg-dark"
-        >
-          <div className="rounded-[1.8rem] border border-border-light/70 bg-surface-white/88 px-6 py-5 text-sm font-semibold text-text-charcoal shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 dark:text-white">
-            {productCopy.feedback.loadingSession}
-          </div>
-        </main>
-      ) : route === '/login' || route === '/signup' ? (
-        <AuthScreen
-          key={route}
-          mode={route === '/login' ? 'login' : 'signup'}
-          copy={productCopy.auth}
-          pending={authPending}
-          error={authError}
-          onLogin={handleLogin}
-          onSignup={handleSignup}
-          onSwitchMode={(mode) => navigate(mode === 'login' ? '/login' : '/signup')}
-        />
-      ) : isMerchantRoute(route) ? (
-        <MerchantShell
-          route={route}
-          copy={productCopy.app}
-          feedbackCopy={productCopy.feedback}
-          language={language}
-          restaurants={restaurants}
-          selectedRestaurantId={selectedRestaurantId}
-          refreshKey={refreshKey}
-          createPending={createPending}
-          savePending={savePending}
-          onSelectRestaurant={(restaurantId) =>
-            setSession((current) =>
-              current
-                ? {
-                    ...current,
-                    selectedRestaurantId: restaurantId,
-                  }
-                : current,
-            )
-          }
-          onNavigate={navigate}
-          onCreateRestaurant={handleCreateRestaurant}
-          onSaveRestaurant={handleSaveRestaurant}
-          onSessionExpiry={handleSessionExpiry}
-        />
-      ) : isAdminRoute(route) ? (
-        <AdminShell
-          route={route}
-          copy={productCopy.app}
-          feedbackCopy={productCopy.feedback}
-          language={language}
-          refreshKey={refreshKey}
-          selectedRestaurantId={selectedRestaurantId}
-          onSelectRestaurant={(restaurantId) =>
-            setSession((current) =>
-              current
-                ? {
-                    ...current,
-                    selectedRestaurantId: restaurantId,
-                  }
-                : current,
-            )
-          }
-          onNavigate={navigate}
-          onSessionExpiry={handleSessionExpiry}
-          onDataChanged={() => setRefreshKey((current) => current + 1)}
-        />
+        shellLoadingState
       ) : (
-        <LandingPage
-          heroPrimaryLabel={heroPrimaryLabel}
-          heroSecondaryLabel={heroSecondaryLabel}
-          ctaPrimaryLabel={ctaPrimaryLabel}
-          ctaSecondaryLabel={ctaSecondaryLabel}
-          onHeroPrimaryAction={() => {
-            if (isAuthenticated) {
-              navigate(homeRoute)
-              return
-            }
+        <Suspense fallback={shellLoadingState}>
+          {route === '/login' || route === '/signup' ? (
+            <AuthScreen
+              key={route}
+              mode={route === '/login' ? 'login' : 'signup'}
+              copy={productCopy.auth}
+              pending={authPending}
+              error={authError}
+              onLogin={handleLogin}
+              onSignup={handleSignup}
+              onSwitchMode={(mode) => navigate(mode === 'login' ? '/login' : '/signup')}
+            />
+          ) : isMerchantRoute(route) ? (
+            <MerchantShell
+              route={route}
+              copy={productCopy.app}
+              feedbackCopy={productCopy.feedback}
+              language={language}
+              restaurants={restaurants}
+              selectedRestaurantId={selectedRestaurantId}
+              refreshKey={refreshKey}
+              createPending={createPending}
+              savePending={savePending}
+              onSelectRestaurant={(restaurantId) =>
+                setSession((current) =>
+                  current
+                    ? {
+                        ...current,
+                        selectedRestaurantId: restaurantId,
+                      }
+                    : current,
+                )
+              }
+              onNavigate={navigate}
+              onCreateRestaurant={handleCreateRestaurant}
+              onSaveRestaurant={handleSaveRestaurant}
+              onSessionExpiry={handleSessionExpiry}
+            />
+          ) : isAdminRoute(route) ? (
+            <AdminShell
+              route={route}
+              copy={productCopy.app}
+              feedbackCopy={productCopy.feedback}
+              language={language}
+              refreshKey={refreshKey}
+              selectedRestaurantId={selectedRestaurantId}
+              onSelectRestaurant={(restaurantId) =>
+                setSession((current) =>
+                  current
+                    ? {
+                        ...current,
+                        selectedRestaurantId: restaurantId,
+                      }
+                    : current,
+                )
+              }
+              onNavigate={navigate}
+              onSessionExpiry={handleSessionExpiry}
+              onDataChanged={() => setRefreshKey((current) => current + 1)}
+            />
+          ) : (
+            <LandingPage
+              heroPrimaryLabel={heroPrimaryLabel}
+              heroSecondaryLabel={heroSecondaryLabel}
+              ctaPrimaryLabel={ctaPrimaryLabel}
+              ctaSecondaryLabel={ctaSecondaryLabel}
+              onHeroPrimaryAction={() => {
+                if (isAuthenticated) {
+                  navigate(homeRoute)
+                  return
+                }
 
-            navigate('/signup')
-          }}
-          onHeroSecondaryAction={() => {
-            if (isAuthenticated) {
-              scrollToSection('workflow')
-              return
-            }
+                navigate('/signup')
+              }}
+              onHeroSecondaryAction={() => {
+                if (isAuthenticated) {
+                  scrollToSection('workflow')
+                  return
+                }
 
-            navigate('/login')
-          }}
-          onCtaPrimaryAction={() => {
-            if (isAuthenticated) {
-              navigate(homeRoute)
-              return
-            }
+                navigate('/login')
+              }}
+              onCtaPrimaryAction={() => {
+                if (isAuthenticated) {
+                  navigate(homeRoute)
+                  return
+                }
 
-            navigate('/signup')
-          }}
-          onCtaSecondaryAction={() => scrollToSection('workflow')}
-        />
+                navigate('/signup')
+              }}
+              onCtaSecondaryAction={() => scrollToSection('workflow')}
+            />
+          )}
+        </Suspense>
       )}
     </div>
   )

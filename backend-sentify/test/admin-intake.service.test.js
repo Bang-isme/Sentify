@@ -54,15 +54,25 @@ function mockPlatformControls(overrides = {}) {
     })
 }
 
+function mockAuditEvents(overrides = {}) {
+    withMock('../src/services/audit-event.service', {
+        appendAuditEvent: async () => null,
+        appendAuditEvents: async () => ({ count: 0 }),
+        ...overrides,
+    })
+}
+
 function restoreModules() {
     clearModule('../src/modules/admin-intake/admin-intake.domain')
     clearModule('../src/modules/admin-intake/admin-intake.service')
     clearModule('../src/modules/admin-intake/admin-intake.repository')
+    clearModule('../src/services/audit-event.service')
     clearModule('../src/services/platform-control.service')
     clearModule('../src/services/restaurant-access.service')
     clearModule('../src/services/user-access.service')
     clearModule('../src/services/sentiment-analyzer.service')
     clearModule('../src/services/insight.service')
+    mockAuditEvents()
 }
 
 test('admin intake service creates a batch with editor access', async () => {
@@ -71,6 +81,7 @@ test('admin intake service creates a batch with editor access', async () => {
     let accessArgs = null
     let restaurantLookupArgs = null
     let createdPayload = null
+    let auditEvent = null
 
     mockInternalOperatorAccess(async (args) => {
         accessArgs = args
@@ -83,6 +94,11 @@ test('admin intake service creates a batch with editor access', async () => {
                 id: args.restaurantId,
             },
         }
+    })
+    mockAuditEvents({
+        appendAuditEvent: async (event) => {
+            auditEvent = event
+        },
     })
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         createBatch: async (payload) => {
@@ -119,6 +135,9 @@ test('admin intake service creates a batch with editor access', async () => {
     assert.equal(result.counts.pendingItems, 0)
     assert.equal(result.counts.approvedItems, 0)
     assert.equal(result.counts.rejectedItems, 0)
+    assert.equal(auditEvent.action, 'INTAKE_BATCH_CREATED')
+    assert.equal(auditEvent.resourceId, 'batch-1')
+    assert.equal(auditEvent.actorUserId, 'user-1')
 
     restoreModules()
 })
@@ -216,6 +235,7 @@ test('admin intake service updates an item and refreshes batch status', async ()
     let accessChecked = false
     let updatePayload = null
     let updateStatus = null
+    let auditEvent = null
 
     const baseBatch = {
         id: 'batch-1',
@@ -232,6 +252,11 @@ test('admin intake service updates an item and refreshes batch status', async ()
     mockInternalOperatorAccess(async (args) => {
         accessChecked = true
         return { id: args.userId, role: 'ADMIN' }
+    })
+    mockAuditEvents({
+        appendAuditEvent: async (event) => {
+            auditEvent = event
+        },
     })
     withMock('../src/modules/admin-intake/admin-intake.repository', {
         findItemById: async () => ({
@@ -329,9 +354,15 @@ test('admin intake service updates an item and refreshes batch status', async ()
     assert.equal(updatePayload.itemId, 'item-1')
     assert.equal(updatePayload.data.normalizedRating, 4)
     assert.equal(updatePayload.data.approvalStatus, 'APPROVED')
+    assert.equal(updatePayload.data.lastReviewedByUserId, 'user-1')
+    assert.ok(updatePayload.data.lastReviewedAt instanceof Date)
     assert.equal(updateStatus, 'READY_TO_PUBLISH')
     assert.equal(result.status, 'READY_TO_PUBLISH')
     assert.equal(result.counts.approvedItems, 1)
+    assert.equal(auditEvent.action, 'INTAKE_ITEM_APPROVED')
+    assert.equal(auditEvent.resourceId, 'item-1')
+    assert.equal(auditEvent.metadata.previousApprovalStatus, 'PENDING')
+    assert.equal(auditEvent.metadata.nextApprovalStatus, 'APPROVED')
 
     restoreModules()
 })
@@ -429,6 +460,7 @@ test('admin intake service publishes approved items and rebuilds insights', asyn
     let accessChecked = false
     let publishArgs = null
     let recalculatedRestaurantId = null
+    let auditEvent = null
 
     const batch = {
         id: 'batch-1',
@@ -485,6 +517,11 @@ test('admin intake service publishes approved items and rebuilds insights', asyn
         return { id: args.userId, role: 'ADMIN' }
     })
     mockPlatformControls()
+    mockAuditEvents({
+        appendAuditEvent: async (event) => {
+            auditEvent = event
+        },
+    })
     withMock('../src/services/sentiment-analyzer.service', {
         analyzeReviewSync: ({ rating }) => ({
             label: rating >= 4 ? 'POSITIVE' : 'NEGATIVE',
@@ -515,7 +552,10 @@ test('admin intake service publishes approved items and rebuilds insights', asyn
     const result = await publishReviewBatch({ userId: 'user-1', batchId: 'batch-1' })
 
     assert.equal(accessChecked, true)
+    assert.equal(publishArgs.restaurantId, 'restaurant-1')
+    assert.equal(publishArgs.batchCrawlSourceId, null)
     assert.equal(publishArgs.batchStatus, 'PUBLISHED')
+    assert.equal(publishArgs.batchPublishedByUserId, 'user-1')
     assert.equal(publishArgs.items.length, 1)
     assert.equal(publishArgs.items[0].reviewPayload.restaurantId, 'restaurant-1')
     assert.match(
@@ -527,6 +567,9 @@ test('admin intake service publishes approved items and rebuilds insights', asyn
     assert.equal(recalculatedRestaurantId, 'restaurant-1')
     assert.equal(result.publishedCount, 1)
     assert.deepEqual(result.publishedReviewIds, ['review-1'])
+    assert.equal(auditEvent.action, 'INTAKE_BATCH_PUBLISHED')
+    assert.equal(auditEvent.resourceId, 'batch-1')
+    assert.equal(auditEvent.metadata.publishedCount, 1)
 
     restoreModules()
 })

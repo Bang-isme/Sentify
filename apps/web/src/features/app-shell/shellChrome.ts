@@ -88,25 +88,21 @@ export function getShellCopy(language: string): ShellChromeCopy {
 export function getShellPalette(mode: ShellMode): ShellChromePalette {
   if (mode === 'admin') {
     return {
-      shell: 'bg-[#08131b] text-[#e0f2fe]',
-      backdropOne:
-        'bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_32%)]',
-      backdropTwo:
-        'bg-[radial-gradient(circle_at_bottom_right,rgba(20,184,166,0.08),transparent_24%)]',
-      rail: 'border-[#173344] bg-[#0c1821]/98',
-      railDivider: 'border-[#173344]',
-      railItemActive:
-        'border-sky-500/25 bg-sky-400/10 text-white shadow-[0_10px_24px_-22px_rgba(14,165,233,0.6)]',
-      railItemIdle:
-        'border-transparent text-[#8aa4b8] hover:border-[#1f3747] hover:bg-[#102330] hover:text-[#e0f2fe]',
-      railSectionLabel: 'text-[#6ea9c8]',
-      railIcon: 'text-[#7dd3fc]',
-      hero: 'border-[#173344] bg-[#0d1b25]/90',
-      heroPanel: 'border-[#224050] bg-[#102330]/82',
-      chip: 'border-[#224050] bg-[#0f2230] text-[#d7eaf7]',
-      chipMuted: 'border-[#1a3444] bg-[#0c1821] text-[#8aa4b8]',
-      menuSurface: 'border-[#224050] bg-[#0d1b25]/98',
-      accent: 'text-[#22d3ee]',
+      shell: 'bg-slate-50 text-slate-900 dark:bg-[#09090b] dark:text-zinc-100',
+      backdropOne: 'bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.06),transparent_30%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_30%)]',
+      backdropTwo: 'bg-[radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.06),transparent_22%)] dark:bg-[radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.12),transparent_22%)]',
+      rail: 'border-slate-200 bg-white/95 dark:border-white/[0.08] dark:bg-[#0e0e11]/95 backdrop-blur-3xl',
+      railDivider: 'border-slate-200 dark:border-white/[0.06]',
+      railItemActive: 'bg-slate-100 text-slate-900 font-medium dark:bg-white/[0.08] dark:text-white',
+      railItemIdle: 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 font-medium dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-zinc-200',
+      railSectionLabel: 'text-slate-400 dark:text-zinc-500 font-semibold',
+      railIcon: 'text-slate-400 dark:text-zinc-500',
+      hero: 'border-slate-200 bg-white shadow-sm dark:border-white/[0.06] dark:bg-[#0e0e11]',
+      heroPanel: 'border-slate-100 bg-slate-50 dark:border-white/5 dark:bg-zinc-900/40',
+      chip: 'border-slate-200 bg-white text-slate-700 dark:border-white/[0.08] dark:bg-[#27272a] dark:text-zinc-200',
+      chipMuted: 'border-slate-100 bg-slate-50 text-slate-500 dark:border-white/5 dark:bg-zinc-900/50 dark:text-zinc-400',
+      menuSurface: 'border-slate-200 bg-white shadow-lg dark:border-white/[0.08] dark:bg-[#18181b]',
+      accent: 'text-slate-900 dark:text-white',
     }
   }
 
@@ -119,10 +115,10 @@ export function getShellPalette(mode: ShellMode): ShellChromePalette {
     rail: 'border-[#d7e1e7] bg-[#f7fafb]/96',
     railDivider: 'border-[#dde5ea]',
     railItemActive:
-      'border-teal-600/25 bg-teal-600/[0.08] text-[#102229] shadow-[0_10px_24px_-22px_rgba(15,118,110,0.45)]',
+      'border-teal-600/30 bg-teal-600/[0.06] text-[#0d1e25] shadow-[0_2px_12px_-4px_rgba(15,118,110,0.15)] ring-1 ring-inset ring-teal-600/10',
     railItemIdle:
-      'border-transparent text-[#55636d] hover:border-[#d7e1e7] hover:bg-white/80 hover:text-[#17212a]',
-    railSectionLabel: 'text-[#667782]',
+      'border-transparent text-[#55636d] hover:border-[#d7e1e7]/60 hover:bg-white/60 hover:text-[#17212a]',
+    railSectionLabel: 'text-[#6f818d]',
     railIcon: 'text-[#0f766e]',
     hero: 'border-[#d7e1e7] bg-white/92',
     heroPanel: 'border-[#dde5ea] bg-[#f6fafb]',
@@ -143,18 +139,18 @@ export function getShellChrome(mode: ShellMode, language: string): ShellChrome {
 export function getShellBadgeClass(tone?: 'neutral' | 'success' | 'warning' | 'danger') {
   switch (tone) {
     case 'success':
-      return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-100'
+      return 'border-emerald-500/20 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-400'
     case 'warning':
-      return 'border-amber-400/25 bg-amber-400/10 text-amber-100'
+      return 'border-amber-500/20 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-400'
     case 'danger':
-      return 'border-red-500/25 bg-red-500/10 text-red-100'
+      return 'border-red-500/20 bg-red-50 text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-400'
     default:
-      return 'border-white/10 bg-white/[0.04] text-slate-200'
+      return 'border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
   }
 }
 
 export function getShellStageClass(stageTone?: string) {
   return stageTone === 'next'
-    ? 'border-amber-400/25 bg-amber-400/10 text-amber-100'
-    : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-100'
+    ? 'border-amber-500/20 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-400'
+    : 'border-emerald-500/20 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-400'
 }

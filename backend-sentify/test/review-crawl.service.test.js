@@ -51,12 +51,82 @@ function mockPlatformControls(overrides = {}) {
             crawlQueueWritesEnabled: true,
             crawlMaterializationEnabled: true,
             intakePublishEnabled: true,
+            sourceSubmissionAutoBootstrapEnabled: true,
+            sourceSubmissionAutoBootstrapMaxPerTick: 20,
         }),
         getPlatformControls: async () => ({
             crawlQueueWritesEnabled: true,
             crawlMaterializationEnabled: true,
             intakePublishEnabled: true,
+            sourceSubmissionAutoBootstrapEnabled: true,
+            sourceSubmissionAutoBootstrapMaxPerTick: 20,
         }),
+        ...overrides,
+    })
+}
+
+function mockAuditEvents(overrides = {}) {
+    withMock('../src/services/audit-event.service', {
+        appendAuditEvent: async () => null,
+        appendAuditEvents: async () => ({ count: 0 }),
+        ...overrides,
+    })
+}
+
+function mockRestaurantServicePrivate() {
+    withMock('../src/services/restaurant.service', {
+        __private: {
+            PERSISTED_SOURCE_SUBMISSION_STATUS: {
+                PENDING_IDENTITY_RESOLUTION: 'PENDING_IDENTITY_RESOLUTION',
+                READY_FOR_SOURCE_LINK: 'READY_FOR_SOURCE_LINK',
+                LINKED_TO_SOURCE: 'LINKED_TO_SOURCE',
+            },
+            SOURCE_SUBMISSION_SCHEDULING_LANE: {
+                STANDARD: 'STANDARD',
+                PRIORITY: 'PRIORITY',
+            },
+            SOURCE_SUBMISSION_PREVIEW_RECOMMENDATION: {
+                ALREADY_CONNECTED: 'ALREADY_CONNECTED',
+            },
+            buildSourceSubmissionAuditSnapshot: (submission) => ({
+                submissionId: submission.id ?? null,
+                inputUrl: submission.inputUrl ?? null,
+                canonicalCid: submission.canonicalCid ?? null,
+                linkedSourceId: submission.linkedSourceId ?? null,
+                schedulingLane: submission.schedulingLane ?? null,
+                schedulingLaneSource: submission.schedulingLaneSource ?? null,
+                submittedAt: submission.submittedAt ?? null,
+                lastResolvedAt: submission.lastResolvedAt ?? null,
+            }),
+        },
+    })
+}
+
+function mockPrisma(overrides = {}) {
+    withMock('../src/lib/prisma', {
+        restaurantEntitlement: {
+            findUnique: async () => ({
+                id: 'restaurant-entitlement-1',
+                restaurantId: 'restaurant-1',
+                planTier: 'FREE',
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+            upsert: async ({ create, update = {} }) => ({
+                id: 'restaurant-entitlement-1',
+                ...create,
+                ...update,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+        },
+        restaurantSourceSubmission: {
+            findMany: async () => [],
+            updateMany: async () => ({ count: 0 }),
+            update: async () => {
+                throw new Error('Unexpected prisma.restaurantSourceSubmission.update call')
+            },
+        },
         ...overrides,
     })
 }
@@ -68,11 +138,18 @@ function restoreModules() {
     clearModule('../src/modules/review-crawl/review-crawl.runtime')
     clearModule('../src/modules/review-crawl/google-maps.service')
     clearModule('../src/services/platform-control.service')
+    clearModule('../src/services/audit-event.service')
     clearModule('../src/services/restaurant-access.service')
+    clearModule('../src/services/restaurant-entitlement.service')
+    clearModule('../src/services/restaurant.service')
     clearModule('../src/services/user-access.service')
     clearModule('../src/modules/admin-intake/admin-intake.domain')
     clearModule('../src/modules/admin-intake/admin-intake.repository')
+    clearModule('../src/lib/prisma')
     clearModule('../src/config/env')
+    mockAuditEvents()
+    mockRestaurantServicePrivate()
+    mockPrisma()
 }
 
 test('review crawl service upserts a canonical Google Maps source', async () => {
@@ -81,9 +158,15 @@ test('review crawl service upserts a canonical Google Maps source', async () => 
     process.env.REVIEW_CRAWL_SCHEDULER_INTERVAL_MS = '60000'
 
     let upsertArgs = null
+    let auditEvent = null
 
     mockInternalOperatorAccess()
     mockRestaurantLookup()
+    mockAuditEvents({
+        appendAuditEvent: async (event) => {
+            auditEvent = event
+        },
+    })
     withMock('../src/modules/review-crawl/google-maps.service', {
         resolveGoogleMapsSource: async () => ({
             place: {
@@ -101,6 +184,7 @@ test('review crawl service upserts a canonical Google Maps source', async () => 
         }),
     })
     withMock('../src/modules/review-crawl/review-crawl.repository', {
+        findSourceByCanonicalIdentity: async () => null,
         upsertSourceByCanonicalIdentity: async (identity, createData, updateData) => {
             upsertArgs = { identity, createData, updateData }
             return {
@@ -129,6 +213,7 @@ test('review crawl service upserts a canonical Google Maps source', async () => 
     })
     withMock('../src/modules/review-crawl/review-crawl.queue', {
         enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+        isInlineQueueMode: () => false,
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
         logReviewCrawlEvent: () => {},
@@ -152,6 +237,294 @@ test('review crawl service upserts a canonical Google Maps source', async () => 
     assert.equal(upsertArgs.identity.provider, 'GOOGLE_MAPS')
     assert.equal(upsertArgs.createData.placeName, 'Quan Pho Hong')
     assert.equal(result.metadata.totalReviewCount, 4743)
+    assert.equal(auditEvent.action, 'CRAWL_SOURCE_CREATED')
+    assert.equal(auditEvent.resourceId, 'source-1')
+    assert.equal(auditEvent.actorUserId, 'user-1')
+    assert.equal(auditEvent.metadata.current.syncIntervalMinutes, 1440)
+
+    restoreModules()
+})
+
+test('review crawl service derives default source sync cadence from restaurant entitlement', async () => {
+    restoreModules()
+
+    let upsertArgs = null
+
+    mockInternalOperatorAccess()
+    mockRestaurantLookup()
+    mockPrisma({
+        restaurantEntitlement: {
+            findUnique: async () => ({
+                id: 'restaurant-entitlement-1',
+                restaurantId: 'restaurant-1',
+                planTier: 'PREMIUM',
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+            upsert: async () => ({
+                id: 'restaurant-entitlement-1',
+                restaurantId: 'restaurant-1',
+                planTier: 'PREMIUM',
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+        },
+    })
+    withMock('../src/modules/review-crawl/google-maps.service', {
+        resolveGoogleMapsSource: async () => ({
+            place: {
+                name: 'Quan Pho Hong',
+                totalReviewCount: 4743,
+                identifiers: {
+                    cid: '4548797685071303380',
+                    placeHexId: '0x314219004bcdcae5:0x3f209364ddcb52d4',
+                    googlePlaceId: 'ChIJ5crNSwAZQjER1FLL3WSTID8',
+                },
+            },
+            source: {
+                resolvedUrl: 'https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US',
+            },
+        }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        findSourceByCanonicalIdentity: async () => null,
+        upsertSourceByCanonicalIdentity: async (identity, createData, updateData) => {
+            upsertArgs = { identity, createData, updateData }
+            return {
+                id: 'source-1',
+                restaurantId: identity.restaurantId,
+                provider: identity.provider,
+                status: 'ACTIVE',
+                inputUrl: createData.inputUrl,
+                resolvedUrl: createData.resolvedUrl,
+                canonicalCid: identity.canonicalCid,
+                placeHexId: createData.placeHexId,
+                googlePlaceId: createData.googlePlaceId,
+                placeName: createData.placeName,
+                language: createData.language,
+                region: createData.region,
+                syncEnabled: createData.syncEnabled,
+                syncIntervalMinutes: createData.syncIntervalMinutes,
+                lastReportedTotal: createData.lastReportedTotal,
+                nextScheduledAt: createData.nextScheduledAt,
+                lastSyncedAt: null,
+                lastSuccessfulRunAt: null,
+                createdAt: new Date('2026-03-24T00:00:00Z'),
+                updatedAt: new Date('2026-03-24T00:00:00Z'),
+            }
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+        isInlineQueueMode: () => false,
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        logReviewCrawlEvent: () => {},
+    })
+    withMock('../src/modules/admin-intake/admin-intake.repository', {})
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+    const result = await service.upsertReviewCrawlSource({
+        userId: 'user-1',
+        input: {
+            restaurantId: 'restaurant-1',
+            url: 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8',
+            language: 'en',
+            region: 'us',
+            syncEnabled: true,
+        },
+    })
+
+    assert.equal(result.source.syncIntervalMinutes, 360)
+    assert.equal(upsertArgs.createData.syncIntervalMinutes, 360)
+
+    restoreModules()
+})
+
+test('review crawl service audits crawl source reconfiguration when settings change', async () => {
+    restoreModules()
+
+    let auditEvent = null
+
+    mockInternalOperatorAccess()
+    mockRestaurantLookup()
+    mockAuditEvents({
+        appendAuditEvent: async (event) => {
+            auditEvent = event
+        },
+    })
+    withMock('../src/modules/review-crawl/google-maps.service', {
+        resolveGoogleMapsSource: async () => ({
+            place: {
+                name: 'Quan Pho Hong',
+                totalReviewCount: 4743,
+                identifiers: {
+                    cid: '4548797685071303380',
+                    placeHexId: '0x314219004bcdcae5:0x3f209364ddcb52d4',
+                    googlePlaceId: 'ChIJ5crNSwAZQjER1FLL3WSTID8',
+                },
+            },
+            source: {
+                resolvedUrl: 'https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US',
+            },
+        }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        findSourceByCanonicalIdentity: async () => ({
+            id: 'source-1',
+            restaurantId: 'restaurant-1',
+            provider: 'GOOGLE_MAPS',
+            status: 'ACTIVE',
+            inputUrl: 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8',
+            resolvedUrl: 'https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US',
+            canonicalCid: '4548797685071303380',
+            placeHexId: '0x314219004bcdcae5:0x3f209364ddcb52d4',
+            googlePlaceId: 'ChIJ5crNSwAZQjER1FLL3WSTID8',
+            placeName: 'Quan Pho Hong',
+            language: 'en',
+            region: 'us',
+            syncEnabled: true,
+            syncIntervalMinutes: 1440,
+        }),
+        upsertSourceByCanonicalIdentity: async (identity, createData) => ({
+            id: 'source-1',
+            restaurantId: identity.restaurantId,
+            provider: identity.provider,
+            status: 'ACTIVE',
+            inputUrl: createData.inputUrl,
+            resolvedUrl: createData.resolvedUrl,
+            canonicalCid: identity.canonicalCid,
+            placeHexId: createData.placeHexId,
+            googlePlaceId: createData.googlePlaceId,
+            placeName: createData.placeName,
+            language: createData.language,
+            region: createData.region,
+            syncEnabled: false,
+            syncIntervalMinutes: 720,
+            lastReportedTotal: createData.lastReportedTotal,
+            nextScheduledAt: null,
+            lastSyncedAt: null,
+            lastSuccessfulRunAt: null,
+            createdAt: new Date('2026-03-24T00:00:00Z'),
+            updatedAt: new Date('2026-03-24T00:00:00Z'),
+        }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+        isInlineQueueMode: () => false,
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        logReviewCrawlEvent: () => {},
+    })
+    withMock('../src/modules/admin-intake/admin-intake.repository', {})
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+    await service.upsertReviewCrawlSource({
+        userId: 'user-1',
+        input: {
+            restaurantId: 'restaurant-1',
+            url: 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8',
+            language: 'en',
+            region: 'us',
+            syncEnabled: false,
+            syncIntervalMinutes: 720,
+        },
+    })
+
+    assert.equal(auditEvent.action, 'CRAWL_SOURCE_SYNC_DISABLED')
+    assert.deepEqual(auditEvent.metadata.changedFields.sort(), [
+        'syncEnabled',
+        'syncIntervalMinutes',
+    ])
+
+    restoreModules()
+})
+
+test('review crawl service can create a source from persisted canonical identity without calling Google again', async () => {
+    restoreModules()
+
+    let googleResolveCallCount = 0
+    let auditEvent = null
+
+    mockInternalOperatorAccess()
+    mockRestaurantLookup()
+    mockAuditEvents({
+        appendAuditEvent: async (event) => {
+            auditEvent = event
+        },
+    })
+    withMock('../src/modules/review-crawl/google-maps.service', {
+        resolveGoogleMapsSource: async () => {
+            googleResolveCallCount += 1
+            throw new Error('resolveGoogleMapsSource should not be called')
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        findSourceByCanonicalIdentity: async () => null,
+        upsertSourceByCanonicalIdentity: async (identity, createData) => ({
+            id: 'source-from-submission-1',
+            restaurantId: identity.restaurantId,
+            provider: identity.provider,
+            status: 'ACTIVE',
+            inputUrl: createData.inputUrl,
+            resolvedUrl: createData.resolvedUrl,
+            canonicalCid: identity.canonicalCid,
+            placeHexId: createData.placeHexId,
+            googlePlaceId: createData.googlePlaceId,
+            placeName: createData.placeName,
+            language: createData.language,
+            region: createData.region,
+            syncEnabled: createData.syncEnabled,
+            syncIntervalMinutes: createData.syncIntervalMinutes,
+            lastReportedTotal: createData.lastReportedTotal,
+            nextScheduledAt: createData.nextScheduledAt,
+            lastSyncedAt: null,
+            lastSuccessfulRunAt: null,
+            createdAt: new Date('2026-03-24T00:00:00Z'),
+            updatedAt: new Date('2026-03-24T00:00:00Z'),
+        }),
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+        isInlineQueueMode: () => false,
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        logReviewCrawlEvent: () => {},
+    })
+    withMock('../src/modules/admin-intake/admin-intake.repository', {})
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+    const result = await service.upsertReviewCrawlSourceFromResolvedPlace({
+        userId: 'user-1',
+        input: {
+            restaurantId: 'restaurant-1',
+            url: 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8',
+            language: 'en',
+            region: 'us',
+            syncEnabled: true,
+            syncIntervalMinutes: 360,
+        },
+        resolved: {
+            source: {
+                resolvedUrl: 'https://www.google.com/maps?cid=4548797685071303380&hl=en&gl=US',
+            },
+            place: {
+                name: 'Quan Pho Hong',
+                totalReviewCount: null,
+                identifiers: {
+                    cid: '4548797685071303380',
+                    placeHexId: '0x314219004bcdcae5:0x3f209364ddcb52d4',
+                    googlePlaceId: 'ChIJ5crNSwAZQjER1FLL3WSTID8',
+                },
+            },
+        },
+    })
+
+    assert.equal(googleResolveCallCount, 0)
+    assert.equal(result.source.id, 'source-from-submission-1')
+    assert.equal(result.source.canonicalCid, '4548797685071303380')
+    assert.equal(result.metadata.totalReviewCount, null)
+    assert.equal(auditEvent.action, 'CRAWL_SOURCE_CREATED')
 
     restoreModules()
 })
@@ -216,6 +589,7 @@ test('review crawl service creates a queued run and enqueues it', async () => {
             enqueuedRunId = runId
             return { id: `job:${runId}` }
         },
+        isInlineQueueMode: () => false,
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
         logReviewCrawlEvent: () => {},
@@ -265,6 +639,7 @@ test('review crawl service blocks new crawl runs when platform queue writes are 
     })
     withMock('../src/modules/review-crawl/review-crawl.queue', {
         enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+        isInlineQueueMode: () => false,
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
         logReviewCrawlEvent: () => {},
@@ -288,6 +663,380 @@ test('review crawl service blocks new crawl runs when platform queue writes are 
             return true
         },
     )
+
+    restoreModules()
+})
+
+test('review crawl scheduler bootstraps ready merchant source submissions before scanning due sources', async () => {
+    restoreModules()
+
+    process.env.REVIEW_CRAWL_SCHEDULER_BATCH_SIZE = '3'
+
+    const auditEvents = []
+    const enqueuedRunIds = []
+    const dueSourceListCalls = []
+    const submissions = [
+        {
+            id: 'submission-priority',
+            restaurantId: 'restaurant-priority',
+            provider: 'GOOGLE_MAPS',
+            inputUrl: 'https://maps.app.goo.gl/priority',
+            normalizedUrl: 'https://www.google.com/maps?cid=cid-priority&hl=en&gl=US',
+            canonicalCid: 'cid-priority',
+            placeHexId: '0x123:0x456',
+            googlePlaceId: 'place-priority',
+            placeName: 'Priority Place',
+            dedupeKey: 'cid:cid-priority',
+            status: 'READY_FOR_SOURCE_LINK',
+            schedulingLane: 'PRIORITY',
+            linkedSourceId: null,
+            submittedAt: new Date('2026-03-25T08:00:00Z'),
+            claimedByUserId: null,
+            claimedAt: null,
+            claimExpiresAt: null,
+            createdAt: new Date('2026-03-25T08:00:00Z'),
+        },
+        {
+            id: 'submission-standard',
+            restaurantId: 'restaurant-standard',
+            provider: 'GOOGLE_MAPS',
+            inputUrl: 'https://maps.app.goo.gl/standard',
+            normalizedUrl: 'https://www.google.com/maps?cid=cid-standard&hl=en&gl=US',
+            canonicalCid: 'cid-standard',
+            placeHexId: '0x789:0xabc',
+            googlePlaceId: 'place-standard',
+            placeName: 'Standard Place',
+            dedupeKey: 'cid:cid-standard',
+            status: 'READY_FOR_SOURCE_LINK',
+            schedulingLane: 'STANDARD',
+            linkedSourceId: null,
+            submittedAt: new Date('2026-03-25T09:00:00Z'),
+            claimedByUserId: null,
+            claimedAt: null,
+            claimExpiresAt: null,
+            createdAt: new Date('2026-03-25T09:00:00Z'),
+        },
+    ]
+
+    mockPlatformControls({
+        getPlatformControls: async () => ({
+            crawlQueueWritesEnabled: true,
+            crawlMaterializationEnabled: true,
+            intakePublishEnabled: true,
+            sourceSubmissionAutoBootstrapEnabled: true,
+            sourceSubmissionAutoBootstrapMaxPerTick: 1,
+        }),
+    })
+    mockAuditEvents({
+        appendAuditEvent: async (event) => {
+            auditEvents.push(event)
+        },
+    })
+    mockPrisma({
+        restaurantSourceSubmission: {
+            findMany: async ({ where, take }) => {
+                const rows = submissions
+                    .filter((submission) => {
+                        if (submission.provider !== where.provider) {
+                            return false
+                        }
+
+                        if (submission.status && submission.status !== where.status) {
+                            return false
+                        }
+
+                        if (where.linkedSourceId === null && submission.linkedSourceId !== null) {
+                            return false
+                        }
+
+                        if (
+                            where.schedulingLane &&
+                            submission.schedulingLane !== where.schedulingLane
+                        ) {
+                            return false
+                        }
+
+                        if (where.dedupeKey && submission.dedupeKey !== where.dedupeKey) {
+                            return false
+                        }
+
+                        if (where.claimedAt && submission.claimedAt?.getTime() !== where.claimedAt.getTime()) {
+                            return false
+                        }
+
+                        if (
+                            where.claimExpiresAt &&
+                            submission.claimExpiresAt?.getTime() !==
+                                where.claimExpiresAt.getTime()
+                        ) {
+                            return false
+                        }
+
+                        if (where.OR) {
+                            const now = new Date(where.OR[1].claimExpiresAt.lte)
+                            const leaseExpired =
+                                submission.claimExpiresAt === null ||
+                                submission.claimExpiresAt.getTime() <= now.getTime()
+
+                            if (!leaseExpired) {
+                                return false
+                            }
+                        }
+
+                        return true
+                    })
+                    .sort((left, right) => left.submittedAt - right.submittedAt)
+
+                return typeof take === 'number' ? rows.slice(0, take) : rows
+            },
+            updateMany: async ({ where, data }) => {
+                const matching = submissions.filter((submission) => {
+                    if (submission.provider !== where.provider) {
+                        return false
+                    }
+
+                    if (submission.status !== where.status) {
+                        return false
+                    }
+
+                    if (submission.linkedSourceId !== null) {
+                        return false
+                    }
+
+                    if (submission.dedupeKey !== where.dedupeKey) {
+                        return false
+                    }
+
+                    const now = new Date(where.OR[1].claimExpiresAt.lte)
+                    return (
+                        submission.claimExpiresAt === null ||
+                        submission.claimExpiresAt.getTime() <= now.getTime()
+                    )
+                })
+
+                for (const submission of matching) {
+                    Object.assign(submission, data)
+                }
+
+                return {
+                    count: matching.length,
+                }
+            },
+            update: async ({ where, data }) => {
+                const submission = submissions.find((candidate) => candidate.id === where.id)
+                Object.assign(submission, data)
+                return submission
+            },
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        listDueSources: async (_now, limit) => {
+            dueSourceListCalls.push(limit)
+            return limit > 0
+                ? [
+                      {
+                          id: 'due-source-1',
+                          restaurantId: 'restaurant-due',
+                          provider: 'GOOGLE_MAPS',
+                          status: 'ACTIVE',
+                          inputUrl: 'https://maps.app.goo.gl/due',
+                          canonicalCid: 'cid-due',
+                          syncEnabled: true,
+                          syncIntervalMinutes: 1440,
+                      },
+                  ]
+                : []
+        },
+        findSourceByCanonicalIdentity: async () => null,
+        upsertSourceByCanonicalIdentity: async (identity, createData) => ({
+            id: `source-${identity.restaurantId}`,
+            restaurantId: identity.restaurantId,
+            provider: identity.provider,
+            status: 'ACTIVE',
+            inputUrl: createData.inputUrl,
+            resolvedUrl: createData.resolvedUrl,
+            canonicalCid: identity.canonicalCid,
+            placeHexId: createData.placeHexId,
+            googlePlaceId: createData.googlePlaceId,
+            placeName: createData.placeName,
+            language: createData.language,
+            region: createData.region,
+            syncEnabled: createData.syncEnabled,
+            syncIntervalMinutes: createData.syncIntervalMinutes,
+            lastReportedTotal: createData.lastReportedTotal,
+            nextScheduledAt: createData.nextScheduledAt,
+            lastSyncedAt: null,
+            lastSuccessfulRunAt: null,
+            createdAt: new Date('2026-03-25T08:05:00Z'),
+            updatedAt: new Date('2026-03-25T08:05:00Z'),
+        }),
+        findActiveRunBySourceId: async () => null,
+        createRun: async (data) => ({
+            id: `run-${data.sourceId}`,
+            ...data,
+            warningsJson: [],
+            metadataJson: data.metadataJson,
+            createdAt: new Date('2026-03-25T08:06:00Z'),
+            updatedAt: new Date('2026-03-25T08:06:00Z'),
+            source: {
+                id: data.sourceId,
+                restaurantId: data.restaurantId,
+                provider: 'GOOGLE_MAPS',
+                status: 'ACTIVE',
+                inputUrl: 'https://maps.app.goo.gl/priority',
+                resolvedUrl: 'https://www.google.com/maps?cid=cid-priority&hl=en&gl=US',
+                canonicalCid: 'cid-priority',
+                placeHexId: '0x123:0x456',
+                googlePlaceId: 'place-priority',
+                placeName: 'Priority Place',
+                language: 'en',
+                region: 'us',
+                syncEnabled: true,
+                syncIntervalMinutes: 1440,
+                lastReportedTotal: null,
+                lastSyncedAt: null,
+                lastSuccessfulRunAt: null,
+                nextScheduledAt: new Date('2026-03-26T08:05:00Z'),
+                createdAt: new Date('2026-03-25T08:05:00Z'),
+                updatedAt: new Date('2026-03-25T08:05:00Z'),
+            },
+        }),
+        updateRun: async () => {
+            throw new Error('updateRun should not be called in the bootstrap happy path')
+        },
+        updateSource: async () => {
+            throw new Error('updateSource should not be called when queueing succeeds')
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        enqueueReviewCrawlRun: async (runId) => {
+            enqueuedRunIds.push(runId)
+            return { id: `job:${runId}` }
+        },
+        isInlineQueueMode: () => false,
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        logReviewCrawlEvent: () => {},
+    })
+    withMock('../src/modules/review-crawl/google-maps.service', {})
+    withMock('../src/modules/admin-intake/admin-intake.repository', {})
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+    const result = await service.scheduleDueReviewCrawlRuns()
+
+    assert.equal(result.sourceSubmissionBootstrap.claimedGroupCount, 1)
+    assert.equal(result.sourceSubmissionBootstrap.processedSubmissionCount, 1)
+    assert.equal(result.sourceSubmissionBootstrap.linkedSubmissionCount, 1)
+    assert.equal(result.sourceSubmissionBootstrap.queuedRunCount, 1)
+    assert.equal(result.sourceSubmissionBootstrap.reusedRunCount, 0)
+    assert.equal(result.sourceSubmissionBootstrap.queueFailureCount, 0)
+    assert.equal(result.sourceSubmissionBootstrap.sourceFailureCount, 0)
+    assert.equal(result.scheduledCount, 1)
+    assert.equal(result.scannedCount, 1)
+    assert.deepEqual(dueSourceListCalls, [2])
+    assert.deepEqual(enqueuedRunIds, ['run-source-restaurant-priority', 'run-due-source-1'])
+
+    const prioritySubmission = submissions.find(
+        (submission) => submission.id === 'submission-priority',
+    )
+    const standardSubmission = submissions.find(
+        (submission) => submission.id === 'submission-standard',
+    )
+
+    assert.equal(prioritySubmission.status, 'LINKED_TO_SOURCE')
+    assert.equal(prioritySubmission.linkedSourceId, 'source-restaurant-priority')
+    assert.equal(prioritySubmission.claimedAt, null)
+    assert.equal(prioritySubmission.claimExpiresAt, null)
+    assert.equal(
+        prioritySubmission.recommendationCode,
+        'ALREADY_CONNECTED',
+    )
+    assert.equal(standardSubmission.status, 'READY_FOR_SOURCE_LINK')
+    assert.equal(standardSubmission.linkedSourceId, null)
+
+    assert.ok(
+        auditEvents.some((event) => event.action === 'CRAWL_SOURCE_CREATED'),
+    )
+    assert.ok(
+        auditEvents.some(
+            (event) =>
+                event.action === 'SCHEDULER_SOURCE_SUBMISSION_BOOTSTRAPPED' &&
+                event.resourceId === 'submission-priority',
+        ),
+    )
+    const bootstrapAuditEvent = auditEvents.find(
+        (event) =>
+            event.action === 'SCHEDULER_SOURCE_SUBMISSION_BOOTSTRAPPED' &&
+            event.resourceId === 'submission-priority',
+    )
+    assert.equal(
+        bootstrapAuditEvent.metadata.sourceSubmissionSnapshot.linkedSourceId,
+        'source-restaurant-priority',
+    )
+
+    restoreModules()
+})
+
+test('review crawl scheduler can skip merchant source auto-bootstrap via platform controls', async () => {
+    restoreModules()
+
+    process.env.REVIEW_CRAWL_SCHEDULER_BATCH_SIZE = '3'
+
+    const dueSourceListCalls = []
+
+    mockPlatformControls({
+        getPlatformControls: async () => ({
+            crawlQueueWritesEnabled: true,
+            crawlMaterializationEnabled: true,
+            intakePublishEnabled: true,
+            sourceSubmissionAutoBootstrapEnabled: false,
+            sourceSubmissionAutoBootstrapMaxPerTick: 1,
+        }),
+    })
+    mockPrisma({
+        restaurantSourceSubmission: {
+            findMany: async () => {
+                throw new Error('source submission lookup should be skipped when auto-bootstrap is disabled')
+            },
+            updateMany: async () => {
+                throw new Error('source submission claim should be skipped when auto-bootstrap is disabled')
+            },
+            update: async () => {
+                throw new Error('source submission mutation should be skipped when auto-bootstrap is disabled')
+            },
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        listDueSources: async (_now, limit) => {
+            dueSourceListCalls.push(limit)
+            return []
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        enqueueReviewCrawlRun: async () => ({ id: 'job:noop' }),
+        isInlineQueueMode: () => false,
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        logReviewCrawlEvent: () => {},
+    })
+    withMock('../src/modules/review-crawl/google-maps.service', {})
+    withMock('../src/modules/admin-intake/admin-intake.repository', {})
+
+    const service = require('../src/modules/review-crawl/review-crawl.service')
+    const result = await service.scheduleDueReviewCrawlRuns()
+
+    assert.deepEqual(result.sourceSubmissionBootstrap, {
+        claimedGroupCount: 0,
+        processedSubmissionCount: 0,
+        linkedSubmissionCount: 0,
+        queuedRunCount: 0,
+        reusedRunCount: 0,
+        queueFailureCount: 0,
+        sourceFailureCount: 0,
+    })
+    assert.equal(result.scheduledCount, 0)
+    assert.equal(result.scannedCount, 0)
+    assert.deepEqual(dueSourceListCalls, [3])
 
     restoreModules()
 })
@@ -450,6 +1199,7 @@ test('review crawl service completes an incremental run when the known review st
     })
     withMock('../src/modules/review-crawl/review-crawl.queue', {
         enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+        isInlineQueueMode: () => false,
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
         logReviewCrawlEvent: () => {},
@@ -615,6 +1365,7 @@ test('review crawl service auto-resumes a premature backfill run from the saved 
             enqueuedRunId = runId
             return { id: `job-${runId}` }
         },
+        isInlineQueueMode: () => false,
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
         logReviewCrawlEvent: () => {},
@@ -781,6 +1532,7 @@ test('review crawl service keeps a reported-total mismatch warning when the sour
     })
     withMock('../src/modules/review-crawl/review-crawl.queue', {
         enqueueReviewCrawlRun: async () => ({ id: 'job-run-mismatch' }),
+        isInlineQueueMode: () => false,
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
         logReviewCrawlEvent: () => {},
@@ -925,6 +1677,7 @@ test('review crawl service materializes a completed run into a Google Maps draft
     })
     withMock('../src/modules/review-crawl/review-crawl.queue', {
         enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+        isInlineQueueMode: () => false,
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
         logReviewCrawlEvent: () => {},
@@ -1109,6 +1862,7 @@ test('review crawl service reuses an open source draft batch and appends only un
     })
     withMock('../src/modules/review-crawl/review-crawl.queue', {
         enqueueReviewCrawlRun: async () => ({ id: 'job-1' }),
+        isInlineQueueMode: () => false,
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
         logReviewCrawlEvent: () => {},

@@ -1,5 +1,6 @@
 const { conflict } = require('../lib/app-error')
 const prisma = require('../lib/prisma')
+const { appendAuditEvent } = require('./audit-event.service')
 
 const PLATFORM_CONTROL_ID = 'platform'
 
@@ -9,6 +10,10 @@ function mapPlatformControls(record) {
         crawlQueueWritesEnabled: record.crawlQueueWritesEnabled,
         crawlMaterializationEnabled: record.crawlMaterializationEnabled,
         intakePublishEnabled: record.intakePublishEnabled,
+        sourceSubmissionAutoBootstrapEnabled:
+            record.sourceSubmissionAutoBootstrapEnabled,
+        sourceSubmissionAutoBootstrapMaxPerTick:
+            record.sourceSubmissionAutoBootstrapMaxPerTick,
         note: record.note ?? null,
         updatedByUserId: record.updatedByUserId ?? null,
         createdAt: record.createdAt,
@@ -34,6 +39,7 @@ async function getPlatformControls() {
 }
 
 async function updatePlatformControls({ updatedByUserId, changes }) {
+    const previousControls = await ensurePlatformControls()
     const updates = {}
 
     if (Object.prototype.hasOwnProperty.call(changes, 'crawlQueueWritesEnabled')) {
@@ -46,6 +52,26 @@ async function updatePlatformControls({ updatedByUserId, changes }) {
 
     if (Object.prototype.hasOwnProperty.call(changes, 'intakePublishEnabled')) {
         updates.intakePublishEnabled = changes.intakePublishEnabled
+    }
+
+    if (
+        Object.prototype.hasOwnProperty.call(
+            changes,
+            'sourceSubmissionAutoBootstrapEnabled',
+        )
+    ) {
+        updates.sourceSubmissionAutoBootstrapEnabled =
+            changes.sourceSubmissionAutoBootstrapEnabled
+    }
+
+    if (
+        Object.prototype.hasOwnProperty.call(
+            changes,
+            'sourceSubmissionAutoBootstrapMaxPerTick',
+        )
+    ) {
+        updates.sourceSubmissionAutoBootstrapMaxPerTick =
+            changes.sourceSubmissionAutoBootstrapMaxPerTick
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'note')) {
@@ -64,6 +90,30 @@ async function updatePlatformControls({ updatedByUserId, changes }) {
             ...updates,
         },
     })
+
+    const changedKeys = [
+        'crawlQueueWritesEnabled',
+        'crawlMaterializationEnabled',
+        'intakePublishEnabled',
+        'sourceSubmissionAutoBootstrapEnabled',
+        'sourceSubmissionAutoBootstrapMaxPerTick',
+        'note',
+    ].filter((key) => previousControls[key] !== controls[key])
+
+    if (changedKeys.length > 0) {
+        await appendAuditEvent({
+            action: 'PLATFORM_CONTROLS_UPDATED',
+            resourceType: 'platformControl',
+            resourceId: controls.id,
+            actorUserId: updatedByUserId ?? null,
+            summary: 'Platform runtime controls were updated.',
+            metadata: {
+                changedKeys,
+                previous: mapPlatformControls(previousControls),
+                current: mapPlatformControls(controls),
+            },
+        })
+    }
 
     return mapPlatformControls(controls)
 }

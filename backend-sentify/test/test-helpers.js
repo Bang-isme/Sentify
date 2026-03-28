@@ -133,6 +133,7 @@ async function startApp(prismaOverrides = {}, options = {}) {
         refreshTokenServiceOverrides = null,
         passwordResetServiceOverrides = null,
         emailServiceOverrides = null,
+        moduleOverrides = {},
     } = options
 
     process.env.NODE_ENV = 'test'
@@ -156,25 +157,160 @@ async function startApp(prismaOverrides = {}, options = {}) {
 
     const defaultPrisma = {
         $queryRaw: async () => [{ '?column?': 1 }],
-        $transaction: async (operations) => Promise.all(operations),
         user: {},
-        restaurantUser: {},
+        restaurant: {
+            create: async ({ data }) => ({
+                id: 'restaurant-1',
+                ...data,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+            update: async ({ where, data }) => ({
+                id: where.id,
+                name: data.name ?? 'Restaurant',
+                slug: 'restaurant',
+                address: data.address ?? null,
+                googleMapUrl:
+                    Object.prototype.hasOwnProperty.call(data, 'googleMapUrl')
+                        ? data.googleMapUrl
+                        : null,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+            findMany: async () => [],
+            findUnique: async () => null,
+        },
+        restaurantUser: {
+            create: async ({ data }) => ({
+                id: 'restaurant-user-1',
+                ...data,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+            findFirst: async () => null,
+            findMany: async () => [],
+        },
         complaintKeyword: {},
-        review: {},
-        reviewIntakeItem: {},
-        reviewIntakeBatch: {},
-        reviewCrawlSource: {},
-        reviewCrawlRun: {},
+        review: {
+            findMany: async () => [],
+        },
+        reviewIntakeItem: {
+            groupBy: async () => [],
+        },
+        reviewIntakeBatch: {
+            findFirst: async () => null,
+            findMany: async () => [],
+            findUnique: async () => null,
+        },
+        reviewCrawlSource: {
+            findFirst: async () => null,
+            findUnique: async () => null,
+            findMany: async () => [],
+            upsert: async ({ create }) => ({
+                id: 'crawl-source-1',
+                ...create,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+        },
+        reviewCrawlRun: {
+            findFirst: async () => null,
+        },
         reviewCrawlRawReview: {},
-        platformControl: {},
+        restaurantSourceSubmission: {
+            findUnique: async () => null,
+            findMany: async () => [],
+            updateMany: async () => ({ count: 0 }),
+            upsert: async ({ create }) => ({
+                id: 'source-submission-1',
+                ...create,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+            update: async ({ data, where }) => ({
+                id: where.id ?? 'source-submission-1',
+                ...data,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+            deleteMany: async () => ({ count: 0 }),
+        },
+        restaurantEntitlement: {
+            findUnique: async () => null,
+            upsert: async ({ create, update = {} }) => ({
+                id: 'restaurant-entitlement-1',
+                ...create,
+                ...update,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+        },
+        platformControl: {
+            upsert: async ({ update = {}, create = {} }) => ({
+                id: 'platform',
+                crawlQueueWritesEnabled: true,
+                crawlMaterializationEnabled: true,
+                intakePublishEnabled: true,
+                sourceSubmissionAutoBootstrapEnabled: true,
+                sourceSubmissionAutoBootstrapMaxPerTick: 20,
+                note: null,
+                updatedByUserId: null,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+                updatedAt: new Date('2026-03-27T00:00:00.000Z'),
+                ...create,
+                ...update,
+            }),
+            findMany: async () => [],
+        },
+        auditEvent: {
+            create: async ({ data }) => ({
+                id: 'audit-event-1',
+                ...data,
+                createdAt: new Date('2026-03-27T00:00:00.000Z'),
+            }),
+            createMany: async ({ data }) => ({
+                count: Array.isArray(data) ? data.length : 0,
+            }),
+            findMany: async () => [],
+        },
         refreshToken: {},
         passwordResetToken: {},
     }
 
-    withMock('../src/lib/prisma', {
+    const mergedPrisma = {
         ...defaultPrisma,
-        ...prismaOverrides,
-    })
+    }
+
+    for (const [key, value] of Object.entries(prismaOverrides)) {
+        const defaultValue = defaultPrisma[key]
+        if (
+            value &&
+            typeof value === 'object' &&
+            !Array.isArray(value) &&
+            defaultValue &&
+            typeof defaultValue === 'object' &&
+            !Array.isArray(defaultValue)
+        ) {
+            mergedPrisma[key] = {
+                ...defaultValue,
+                ...value,
+            }
+            continue
+        }
+
+        mergedPrisma[key] = value
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(prismaOverrides, '$transaction')) {
+        mergedPrisma.$transaction = async (operations) => {
+            if (typeof operations === 'function') {
+                return operations(mergedPrisma)
+            }
+
+            return Promise.all(operations)
+        }
+    }
+
+    withMock('../src/lib/prisma', mergedPrisma)
     withMock('../src/middleware/rate-limit', {
         apiLimiter: (req, res, next) => next(),
         authLimiter: (req, res, next) => next(),
@@ -211,6 +347,10 @@ async function startApp(prismaOverrides = {}, options = {}) {
         ...emailServiceOverrides,
     })
 
+    for (const [modulePath, exports] of Object.entries(moduleOverrides)) {
+        withMock(modulePath, exports)
+    }
+
     const app = require('../src/app')
     const server = app.listen(0)
 
@@ -231,6 +371,15 @@ async function stopApp(server) {
             resolve()
         })
     })
+
+    try {
+        const { closeReviewCrawlQueueResources } = require('../src/modules/review-crawl/review-crawl.queue')
+        if (typeof closeReviewCrawlQueueResources === 'function') {
+            await closeReviewCrawlQueueResources()
+        }
+    } catch {
+        // The queue module is not loaded in every test path.
+    }
 }
 
 module.exports = {

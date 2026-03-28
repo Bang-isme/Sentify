@@ -35,13 +35,24 @@ function parseBoolean(value, fallback) {
     return fallback
 }
 
+function emptyStringToUndefined(value) {
+    if (value === undefined || value === null || value === '') {
+        return undefined
+    }
+
+    return value
+}
+
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     LOG_FORMAT: z.enum(['auto', 'json', 'pretty']).default('auto'),
     PORT: z.coerce.number().int().positive().default(3000),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-    JWT_SECRET_PREVIOUS: z.string().min(32).optional(),
+    JWT_SECRET_PREVIOUS: z.preprocess(
+        emptyStringToUndefined,
+        z.string().min(32).optional(),
+    ),
     JWT_ISSUER: z.string().min(1).default('sentify-api'),
     JWT_AUDIENCE: z.string().min(1).default('sentify-web'),
     CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),

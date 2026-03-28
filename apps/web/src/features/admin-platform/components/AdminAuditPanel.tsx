@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAdminAudit, type AdminAuditResponse } from '../../../lib/api'
-import { EmptyPanel, SectionCard, StatusMessage } from '../../../components/product/workspace/shared'
+import { AdminCard, AdminDataCell, AdminStatusMessage } from '../../admin-shell/components/AdminPrimitives'
 
 interface AdminAuditPanelProps {
   language: string
@@ -59,7 +59,7 @@ export function AdminAuditPanel({ language, refreshKey, onSessionExpiry }: Admin
 
   return (
     <div data-testid="admin-audit-screen" className="grid gap-4">
-      <SectionCard
+      <AdminCard
         title={isVietnamese ? 'Nhật ký kiểm toán' : 'Audit trail'}
         description={
           isVietnamese
@@ -67,29 +67,21 @@ export function AdminAuditPanel({ language, refreshKey, onSessionExpiry }: Admin
             : 'Trace publish events, membership assignments, crawl state changes, and system history without leaving the admin shell.'
         }
       >
-        {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
-        {loading ? <StatusMessage>{isVietnamese ? 'Đang tải nhật ký...' : 'Loading audit feed...'}</StatusMessage> : null}
+        {error ? <AdminStatusMessage tone="error">{error}</AdminStatusMessage> : null}
+        {loading ? <div className="text-sm text-slate-500 dark:text-zinc-400">{isVietnamese ? 'Đang tải nhật ký...' : 'Loading audit feed...'}</div> : null}
         {data ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="border border-white/8 bg-white/[0.03] p-3">
-              <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                {isVietnamese ? 'Số sự kiện' : 'Events'}
-              </div>
-              <div className="mt-2 text-[1.2rem] font-semibold text-white">{data.summary.totalEvents}</div>
-            </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <AdminDataCell label={isVietnamese ? 'Số sự kiện' : 'Events'} value={data.summary.totalEvents} />
             {Object.entries(data.summary.byAction)
               .slice(0, 3)
               .map(([action, count]) => (
-                <div key={action} className="border border-white/8 bg-white/[0.03] p-3">
-                  <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">{action}</div>
-                  <div className="mt-2 text-[1.2rem] font-semibold text-white">{count}</div>
-                </div>
+                <AdminDataCell key={action} label={action} value={count} />
               ))}
           </div>
         ) : null}
-      </SectionCard>
+      </AdminCard>
 
-      <SectionCard
+      <AdminCard
         title={isVietnamese ? 'Sự kiện gần đây' : 'Recent events'}
         description={
           isVietnamese
@@ -98,23 +90,23 @@ export function AdminAuditPanel({ language, refreshKey, onSessionExpiry }: Admin
         }
       >
         {data?.items.length ? (
-          <div className="grid gap-2">
+          <div className="mt-4 flex flex-col gap-2">
             {data.items.map((item) => (
               <div
                 key={item.id}
-                className="grid gap-3 border border-white/8 bg-white/[0.03] p-3 lg:grid-cols-[150px_minmax(0,1fr)_minmax(0,220px)]"
+                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#18181b] grid gap-4 lg:grid-cols-[150px_minmax(0,1fr)_minmax(0,220px)] items-center"
               >
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">{item.action}</div>
-                  <div className="mt-1 text-[12px] text-slate-400">{formatDate(item.timestamp, language)}</div>
+                  <div className="text-[12px] font-bold uppercase tracking-wider text-slate-500">{item.action}</div>
+                  <div className="mt-1 text-[13px] text-slate-500 dark:text-zinc-400">{formatDate(item.timestamp, language)}</div>
                 </div>
-                <div>
-                  <div className="text-sm font-semibold text-white">{item.summary}</div>
-                  <div className="mt-1 text-[12px] text-slate-400">
+                <div className="min-w-0">
+                  <div className="break-words text-[14px] font-bold text-slate-900 dark:text-white">{item.summary}</div>
+                  <div className="mt-1 break-words text-[13px] text-slate-500 dark:text-zinc-400">
                     {item.restaurant ? `${item.restaurant.name} · ${item.resourceType}` : item.resourceType}
                   </div>
                 </div>
-                <div className="text-[12px] text-slate-400">
+                <div className="min-w-0 break-words text-[13px] text-slate-500 dark:text-zinc-400">
                   {item.actor
                     ? isVietnamese
                       ? `${item.actor.fullName} (${item.actor.role})`
@@ -127,9 +119,11 @@ export function AdminAuditPanel({ language, refreshKey, onSessionExpiry }: Admin
             ))}
           </div>
         ) : !loading ? (
-          <EmptyPanel message={isVietnamese ? 'Chưa có sự kiện kiểm toán nào.' : 'No audit events are available yet.'} />
+             <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-400">
+            {isVietnamese ? 'Chưa có sự kiện kiểm toán nào.' : 'No audit events are available yet.'}
+          </div>
         ) : null}
-      </SectionCard>
+      </AdminCard>
     </div>
   )
 }

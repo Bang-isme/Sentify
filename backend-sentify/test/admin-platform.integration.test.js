@@ -1,11 +1,120 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
 
 const { createTestToken, request, startApp, stopApp } = require('./test-helpers')
 
 const ADMIN_ID = '66666666-6666-4666-8666-666666666666'
 const USER_ID = '77777777-7777-4777-8777-777777777777'
 const RESTAURANT_ID = '88888888-8888-4888-8888-888888888888'
+const MANAGED_RELEASE_EVIDENCE_PATH = path.resolve(
+    __dirname,
+    '../load-reports/managed-release-evidence.json',
+)
+const MANAGED_SIGNOFF_PREFLIGHT_PATH = path.resolve(
+    __dirname,
+    '../load-reports/managed-signoff-preflight.json',
+)
+const LOCAL_PROOF_ARTIFACTS = {
+    merchantReadLoad: path.resolve(
+        __dirname,
+        '../load-reports/merchant-reads-smb-local.json',
+    ),
+    crawlQueueSmoke: path.resolve(
+        __dirname,
+        '../load-reports/review-crawl-queue-smoke-redis-local.json',
+    ),
+    operatorDraftSmoke: path.resolve(
+        __dirname,
+        '../load-reports/review-ops-sync-draft-smoke-redis-local.json',
+    ),
+    shadowRecovery: path.resolve(
+        __dirname,
+        '../load-reports/staging-recovery-drill-local.json',
+    ),
+    logicalRecovery: path.resolve(
+        __dirname,
+        '../load-reports/backend-recovery-drill-local.json',
+    ),
+}
+
+function captureFileState(filePath) {
+    if (!fs.existsSync(filePath)) {
+        return {
+            exists: false,
+        }
+    }
+
+    const stats = fs.statSync(filePath)
+
+    return {
+        exists: true,
+        content: fs.readFileSync(filePath, 'utf8'),
+        mtime: stats.mtime,
+    }
+}
+
+function restoreFileState(filePath, state) {
+    if (!state?.exists) {
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath)
+        }
+
+        return
+    }
+
+    fs.mkdirSync(path.dirname(filePath), {
+        recursive: true,
+    })
+    fs.writeFileSync(filePath, state.content)
+    fs.utimesSync(filePath, state.mtime, state.mtime)
+}
+
+function writeJsonArtifact(filePath, payload, updatedAt) {
+    fs.mkdirSync(path.dirname(filePath), {
+        recursive: true,
+    })
+    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2))
+
+    if (updatedAt) {
+        const timestamp = new Date(updatedAt)
+        fs.utimesSync(filePath, timestamp, timestamp)
+    }
+}
+
+function createReviewCrawlRuntimeModuleOverrides() {
+    return {
+        '../src/modules/review-crawl/review-crawl.queue': {
+            getRedisConnection: () => null,
+            getReviewCrawlQueueHealth: async () => ({
+                configured: true,
+                counts: {
+                    waiting: 1,
+                    active: 0,
+                    completed: 2,
+                    failed: 0,
+                    delayed: 0,
+                },
+            }),
+            isInlineQueueMode: () => false,
+        },
+        '../src/modules/review-crawl/review-crawl.runtime': {
+            readReviewCrawlWorkerHealth: async () => ({
+                configured: true,
+                scheduler: {
+                    lastHeartbeatAt: new Date('2026-03-26T00:59:30Z').toISOString(),
+                },
+                processors: [
+                    {
+                        workerId: 'worker-1',
+                        lastHeartbeatAt: new Date('2026-03-26T00:59:45Z').toISOString(),
+                    },
+                ],
+            }),
+        },
+    }
+}
 
 function createAdminPlatformPrismaOverrides() {
     const platformControl = {
@@ -13,11 +122,14 @@ function createAdminPlatformPrismaOverrides() {
         crawlQueueWritesEnabled: true,
         crawlMaterializationEnabled: true,
         intakePublishEnabled: true,
+        sourceSubmissionAutoBootstrapEnabled: true,
+        sourceSubmissionAutoBootstrapMaxPerTick: 20,
         note: null,
         updatedByUserId: null,
         createdAt: new Date('2026-03-25T00:00:00Z'),
         updatedAt: new Date('2026-03-25T00:00:00Z'),
     }
+    const auditEvents = []
 
     const prismaOverrides = {
         user: {
@@ -186,6 +298,41 @@ function createAdminPlatformPrismaOverrides() {
                 },
             ],
         },
+        auditEvent: {
+            create: async ({ data }) => {
+                const created = {
+                    id: `audit-${auditEvents.length + 1}`,
+                    action: data.action,
+                    resourceType: data.resourceType,
+                    resourceId: data.resourceId,
+                    summary: data.summary,
+                    restaurantId: data.restaurantId ?? null,
+                    actorUserId: data.actorUserId ?? null,
+                    metadataJson: data.metadataJson ?? {},
+                    createdAt: new Date('2026-03-26T01:00:30Z'),
+                    actor:
+                        data.actorUserId === ADMIN_ID
+                            ? {
+                                  id: ADMIN_ID,
+                                  email: 'admin@sentify.local',
+                                  fullName: 'Admin One',
+                                  role: 'ADMIN',
+                              }
+                            : null,
+                    restaurant:
+                        data.restaurantId === RESTAURANT_ID
+                            ? {
+                                  id: RESTAURANT_ID,
+                                  name: 'Cafe One',
+                                  slug: 'cafe-one',
+                              }
+                            : null,
+                }
+                auditEvents.unshift(created)
+                return created
+            },
+            findMany: async ({ take }) => auditEvents.slice(0, take),
+        },
         platformControl: {
             upsert: async ({ update, create }) => {
                 Object.assign(platformControl, create, update, {
@@ -200,14 +347,105 @@ function createAdminPlatformPrismaOverrides() {
     return {
         prismaOverrides,
         state: {
+            auditEvents,
             platformControl,
         },
     }
 }
 
 test('admin platform endpoints expose health, policies, controls, and audit history', async (t) => {
+    const previousManagedReleaseEvidence = fs.existsSync(MANAGED_RELEASE_EVIDENCE_PATH)
+        ? fs.readFileSync(MANAGED_RELEASE_EVIDENCE_PATH, 'utf8')
+        : null
+    const previousManagedSignoffPreflight = fs.existsSync(MANAGED_SIGNOFF_PREFLIGHT_PATH)
+        ? fs.readFileSync(MANAGED_SIGNOFF_PREFLIGHT_PATH, 'utf8')
+        : null
+
+    fs.mkdirSync(path.dirname(MANAGED_RELEASE_EVIDENCE_PATH), {
+        recursive: true,
+    })
+    fs.writeFileSync(
+        MANAGED_RELEASE_EVIDENCE_PATH,
+        JSON.stringify(
+            {
+                overallStatus: 'COMPATIBILITY_PROOF_COMPLETE',
+                readiness: {
+                    localCompatibilityProofStatus: 'COMPATIBILITY_PROOF_COMPLETE',
+                    managedEnvProofStatus: 'MANAGED_SIGNOFF_PENDING',
+                    gaps: [
+                        'Managed Redis target is local',
+                        'Deployed staging API target is local',
+                        'Provider-managed Postgres backup/PITR proof artifact is missing',
+                    ],
+                },
+                targets: {
+                    managedRedis: {
+                        configured: true,
+                        scope: 'LOCAL',
+                        hostname: '127.0.0.1',
+                    },
+                    stagingApi: {
+                        configured: true,
+                        scope: 'LOCAL',
+                        hostname: '127.0.0.1',
+                    },
+                    managedDbProofArtifact: {
+                        provided: false,
+                        exists: false,
+                        path: null,
+                        fileName: null,
+                    },
+                },
+            },
+            null,
+            2,
+        ),
+    )
+    fs.writeFileSync(
+        MANAGED_SIGNOFF_PREFLIGHT_PATH,
+        JSON.stringify(
+            {
+                readiness: {
+                    status: 'MANAGED_SIGNOFF_PENDING',
+                    blockers: [
+                        'Managed Redis target is local',
+                        'Staging API target is local',
+                    ],
+                },
+            },
+            null,
+            2,
+        ),
+    )
+
+    t.after(() => {
+        if (previousManagedReleaseEvidence === null) {
+            if (fs.existsSync(MANAGED_RELEASE_EVIDENCE_PATH)) {
+                fs.unlinkSync(MANAGED_RELEASE_EVIDENCE_PATH)
+            }
+            return
+        }
+
+        fs.writeFileSync(MANAGED_RELEASE_EVIDENCE_PATH, previousManagedReleaseEvidence)
+    })
+    t.after(() => {
+        if (previousManagedSignoffPreflight === null) {
+            if (fs.existsSync(MANAGED_SIGNOFF_PREFLIGHT_PATH)) {
+                fs.unlinkSync(MANAGED_SIGNOFF_PREFLIGHT_PATH)
+            }
+            return
+        }
+
+        fs.writeFileSync(
+            MANAGED_SIGNOFF_PREFLIGHT_PATH,
+            previousManagedSignoffPreflight,
+        )
+    })
+
     const { prismaOverrides, state } = createAdminPlatformPrismaOverrides()
-    const { server } = await startApp(prismaOverrides)
+    const { server } = await startApp(prismaOverrides, {
+        moduleOverrides: createReviewCrawlRuntimeModuleOverrides(),
+    })
 
     t.after(async () => {
         await stopApp(server)
@@ -227,6 +465,28 @@ test('admin platform endpoints expose health, policies, controls, and audit hist
         typeof healthResponse.body.data.recovery.releaseReadiness.localProofStatus,
         'string',
     )
+    assert.equal(
+        healthResponse.body.data.recovery.releaseReadiness.compatibilityProofStatus,
+        'COMPATIBILITY_PROOF_COMPLETE',
+    )
+    assert.equal(
+        healthResponse.body.data.recovery.releaseReadiness.managedEnvProofStatus,
+        'MANAGED_SIGNOFF_PENDING',
+    )
+    assert.equal(
+        healthResponse.body.data.recovery.releaseReadiness.managedProofTargets.managedRedis.scope,
+        'LOCAL',
+    )
+    assert.equal(
+        healthResponse.body.data.recovery.releaseReadiness.managedSignoffPreflightStatus,
+        'MANAGED_SIGNOFF_PENDING',
+    )
+    assert.equal(
+        healthResponse.body.data.recovery.releaseReadiness.managedSignoffPreflightBlockers.includes(
+            'Managed Redis target is local',
+        ),
+        true,
+    )
     assert.equal(Array.isArray(healthResponse.body.data.recovery.proofArtifacts), true)
 
     const policiesResponse = await request(
@@ -243,6 +503,18 @@ test('admin platform endpoints expose health, policies, controls, and audit hist
         policiesResponse.body.data.policies.runtimeControls.crawlQueueWritesEnabled,
         true,
     )
+    assert.equal(
+        policiesResponse.body.data.policies.sourceSubmissionIngress.autoBootstrapEnabled,
+        true,
+    )
+    assert.equal(
+        policiesResponse.body.data.policies.sourceSubmissionIngress.autoBootstrapMaxPerTick,
+        20,
+    )
+    assert.equal(
+        policiesResponse.body.data.policies.sourceSubmissionIngress.laneRunPriority.PRIORITY,
+        'HIGH',
+    )
 
     const updateControlsResponse = await request(
         server,
@@ -252,12 +524,22 @@ test('admin platform endpoints expose health, policies, controls, and audit hist
             token: auth,
             body: {
                 crawlQueueWritesEnabled: false,
+                sourceSubmissionAutoBootstrapEnabled: false,
+                sourceSubmissionAutoBootstrapMaxPerTick: 4,
                 note: 'Maintenance window',
             },
         },
     )
     assert.equal(updateControlsResponse.status, 200)
     assert.equal(updateControlsResponse.body.data.controls.crawlQueueWritesEnabled, false)
+    assert.equal(
+        updateControlsResponse.body.data.controls.sourceSubmissionAutoBootstrapEnabled,
+        false,
+    )
+    assert.equal(
+        updateControlsResponse.body.data.controls.sourceSubmissionAutoBootstrapMaxPerTick,
+        4,
+    )
     assert.equal(updateControlsResponse.body.data.controls.note, 'Maintenance window')
     assert.equal(state.platformControl.updatedByUserId, ADMIN_ID)
 
@@ -300,6 +582,8 @@ test('admin platform endpoints stay hidden from non-admin users', async (t) => {
                 crawlQueueWritesEnabled: true,
                 crawlMaterializationEnabled: true,
                 intakePublishEnabled: true,
+                sourceSubmissionAutoBootstrapEnabled: true,
+                sourceSubmissionAutoBootstrapMaxPerTick: 20,
                 note: null,
                 updatedByUserId: null,
                 createdAt: new Date('2026-03-25T00:00:00Z'),
@@ -309,7 +593,9 @@ test('admin platform endpoints stay hidden from non-admin users', async (t) => {
         },
     }
 
-    const { server } = await startApp(prismaOverrides)
+    const { server } = await startApp(prismaOverrides, {
+        moduleOverrides: createReviewCrawlRuntimeModuleOverrides(),
+    })
 
     t.after(async () => {
         await stopApp(server)
@@ -320,4 +606,227 @@ test('admin platform endpoints stay hidden from non-admin users', async (t) => {
         token: auth,
     })
     assert.equal(response.status, 403)
+})
+
+test('admin platform release readiness falls back to managed-signoff preflight when no heavy bundle exists', async (t) => {
+    const artifactPaths = [
+        MANAGED_RELEASE_EVIDENCE_PATH,
+        MANAGED_SIGNOFF_PREFLIGHT_PATH,
+        ...Object.values(LOCAL_PROOF_ARTIFACTS),
+    ]
+    const previousStates = new Map(
+        artifactPaths.map((filePath) => [filePath, captureFileState(filePath)]),
+    )
+
+    fs.mkdirSync(path.dirname(MANAGED_RELEASE_EVIDENCE_PATH), {
+        recursive: true,
+    })
+    if (fs.existsSync(MANAGED_RELEASE_EVIDENCE_PATH)) {
+        fs.unlinkSync(MANAGED_RELEASE_EVIDENCE_PATH)
+    }
+    writeJsonArtifact(
+        MANAGED_SIGNOFF_PREFLIGHT_PATH,
+        {
+            targets: {
+                managedRedis: {
+                    configured: true,
+                    scope: 'EXTERNAL',
+                    hostname: 'managed.example.internal',
+                },
+                stagingApi: {
+                    configured: true,
+                    scope: 'EXTERNAL',
+                    hostname: 'staging.sentify.example',
+                },
+                managedDbProofArtifact: {
+                    provided: true,
+                    validationStatus: 'PASSED',
+                },
+            },
+            readiness: {
+                status: 'MANAGED_SIGNOFF_READY',
+                blockers: [],
+            },
+        },
+        new Date(),
+    )
+    for (const filePath of Object.values(LOCAL_PROOF_ARTIFACTS)) {
+        writeJsonArtifact(filePath, { ok: true }, new Date())
+    }
+
+    t.after(() => {
+        for (const [filePath, state] of previousStates.entries()) {
+            restoreFileState(filePath, state)
+        }
+    })
+
+    const { prismaOverrides } = createAdminPlatformPrismaOverrides()
+    const { server } = await startApp(prismaOverrides, {
+        moduleOverrides: createReviewCrawlRuntimeModuleOverrides(),
+    })
+
+    t.after(async () => {
+        await stopApp(server)
+    })
+
+    const auth = createTestToken({ userId: ADMIN_ID, tokenVersion: 0 })
+    const response = await request(server, 'GET', '/api/admin/platform/health-jobs', {
+        token: auth,
+    })
+
+    assert.equal(response.status, 200)
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.compatibilityProofStatus,
+        'PENDING',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.managedEnvProofStatus,
+        'MANAGED_SIGNOFF_PENDING',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.managedSignoffPreflightStatus,
+        'MANAGED_SIGNOFF_READY',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.managedEnvGap,
+        'Managed sign-off preflight is ready. Run the heavy release-evidence bundle against the external targets to complete sign-off.',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.managedProofTargets.managedRedis.scope,
+        'EXTERNAL',
+    )
+})
+
+test('admin platform release readiness marks stale proof artifacts as stale instead of complete', async (t) => {
+    const artifactPaths = [
+        MANAGED_RELEASE_EVIDENCE_PATH,
+        MANAGED_SIGNOFF_PREFLIGHT_PATH,
+        ...Object.values(LOCAL_PROOF_ARTIFACTS),
+    ]
+    const previousStates = new Map(
+        artifactPaths.map((filePath) => [filePath, captureFileState(filePath)]),
+    )
+
+    const staleTimestamp = new Date('2026-03-20T00:00:00.000Z')
+
+    writeJsonArtifact(
+        MANAGED_RELEASE_EVIDENCE_PATH,
+        {
+            overallStatus: 'COMPATIBILITY_PROOF_COMPLETE',
+            readiness: {
+                localCompatibilityProofStatus: 'COMPATIBILITY_PROOF_COMPLETE',
+                managedEnvProofStatus: 'MANAGED_SIGNOFF_COMPLETE',
+                gaps: [],
+            },
+            targets: {
+                managedRedis: {
+                    configured: true,
+                    scope: 'EXTERNAL',
+                    hostname: 'redis.managed.example',
+                },
+                stagingApi: {
+                    configured: true,
+                    scope: 'EXTERNAL',
+                    hostname: 'staging.sentify.example',
+                },
+                managedDbProofArtifact: {
+                    provided: true,
+                    exists: true,
+                    path: '/tmp/managed-proof.json',
+                    fileName: 'managed-proof.json',
+                },
+            },
+        },
+        staleTimestamp,
+    )
+    writeJsonArtifact(
+        MANAGED_SIGNOFF_PREFLIGHT_PATH,
+        {
+            readiness: {
+                status: 'MANAGED_SIGNOFF_READY',
+                blockers: [],
+            },
+            targets: {
+                managedRedis: {
+                    configured: true,
+                    scope: 'EXTERNAL',
+                    hostname: 'redis.managed.example',
+                },
+                stagingApi: {
+                    configured: true,
+                    scope: 'EXTERNAL',
+                    hostname: 'staging.sentify.example',
+                },
+                managedDbProofArtifact: {
+                    provided: true,
+                    exists: true,
+                    path: '/tmp/managed-proof.json',
+                    fileName: 'managed-proof.json',
+                },
+            },
+        },
+        staleTimestamp,
+    )
+
+    for (const filePath of Object.values(LOCAL_PROOF_ARTIFACTS)) {
+        writeJsonArtifact(filePath, { ok: true }, staleTimestamp)
+    }
+
+    t.after(() => {
+        for (const [filePath, state] of previousStates.entries()) {
+            restoreFileState(filePath, state)
+        }
+    })
+
+    const { prismaOverrides } = createAdminPlatformPrismaOverrides()
+    const { server } = await startApp(prismaOverrides, {
+        moduleOverrides: createReviewCrawlRuntimeModuleOverrides(),
+    })
+
+    t.after(async () => {
+        await stopApp(server)
+    })
+
+    const auth = createTestToken({ userId: ADMIN_ID, tokenVersion: 0 })
+    const response = await request(server, 'GET', '/api/admin/platform/health-jobs', {
+        token: auth,
+    })
+
+    assert.equal(response.status, 200)
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.localProofStatus,
+        'LOCAL_PROOF_STALE',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.localProofCoverage.staleArtifactKeys.includes(
+            'merchantReadLoad',
+        ),
+        true,
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.compatibilityProofStatus,
+        'COMPATIBILITY_PROOF_STALE',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.compatibilityProofFreshnessStatus,
+        'STALE',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.managedEnvProofStatus,
+        'MANAGED_SIGNOFF_STALE',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.managedSignoffPreflightStatus,
+        'MANAGED_SIGNOFF_STALE',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.managedSignoffPreflightFreshnessStatus,
+        'STALE',
+    )
+    assert.equal(
+        response.body.data.recovery.releaseReadiness.managedEnvGap.includes(
+            'Managed release evidence artifact is stale',
+        ),
+        true,
+    )
 })

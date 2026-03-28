@@ -1,4 +1,4 @@
-import { buildUrl, request } from './client'
+import { buildPath, request } from './client'
 import type {
   CreateReviewIntakeBatchInput,
   CreateReviewIntakeItemInput,
@@ -15,8 +15,7 @@ export function createReviewIntakeBatch(input: CreateReviewIntakeBatchInput) {
 }
 
 export function listReviewIntakeBatches(restaurantId: string) {
-  const url = buildUrl('/admin/review-batches', { restaurantId })
-  return request<ReviewIntakeBatch[]>(`${url.pathname}${url.search}`)
+  return request<ReviewIntakeBatch[]>(buildPath('/admin/review-batches', { restaurantId }))
 }
 
 export function getReviewIntakeBatch(batchId: string) {
@@ -40,5 +39,17 @@ export function updateReviewIntakeItem(itemId: string, input: UpdateReviewIntake
 export function publishReviewIntakeBatch(batchId: string) {
   return request<PublishReviewIntakeBatchResult>(`/admin/review-batches/${batchId}/publish`, {
     method: 'POST',
+  })
+}
+
+export function deleteReviewIntakeBatch(batchId: string) {
+  return request<void>(`/admin/review-batches/${batchId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function deleteReviewIntakeItem(itemId: string) {
+  return request<void>(`/admin/review-items/${itemId}`, {
+    method: 'DELETE',
   })
 }

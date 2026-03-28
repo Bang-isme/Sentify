@@ -24,7 +24,7 @@ test('dashboard endpoints return data with valid access', async (t) => {
                             name: 'Cafe One',
                             slug: 'cafe-one',
                             address: null,
-                            googleMapUrl: null,
+                            googleMapUrl: 'https://maps.app.goo.gl/demo-place',
                             createdAt: new Date('2026-03-01T00:00:00Z'),
                             updatedAt: new Date('2026-03-01T00:00:00Z'),
                             insight: {
@@ -47,6 +47,18 @@ test('dashboard endpoints return data with valid access', async (t) => {
                 { sentiment: 'NEGATIVE', _count: { _all: 1 } },
             ],
             count: async () => 5,
+            findMany: async () => [
+                {
+                    id: 'review-1',
+                    authorName: 'Minh',
+                    rating: 2,
+                    sentiment: 'NEGATIVE',
+                    content: 'Slow service again during dinner rush.',
+                    reviewDate: new Date('2026-03-02T00:00:00Z'),
+                    createdAt: new Date('2026-03-02T00:00:00Z'),
+                    keywords: ['slow service'],
+                },
+            ],
         },
         $queryRaw: async () => [
             {
@@ -114,6 +126,17 @@ test('dashboard endpoints return data with valid access', async (t) => {
     )
     assert.equal(topIssue.status, 200)
     assert.equal(topIssue.body.data.keyword, 'slow service')
+
+    const actions = await request(
+        server,
+        'GET',
+        `/api/restaurants/${RESTAURANT_ID}/dashboard/actions`,
+        { token: auth },
+    )
+    assert.equal(actions.status, 200)
+    assert.equal(actions.body.data.summary.state, 'ACTIONABLE_NOW')
+    assert.equal(actions.body.data.topIssue.keyword, 'slow service')
+    assert.equal(actions.body.data.actionCards[0].recommendationCode, 'FIX_RESPONSE_TIME')
 })
 
 test('dashboard endpoints reject missing auth and unauthorized access', async (t) => {
@@ -152,4 +175,12 @@ test('dashboard endpoints reject missing auth and unauthorized access', async (t
         { token: auth },
     )
     assert.equal(forbidden.status, 404)
+
+    const forbiddenActions = await request(
+        server,
+        'GET',
+        `/api/restaurants/${RESTAURANT_ID}/dashboard/actions`,
+        { token: auth },
+    )
+    assert.equal(forbiddenActions.status, 404)
 })

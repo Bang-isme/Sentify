@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { CreateReviewIntakeItemInput } from '../../../lib/api'
 import type { AdminIntakeLabels } from '../adminIntakeLabels'
+import { AdminCard, AdminButton } from '../../admin-shell/components/AdminPrimitives'
 
 interface ReviewEntryFormProps {
   labels: AdminIntakeLabels
@@ -97,38 +98,37 @@ export function ReviewEntryForm({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <form
-        className="rounded-[1.4rem] border border-border-light/70 bg-bg-light/70 p-5 dark:border-border-dark dark:bg-bg-dark/55"
-        onSubmit={handleSingleSubmit}
-      >
-        <div className="grid gap-4">
+    <div className="grid gap-4 xl:grid-cols-2">
+      <AdminCard className="bg-slate-50 dark:bg-white/5">
+        <form onSubmit={handleSingleSubmit} className="grid gap-4">
           <label
             htmlFor={authorFieldId}
-            className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
+            className="grid gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-300"
           >
             <span>{labels.authorLabel}</span>
             <input
               id={authorFieldId}
+              data-testid="admin-intake-single-author-input"
               aria-label={labels.authorLabel}
               value={authorName}
               onChange={(event) => setAuthorName(event.target.value)}
-              className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b] dark:text-white"
             />
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label
               htmlFor={ratingFieldId}
-              className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
+              className="grid gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-300"
             >
               <span>{labels.ratingLabel}</span>
               <select
                 id={ratingFieldId}
+                data-testid="admin-intake-single-rating-select"
                 aria-label={labels.ratingLabel}
                 value={rating}
                 onChange={(event) => setRating(event.target.value)}
-                className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b] dark:text-white"
               >
                 {[5, 4, 3, 2, 1].map((value) => (
                   <option key={value} value={value}>
@@ -140,81 +140,83 @@ export function ReviewEntryForm({
 
             <label
               htmlFor={dateFieldId}
-              className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
+              className="grid gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-300"
             >
               <span>{labels.dateLabel}</span>
               <input
                 id={dateFieldId}
+                data-testid="admin-intake-single-date-input"
                 aria-label={labels.dateLabel}
                 type="date"
                 value={reviewDate}
                 onChange={(event) => setReviewDate(event.target.value)}
-                className="h-11 rounded-2xl border border-border-light bg-surface-white px-4 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b] dark:text-white"
               />
             </label>
           </div>
 
           <label
             htmlFor={contentFieldId}
-            className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
+            className="grid gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-300"
           >
             <span>{labels.contentLabel}</span>
             <textarea
               id={contentFieldId}
+              data-testid="admin-intake-single-content-input"
               aria-label={labels.contentLabel}
               value={content}
               onChange={(event) => setContent(event.target.value)}
               rows={5}
-              className="rounded-3xl border border-border-light bg-surface-white px-4 py-3 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b] dark:text-white"
             />
           </label>
 
-          <button
+          <AdminButton
             type="submit"
             disabled={pending}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 dark:text-bg-dark"
+            variant="primary"
+            dataTestId="admin-intake-add-single-button"
           >
             {labels.addSingleAction}
-          </button>
-        </div>
-      </form>
+          </AdminButton>
+        </form>
+      </AdminCard>
 
-      <form
-        className="rounded-[1.4rem] border border-border-light/70 bg-bg-light/70 p-5 dark:border-border-dark dark:bg-bg-dark/55"
-        onSubmit={handleBulkSubmit}
-      >
-        <div className="grid gap-4">
+      <AdminCard className="bg-slate-50 dark:bg-white/5">
+        <form onSubmit={handleBulkSubmit} className="grid gap-4">
           <label
             htmlFor={bulkFieldId}
-            className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
+            className="grid gap-2 text-sm font-semibold text-slate-700 dark:text-zinc-300"
           >
             <span>{labels.bulkPasteLabel}</span>
             <textarea
               id={bulkFieldId}
+              data-testid="admin-intake-bulk-input"
               aria-label={labels.bulkPasteLabel}
               value={bulkPaste}
               onChange={(event) => setBulkPaste(event.target.value)}
               rows={10}
               placeholder={labels.bulkPasteHint}
               aria-describedby={bulkHintId}
-              className="rounded-3xl border border-border-light bg-surface-white px-4 py-3 text-sm outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-[#18181b] dark:text-white font-mono"
             />
           </label>
           <p
             id={bulkHintId}
-            className="text-xs leading-6 text-text-silver-light dark:text-text-silver-dark"
+            className="text-[13px] leading-relaxed text-slate-500 dark:text-zinc-400"
           >
             {labels.bulkPasteHint}
           </p>
-          <button
+          <AdminButton
             type="submit"
             disabled={pending}
-            className="inline-flex h-11 items-center justify-center rounded-full border border-primary/35 bg-primary/8 px-5 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary/12 disabled:cursor-not-allowed disabled:opacity-60"
+            variant="secondary"
+            dataTestId="admin-intake-add-bulk-button"
           >
             {labels.addBulkAction}
-          </button>
-        </div>
-      </form>
+          </AdminButton>
+        </form>
+      </AdminCard>
     </div>
   )
 }

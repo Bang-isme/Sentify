@@ -44,6 +44,23 @@ function FieldError({ message }: { message?: string }) {
   return <div className="text-[12px] font-medium text-rose-700">{message}</div>
 }
 
+function getSourceBadgeCopy(
+  hasGoogleMapUrl: boolean,
+  language: string,
+) {
+  if (hasGoogleMapUrl) {
+    return {
+      label: language.startsWith('vi') ? 'Đã lưu URL Google Maps' : 'Google Maps URL on file',
+      state: 'now' as const,
+    }
+  }
+
+  return {
+    label: language.startsWith('vi') ? 'Thiếu URL Google Maps' : 'Google Maps URL missing',
+    state: 'next' as const,
+  }
+}
+
 export function MerchantHubSettingsScreen({
   language,
   restaurant,
@@ -67,6 +84,7 @@ export function MerchantHubSettingsScreen({
 }: MerchantHubSettingsScreenProps) {
   const copy = getMerchantHubCopy(language)
   void nextBlock
+  const sourceBadge = getSourceBadgeCopy(Boolean(detail?.googleMapUrl), language)
   const [name, setName] = useState(detail?.name ?? restaurant?.name ?? '')
   const [address, setAddress] = useState(detail?.address ?? '')
   const [googleMapUrl, setGoogleMapUrl] = useState(detail?.googleMapUrl ?? '')
@@ -160,14 +178,8 @@ export function MerchantHubSettingsScreen({
 
         <div className="mt-5 flex flex-wrap gap-2">
           <MerchantHubBadge state="now">{restaurant?.name ?? (language.startsWith('vi') ? 'Nhà hàng' : 'Restaurant')}</MerchantHubBadge>
-          <MerchantHubBadge state={detail?.googleMapUrl ? 'now' : 'next'}>
-            {detail?.googleMapUrl
-              ? language.startsWith('vi')
-                ? 'Đã kết nối Google Maps'
-                : 'Source connected'
-              : language.startsWith('vi')
-                ? 'Thiếu nguồn Google Maps'
-                : 'Source missing'}
+          <MerchantHubBadge state={sourceBadge.state}>
+            <span data-testid="merchant-source-status-badge">{sourceBadge.label}</span>
           </MerchantHubBadge>
         </div>
       </MerchantHubPanel>
@@ -243,8 +255,8 @@ export function MerchantHubSettingsScreen({
               title={language.startsWith('vi') ? 'Cập nhật nguồn Google Maps' : 'Update source URL'}
               description={
                 language.startsWith('vi')
-                  ? 'Chủ quán vẫn nhìn thấy và chỉnh được URL nguồn để dữ liệu luôn đúng thực tế.'
-                  : 'Source configuration stays visible and editable from the merchant side.'
+                  ? 'Bạn lưu URL ở đây để đội admin đồng bộ, duyệt và publish dữ liệu chuẩn hóa.'
+                  : 'Save the source URL here. Admin still handles sync, review, and publish.'
               }
               action={<MerchantHubBadge state="now">{copy.nowLabel}</MerchantHubBadge>}
             />
@@ -253,6 +265,7 @@ export function MerchantHubSettingsScreen({
                 <span>{googleMapsUrlLabel}</span>
                 <input
                   aria-label={googleMapsUrlLabel}
+                  data-testid="merchant-google-maps-input"
                   type="url"
                   placeholder={googleMapsUrlPlaceholder}
                   value={googleMapUrl}
@@ -275,6 +288,11 @@ export function MerchantHubSettingsScreen({
                   {pending ? savingLabel : saveLabel}
                 </button>
               </div>
+              <p data-testid="merchant-source-hint" className="text-[12px] leading-6 text-[#5f584e]">
+                {language.startsWith('vi')
+                  ? 'Lưu URL chưa đẩy review vào dashboard ngay. Admin sẽ đồng bộ, duyệt và publish trước khi dữ liệu mới xuất hiện.'
+                  : 'Saving the URL does not push reviews into the dashboard immediately. Admin sync, review, and publish still happen before new data appears.'}
+              </p>
             </form>
           </MerchantHubPanel>
         </div>

@@ -25,6 +25,7 @@ test('admin intake repository reuses and updates canonical reviews for matching 
     const reviewUpdates = []
     const intakeUpdates = []
     const createManyCalls = []
+    const publishEventCreates = []
 
     const tx = {
         review: {
@@ -62,11 +63,34 @@ test('admin intake repository reuses and updates canonical reviews for matching 
                 return { id: args.where.id, canonicalReviewId: args.data.canonicalReviewId }
             },
         },
+        reviewCrawlRawReview: {
+            findMany: async () => [
+                {
+                    id: 'raw-existing',
+                    externalReviewKey: 'manual-intake:v1:existing',
+                    firstSeenRunId: 'run-old',
+                    lastSeenRunId: 'run-existing',
+                },
+                {
+                    id: 'raw-new',
+                    externalReviewKey: 'manual-intake:v1:new',
+                    firstSeenRunId: 'run-old',
+                    lastSeenRunId: 'run-new',
+                },
+            ],
+        },
+        reviewPublishEvent: {
+            createMany: async (args) => {
+                publishEventCreates.push(args)
+                return { count: args.data.length }
+            },
+        },
         reviewIntakeBatch: {
             update: async (args) => ({
                 id: args.where.id,
                 status: args.data.status,
                 publishedAt: args.data.publishedAt,
+                publishedByUserId: args.data.publishedByUserId,
                 items: [],
             }),
         },
@@ -79,12 +103,16 @@ test('admin intake repository reuses and updates canonical reviews for matching 
     const repository = require('../src/modules/admin-intake/admin-intake.repository')
     const result = await repository.publishApprovedItems({
         batchId: 'batch-1',
+        restaurantId: 'restaurant-1',
+        batchCrawlSourceId: 'source-1',
         batchStatus: 'PUBLISHED',
         batchPublishedAt: new Date('2026-03-24T00:00:00Z'),
+        batchPublishedByUserId: 'user-1',
         items: [
             {
                 id: 'item-existing',
                 canonicalReviewId: null,
+                sourceExternalId: 'manual-intake:v1:existing',
                 reviewPayload: {
                     restaurantId: 'restaurant-1',
                     externalId: 'manual-intake:v1:existing',
@@ -99,6 +127,7 @@ test('admin intake repository reuses and updates canonical reviews for matching 
             {
                 id: 'item-new',
                 canonicalReviewId: null,
+                sourceExternalId: 'manual-intake:v1:new',
                 reviewPayload: {
                     restaurantId: 'restaurant-1',
                     externalId: 'manual-intake:v1:new',
@@ -133,6 +162,36 @@ test('admin intake repository reuses and updates canonical reviews for matching 
     )
 
     assert.deepEqual(result.publishedReviewIds, ['review-existing', 'review-new'])
+    assert.equal(result.batch.publishedByUserId, 'user-1')
+    assert.equal(publishEventCreates.length, 1)
+    assert.deepEqual(
+        publishEventCreates[0].data.map((entry) => ({
+            reviewId: entry.reviewId,
+            intakeItemId: entry.intakeItemId,
+            rawReviewId: entry.rawReviewId,
+            crawlRunId: entry.crawlRunId,
+            crawlSourceId: entry.crawlSourceId,
+            publishedByUserId: entry.publishedByUserId,
+        })),
+        [
+            {
+                reviewId: 'review-existing',
+                intakeItemId: 'item-existing',
+                rawReviewId: 'raw-existing',
+                crawlRunId: 'run-existing',
+                crawlSourceId: 'source-1',
+                publishedByUserId: 'user-1',
+            },
+            {
+                reviewId: 'review-new',
+                intakeItemId: 'item-new',
+                rawReviewId: 'raw-new',
+                crawlRunId: 'run-new',
+                crawlSourceId: 'source-1',
+                publishedByUserId: 'user-1',
+            },
+        ],
+    )
 
     restoreModules()
 })

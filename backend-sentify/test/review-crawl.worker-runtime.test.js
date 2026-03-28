@@ -30,6 +30,9 @@ test('review crawl worker runtime starts processor and scheduler lanes with hear
     let workerClosed = false
     let queueClosed = false
     let intervalCalls = []
+    let clearedProcessorHeartbeat = 0
+    let clearedSchedulerHeartbeat = 0
+    let releasedSchedulerLeadership = 0
 
     const originalSetInterval = global.setInterval
     const originalClearInterval = global.clearInterval
@@ -74,8 +77,18 @@ test('review crawl worker runtime starts processor and scheduler lanes with hear
         },
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        clearProcessorHeartbeat: async () => {
+            clearedProcessorHeartbeat += 1
+        },
+        clearSchedulerHeartbeat: async () => {
+            clearedSchedulerHeartbeat += 1
+        },
         logReviewCrawlEvent: (name, payload) => {
             events.push({ name, payload })
+        },
+        releaseSchedulerLeadership: async () => {
+            releasedSchedulerLeadership += 1
+            return true
         },
         tryAcquireSchedulerLeadership: async () => true,
         writeProcessorHeartbeat: async (_redis, payload) => {
@@ -116,6 +129,9 @@ test('review crawl worker runtime starts processor and scheduler lanes with hear
     assert.equal(workerClosed, true)
     assert.equal(queueClosed, true)
     assert.equal(intervalCalls.length, 0)
+    assert.equal(clearedProcessorHeartbeat, 1)
+    assert.equal(releasedSchedulerLeadership, 1)
+    assert.equal(clearedSchedulerHeartbeat, 1)
 
     global.setInterval = originalSetInterval
     global.clearInterval = originalClearInterval
@@ -127,6 +143,9 @@ test('review crawl worker runtime can run in scheduler-only mode without creatin
 
     let workerCreated = false
     const serviceCalls = []
+    let clearedProcessorHeartbeat = 0
+    let clearedSchedulerHeartbeat = 0
+    let releasedSchedulerLeadership = 0
 
     const originalSetInterval = global.setInterval
     const originalClearInterval = global.clearInterval
@@ -155,7 +174,17 @@ test('review crawl worker runtime can run in scheduler-only mode without creatin
         closeReviewCrawlQueueResources: async () => {},
     })
     withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        clearProcessorHeartbeat: async () => {
+            clearedProcessorHeartbeat += 1
+        },
+        clearSchedulerHeartbeat: async () => {
+            clearedSchedulerHeartbeat += 1
+        },
         logReviewCrawlEvent: () => {},
+        releaseSchedulerLeadership: async () => {
+            releasedSchedulerLeadership += 1
+            return true
+        },
         tryAcquireSchedulerLeadership: async () => true,
         writeProcessorHeartbeat: async () => {},
         writeSchedulerHeartbeat: async () => {},
@@ -178,6 +207,9 @@ test('review crawl worker runtime can run in scheduler-only mode without creatin
     assert.deepEqual(serviceCalls, ['schedule'])
 
     await runtime.stop()
+    assert.equal(clearedProcessorHeartbeat, 0)
+    assert.equal(releasedSchedulerLeadership, 1)
+    assert.equal(clearedSchedulerHeartbeat, 1)
 
     global.setInterval = originalSetInterval
     global.clearInterval = originalClearInterval

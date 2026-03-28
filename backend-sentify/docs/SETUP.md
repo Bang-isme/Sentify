@@ -1,6 +1,6 @@
 # Sentify Backend Setup
 
-Updated: 2026-03-26
+Updated: 2026-03-27
 
 This document describes how to run the backend and the backend-only crawl tooling in the current codebase.
 
@@ -25,6 +25,15 @@ Create `.env` from `.env.example` and fill at least:
 - `DATABASE_URL`
 - `JWT_SECRET`
 
+Keep managed/staging sign-off inputs separate. Use `.env.release-evidence.example` as the template for `.env.release-evidence`:
+
+- `RELEASE_EVIDENCE_MANAGED_REDIS_URL`
+- `RELEASE_EVIDENCE_STAGING_API_URL`
+- staging proof credentials
+- managed DB proof artifact path
+
+The release-evidence proof scripts now auto-load `.env.release-evidence` on top of `.env`, so local runtime config and staging proof secrets no longer need to live in one file.
+
 Important queue and worker settings:
 
 - `REDIS_URL`
@@ -32,6 +41,12 @@ Important queue and worker settings:
 - `REVIEW_CRAWL_WORKER_CONCURRENCY`
 - `REVIEW_CRAWL_RUNTIME_MODE`
 - `REVIEW_CRAWL_BACKFILL_AUTO_RESUME_MAX_CHAINS`
+
+To verify the templates stay in sync with the runtime config contract:
+
+```bash
+npm run env:check
+```
 
 ## 4. Database
 
@@ -83,7 +98,41 @@ curl http://localhost:3000/health
 curl http://localhost:3000/api/health
 ```
 
-## 6. Role-Aware Local Flows
+If you want the fastest path to a real staging backend URL, use the Render blueprint in [RENDER-STAGING.md](/D:/Project%203/backend-sentify/docs/RENDER-STAGING.md).
+
+## 6. Managed Local Real-Queue Stack
+
+For a reproducible local BullMQ path on Windows, use the managed stack script:
+
+```bash
+npm run stack:review-crawl:start
+npm run stack:review-crawl:status
+```
+
+This script will:
+
+- require `REDIS_URL`
+- reuse a compatible Redis 5+ server if one is already running
+- otherwise start the bundled Memurai binary if available
+- start the API on `PORT`
+- start `src/review-crawl-worker.js`
+- roll back partial startup if worker bootstrap fails
+- prune stale local worker heartbeats so immediate restart does not wait for Redis TTL expiry
+- write logs and managed PIDs under `.local-runtime/`
+
+Stop the managed stack with:
+
+```bash
+npm run stack:review-crawl:stop
+```
+
+Recommended local deterministic queue config for manual review-ops testing:
+
+- `REDIS_URL=redis://127.0.0.1:6379`
+- `REVIEW_CRAWL_INLINE_QUEUE_MODE=false`
+- `REVIEW_CRAWL_RUNTIME_MODE=processor`
+
+## 7. Role-Aware Local Flows
 
 ### User-facing flow
 
@@ -106,7 +155,7 @@ Use the seeded `ADMIN` account to:
 - run crawl preview, queue crawl runs, or sync to draft
 - publish approved batches
 
-## 7. Browser E2E Entry Point
+## 8. Browser E2E Entry Point
 
 From the frontend workspace, run:
 
@@ -131,7 +180,7 @@ Current local admin behavior behind those screens:
 - `Platform > Integrations & policies` mirrors runtime controls in policy context
 - `Platform > Audit` includes platform-control update events
 
-## 8. Run Review Crawl Workers
+## 9. Run Review Crawl Workers
 
 If you want a separate queued worker process:
 
@@ -145,7 +194,7 @@ Local development may run `processor + scheduler` in one process. A production-s
 - 1 worker with `REVIEW_CRAWL_RUNTIME_MODE=scheduler`
 - 1 or more workers with `REVIEW_CRAWL_RUNTIME_MODE=processor`
 
-## 9. Local Queue Smoke
+## 10. Local Queue Smoke
 
 If Windows does not have a Redis service, the smoke script can start a local Redis binary:
 
@@ -179,7 +228,7 @@ Global runtime controls can temporarily disable parts of that flow:
 - `crawlMaterializationEnabled = false` blocks crawl-to-intake materialization
 - `intakePublishEnabled = false` blocks publish into canonical reviews
 
-## 10. Local SMB Load Harnesses
+## 11. Local SMB Load Harnesses
 
 User-facing read load proof on seeded local Postgres plus real HTTP routes:
 
@@ -200,7 +249,7 @@ Important behavior:
 - if Redis is unavailable, the worker harness falls back to inline queue mode and proves local worker orchestration plus database write pressure, but not Redis transport behavior
 - with `REVIEW_CRAWL_REDIS_BINARY` pointed at a local Memurai or Redis binary, the same worker harness exercises the real BullMQ queue transport and worker runtime
 
-## 11. Local Recovery Drill
+## 12. Local Recovery Drill
 
 Logical restaurant-state recovery proof on the shared demo dataset:
 
@@ -218,9 +267,9 @@ That drill will:
 
 This is local logical recovery evidence. It does not replace managed Postgres backup, restore, or rollback drills for staging or production.
 
-## 12. Staging-Compatible Recovery Drill
+## 13. Staging-Compatible Recovery Drill
 
-Shadow-database recovery rehearsal on the shared demo dataset:
+Shadow-database recovery rehearsal on the shared demo dataset or an existing source database:
 
 ```bash
 npm run smoke:staging-recovery-drill
@@ -228,7 +277,8 @@ npm run smoke:staging-recovery-drill
 
 That drill will:
 
-- seed the shared demo dataset in the source database
+- in default `seeded-local` mode, seed the shared demo dataset in the source database first
+- in `existing` mode, read an existing source database without seeding it
 - capture a logical backup slice for the seeded restaurants and related runtime rows
 - create a separately migrated temporary target database unless `--target-db-url` is provided
 - verify the target database is empty before restore
@@ -236,6 +286,16 @@ That drill will:
 - boot the backend against the restored target and run `/health`, `/api/health`, and authenticated user-facing read smoke
 - rehearse rollback by booting the backend against the original source database again
 - write a proof report to `load-reports/staging-recovery-drill-local.json`
+
+The restored slice now includes:
+
+- restaurant memberships
+- intake batches and items
+- crawl sources, runs, and raw reviews
+- canonical `Review` data and insight aggregates
+- durable `AuditEvent` rows for the selected restaurant slice
+- durable `ReviewPublishEvent` lineage rows
+- singleton `PlatformControl` state
 
 Latest local baseline proof:
 
@@ -249,11 +309,69 @@ Useful flags:
 - `--target-database "<database-name>"`
 - `--keep-target-database`
 - `--restaurant-slug "<slug>"`
+- `--source-mode existing`
+- `--source-db-url "<postgres-url>"`
+- `--smoke-user-id "<user-uuid>"`
 - `--output "<file>"`
 
 This is still local evidence. It is stronger than the purely logical recovery drill because it proves a migrated restore target plus app-level rollback smoke, but it is still not a substitute for managed backup or real staging rollback proof.
 
-## 13. Review Ops CLI
+## 14. Managed Release Evidence Bundle
+
+To assemble one report for managed Redis plus staging-compatible backup, restore, and rollback proof:
+
+```bash
+node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --managed-redis-url "redis://127.0.0.1:6379"
+```
+
+Helpful wrappers:
+
+```bash
+npm run proof:managed-redis
+npm run proof:release-evidence
+```
+
+What the bundle does:
+
+- runs an ephemeral BullMQ enqueue/process/complete probe against the supplied Redis URL
+- runs `staging-recovery-drill.js` in either `seeded-local` or `existing` source mode
+- optionally probes a deployed staging API when `--staging-api-url` is provided
+- writes:
+  - `load-reports/managed-redis-proof.json`
+  - `load-reports/staging-recovery-drill-managed.json`
+  - `load-reports/managed-release-evidence.json`
+
+Current interpretation:
+
+- `COMPATIBILITY_PROOF_COMPLETE`: all configured bundle checks passed
+- `COMPATIBILITY_PROOF_PARTIAL`: core checks passed but at least one proof was skipped or partial
+- `COMPATIBILITY_PROOF_FAILED`: at least one required proof failed
+- `MANAGED_SIGNOFF_PENDING`: compatibility proof exists, but external managed sign-off is still missing
+- `MANAGED_SIGNOFF_COMPLETE`: compatibility proof passed and all external managed sign-off requirements were attached
+
+`admin-platform` now reads `managed-release-evidence.json` and reflects:
+
+- `releaseReadiness.compatibilityProofStatus`
+- `releaseReadiness.managedEnvProofStatus`
+- `releaseReadiness.managedProofTargets`
+
+Provider-managed Postgres proof support:
+
+- validate an artifact directly:
+  - `npm run proof:managed-db -- --artifact docs/examples/managed-db-proof-artifact.example.json`
+- attach it to the bundle:
+  - `node scripts/release-evidence.js ... --managed-db-proof-artifact docs/examples/managed-db-proof-artifact.example.json`
+
+Managed sign-off preflight:
+
+- quick blocker report:
+  - `npm run proof:managed-signoff:preflight`
+- direct custom-output form:
+  - `node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.json`
+- strict mode:
+  - `node scripts/managed-signoff-preflight.js --require-ready`
+
+## 15. Review Ops CLI
 
 The backend-only review ops CLI lets developers or operators drive the system without touching SQL:
 
@@ -267,7 +385,7 @@ npm run ops:review -- approve-valid --user-id="<user-uuid>" --batch-id="<batch-u
 
 Use an `ADMIN` user id for these commands.
 
-## 14. Tests And Validation
+## 16. Tests And Validation
 
 Fast suite:
 
@@ -294,13 +412,16 @@ Schema validation:
 npm run db:validate
 ```
 
-## 15. Important Scripts
+## 16. Important Scripts
 
 | Script | Purpose |
 |---|---|
 | `npm run dev` | Run the API with nodemon |
 | `npm start` | Run the API in production mode |
 | `npm run worker:review-crawl` | Run the BullMQ worker and scheduler |
+| `npm run stack:review-crawl:start` | Start a managed local Redis + API + worker stack |
+| `npm run stack:review-crawl:status` | Inspect the managed local review-crawl stack |
+| `npm run stack:review-crawl:stop` | Stop the managed local review-crawl stack |
 | `npm run smoke:review-crawl-queue -- --url "<google-maps-url>"` | Run the queued crawl smoke harness |
 | `npm run smoke:review-ops-sync-draft -- --url "<google-maps-url>"` | Run the operator-triggered sync-to-draft smoke harness |
 | `npm run smoke:recovery-drill` | Run the local logical backup and restore drill on the shared demo dataset |
@@ -318,7 +439,7 @@ npm run db:validate
 | `npm run db:validate` | Validate Prisma schema |
 | `npm run db:studio` | Open Prisma Studio |
 
-## 15. Notes
+## 17. Notes
 
 - `npm run db:seed` is idempotent within the Sentify demo dataset scope; it does not reset the whole database.
 - `npm run db:reset:local-baseline` is the reproducible local-only reset command for development and browser testing.

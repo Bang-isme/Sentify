@@ -167,7 +167,7 @@ export function MerchantHubShell({
 
           <div className="ml-4 hidden min-w-0 flex-1 items-center gap-2 lg:flex">
             <MerchantHubBadge state={currentFreshnessState}>{currentFreshness}</MerchantHubBadge>
-            <div className="truncate text-[13px] text-[#5f584e]">{subtitle}</div>
+            <div className="text-[13px] text-[#5f584e] [overflow-wrap:anywhere]">{subtitle}</div>
           </div>
 
           <div className="ml-auto flex items-center gap-3">
@@ -179,7 +179,7 @@ export function MerchantHubShell({
               <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8f877c]">
                 Nhà hàng hiện tại
               </span>
-              <span className="max-w-[16rem] truncate text-[13px] font-semibold text-[#1f1c18]">
+              <span className="text-[13px] font-semibold text-[#1f1c18] [overflow-wrap:anywhere]">
                 {currentRestaurantName}
               </span>
             </div>

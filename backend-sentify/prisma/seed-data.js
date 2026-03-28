@@ -48,6 +48,11 @@ const DEMO_RESTAURANTS = {
     },
 }
 
+const DEMO_RESTAURANT_PLAN_TIERS = {
+    phoHong: 'PREMIUM',
+    tacombi: 'FREE',
+}
+
 const PHO_HONG_PUBLISHED_ITEMS = [
     {
         sourceExternalId: 'demo-phohong-published-001',
@@ -210,6 +215,18 @@ function buildSeedLog(logger, message) {
     }
 }
 
+function sleep(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms)
+    })
+}
+
+function isRetryableSeedError(error) {
+    const message = error?.message || error?.stack || String(error)
+
+    return /deadlock detected/i.test(message)
+}
+
 async function buildPasswordHash() {
     return bcrypt.hash(DEMO_PASSWORD, 10)
 }
@@ -254,6 +271,8 @@ async function ensurePlatformControls(prisma, userId) {
             crawlQueueWritesEnabled: true,
             crawlMaterializationEnabled: true,
             intakePublishEnabled: true,
+            sourceSubmissionAutoBootstrapEnabled: true,
+            sourceSubmissionAutoBootstrapMaxPerTick: 20,
             note: 'Seeded local baseline defaults',
             updatedByUserId: userId,
         },
@@ -262,6 +281,8 @@ async function ensurePlatformControls(prisma, userId) {
             crawlQueueWritesEnabled: true,
             crawlMaterializationEnabled: true,
             intakePublishEnabled: true,
+            sourceSubmissionAutoBootstrapEnabled: true,
+            sourceSubmissionAutoBootstrapMaxPerTick: 20,
             note: 'Seeded local baseline defaults',
             updatedByUserId: userId,
         },
@@ -286,6 +307,27 @@ async function upsertDemoRestaurants(prisma) {
     }
 
     return restaurants
+}
+
+async function upsertDemoRestaurantEntitlements(prisma, restaurants) {
+    const entitlements = {}
+
+    for (const [key, restaurant] of Object.entries(restaurants)) {
+        entitlements[key] = await prisma.restaurantEntitlement.upsert({
+            where: {
+                restaurantId: restaurant.id,
+            },
+            update: {
+                planTier: DEMO_RESTAURANT_PLAN_TIERS[key] ?? 'FREE',
+            },
+            create: {
+                restaurantId: restaurant.id,
+                planTier: DEMO_RESTAURANT_PLAN_TIERS[key] ?? 'FREE',
+            },
+        })
+    }
+
+    return entitlements
 }
 
 async function resetRestaurantState(prisma, restaurantIds) {
@@ -492,7 +534,21 @@ function toIntakePayload(item) {
     }
 }
 
-async function seedReviewCrawlRuntime(prisma, { userId, restaurant, batch }) {
+async function seedReviewCrawlRuntime(
+    prisma,
+    { userId, restaurant, batch, syncIntervalMinutes = 1440 },
+) {
+    // Keep the demo crawl runtime idempotent so repeated seedDemoData calls in the same test
+    // process rebuild the same audit trail instead of colliding on the crawl source unique key.
+    await prisma.reviewCrawlSource.deleteMany({
+        where: {
+            restaurantId: restaurant.id,
+            provider: 'GOOGLE_MAPS',
+            canonicalCid: '4548797685071303380',
+        },
+    })
+
+    const lastSyncAt = new Date('2026-03-20T08:10:00.000Z')
     const source = await prisma.reviewCrawlSource.create({
         data: {
             restaurantId: restaurant.id,
@@ -507,11 +563,13 @@ async function seedReviewCrawlRuntime(prisma, { userId, restaurant, batch }) {
             language: 'en',
             region: 'us',
             syncEnabled: true,
-            syncIntervalMinutes: 1440,
+            syncIntervalMinutes,
             lastReportedTotal: 4743,
-            lastSyncedAt: new Date('2026-03-20T08:10:00.000Z'),
-            lastSuccessfulRunAt: new Date('2026-03-20T08:10:00.000Z'),
-            nextScheduledAt: new Date('2026-03-25T08:10:00.000Z'),
+            lastSyncedAt: lastSyncAt,
+            lastSuccessfulRunAt: lastSyncAt,
+            nextScheduledAt: new Date(
+                lastSyncAt.getTime() + syncIntervalMinutes * 60 * 1000,
+            ),
         },
     })
 
@@ -713,111 +771,128 @@ async function countRestaurantState(prisma, restaurantId) {
 async function seedDemoData(options = {}) {
     const prisma = options.prisma || require('../src/lib/prisma')
     const log = options.logger || null
+    const maxAttempts = options.maxAttempts ?? 3
 
-    buildSeedLog(log, 'Upserting demo users and restaurants...')
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+            buildSeedLog(log, 'Upserting demo users and restaurants...')
 
-    const users = await upsertDemoUsers(prisma)
-    const restaurants = await upsertDemoRestaurants(prisma)
-    await ensurePlatformControls(prisma, users.admin.id)
+            const users = await upsertDemoUsers(prisma)
+            const restaurants = await upsertDemoRestaurants(prisma)
+            await upsertDemoRestaurantEntitlements(prisma, restaurants)
+            await ensurePlatformControls(prisma, users.admin.id)
 
-    await resetRestaurantState(prisma, [restaurants.phoHong.id, restaurants.tacombi.id])
-    await createMemberships(prisma, users, restaurants)
+            await resetRestaurantState(prisma, [restaurants.phoHong.id, restaurants.tacombi.id])
+            await createMemberships(prisma, users, restaurants)
 
-    buildSeedLog(log, 'Creating published baseline batches...')
+            buildSeedLog(log, 'Creating published baseline batches...')
 
-    const phoHongPublished = await createPublishedBatch({
-        userId: users.admin.id,
-        restaurantId: restaurants.phoHong.id,
-        title: 'Google Maps baseline publish',
-        sourceType: 'GOOGLE_MAPS_CRAWL',
-        items: PHO_HONG_PUBLISHED_ITEMS,
-    })
+            const phoHongPublished = await createPublishedBatch({
+                userId: users.admin.id,
+                restaurantId: restaurants.phoHong.id,
+                title: 'Google Maps baseline publish',
+                sourceType: 'GOOGLE_MAPS_CRAWL',
+                items: PHO_HONG_PUBLISHED_ITEMS,
+            })
 
-    const tacombiPublished = await createPublishedBatch({
-        userId: users.admin.id,
-        restaurantId: restaurants.tacombi.id,
-        title: 'Manual quality baseline',
-        sourceType: 'MANUAL',
-        items: TACOMBI_PUBLISHED_ITEMS,
-    })
+            const tacombiPublished = await createPublishedBatch({
+                userId: users.admin.id,
+                restaurantId: restaurants.tacombi.id,
+                title: 'Manual quality baseline',
+                sourceType: 'MANUAL',
+                items: TACOMBI_PUBLISHED_ITEMS,
+            })
 
-    buildSeedLog(log, 'Creating open Google Maps curation batch...')
+            buildSeedLog(log, 'Creating open Google Maps curation batch...')
 
-    const draftBatch = await createOpenBatch({
-        userId: users.admin.id,
-        restaurantId: restaurants.phoHong.id,
-        title: 'Google Maps draft triage',
-        items: PHO_HONG_DRAFT_ITEMS,
-    })
+            const draftBatch = await createOpenBatch({
+                userId: users.admin.id,
+                restaurantId: restaurants.phoHong.id,
+                title: 'Google Maps draft triage',
+                items: PHO_HONG_DRAFT_ITEMS,
+            })
 
-    buildSeedLog(log, 'Creating review crawl source, run, and raw review audit trail...')
+            buildSeedLog(log, 'Creating review crawl source, run, and raw review audit trail...')
 
-    const crawlRuntime = await seedReviewCrawlRuntime(prisma, {
-        userId: users.admin.id,
-        restaurant: restaurants.phoHong,
-        batch: draftBatch,
-    })
+            const crawlRuntime = await seedReviewCrawlRuntime(prisma, {
+                userId: users.admin.id,
+                restaurant: restaurants.phoHong,
+                batch: draftBatch,
+                syncIntervalMinutes: 360,
+            })
 
-    const summary = {
-        credentials: {
-            password: DEMO_PASSWORD,
-            userPrimary: {
-                email: DEMO_USERS.userPrimary.email,
-                role: DEMO_USERS.userPrimary.role,
-            },
-            internalAdmin: {
-                email: DEMO_USERS.admin.email,
-                role: DEMO_USERS.admin.role,
-            },
-        },
-        users: {
-            userPrimary: {
-                id: users.userPrimary.id,
-                email: users.userPrimary.email,
-                role: users.userPrimary.role,
-            },
-            userSecondary: {
-                id: users.userSecondary.id,
-                email: users.userSecondary.email,
-                role: users.userSecondary.role,
-            },
-            userTacombi: {
-                id: users.userTacombi.id,
-                email: users.userTacombi.email,
-                role: users.userTacombi.role,
-            },
-            outsider: {
-                id: users.outsider.id,
-                email: users.outsider.email,
-                role: users.outsider.role,
-            },
-            admin: {
-                id: users.admin.id,
-                email: users.admin.email,
-                role: users.admin.role,
-            },
-        },
-        restaurants: {
-            phoHong: {
-                id: restaurants.phoHong.id,
-                slug: restaurants.phoHong.slug,
-                state: await countRestaurantState(prisma, restaurants.phoHong.id),
-                latestPublishedBatchId: phoHongPublished.batch.id,
-                draftBatchId: draftBatch.id,
-                crawlSourceId: crawlRuntime.source.id,
-                crawlRunId: crawlRuntime.run.id,
-            },
-            tacombi: {
-                id: restaurants.tacombi.id,
-                slug: restaurants.tacombi.slug,
-                state: await countRestaurantState(prisma, restaurants.tacombi.id),
-                latestPublishedBatchId: tacombiPublished.batch.id,
-            },
-        },
+            const summary = {
+                credentials: {
+                    password: DEMO_PASSWORD,
+                    userPrimary: {
+                        email: DEMO_USERS.userPrimary.email,
+                        role: DEMO_USERS.userPrimary.role,
+                    },
+                    internalAdmin: {
+                        email: DEMO_USERS.admin.email,
+                        role: DEMO_USERS.admin.role,
+                    },
+                },
+                users: {
+                    userPrimary: {
+                        id: users.userPrimary.id,
+                        email: users.userPrimary.email,
+                        role: users.userPrimary.role,
+                    },
+                    userSecondary: {
+                        id: users.userSecondary.id,
+                        email: users.userSecondary.email,
+                        role: users.userSecondary.role,
+                    },
+                    userTacombi: {
+                        id: users.userTacombi.id,
+                        email: users.userTacombi.email,
+                        role: users.userTacombi.role,
+                    },
+                    outsider: {
+                        id: users.outsider.id,
+                        email: users.outsider.email,
+                        role: users.outsider.role,
+                    },
+                    admin: {
+                        id: users.admin.id,
+                        email: users.admin.email,
+                        role: users.admin.role,
+                    },
+                },
+                restaurants: {
+                    phoHong: {
+                        id: restaurants.phoHong.id,
+                        slug: restaurants.phoHong.slug,
+                        state: await countRestaurantState(prisma, restaurants.phoHong.id),
+                        latestPublishedBatchId: phoHongPublished.batch.id,
+                        draftBatchId: draftBatch.id,
+                        crawlSourceId: crawlRuntime.source.id,
+                        crawlRunId: crawlRuntime.run.id,
+                    },
+                    tacombi: {
+                        id: restaurants.tacombi.id,
+                        slug: restaurants.tacombi.slug,
+                        state: await countRestaurantState(prisma, restaurants.tacombi.id),
+                        latestPublishedBatchId: tacombiPublished.batch.id,
+                    },
+                },
+            }
+
+            buildSeedLog(log, 'Demo dataset is ready.')
+            return summary
+        } catch (error) {
+            if (!isRetryableSeedError(error) || attempt === maxAttempts) {
+                throw error
+            }
+
+            buildSeedLog(
+                log,
+                `Seed retry ${attempt}/${maxAttempts - 1} after retryable error: ${error.message}`,
+            )
+            await sleep(150 * attempt)
+        }
     }
-
-    buildSeedLog(log, 'Demo dataset is ready.')
-    return summary
 }
 
 module.exports = {

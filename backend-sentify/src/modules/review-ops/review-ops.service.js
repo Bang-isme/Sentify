@@ -1,5 +1,6 @@
 const { notFound } = require('../../lib/app-error')
 const { ensureRestaurantExists } = require('../../services/restaurant-access.service')
+const { appendAuditEvent } = require('../../services/audit-event.service')
 const { INTERNAL_OPERATOR_ROLES } = require('../../lib/user-roles')
 const { getUserRoleAccess } = require('../../services/user-access.service')
 const adminIntakeDomain = require('../admin-intake/admin-intake.domain')
@@ -10,6 +11,7 @@ const {
     getRedisConnection,
     getReviewCrawlJob,
     getReviewCrawlQueueHealth,
+    isInlineQueueMode,
 } = require('../review-crawl/review-crawl.queue')
 const reviewCrawlRepository = require('../review-crawl/review-crawl.repository')
 const { readReviewCrawlWorkerHealth } = require('../review-crawl/review-crawl.runtime')
@@ -79,6 +81,35 @@ function determineDefaultStrategy(source, input) {
     }
 
     return source.lastSuccessfulRunAt ? 'INCREMENTAL' : 'BACKFILL'
+}
+
+async function appendSourceLifecycleAuditEvent({
+    action,
+    actorUserId,
+    source,
+    previousStatus,
+    nextStatus,
+}) {
+    const sourceLabel = source.placeName || source.canonicalCid || source.id
+
+    await appendAuditEvent({
+        action,
+        resourceType: 'crawlSource',
+        resourceId: source.id,
+        restaurantId: source.restaurantId,
+        actorUserId,
+        summary:
+            action === 'CRAWL_SOURCE_DISABLED'
+                ? `Crawl source ${sourceLabel} was disabled.`
+                : `Crawl source ${sourceLabel} was enabled.`,
+        metadata: {
+            provider: source.provider,
+            canonicalCid: source.canonicalCid,
+            previousStatus,
+            nextStatus,
+            syncEnabled: source.syncEnabled,
+        },
+    })
 }
 
 async function syncGoogleMapsToDraft({ userId, input }) {
@@ -207,6 +238,7 @@ async function getRunDetail({ userId, runId }) {
 
     const queueJob = await getReviewCrawlJob(runId)
     const queueState = queueJob ? await queueJob.getState() : null
+    const inlineQueueMode = isInlineQueueMode()
 
     return {
         run: {
@@ -224,7 +256,17 @@ async function getRunDetail({ userId, runId }) {
                   processedOn: queueJob.processedOn ?? null,
                   finishedOn: queueJob.finishedOn ?? null,
               }
-            : null,
+            : inlineQueueMode
+              ? {
+                    id: `inline:${runId}`,
+                    name: 'inline-process-run',
+                    state: run.status === 'QUEUED' ? 'queued-inline' : 'processed-inline',
+                    attemptsMade: 0,
+                    timestamp: Date.now(),
+                    processedOn: null,
+                    finishedOn: null,
+                }
+              : null,
     }
 }
 
@@ -233,6 +275,14 @@ async function disableSource({ userId, sourceId }) {
     const updated = await reviewCrawlRepository.updateSource(source.id, {
         status: 'DISABLED',
         nextScheduledAt: null,
+    })
+
+    await appendSourceLifecycleAuditEvent({
+        action: 'CRAWL_SOURCE_DISABLED',
+        actorUserId: userId,
+        source: updated,
+        previousStatus: source.status,
+        nextStatus: updated.status,
     })
 
     return {
@@ -249,6 +299,14 @@ async function enableSource({ userId, sourceId }) {
     const updated = await reviewCrawlRepository.updateSource(source.id, {
         status: 'ACTIVE',
         nextScheduledAt,
+    })
+
+    await appendSourceLifecycleAuditEvent({
+        action: 'CRAWL_SOURCE_ENABLED',
+        actorUserId: userId,
+        source: updated,
+        previousStatus: source.status,
+        nextStatus: updated.status,
     })
 
     return {

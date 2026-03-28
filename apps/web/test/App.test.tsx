@@ -552,9 +552,37 @@ beforeEach(() => {
           requiredArtifactKeys: ['queue-smoke', 'ops-sync-draft', 'recovery-drill'],
           availableArtifactKeys: ['queue-smoke', 'ops-sync-draft', 'recovery-drill'],
           missingArtifactKeys: [],
+          freshArtifactKeys: ['queue-smoke', 'ops-sync-draft', 'recovery-drill'],
+          staleArtifactKeys: [],
         },
-        managedEnvProofStatus: 'PENDING',
+        compatibilityProofStatus: 'COMPATIBILITY_PROOF_COMPLETE',
+        compatibilityProofFreshnessStatus: 'FRESH',
+        managedEnvProofStatus: 'MANAGED_SIGNOFF_PENDING',
         managedEnvGap: 'Managed staging and production recovery proof has not been recorded yet.',
+        managedProofTargets: {
+          managedRedis: {
+            configured: true,
+            scope: 'LOCAL',
+            hostname: '127.0.0.1',
+          },
+          stagingApi: {
+            configured: false,
+            scope: 'UNCONFIGURED',
+            hostname: null,
+          },
+          managedDbProofArtifact: {
+            provided: false,
+            exists: false,
+            path: null,
+            fileName: null,
+          },
+        },
+        managedSignoffPreflightStatus: 'MANAGED_SIGNOFF_PENDING',
+        managedSignoffPreflightFreshnessStatus: 'FRESH',
+        managedSignoffPreflightBlockers: [
+          'Managed Redis target is local',
+          'Staging API target is local',
+        ],
       },
     },
   })
@@ -703,8 +731,8 @@ describe('Sentify app shell', () => {
     await waitFor(() => {
       expect(window.location.hash).toBe('#/login')
     })
-    expect(screen.getByTestId('auth-shell')).toBeInTheDocument()
-    expect(screen.getByTestId('auth-submit')).toBeInTheDocument()
+    expect(await screen.findByTestId('auth-shell')).toBeInTheDocument()
+    expect(await screen.findByTestId('auth-submit')).toBeInTheDocument()
   })
 
   it('renders the user shell without admin nav or copy', async () => {

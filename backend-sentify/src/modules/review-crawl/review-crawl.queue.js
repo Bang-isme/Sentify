@@ -104,6 +104,7 @@ async function getReviewCrawlQueueHealth() {
         return {
             configured: false,
             counts: null,
+            inlineMode: isInlineQueueMode(),
         }
     }
 
@@ -119,6 +120,7 @@ async function getReviewCrawlQueueHealth() {
     return {
         configured: true,
         counts,
+        inlineMode: false,
     }
 }
 

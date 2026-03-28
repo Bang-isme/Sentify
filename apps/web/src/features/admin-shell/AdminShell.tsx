@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { StatusMessage } from '../../components/product/workspace/shared'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { AdminStatusMessage } from './components/AdminPrimitives'
 import type { ProductUiCopy } from '../../content/productUiCopy'
-import { getRoleDescriptor } from '../access/restaurantAccess'
 import { getAdminOpsLabels } from '../admin-ops/adminOpsLabels'
 import { getAdminNavigation, getRouteMeta } from '../app-shell/navigation'
 import {
@@ -11,19 +10,7 @@ import {
   type AppRoute,
 } from '../app-shell/routes'
 import { ShellLayout } from '../app-shell/ShellLayout'
-import { AdminMembershipsPanel } from '../admin-access/components/AdminMembershipsPanel'
-import { AdminUsersPanel } from '../admin-access/components/AdminUsersPanel'
-import { AdminIntakePanel } from '../admin-intake/components/AdminIntakePanel'
-import { AdminAuditPanel } from '../admin-platform/components/AdminAuditPanel'
-import { AdminHealthJobsPanel } from '../admin-platform/components/AdminHealthJobsPanel'
-import { AdminIntegrationsPoliciesPanel } from '../admin-platform/components/AdminIntegrationsPoliciesPanel'
-import { AdminRestaurantsOverview } from './AdminRestaurantsOverview'
-import {
-  type AdminHubViewKey,
-  AdminHubHomeScreen,
-} from '../admin-hub'
-import { ReviewCrawlPanel } from '../review-crawl/components/ReviewCrawlPanel'
-import { ReviewOpsPanel } from '../review-ops/components/ReviewOpsPanel'
+import type { AdminHubViewKey } from '../admin-hub'
 import { RestaurantSwitcher } from '../workspace/components/RestaurantSwitcher'
 import {
   getAdminRestaurantDetail,
@@ -32,6 +19,55 @@ import {
   type AdminRestaurantSummary,
   type RestaurantDetail,
 } from '../../lib/api'
+
+const AdminMembershipsPanel = lazy(() =>
+  import('../admin-access/components/AdminMembershipsPanel').then((module) => ({
+    default: module.AdminMembershipsPanel,
+  })),
+)
+const AdminUsersPanel = lazy(() =>
+  import('../admin-access/components/AdminUsersPanel').then((module) => ({
+    default: module.AdminUsersPanel,
+  })),
+)
+const AdminIntakePanel = lazy(() =>
+  import('../admin-intake/components/AdminIntakePanel').then((module) => ({
+    default: module.AdminIntakePanel,
+  })),
+)
+const AdminAuditPanel = lazy(() =>
+  import('../admin-platform/components/AdminAuditPanel').then((module) => ({
+    default: module.AdminAuditPanel,
+  })),
+)
+const AdminHealthJobsPanel = lazy(() =>
+  import('../admin-platform/components/AdminHealthJobsPanel').then((module) => ({
+    default: module.AdminHealthJobsPanel,
+  })),
+)
+const AdminIntegrationsPoliciesPanel = lazy(() =>
+  import('../admin-platform/components/AdminIntegrationsPoliciesPanel').then((module) => ({
+    default: module.AdminIntegrationsPoliciesPanel,
+  })),
+)
+const AdminRestaurantsOverview = lazy(() =>
+  import('./AdminRestaurantsOverview').then((module) => ({ default: module.AdminRestaurantsOverview })),
+)
+const AdminHubHomeScreen = lazy(() =>
+  import('../admin-hub/screens/AdminHubHomeScreen').then((module) => ({
+    default: module.AdminHubHomeScreen,
+  })),
+)
+const ReviewCrawlPanel = lazy(() =>
+  import('../review-crawl/components/ReviewCrawlPanel').then((module) => ({
+    default: module.ReviewCrawlPanel,
+  })),
+)
+const ReviewOpsPanel = lazy(() =>
+  import('../review-ops/components/ReviewOpsPanel').then((module) => ({
+    default: module.ReviewOpsPanel,
+  })),
+)
 
 interface AdminShellProps {
   route: AdminRoute
@@ -130,7 +166,6 @@ export function AdminShell({
 }: AdminShellProps) {
   const isVietnamese = language.startsWith('vi')
   const labels = getAdminOpsLabels(language)
-  const roleDescriptor = getRoleDescriptor('ADMIN', language)
   const [restaurants, setRestaurants] = useState<AdminRestaurantSummary[]>([])
   const [overviewLoading, setOverviewLoading] = useState(true)
   const [overviewError, setOverviewError] = useState<string | null>(null)
@@ -255,6 +290,9 @@ export function AdminShell({
   const activeSourceCount = detail?.adminFlow.sourceStats.activeCount ?? currentRestaurant?.activeSourceCount ?? 0
   const approvedItemCount = detail?.userFlow.datasetStatus.approvedItemCount ?? 0
   const restaurantDetail = mapAdminDetailToRestaurantDetail(detail)
+  const routePanelFallback = (
+    <AdminStatusMessage>{isVietnamese ? 'Đang tải màn quản trị...' : 'Loading admin screen...'}</AdminStatusMessage>
+  )
 
   const badges = route === '/admin'
     ? [
@@ -315,45 +353,45 @@ export function AdminShell({
           ]
 
   const contextSlot = route === '/admin' ? (
-    <div className="grid gap-3 border border-white/8 bg-white/[0.04] p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+    <div className="grid gap-3">
+      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
         {isVietnamese ? 'Bức tranh điều hành' : 'Control-plane map'}
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="border border-white/8 bg-white/[0.03] p-3">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#18181b]">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             {isVietnamese ? 'Vận hành' : 'Operations'}
           </div>
-          <div className="mt-2 text-[14px] font-semibold text-white">
+          <div className="mt-2 text-[15px] font-bold text-slate-900 dark:text-white">
             {isVietnamese ? 'Xử lý nhà hàng và dữ liệu' : 'Live now'}
           </div>
-          <div className="mt-1 text-[12px] leading-5 text-slate-400">
+          <div className="mt-1 text-[13px] leading-relaxed text-slate-500">
             {isVietnamese
               ? 'Đi từ danh sách nhà hàng sang nhập liệu, đồng bộ đánh giá và thu thập đánh giá theo từng nhà hàng.'
               : 'Restaurants, intake, review ops, and crawl already map to backend endpoints.'}
           </div>
         </div>
-        <div className="border border-white/8 bg-white/[0.03] p-3">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#18181b]">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             {isVietnamese ? 'Quyền truy cập' : 'Access'}
           </div>
-          <div className="mt-2 text-[14px] font-semibold text-white">
+          <div className="mt-2 text-[15px] font-bold text-slate-900 dark:text-white">
             {isVietnamese ? 'Người dùng và phạm vi nhìn thấy' : 'Users and memberships'}
           </div>
-          <div className="mt-1 text-[12px] leading-5 text-slate-400">
+          <div className="mt-1 text-[13px] leading-relaxed text-slate-500">
             {isVietnamese
               ? 'Quản trị tài khoản, vai trò hệ thống và quyền nhìn thấy nhà hàng trong cùng một nơi.'
               : 'Identity and restaurant visibility now live in the same admin product.'}
           </div>
         </div>
-        <div className="border border-white/8 bg-white/[0.03] p-3 sm:col-span-2">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#18181b] sm:col-span-2">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             {isVietnamese ? 'Nền tảng' : 'Platform'}
           </div>
-          <div className="mt-2 text-[14px] font-semibold text-white">
+          <div className="mt-2 text-[15px] font-bold text-slate-900 dark:text-white">
             {isVietnamese ? 'Sức khỏe hệ thống, chính sách và nhật ký' : 'Health, policy, and audit'}
           </div>
-          <div className="mt-1 text-[12px] leading-5 text-slate-400">
+          <div className="mt-1 text-[13px] leading-relaxed text-slate-500">
             {isVietnamese
               ? 'Theo dõi trạng thái queue, chính sách tích hợp và lịch sử tác động để hiểu hệ thống đang vận hành ra sao.'
               : 'Queue state, integration defaults, and audit history explain how the backend actually behaves behind the UI.'}
@@ -362,39 +400,43 @@ export function AdminShell({
       </div>
     </div>
   ) : isOperationsRoute ? (
-    <div className="grid gap-3 border border-white/8 bg-white/[0.04] p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+    <div className="grid gap-4">
+      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
         {isVietnamese ? 'Bối cảnh nhà hàng' : 'Operation context'}
       </div>
-      <div className="text-[18px] font-semibold text-white">
+      <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white [overflow-wrap:anywhere]">
         {currentRestaurant?.name ?? (isVietnamese ? 'Chưa chọn nhà hàng' : 'No restaurant selected')}
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <div className="border border-white/8 bg-white/[0.03] p-3">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             {isVietnamese ? 'Chính sách nguồn' : 'Source policy'}
           </div>
-          <div className="mt-2 text-[13px] font-semibold text-white">
+          <div className="mt-2 text-lg font-bold text-slate-900 dark:text-white [overflow-wrap:anywhere]">
             {detail?.userFlow.datasetStatus.sourcePolicy ?? 'UNCONFIGURED'}
           </div>
         </div>
-        <div className="border border-white/8 bg-white/[0.03] p-3">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             {isVietnamese ? 'Sẵn sàng công bố' : 'Ready to publish'}
           </div>
-          <div className="mt-2 text-[13px] font-semibold text-white">{formatCount(readyBatchCount, language)}</div>
+          <div className="mt-2 text-lg font-bold text-slate-900 dark:text-white [overflow-wrap:anywhere]">
+            {formatCount(readyBatchCount, language)}
+          </div>
         </div>
-        <div className="border border-white/8 bg-white/[0.03] p-3">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             {isVietnamese ? 'Mục đã duyệt' : 'Approved items'}
           </div>
-          <div className="mt-2 text-[13px] font-semibold text-white">{formatCount(approvedItemCount, language)}</div>
+          <div className="mt-2 text-lg font-bold text-slate-900 dark:text-white [overflow-wrap:anywhere]">
+            {formatCount(approvedItemCount, language)}
+          </div>
         </div>
       </div>
     </div>
   ) : (
-    <div className="grid gap-3 border border-white/8 bg-white/[0.04] p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+    <div className="grid gap-3">
+      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
         {isAdminAccessRoute(route)
           ? isVietnamese
             ? 'Phạm vi quyền truy cập'
@@ -403,7 +445,7 @@ export function AdminShell({
             ? 'Phạm vi nền tảng'
             : 'Platform scope'}
       </div>
-      <div className="text-[18px] font-semibold text-white">
+      <div className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
         {isAdminAccessRoute(route)
           ? isVietnamese
             ? 'Quản trị tài khoản và thành viên nhà hàng'
@@ -412,7 +454,7 @@ export function AdminShell({
             ? 'Theo dõi hệ thống, chính sách và nhật ký'
             : 'System health, policy, and audit'}
       </div>
-      <div className="text-[12px] leading-6 text-slate-400">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13px] leading-relaxed text-slate-500 shadow-sm dark:border-white/10 dark:bg-[#18181b] dark:text-zinc-400">
         {isAdminAccessRoute(route)
           ? isVietnamese
             ? 'Các màn này dùng API quản trị riêng để quản lý tài khoản và phạm vi nhà hàng mà không trộn vào trải nghiệm của USER.'
@@ -425,7 +467,7 @@ export function AdminShell({
   )
 
   const sidebarFooter = isOperationsRoute ? (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {currentRestaurant ? (
         <RestaurantSwitcher
           copy={copy}
@@ -448,43 +490,56 @@ export function AdminShell({
           compact
         />
       ) : (
-        <div className="border border-white/8 bg-white/[0.03] px-3 py-3 text-sm text-slate-400">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-zinc-500">
           {isVietnamese ? 'Chưa chọn nhà hàng.' : 'No restaurant selected.'}
         </div>
       )}
-      <div className="grid gap-2">
-        <div className="border border-white/8 bg-white/[0.03] px-3 py-2 text-[12px] font-medium text-slate-300">
-          {activeSourceCount > 0
-            ? isVietnamese
-              ? 'Nguồn đã sẵn sàng'
-              : 'Source configured'
-            : isVietnamese
-              ? 'Thiếu nguồn'
-              : 'Source missing'}
+      <div className="flex flex-col gap-2.5 opacity-100 lg:opacity-0 lg:group-hover/sidebar:opacity-100 transition-opacity duration-300 px-1 py-1">
+        <div className="flex items-center gap-2.5 text-[12px] font-medium text-slate-500 dark:text-zinc-400">
+           <span className="relative flex size-2 shrink-0">
+             {activeSourceCount > 0 ? (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                  <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
+                </>
+             ) : (
+                <span className="relative inline-flex rounded-full size-2 bg-rose-500"></span>
+             )}
+           </span>
+           <span className="truncate">
+             {activeSourceCount > 0
+               ? isVietnamese ? 'Nguồn đã kết nối' : 'Source connected'
+               : isVietnamese ? 'Thiếu nguồn' : 'Source missing'}
+           </span>
         </div>
-        <div className="border border-white/8 bg-white/[0.03] px-3 py-2 text-[12px] font-medium text-slate-300">
-          {isVietnamese
-            ? `${formatCount(currentRestaurant?.totalReviews, language)} đánh giá`
-            : `${formatCount(currentRestaurant?.totalReviews, language)} reviews`}
+        <div className="flex items-center gap-2 text-[12px] font-medium text-slate-500 dark:text-zinc-400">
+          <span className="material-symbols-outlined text-[14px] shrink-0">star</span>
+          <span className="truncate">
+            {isVietnamese
+              ? `${formatCount(currentRestaurant?.totalReviews, language)} đánh giá thu thập`
+              : `${formatCount(currentRestaurant?.totalReviews, language)} reviews collected`}
+          </span>
         </div>
       </div>
     </div>
   ) : (
-    <div className="space-y-2 text-[12px] leading-6 text-slate-400">
-      <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
-        {isAdminAccessRoute(route)
-          ? isVietnamese
-            ? 'Phạm vi toàn cục: quản lý tài khoản và quyền nhìn thấy nhà hàng từ cùng một khu điều hành.'
-            : 'Global scope: manage user identity and restaurant visibility from the same control plane.'
-          : isVietnamese
-            ? 'Phạm vi toàn cục: theo dõi hệ thống, chính sách và nhật ký mà không cần vào từng nhà hàng.'
-            : 'Global scope: monitor runtime, policies, and audit without entering restaurant-scoped operations.'}
+    <div className="group relative flex items-center justify-between overflow-hidden rounded-xl border border-rose-500/20 bg-rose-50/50 p-3 shadow-sm transition hover:border-rose-500/30 dark:border-rose-500/20 dark:bg-rose-500/5">
+      <div className="flex items-center gap-3">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-rose-100 dark:bg-rose-500/20">
+          <span className="material-symbols-outlined text-[16px] text-rose-600 dark:text-rose-400">shield_lock</span>
+        </div>
+        <div className="flex flex-col min-w-0 opacity-100 lg:opacity-0 lg:group-hover/sidebar:opacity-100 transition-opacity duration-300">
+          <span className="text-[13px] font-bold text-rose-700 dark:text-rose-400">
+            {isVietnamese ? 'Khu vực quản trị' : 'Admin Area'}
+          </span>
+          <span className="truncate text-[11px] text-rose-600/70 dark:text-rose-400/70">
+            {isVietnamese ? 'Cấp quyền cao nhất' : 'Highest clearance'}
+          </span>
+        </div>
       </div>
-      <div className="border border-white/8 bg-white/[0.03] px-3 py-2">
-        {isVietnamese
-          ? 'Ranh giới vai trò luôn chặt: chỉ ADMIN mới thấy các nhóm màn này.'
-          : 'Role boundary remains strict: only ADMIN can see these groups.'}
-      </div>
+      <span className="material-symbols-outlined shrink-0 text-[18px] text-rose-500/50 transition-transform group-hover:translate-x-0.5 dark:text-rose-400/50 opacity-100 lg:opacity-0 lg:group-hover/sidebar:opacity-100 duration-300">
+        chevron_right
+      </span>
     </div>
   )
 
@@ -493,7 +548,6 @@ export function AdminShell({
       mode="admin"
       route={route}
       language={language}
-      productLabel={roleDescriptor.label}
       sectionLabel={routeMeta.sectionLabel}
       title={routeMeta.title}
       description={routeMeta.description}
@@ -504,93 +558,96 @@ export function AdminShell({
       sidebarFooter={sidebarFooter}
       onNavigate={(nextRoute) => onNavigate(nextRoute)}
     >
-      {overviewError ? <StatusMessage tone="error">{overviewError}</StatusMessage> : null}
-      {detailError ? <StatusMessage tone="error">{detailError}</StatusMessage> : null}
-      {overviewLoading ? <StatusMessage>{copy.loadingRestaurant}</StatusMessage> : null}
-      {detailLoading && isOperationsRoute ? <StatusMessage>{copy.loadingRestaurant}</StatusMessage> : null}
+      {overviewError ? <AdminStatusMessage tone="error">{overviewError}</AdminStatusMessage> : null}
+      {detailError ? <AdminStatusMessage tone="error">{detailError}</AdminStatusMessage> : null}
+      {overviewLoading ? <AdminStatusMessage>{copy.loadingRestaurant}</AdminStatusMessage> : null}
+      {detailLoading && isOperationsRoute ? <AdminStatusMessage>{copy.loadingRestaurant}</AdminStatusMessage> : null}
 
       {!restaurants.length && !overviewLoading && isOperationsRoute ? (
-        <StatusMessage tone="error">
+        <AdminStatusMessage tone="error">
           {isVietnamese ? 'Chưa có dữ liệu nhà hàng để vận hành.' : 'No restaurant overview is available yet.'}
-        </StatusMessage>
+        </AdminStatusMessage>
       ) : null}
 
-      {route === '/admin' ? (
-        <AdminHubHomeScreen
-          activeView={currentAdminView}
-          onNavigate={(view) => onNavigate(getRouteFromAdminView(view))}
-        />
-      ) : route === '/admin/operations/restaurants' ? (
-        <AdminRestaurantsOverview
-          language={language}
-          copy={copy}
-          labels={labels}
-          restaurants={restaurants}
-          currentRestaurant={currentRestaurant}
-          detail={detail}
-          loading={overviewLoading || detailLoading}
-          error={overviewError ?? detailError}
-          onSelectRestaurant={onSelectRestaurant}
-          onNavigate={onNavigate}
-        />
-      ) : route === '/admin/operations/intake' ? (
-        <div data-testid="admin-intake">
-          <AdminIntakePanel
-            language={language}
-            restaurantId={currentRestaurantId}
-            detail={restaurantDetail}
-            onPublished={onDataChanged}
+      <Suspense fallback={routePanelFallback}>
+        {route === '/admin' ? (
+          <AdminHubHomeScreen
+            activeView={currentAdminView}
+            onNavigate={(view) => onNavigate(getRouteFromAdminView(view))}
           />
-        </div>
-      ) : route === '/admin/operations/review-ops' ? (
-        <div data-testid="admin-review-ops">
-          <ReviewOpsPanel
+        ) : route === '/admin/operations/restaurants' ? (
+          <AdminRestaurantsOverview
             language={language}
-            restaurantId={currentRestaurantId}
-            detail={restaurantDetail}
-            onPublished={onDataChanged}
+            copy={copy}
+            labels={labels}
+            restaurants={restaurants}
+            currentRestaurant={currentRestaurant}
+            detail={detail}
+            loading={overviewLoading || detailLoading}
+            error={overviewError ?? detailError}
+            onSelectRestaurant={onSelectRestaurant}
+            onNavigate={onNavigate}
           />
-        </div>
-      ) : route === '/admin/access/users' ? (
-        <AdminUsersPanel
-          language={language}
-          refreshKey={refreshKey}
-          onSessionExpiry={onSessionExpiry}
-        />
-      ) : route === '/admin/access/memberships' ? (
-        <AdminMembershipsPanel
-          language={language}
-          refreshKey={refreshKey}
-          onSessionExpiry={onSessionExpiry}
-        />
-      ) : route === '/admin/platform/health-jobs' ? (
-        <AdminHealthJobsPanel
-          language={language}
-          refreshKey={refreshKey}
-          onSessionExpiry={onSessionExpiry}
-        />
-      ) : route === '/admin/platform/integrations-policies' ? (
-        <AdminIntegrationsPoliciesPanel
-          language={language}
-          refreshKey={refreshKey}
-          onSessionExpiry={onSessionExpiry}
-        />
-      ) : route === '/admin/platform/audit' ? (
-        <AdminAuditPanel
-          language={language}
-          refreshKey={refreshKey}
-          onSessionExpiry={onSessionExpiry}
-        />
-      ) : (
-        <div data-testid="admin-crawl">
-          <ReviewCrawlPanel
+        ) : route === '/admin/operations/intake' ? (
+          <div data-testid="admin-intake">
+            <AdminIntakePanel
+              language={language}
+              restaurantId={currentRestaurantId}
+              detail={restaurantDetail}
+              onPublished={onDataChanged}
+            />
+          </div>
+        ) : route === '/admin/operations/review-ops' ? (
+          <div data-testid="admin-review-ops">
+            <ReviewOpsPanel
+              language={language}
+              restaurantId={currentRestaurantId}
+              detail={restaurantDetail}
+              onPublished={onDataChanged}
+            />
+          </div>
+        ) : route === '/admin/access/users' ? (
+          <AdminUsersPanel
             language={language}
-            restaurantId={currentRestaurantId}
-            detail={restaurantDetail}
-            onMaterialized={onDataChanged}
+            refreshKey={refreshKey}
+            onSessionExpiry={onSessionExpiry}
           />
-        </div>
-      )}
+        ) : route === '/admin/access/memberships' ? (
+          <AdminMembershipsPanel
+            language={language}
+            refreshKey={refreshKey}
+            onSessionExpiry={onSessionExpiry}
+          />
+        ) : route === '/admin/platform/health-jobs' ? (
+          <AdminHealthJobsPanel
+            language={language}
+            refreshKey={refreshKey}
+            onSessionExpiry={onSessionExpiry}
+          />
+        ) : route === '/admin/platform/integrations-policies' ? (
+          <AdminIntegrationsPoliciesPanel
+            language={language}
+            refreshKey={refreshKey}
+            onSessionExpiry={onSessionExpiry}
+            onControlsUpdated={onDataChanged}
+          />
+        ) : route === '/admin/platform/audit' ? (
+          <AdminAuditPanel
+            language={language}
+            refreshKey={refreshKey}
+            onSessionExpiry={onSessionExpiry}
+          />
+        ) : (
+          <div data-testid="admin-crawl">
+            <ReviewCrawlPanel
+              language={language}
+              restaurantId={currentRestaurantId}
+              detail={restaurantDetail}
+              onMaterialized={onDataChanged}
+            />
+          </div>
+        )}
+      </Suspense>
     </ShellLayout>
   )
 }

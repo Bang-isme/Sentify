@@ -45,6 +45,14 @@ function mockRestaurantLookup(onCall) {
     })
 }
 
+function mockAuditEvents(overrides = {}) {
+    withMock('../src/services/audit-event.service', {
+        appendAuditEvent: async () => null,
+        appendAuditEvents: async () => ({ count: 0 }),
+        ...overrides,
+    })
+}
+
 function restoreModules() {
     clearModule('../src/modules/review-ops/review-ops.service')
     clearModule('../src/modules/review-crawl/review-crawl.service')
@@ -54,9 +62,11 @@ function restoreModules() {
     clearModule('../src/modules/admin-intake/admin-intake.domain')
     clearModule('../src/modules/admin-intake/admin-intake.repository')
     clearModule('../src/modules/admin-intake/admin-intake.service')
+    clearModule('../src/services/audit-event.service')
     clearModule('../src/services/restaurant-access.service')
     clearModule('../src/services/user-access.service')
     clearModule('../src/services/sentiment-analyzer.service')
+    mockAuditEvents()
 }
 
 test('review ops sync-to-draft upserts a source and creates a DRAFT materializing run', async () => {
@@ -233,6 +243,72 @@ test('review ops lists sources with latest run, open draft batch, and runtime he
     )
     assert.equal(result.queueHealth.configured, true)
     assert.equal(result.workerHealth.processors.length, 1)
+
+    restoreModules()
+})
+
+test('review ops audits crawl source disable and enable actions', async () => {
+    restoreModules()
+
+    const auditEvents = []
+    let currentStatus = 'ACTIVE'
+
+    mockInternalOperatorAccess()
+    mockAuditEvents({
+        appendAuditEvent: async (event) => {
+            auditEvents.push(event)
+        },
+    })
+    withMock('../src/modules/review-crawl/review-crawl.repository', {
+        findSourceById: async () => ({
+            id: 'source-1',
+            restaurantId: 'restaurant-1',
+            provider: 'GOOGLE_MAPS',
+            canonicalCid: 'cid-1',
+            placeName: 'Quan Pho Hong',
+            syncEnabled: true,
+            syncIntervalMinutes: 1440,
+            status: currentStatus,
+        }),
+        updateSource: async (_sourceId, data) => {
+            currentStatus = data.status
+            return {
+                id: 'source-1',
+                restaurantId: 'restaurant-1',
+                provider: 'GOOGLE_MAPS',
+                canonicalCid: 'cid-1',
+                placeName: 'Quan Pho Hong',
+                syncEnabled: true,
+                syncIntervalMinutes: 1440,
+                status: currentStatus,
+                nextScheduledAt: data.nextScheduledAt ?? null,
+                inputUrl: 'https://maps.app.goo.gl/demo',
+                resolvedUrl: null,
+                createdAt: new Date('2026-03-24T00:00:00Z'),
+                updatedAt: new Date('2026-03-24T00:10:00Z'),
+            }
+        },
+    })
+
+    const service = require('../src/modules/review-ops/review-ops.service')
+
+    const disabled = await service.disableSource({
+        userId: 'user-1',
+        sourceId: 'source-1',
+    })
+    const enabled = await service.enableSource({
+        userId: 'user-1',
+        sourceId: 'source-1',
+    })
+
+    assert.equal(disabled.source.status, 'DISABLED')
+    assert.equal(enabled.source.status, 'ACTIVE')
+    assert.deepEqual(
+        auditEvents.map((event) => event.action),
+        ['CRAWL_SOURCE_DISABLED', 'CRAWL_SOURCE_ENABLED'],
+    )
+    assert.equal(auditEvents[0].metadata.previousStatus, 'ACTIVE')
+    assert.equal(auditEvents[1].metadata.previousStatus, 'DISABLED')
 
     restoreModules()
 })

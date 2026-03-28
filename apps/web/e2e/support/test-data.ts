@@ -1,6 +1,16 @@
+function normalizeUrl(value: string | undefined) {
+  return value?.trim().replace(/\/$/, '')
+}
+
+const webBaseUrl = process.env.PLAYWRIGHT_BASE_URL?.trim() || 'http://127.0.0.1:4173'
+const apiBaseUrl =
+  normalizeUrl(process.env.PLAYWRIGHT_API_BASE_URL) ||
+  normalizeUrl(process.env.VITE_API_BASE_URL) ||
+  'http://127.0.0.1:3100/api'
+
 export const LOCAL_URLS = {
-  webBaseUrl: 'http://localhost:5173',
-  apiBaseUrl: 'http://localhost:3000/api',
+  webBaseUrl,
+  apiBaseUrl,
 } as const
 
 export const HASH_ROUTES = {

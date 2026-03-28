@@ -1,6 +1,6 @@
 # Project Memory Short
 
-Updated: 2026-03-26 Asia/Bangkok
+Updated: 2026-03-28 Asia/Bangkok
 
 ## Current Runtime Contract
 
@@ -10,6 +10,29 @@ Updated: 2026-03-26 Asia/Bangkok
 - Post-login is split into two distinct products:
   - merchant app at `/app`
   - admin control plane at `/admin`
+- Merchant reads only published canonical data.
+- Admin owns intake, crawl, publish, access, and platform controls.
+- Publish is the single business boundary that makes evidence merchant-visible.
+- Current backend completion goal is locked:
+  - merchant Google Maps URL submission must be a first-class backend contract before freemium/premium queue lanes or 1M-scale submission policy work
+  - restaurant entitlement is now also locked to the smallest stable backend shape:
+    - persisted truth: `RestaurantEntitlement.planTier`
+    - public values: `FREE`, `PREMIUM`
+    - all merchant capability promises are derived from that plan tier in BE
+    - `RestaurantSourceSubmission.schedulingLane` stays internal operator/scheduler machinery, not the pricing model
+  - immediate next layers on that goal now exist:
+    - merchant source preview resolves canonical place identity and duplicate-place hints before save
+    - merchant source save persists a dedicated `RestaurantSourceSubmission` record even if Google Maps canonical resolution is temporarily unavailable
+    - admin can now resolve and consume pending source-submission queue items directly instead of bouncing across crawl and restaurant screens
+    - each persisted submission now carries a durable `dedupeKey` plus internal `schedulingLane` metadata so queue grouping and triage truth no longer has to be reconstructed on every admin read
+    - deduped admin queue groups are now claimable through lease metadata instead of being advisory triage only
+    - canonical-ready submissions can now be auto-bootstrapped by the review-crawl scheduler into crawl-source linking plus an initial queued run when no active operator lease is holding the deduped group
+    - persisted `RestaurantSourceSubmission.status` now distinguishes:
+      - `PENDING_IDENTITY_RESOLUTION`
+      - `READY_FOR_SOURCE_LINK`
+      - `LINKED_TO_SOURCE`
+    - restaurant list/detail and merchant actions now expose `entitlement` and entitlement-derived capability policy directly from BE
+    - admin now has `PATCH /api/admin/restaurants/:id/entitlement`
 
 ## Current Live Backend Surfaces
 
@@ -20,6 +43,7 @@ Updated: 2026-03-26 Asia/Bangkok
   - restaurant settings update
 - Admin `Operations`:
   - restaurants overview
+  - source-submission queue
   - intake
   - review ops
   - crawl runtime
@@ -37,6 +61,15 @@ Updated: 2026-03-26 Asia/Bangkok
   - audit feed
   - runtime controls for queue writes, materialization, and publish
   - release-readiness summary separating local proof from managed-env gap
+
+## Current Flow Source Of Truth
+
+- Read first:
+  - `D:\Project 3\backend-sentify\docs\BUSINESS-FLOW-MAP.md`
+- Then:
+  - `D:\Project 3\backend-sentify\docs\CURRENT-STATE.md`
+  - `D:\Project 3\backend-sentify\docs\API.md`
+  - `D:\Project 3\backend-sentify\prisma\schema.prisma`
 
 ## Current Frontend Route Tree
 
@@ -65,22 +98,370 @@ Updated: 2026-03-26 Asia/Bangkok
 
 - Reset:
   - `cd D:\Project 3\backend-sentify && npm run db:reset:local-baseline`
+- Managed real-queue stack:
+  - `cd D:\Project 3\backend-sentify && npm run stack:review-crawl:start`
+  - `cd D:\Project 3\backend-sentify && npm run stack:review-crawl:status`
+  - `cd D:\Project 3\backend-sentify && npm run stack:review-crawl:stop`
+- Expected local queue env:
+  - `REDIS_URL=redis://127.0.0.1:6379`
+  - `REVIEW_CRAWL_INLINE_QUEUE_MODE=false`
+  - `REVIEW_CRAWL_RUNTIME_MODE=processor`
 - Seeded credentials:
   - `USER`: `demo.user.primary@sentify.local` / `DemoPass123!`
   - `ADMIN`: `demo.admin@sentify.local` / `DemoPass123!`
 
 ## Latest Verification
 
-- Backend targeted integration:
-  - `cd D:\Project 3\backend-sentify && node --test test/admin-access.integration.test.js test/admin-platform.integration.test.js`
-- Frontend unit:
-  - `cd D:\Project 3\apps\web && npx vitest run test/App.test.tsx test/api.test.ts --reporter=verbose`
+- Release evidence now has four runnable layers:
+  - `cd D:\Project 3\backend-sentify && npm run proof:managed-redis`
+  - `cd D:\Project 3\backend-sentify && npm run proof:staging-api`
+  - `cd D:\Project 3\backend-sentify && npm run proof:performance`
+  - `cd D:\Project 3\backend-sentify && npm run proof:release-evidence`
+- Redis worker-pressure harness hardening:
+  - `scripts/load-review-crawl-workers.js` now forces a dedicated ephemeral queue name for each load proof
+  - Redis-mode worker proof now runs with `NODE_ENV=development` so review-crawl does not also trigger the inline test path through `scheduleInlineRunProcessing()`
+- Staging recovery drill hardening:
+  - `scripts/staging-recovery-drill.js` no longer depends on a 5-second Prisma interactive transaction for restore
+  - semantic restore digests now compare under stable ordering for batches, crawl sources, and audit rows
+- Latest release evidence verification on `2026-03-28`:
+  - `cd D:\Project 3\backend-sentify && node scripts/staging-api-proof.js --base-url http://127.0.0.1:3000 --user-email demo.user.primary@sentify.local --user-password DemoPass123! --admin-email demo.admin@sentify.local --admin-password DemoPass123! --output load-reports/staging-api-proof-local.json` -> `STAGING_PROOF_COMPLETE`
+  - `cd D:\Project 3\backend-sentify && node scripts/performance-proof.js --output load-reports/performance-proof-local.json --scale-url https://maps.app.goo.gl/yWeP9xmjowpkYVbU7` -> `PERFORMANCE_PROOF_COMPLETE`
+  - `cd D:\Project 3\backend-sentify && node scripts/staging-recovery-drill.js --source-mode existing --restaurant-slug demo-quan-pho-hong --output load-reports/staging-recovery-drill-managed.json` -> `restoredMatchesSource=true`
+- `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --managed-redis-url redis://127.0.0.1:6379 --staging-api-url http://127.0.0.1:3000 --staging-user-email demo.user.primary@sentify.local --staging-user-password DemoPass123! --staging-admin-email demo.admin@sentify.local --staging-admin-password DemoPass123! --include-performance-proof --performance-scale-url https://maps.app.goo.gl/yWeP9xmjowpkYVbU7` -> `COMPATIBILITY_PROOF_COMPLETE` with `managedEnvProofStatus=MANAGED_SIGNOFF_PENDING`
+- `cd D:\Project 3\backend-sentify && node --test test/release-evidence.test.js test/admin-platform.integration.test.js` -> `7/7 passed`
+- `release-evidence.js` now keeps local compatibility at `COMPATIBILITY_PROOF_COMPLETE` when only optional checks such as `managedDbProof` are `SKIPPED`
+- backend env templates are now split:
+  - `backend-sentify/.env.example` for normal backend runtime/local queue config
+  - `backend-sentify/.env.release-evidence.example` for managed Redis / staging API / release-evidence inputs
+- `cd D:\Project 3\backend-sentify && npm run env:check` now verifies the example files still match the runtime config contract
+- release-evidence proof scripts now auto-load `.env.release-evidence` after `.env`, so staging proof secrets can stay separate from local runtime config
+- local files now follow that split too:
+  - `backend-sentify/.env` stays runtime-only
+  - `backend-sentify/.env.release-evidence` exists and is ready to receive managed-signoff inputs
+- `managed-signoff-preflight.js` now returns `nextSteps` with `envKeys` and an explicit follow-up action for each missing blocker
+- Render is now the chosen fast staging path:
+  - blueprint at `backend-sentify/render.yaml`
+  - deploy doc at `backend-sentify/docs/RENDER-STAGING.md`
+  - deploy-safe Prisma command is `npm run db:migrate:deploy`
+- latest preflight after wiring the managed Redis URL now shows only 4 blockers:
+  - `RELEASE_EVIDENCE_STAGING_API_URL`
+  - merchant staging credentials
+  - admin staging credentials
+  - `RELEASE_EVIDENCE_MANAGED_DB_PROOF_ARTIFACT`
+- env parser now treats `JWT_SECRET_PREVIOUS=` as unset instead of failing startup; covered by `backend-sentify/test/env.test.js`
+  - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --managed-redis-url redis://127.0.0.1:6379 --staging-api-url http://127.0.0.1:3000 --staging-user-email demo.user.primary@sentify.local --staging-user-password DemoPass123! --staging-admin-email demo.admin@sentify.local --staging-admin-password DemoPass123! --include-performance-proof --performance-scale-url https://maps.app.goo.gl/yWeP9xmjowpkYVbU7 --require-managed-signoff` -> expected non-zero exit while targets remain local and no managed DB artifact exists
+  - `cd D:\Project 3\backend-sentify && node scripts/managed-db-proof-validate.js --artifact docs/examples/managed-db-proof-artifact.example.json --output load-reports/managed-db-proof-validation-example.json` -> `MANAGED_DB_PROOF_COMPLETE`
+  - `cd D:\Project 3\backend-sentify && node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.json` -> `MANAGED_SIGNOFF_PENDING` with blocker list on the local env
+  - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js ... --managed-db-proof-artifact docs/examples/managed-db-proof-artifact.example.json --require-managed-signoff` -> expected non-zero exit with `managedDbProof=PASSED` because Redis and staging API targets were still local
+  - this is a full local compatibility artifact, not yet a real cloud-managed sign-off
+- Freshest rerun evidence on `2026-03-28`:
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+  - `cd D:\Project 3\backend-sentify && node --test test/admin-platform.integration.test.js` -> `4/4 passed`
+  - `cd D:\Project 3\apps\web && npx playwright install chromium` -> installed missing browser runtime on this workstation
+  - `cd D:\Project 3\apps\web && npm run build` -> passed
+  - `cd D:\Project 3\apps\web && npm run test:run -- test/App.test.tsx test/api.test.ts` -> `10/10 passed`
+  - `cd D:\Project 3\apps\web && npx playwright test e2e --workers=1` -> `12/12 passed`
+  - `cd D:\Project 3\apps\web && npx playwright test e2e/admin-platform-controls.spec.ts --workers=1` -> `1/1 passed`
+  - `cd D:\Project 3\apps\web && npx playwright test e2e/admin-critical-path.spec.ts e2e/admin-platform-controls.spec.ts --workers=1` -> `2/2 passed`
+  - one intermediate `release-evidence.js` run failed with `ECONNREFUSED 127.0.0.1:3000` because no local API was listening there yet
+  - after `npm run stack:review-crawl:start` made `http://127.0.0.1:3000/health` healthy, rerunning the same `release-evidence.js` command returned `COMPATIBILITY_PROOF_COMPLETE`
+  - latest honesty gate:
+    - local green no longer masquerades as managed sign-off
+    - `admin-platform` now exposes `compatibilityProofStatus`, `managedEnvProofStatus`, and `managedProofTargets`
+    - managed DB proof is now a validated artifact contract, not just “a file path somebody typed in”
+    - managed sign-off also has a fast preflight command now, so missing env/cred/artifact blockers can be seen in seconds before running the heavy bundle
+    - `admin-platform` also exposes `managedSignoffPreflightStatus` and `managedSignoffPreflightBlockers`
+    - stale proof artifacts now downgrade readiness instead of silently counting as healthy:
+      - required local proof older than the freshness window -> `LOCAL_PROOF_STALE`
+      - stale heavy bundle -> `COMPATIBILITY_PROOF_STALE` + `MANAGED_SIGNOFF_STALE`
+      - stale preflight artifact -> `managedSignoffPreflightStatus=MANAGED_SIGNOFF_STALE`
+      - release readiness now returns `freshArtifactKeys`, `staleArtifactKeys`, `compatibilityProofFreshnessStatus`, and `managedSignoffPreflightFreshnessStatus`
+- Review-ops/query-path regression:
+  - root cause was frontend query helpers prebuilding `buildUrl(...)` and then passing the resulting `/api/...` pathname back into `request(...)`, which added the API prefix a second time and produced `/api/api/...`
+  - fixed by adding `buildPath(...)` in `apps/web/src/lib/api/client.ts` and switching query-style helpers in `review-ops.ts`, `admin-intake.ts`, and `merchant-dashboard.ts`
+  - added regression coverage in `apps/web/test/api.test.ts`
+- Review-ops sync URL UX:
+  - `apps/web/src/features/review-ops/components/ReviewOpsPanel.tsx` no longer overwrites an operator-typed Google Maps URL when restaurant detail finishes loading after the operator has started typing
+- Crawl operations URL UX:
+  - `apps/web/src/features/review-crawl/components/ReviewCrawlPanel.tsx` now stops rehydrating `previewUrl` and `sourceUrl` after the operator manually edits them for the current restaurant
+  - this prevents late restaurant detail hydration from replacing the URL the operator is actively testing from the crawl screen
+- Google Maps short-link ingress hardening:
+  - `backend-sentify/src/modules/review-crawl/google-maps.service.js` now uses retry + timeout handling for text fetches during source resolution so transient `fetch failed` errors from `maps.app.goo.gl` are less likely to break admin sync-to-draft
+  - added regression coverage in `backend-sentify/test/google-maps.service.test.js`
+- Managed stack lifecycle:
+  - `cd D:\Project 3\backend-sentify && npm run stack:review-crawl:start`
+  - `cd D:\Project 3\backend-sentify && npm run stack:review-crawl:stop`
+  - immediate `start` after `stop` now works without waiting for Redis heartbeat TTL
+- Browser E2E isolated runtime:
+  - `npx playwright test e2e --workers=1` now owns its own stack
+  - FE test server: `http://127.0.0.1:4173`
+  - backend API: `http://127.0.0.1:3100`
+  - queue: `review-crawl-playwright`
+  - stack namespace: `playwright-e2e`
+  - `PLAYWRIGHT_SKIP_DB_RESET=1` skips the baseline reset for faster iteration
+  - `PLAYWRIGHT_PRESERVE_BACKEND_STACK=1` keeps the isolated API/worker alive after the suite
+- Review-ops real queue smoke:
+  - `cd D:\Project 3\backend-sentify && node scripts/review-ops-sync-draft-smoke.js --url "https://maps.app.goo.gl/yWeP9xmjowpkYVbU7" --strategy incremental`
+- Backend real DB:
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb`
+- Merchant source-submission contract:
+  - backend now rejects non-Google Maps URLs on restaurant create/update
+  - restaurant create, update, and detail now return `sourceSubmission`
+  - restaurant create, update, and detail now also return `sourceSubmission.timeline`
+  - merchant source input is now persisted in `RestaurantSourceSubmission` as a 1:1 record per restaurant instead of living only on `Restaurant.googleMapUrl`
+  - create/update now:
+    - upsert that submission record on save
+    - keep the save successful when Google Maps canonical resolution temporarily fails
+    - delete the submission record when the merchant clears `googleMapUrl`
+    - persist a `dedupeKey` derived from canonical CID first, then normalized URL, then raw input URL
+    - default new or changed submissions into the internal `STANDARD` scheduling lane while preserving the prior lane when the merchant re-saves the same URL
+    - preserve active lease metadata when the merchant re-saves the same Google Maps URL
+    - clear lease metadata when the merchant changes the Google Maps URL to a different place or unresolved URL
+    - classify the persisted handoff state as:
+      - `PENDING_IDENTITY_RESOLUTION` when canonical place identity is not yet known
+      - `READY_FOR_SOURCE_LINK` when canonical place identity is known but no crawl source is linked yet
+      - `LINKED_TO_SOURCE` when the crawl source already exists for that submission
+  - merchant route `POST /api/restaurants/:id/source-submission/preview` now:
+    - resolves the submitted Google Maps URL
+    - returns canonical place identity
+    - reports duplicate-place hints for same-restaurant and other-restaurant matches
+    - emits recommendation codes:
+      - `ALREADY_CONNECTED`
+      - `REUSE_SHARED_IDENTITY`
+      - `SUBMIT_FOR_ADMIN_SYNC`
+  - `sourceSubmission.status` currently covers:
+    - `UNCONFIGURED`
+    - `SUBMITTED`
+    - `SOURCE_READY`
+    - `QUEUED`
+    - `CRAWLING`
+    - `REVIEWING`
+    - `READY_TO_PUBLISH`
+    - `LIVE`
+    - `NEEDS_ATTENTION`
+  - `sourceSubmission.timeline` is the merchant-facing progress contract for the current active Google Maps URL:
+    - fields:
+      - `currentStage`
+      - `currentStepCode`
+      - `isLive`
+      - `latestEventAt`
+      - `steps`
+      - `events`
+    - derived from:
+      - `RestaurantSourceSubmission`
+      - crawl source + latest run
+      - intake batch / publish state
+      - durable source-submission audit rows when available
+    - FE should render this contract directly instead of reconstructing progress heuristically from raw fields
+    - scope is intentionally the current active Google Maps URL only
+  - cross-attempt history now has its own endpoint:
+    - `GET /api/restaurants/:id/source-submission/history`
+    - returns:
+      - `current.attemptKey`
+      - `current.sourceSubmission`
+      - `history.attempts`
+      - `history.events`
+    - history is rebuilt from durable audit evidence, not from a separate submission-history table
+  - merchant source-submission audit rows now exist for:
+    - `MERCHANT_SOURCE_SUBMITTED`
+    - `MERCHANT_SOURCE_UPDATED`
+    - `MERCHANT_SOURCE_CLEARED`
+  - merchant/admin/scheduler source-submission audit writes now also carry `metadata.sourceSubmissionSnapshot`
+    - this keeps prior source attempts inspectable after URL replacement or clear
+  - latest verification on `2026-03-27`:
+    - `cd D:\Project 3\backend-sentify && npm run db:generate` -> passed
+    - `cd D:\Project 3\backend-sentify && npm run db:validate` -> passed
+    - `cd D:\Project 3\backend-sentify && node --test test/dashboard.service.test.js test/restaurant.service.test.js test/restaurants.integration.test.js test/admin-restaurants.integration.test.js test/review-crawl.service.test.js` -> `45/45 passed`
+    - `cd D:\Project 3\backend-sentify && node --test test/restaurant.service.test.js test/restaurants.integration.test.js` -> `21/21 passed`
+    - `cd D:\Project 3\backend-sentify && node --test test/admin-restaurants.integration.test.js test/review-crawl.service.test.js` -> `20/20 passed`
+    - `cd D:\Project 3\backend-sentify && $env:RUN_REAL_DB_TESTS='true'; node --test test/merchant-read.realdb.test.js` -> `9/9 passed`
+    - `cd D:\Project 3\backend-sentify && npm run db:reset:local-baseline` -> passed
+    - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+    - baseline-resetting real-DB commands should be run serially, not in parallel, because they intentionally own the same local Postgres baseline
+    - a false-looking schema failure was observed when direct `merchant-read.realdb.test.js` and `npm run test:realdb` overlapped; root cause was shared-DB reset contention, not a broken migration
+    - `test:realdb` now self-resets and reseeds the local baseline before each `.realdb.test.js` file, so full-suite results no longer depend on cross-file DB residue
+    - `prisma/seed-data.js` now retries on local Postgres deadlock during reseed, which removed the intermittent seed failure exposed by the per-file isolation harness
+  - admin now also has `GET /api/admin/restaurants/source-submissions`:
+    - groups pending merchant submissions by canonical place identity when available
+    - uses persisted `dedupeKey` for grouping instead of recomputing it during every queue read
+    - separates unresolved submissions from shared-identity reuse candidates
+    - only treats persisted submissions in `PENDING_IDENTITY_RESOLUTION` and `READY_FOR_SOURCE_LINK` as actionable queue input
+    - exposes a restaurant-level work item in admin restaurant detail so next action is explicit before crawl-source creation
+  - admin write actions now exist for that queue:
+    - `POST /api/admin/restaurants/source-submissions/:submissionId/resolve`
+    - `POST /api/admin/restaurants/source-submissions/:submissionId/create-source`
+    - `POST /api/admin/restaurants/source-submissions/:submissionId/scheduling-lane`
+    - `POST /api/admin/restaurants/source-submissions/claim-next`
+    - create-source uses persisted canonical identity instead of re-calling Google during source creation
+    - durable audit rows now include:
+      - `ADMIN_SOURCE_SUBMISSION_RESOLVED`
+      - `ADMIN_SOURCE_SUBMISSION_LINKED`
+      - `ADMIN_SOURCE_SUBMISSION_SCHEDULING_LANE_UPDATED`
+      - `ADMIN_SOURCE_SUBMISSION_GROUP_CLAIMED`
+    - admin can move a submission between `STANDARD` and `PRIORITY`; `PRIORITY` submissions surface as `HIGH` priority inside the queue read model
+    - admin can now claim the next deduped queue group; active leases are backed by `claimedByUserId`, `claimedAt`, and `claimExpiresAt`
+    - the review-crawl scheduler now reuses that same lease truth to auto-bootstrap `READY_FOR_SOURCE_LINK` submissions only when a group is unclaimed
+    - automatic bootstrap maps internal lane intent into runtime run priority:
+      - `PRIORITY -> HIGH`
+      - `STANDARD -> NORMAL`
+    - that scheduler bridge is now explicitly governed by `PlatformControl`, not only runtime code:
+      - `sourceSubmissionAutoBootstrapEnabled`
+      - `sourceSubmissionAutoBootstrapMaxPerTick`
+    - `sourceSubmissionAutoBootstrapMaxPerTick` is a backpressure guard for merchant ingress:
+      - it limits how many canonical-ready submissions can auto-bootstrap per scheduler tick
+      - it is capped again by `REVIEW_CRAWL_SCHEDULER_BATCH_SIZE`
+      - when disabled entirely, due-source scheduling still continues
+    - scheduler bootstrap audit rows now exist for:
+      - `SCHEDULER_SOURCE_SUBMISSION_BOOTSTRAPPED`
+      - `SCHEDULER_SOURCE_SUBMISSION_LINKED_WITH_QUEUE_ERROR`
+      - `SCHEDULER_SOURCE_SUBMISSION_BOOTSTRAP_FAILED`
 - Browser critical paths:
-  - `cd D:\Project 3\apps\web && npx playwright test e2e/user-critical-path.spec.ts e2e/admin-critical-path.spec.ts`
+  - `cd D:\Project 3\apps\web && npx playwright test e2e --workers=1`
+  - latest clean-baseline result on `2026-03-27`: `12 passed`
+  - latest concurrency-focused rerun on `2026-03-27`:
+    - keep preview alive: `cd D:\Project 3\apps\web && node .\scripts\playwright-preview.js --host 127.0.0.1 --port 4173 --strictPort`
+    - rerun dual-session suite: `cd D:\Project 3\apps\web && npx playwright test e2e/admin-user-concurrent-full-flow.spec.ts e2e/admin-user-parallel-live-flow.spec.ts --workers=1 --reporter=line`
+    - result: `2 passed`
+  - suite now covers:
+    - user critical path
+    - admin critical path
+    - access lifecycle
+    - membership scope
+    - platform publish control
+    - publication chain
+    - concurrent dual-session source operationalization
+    - review-ops approval guardrails
+    - concurrent dual-session live publish after manual intake
+    - manual intake full flow
+    - crawl operations full flow
+  - keep `--workers=1`: specs still share seeded restaurants, runtime controls, and the isolated crawl queue namespace
+  - on this Windows workstation, the preview-reuse path above is currently the most reliable way to rerun the two dual-session specs without stale `4173` ownership races
+  - latest direct rerun on `2026-03-27` also passed with no manual preview prestart:
+    - `cd D:\Project 3\apps\web && npx playwright test e2e/admin-user-concurrent-full-flow.spec.ts e2e/admin-user-parallel-live-flow.spec.ts --workers=1 --reporter=line`
+    - result: `2/2 passed`
+    - current truth: the self-managed Playwright harness was able to auto-start both the isolated backend stack and the managed frontend preview again on this workstation
+- Frontend unit/build:
+  - `cd D:\Project 3\apps\web && npm run test:run -- test/api.test.ts test/App.test.tsx`
+  - `cd D:\Project 3\apps\web && npm run build`
+- Backend audit/lineage and teardown hardening:
+  - `backend-sentify/prisma/schema.prisma` now includes:
+    - `AuditEvent`
+    - intake review/publish lineage fields:
+      - `ReviewIntakeBatch.publishedByUserId`
+      - `ReviewIntakeItem.lastReviewedAt`
+      - `ReviewIntakeItem.lastReviewedByUserId`
+    - `ReviewPublishEvent` as the durable publish-lineage bridge from canonical `Review` rows back to intake items and optional crawl raw evidence
+  - durable audit rows now exist for:
+    - batch creation
+    - item approve / reject / reset-to-pending transitions
+    - batch publish
+    - platform control updates
+    - membership assignment / removal with reasons:
+      - `USER_CREATED_WITH_RESTAURANT`
+      - `MANUAL_ASSIGNMENT`
+      - `MANUAL_REMOVAL`
+      - `ROLE_CHANGED_TO_ADMIN`
+    - crawl-source lifecycle mutations:
+      - `CRAWL_SOURCE_CREATED`
+      - `CRAWL_SOURCE_RECONFIGURED`
+      - `CRAWL_SOURCE_SYNC_ENABLED`
+      - `CRAWL_SOURCE_SYNC_DISABLED`
+      - `CRAWL_SOURCE_ENABLED`
+      - `CRAWL_SOURCE_DISABLED`
+  - `backend-sentify/src/modules/admin-platform/admin-platform.service.js` no longer synthesizes membership or crawl-source history in the audit feed; those domains now read durable rows going forward
+  - targeted verification:
+    - `cd D:\Project 3\backend-sentify && node --test test/admin-intake.service.test.js test/admin-intake.repository.test.js`
+    - `cd D:\Project 3\backend-sentify && node --test test/review-crawl.service.test.js test/review-ops.service.test.js`
+    - `cd D:\Project 3\backend-sentify && node --test test/admin-access.integration.test.js test/admin-platform.integration.test.js`
+    - `cd D:\Project 3\backend-sentify && npm run db:reset:local-baseline`
+    - `cd D:\Project 3\backend-sentify && npm run test:realdb`
+  - latest targeted backend result on `2026-03-27`:
+    - `15/15` for `node --test test/review-crawl.service.test.js test/admin-platform.integration.test.js`
+    - `2/2` for `node --test test/review-crawl.worker-runtime.test.js`
+    - `23/23` for `node --test test/admin-restaurants.integration.test.js test/restaurant.service.test.js test/restaurants.integration.test.js`
+    - all passed before `test:realdb`
+  - latest scheduler bootstrap proof on `2026-03-27`:
+    - `cd D:\Project 3\backend-sentify && node --test test/review-crawl.service.test.js` -> `13/13 passed`
+    - `cd D:\Project 3\backend-sentify && node --test test/admin-platform.integration.test.js` -> `2/2 passed`
+    - `cd D:\Project 3\backend-sentify && node --test test/review-crawl.worker-runtime.test.js` -> `2/2 passed`
+    - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+  - latest focused backend rerun on `2026-03-27`: `cd D:\Project 3\backend-sentify && node --test test/admin-access.integration.test.js` -> `4/4 passed`
+  - backend "treo" symptom on repeated targeted test runs was caused by leaked BullMQ/Redis handles after `admin-platform.integration`
+  - `backend-sentify/test/test-helpers.js` now closes review-crawl queue resources after app shutdown, and clean reruns no longer leave orphan `node --test` processes behind
+- Release-evidence tooling:
+  - `backend-sentify/scripts/managed-redis-proof.js` now runs an ephemeral BullMQ enqueue/process/complete probe against a supplied Redis URL
+  - `backend-sentify/scripts/staging-recovery-drill.js` now supports:
+    - `--source-mode existing`
+    - `--source-db-url`
+    - `--smoke-user-id`
+  - existing-source restore now carries:
+    - `PlatformControl`
+    - `AuditEvent`
+    - `ReviewPublishEvent`
+  - `backend-sentify/scripts/release-evidence.js` now bundles:
+    - managed Redis probe
+    - staging-compatible backup/restore/rollback rehearsal
+    - optional deployed staging API health probe
+  - `backend-sentify/src/modules/admin-platform/admin-platform.service.js` now reads `load-reports/managed-release-evidence.json` and maps it into `releaseReadiness.managedEnvProofStatus`
+  - latest local verification on `2026-03-27`:
+    - `cd D:\Project 3\backend-sentify && node scripts/managed-redis-proof.js --redis-url "redis://127.0.0.1:6379"`
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-recovery-drill.js --source-mode existing --restaurant-slug demo-quan-pho-hong --output load-reports/staging-recovery-drill-managed.json`
+    - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --managed-redis-url redis://127.0.0.1:6379`
+    - result:
+      - managed Redis probe passed
+      - existing-source restore/rollback passed
+      - bundled managed proof status is `MANAGED_PROOF_PARTIAL`
+      - remaining gap in that bundle is the skipped deployed staging API probe
 
 ## Immediate Next Priorities
 
-1. Deepen admin `Access` from read/control into fuller account lifecycle if product needs it.
-2. Deepen admin `Platform` from visibility into active system controls only when backend policy is ready.
-3. Keep FE aligned to backend truth; do not invent third roles or restaurant permission tiers.
-4. Do not describe platform health as release-ready without separate managed-environment proof.
+1. Run `proof:release-evidence` against a real managed Redis URL and a real staging API base URL.
+2. Prove provider-managed Postgres snapshot or PITR restore instead of only shadow-database logical restore.
+3. Decide whether the new audit-backed `source-submission/history` endpoint is sufficient long-term or should later become a dedicated historical projection/table.
+4. Decide whether the internal `STANDARD` / `PRIORITY` lane plus platform backpressure controls should map to public free/premium plan promises or stay operator-only.
+5. Decide whether legacy membership/source history needs one-time backfill into the durable audit ledger.
+
+## Latest Merchant Actions Contract
+
+- Backend now owns merchant prioritization at `GET /api/restaurants/:id/dashboard/actions`.
+- This new read model is derived only from canonical published data:
+  - `InsightSummary`
+  - `ComplaintKeyword`
+  - published negative `Review` evidence
+- Response shape now includes:
+  - `summary.state`:
+    - `AWAITING_SOURCE`
+    - `AWAITING_FIRST_PUBLISH`
+    - `ACTIONABLE_NOW`
+    - `MONITORING`
+  - `snapshot`
+  - `executionLayer`
+  - enriched `topIssue`
+  - `actionCards`
+- Product meaning:
+  - FE merchant `Actions` no longer has to infer priorities and next-step copy from `complaints` plus `top-issue` heuristics alone.
+  - BE now defines "what should the merchant focus on now" before FE renders it.
+- Verification on `2026-03-27`:
+  - `cd D:\Project 3\backend-sentify && node --test test/dashboard.service.test.js test/dashboard.integration.test.js` -> `4/4 passed`
+  - `cd D:\Project 3\backend-sentify && npm run db:reset:local-baseline`
+  - `cd D:\Project 3\backend-sentify && $env:RUN_REAL_DB_TESTS='true'; node --test test/merchant-read.realdb.test.js` -> `8/8 passed`
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+
+## Latest Backend Hardening Pass
+
+- Merchant source-ingress writes are now transaction-safe:
+  - `restaurant`
+  - `RestaurantSourceSubmission`
+  - merchant source audit
+  now commit or fail together.
+- Google Maps browser-like fetches now receive real abortable timeout budgets on:
+  - source/session bootstrap
+  - review-page fetch
+- Review-crawl runtime health no longer uses Redis `KEYS`; it now uses a processor heartbeat index plus `SCAN` fallback.
+- Verification on `2026-03-28`:
+  - `cd D:\Project 3\backend-sentify && node --test test/restaurants.integration.test.js test/google-maps.service.test.js test/review-crawl.runtime.test.js` -> `20/20 passed`
+  - `cd D:\Project 3\backend-sentify && node --test test/restaurant.service.test.js test/review-crawl.service.test.js test/review-crawl.worker-runtime.test.js test/admin-platform.integration.test.js` -> `34/34 passed`
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+  - `cd D:\Project 3\apps\web && npx playwright test e2e --workers=1` -> `12/12 passed`
+  - local compatibility release-evidence rerun: backup/restore/rollback, staging API, and performance proof all passed; remaining blockers are still local Redis/API targets plus missing provider-managed DB artifact
+- `local-review-stack.js` now ignores the heartbeat index key in status/cleanup output so runtime status no longer shows a fake stale processor entry.

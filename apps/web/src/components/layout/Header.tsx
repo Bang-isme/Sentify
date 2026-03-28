@@ -55,7 +55,6 @@ export function Header({
   const isAdminShell = isAdminRoute(route)
   const routeMeta = getRouteMeta(route, language)
   const shellLabel = isAdminShell ? shellCopy.adminShellLabel : shellCopy.merchantShellLabel
-  const roleChipLabel = isAdminShell ? 'ADMIN' : 'USER'
 
   const restaurantLabel = useMemo(() => {
     if (!user) {
@@ -74,37 +73,34 @@ export function Header({
     return `${user.restaurantCount} ${unit}`
   }, [productCopy.header.restaurantPlural, productCopy.header.restaurantSingular, user])
 
-  const accountActions = useMemo(() => {
-    if (!isAuthenticated) {
-      return []
-    }
-
-    const navItems = isAdminShell
-      ? getAdminNavigation(language).flatMap((group) => group.items)
-      : getMerchantNavigation(language).flatMap((group) => group.items)
-
-    return [
-      {
-        id: 'home',
-        label: shellCopy.homeLabel,
-        onClick: () => onNavigate(homeRoute),
-      },
-      ...navItems.slice(0, 4).map((item) => ({
-        id: item.route,
-        label: item.label,
-        onClick: () => onNavigate(item.route),
-      })),
-      ...(isAppRoute
-        ? [
-            {
-              id: 'landing',
-              label: shellCopy.landingLabel,
-              onClick: () => onNavigate('/'),
-            },
-          ]
-        : []),
-    ]
-  }, [homeRoute, isAdminShell, isAppRoute, isAuthenticated, onNavigate, shellCopy.homeLabel, shellCopy.landingLabel])
+  const accountActions = !isAuthenticated
+    ? []
+    : [
+        {
+          id: 'home',
+          label: shellCopy.homeLabel,
+          onClick: () => onNavigate(homeRoute),
+        },
+        ...(isAdminShell
+          ? getAdminNavigation(language).flatMap((group) => group.items)
+          : getMerchantNavigation(language).flatMap((group) => group.items)
+        )
+          .slice(0, 4)
+          .map((item) => ({
+            id: item.route,
+            label: item.label,
+            onClick: () => onNavigate(item.route),
+          })),
+        ...(isAppRoute
+          ? [
+              {
+                id: 'landing',
+                label: shellCopy.landingLabel,
+                onClick: () => onNavigate('/'),
+              },
+            ]
+          : []),
+      ]
 
   useEffect(() => {
     if (!isLanguageMenuOpen && !isAccountMenuOpen) {
@@ -144,8 +140,10 @@ export function Header({
   }, [isAccountMenuOpen, isLanguageMenuOpen])
 
   return (
-    <header className={`fixed inset-x-0 top-0 z-50 border-b ${palette.railDivider} ${palette.menuSurface} backdrop-blur-2xl`}>
-      <div className="flex h-[3.75rem] w-full items-center gap-3 px-3 lg:px-5">
+    <header
+      className={`app-shell-surface fixed inset-x-0 top-0 z-50 border-b ${palette.railDivider} ${palette.menuSurface}`}
+    >
+      <div className="flex h-[4.25rem] w-full items-center gap-4 px-4 lg:px-6">
         <button
           type="button"
           className="flex shrink-0 items-center gap-3"
@@ -158,16 +156,19 @@ export function Header({
             onScrollToSection('overview')
           }}
         >
-          <div className="flex size-8 items-center justify-center rounded-[12px] border border-white/10 bg-white/[0.04] text-primary">
-            <span className="material-symbols-outlined text-[18px]">token</span>
+          <div className="flex size-9 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.04] text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <span className="material-symbols-outlined text-[19px]">token</span>
           </div>
           <div className="hidden min-w-0 md:block">
-            <div className="text-[15px] font-semibold text-white">{copy.header.brand}</div>
+            <div className={`font-display text-[15px] font-semibold tracking-tight ${isAdminRoute(route) ? 'text-slate-900 dark:text-white' : 'text-text-charcoal dark:text-white'}`}>
+              {copy.header.brand}
+            </div>
             {isProtectedRoute(route) ? (
-              <div className="mt-0.5 flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              <div className="mt-0.5 flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
                 <span>{shellLabel}</span>
-                <span className="inline-flex rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold text-slate-300">
-                  {roleChipLabel}
+                <span className="size-1 rounded-full bg-slate-600" />
+                <span className="truncate text-[11px] normal-case tracking-normal text-slate-400">
+                  {routeMeta.sectionLabel}
                 </span>
               </div>
             ) : (
@@ -180,20 +181,18 @@ export function Header({
 
         <div className="hidden min-w-0 items-center gap-2 xl:flex">
           {isProtectedRoute(route) ? (
-            <>
-              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${palette.chipMuted}`}>
-                {shellCopy.roleLabel}
+            <div
+              className={`inline-flex max-w-[30rem] items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-semibold text-white ${palette.chip}`}
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                {shellCopy.viewLabel}
               </span>
-              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${palette.chipMuted}`}>
-                {roleChipLabel}
-              </span>
-              <span className={`inline-flex max-w-[26rem] items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] font-semibold text-white ${palette.chip}`}>
-                <span className="material-symbols-outlined text-[16px] text-slate-400">
+              <span className="size-1 rounded-full bg-slate-600" />
+              <span className="material-symbols-outlined text-[16px] text-slate-400">
                   {isAdminShell ? 'view_kanban' : 'insights'}
-                </span>
-                <span className="truncate">{routeMeta.title}</span>
               </span>
-            </>
+              <span className="truncate">{routeMeta.title}</span>
+            </div>
           ) : (
             productCopy.header.marketingLinks.map((item) => (
               <button
@@ -214,7 +213,7 @@ export function Header({
             onClick={(event) => toggleTheme(event)}
             aria-label={shellCopy.themeLabel}
             data-testid="theme-toggle"
-            className="app-shell-surface flex size-8 items-center justify-center rounded-[10px] text-slate-400 transition hover:bg-white/5 hover:text-white"
+            className={`app-shell-surface flex size-9 items-center justify-center rounded-[12px] border transition ${isAdminRoute(route) ? 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.03] dark:text-slate-400 dark:hover:border-white/16 dark:hover:bg-white/[0.05] dark:hover:text-white' : 'border-[#d7e1e7] bg-white text-[#5f6d77] hover:border-[#dde5ea] hover:bg-[#f6fafb] hover:text-[#17212a] dark:border-white/8 dark:bg-white/[0.03] dark:text-slate-400 dark:hover:border-white/16 dark:hover:bg-white/[0.05] dark:hover:text-white'}`}
           >
             <span className="material-symbols-outlined text-lg">
               {theme === 'dark' ? 'dark_mode' : 'light_mode'}
@@ -232,7 +231,7 @@ export function Header({
               aria-label={shellCopy.languageLabel}
               aria-haspopup="menu"
               aria-expanded={isLanguageMenuOpen}
-            className={`app-shell-surface flex h-8 items-center gap-1.5 rounded-[10px] border px-2.5 text-[12px] font-semibold text-white transition hover:border-white/20 ${palette.chip}`}
+              className={`app-shell-surface flex h-9 items-center gap-1.5 rounded-[12px] border px-3 text-[12px] font-semibold transition ${palette.chip} hover:shadow-sm`}
             >
               <span>{currentLanguage.label}</span>
               <span
@@ -268,8 +267,8 @@ export function Header({
                     }}
                     className={`flex w-full items-center justify-between rounded-[10px] px-3 py-2 text-left text-sm transition ${
                       isActive
-                        ? 'bg-white/8 font-semibold text-white'
-                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                        ? 'bg-slate-100 font-semibold text-slate-900 dark:bg-white/8 dark:text-white'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
                     }`}
                   >
                     <span>{option.label}</span>
@@ -292,16 +291,16 @@ export function Header({
                   setIsAccountMenuOpen((current) => !current)
                   setIsLanguageMenuOpen(false)
                 }}
-                className={`app-shell-surface group flex h-9 items-center gap-2 rounded-[10px] border pl-2 pr-2.5 text-left transition hover:border-white/20 ${palette.chip}`}
+                className={`app-shell-surface group flex h-10 items-center gap-2 rounded-[14px] border pl-2 pr-3 text-left transition hover:shadow-sm ${palette.chip}`}
               >
                 <span className="flex size-7 items-center justify-center rounded-[9px] bg-primary text-[11px] font-black text-[#08131b]">
                   {user?.initials ?? 'S'}
                 </span>
                 <span className="hidden min-w-0 md:block">
-                  <span className="block truncate text-[13px] font-semibold text-white">
+                  <span className={`block truncate text-[13px] font-semibold ${isAdminRoute(route) ? 'text-slate-900 dark:text-white' : 'text-text-charcoal dark:text-white'}`}>
                     {user?.displayName ?? productCopy.header.accountFallback}
                   </span>
-                  <span className="block truncate text-[11px] text-slate-500">
+                  <span className={`block truncate text-[11px] ${isAdminRoute(route) ? 'text-slate-500 dark:text-zinc-400' : 'text-[#8f877c] dark:text-[#8f877c]'}`}>
                     {restaurantLabel ?? roleDescription}
                   </span>
                 </span>
@@ -329,10 +328,10 @@ export function Header({
                       {user?.initials ?? 'S'}
                     </span>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-white">
+                      <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                         {user?.displayName ?? productCopy.header.accountFallback}
                       </div>
-                      <div className="mt-1 truncate text-xs text-slate-500">{user?.email ?? ''}</div>
+                      <div className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{user?.email ?? ''}</div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
                           {user?.roleLabel ?? productCopy.header.protectedAccess}
@@ -355,7 +354,7 @@ export function Header({
                       key={action.id}
                       type="button"
                       role="menuitem"
-                      className="flex h-10 items-center px-3 text-left text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+                      className="flex h-10 items-center rounded-[10px] px-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
                       onClick={() => {
                         setIsAccountMenuOpen(false)
                         action.onClick()
@@ -372,7 +371,7 @@ export function Header({
                   type="button"
                   role="menuitem"
                   data-testid="logout-action"
-                  className="flex h-10 w-full items-center rounded-[10px] px-3 text-left text-sm font-medium text-red-300 transition hover:bg-red-500/10"
+                  className="flex h-10 w-full items-center rounded-[10px] px-3 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300"
                   onClick={() => {
                     setIsAccountMenuOpen(false)
                     onLogout()

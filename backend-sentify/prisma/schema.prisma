@@ -67,6 +67,27 @@ enum ReviewIntakeItemApprovalStatus {
   REJECTED
 }
 
+enum RestaurantSourceSubmissionStatus {
+  PENDING_IDENTITY_RESOLUTION
+  READY_FOR_SOURCE_LINK
+  LINKED_TO_SOURCE
+}
+
+enum RestaurantSourceSubmissionSchedulingLane {
+  STANDARD
+  PRIORITY
+}
+
+enum RestaurantPlanTier {
+  FREE
+  PREMIUM
+}
+
+enum RestaurantSourceSubmissionSchedulingLaneSource {
+  ENTITLEMENT_DEFAULT
+  ADMIN_OVERRIDE
+}
+
 model User {
   id               String    @id @default(uuid())
   email            String    @unique
@@ -82,22 +103,29 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  restaurants       RestaurantUser[]
-  intakeBatches     ReviewIntakeBatch[]
-  requestedCrawlRuns ReviewCrawlRun[]
-  refreshTokens     RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
+  restaurants            RestaurantUser[]
+  intakeBatchesCreated   ReviewIntakeBatch[]  @relation("ReviewIntakeBatchCreatedBy")
+  intakeBatchesPublished ReviewIntakeBatch[]  @relation("ReviewIntakeBatchPublishedBy")
+  reviewedIntakeItems    ReviewIntakeItem[]   @relation("ReviewIntakeItemReviewedBy")
+  requestedCrawlRuns     ReviewCrawlRun[]
+  auditEvents            AuditEvent[]         @relation("AuditEventActor")
+  publishedReviewEvents  ReviewPublishEvent[] @relation("ReviewPublishEventPublishedBy")
+  sourceSubmissions      RestaurantSourceSubmission[] @relation("RestaurantSourceSubmissionSubmittedBy")
+  refreshTokens          RefreshToken[]
+  passwordResetTokens    PasswordResetToken[]
 }
 
 model PlatformControl {
-  id                         String   @id @default("platform")
-  crawlQueueWritesEnabled    Boolean  @default(true)
-  crawlMaterializationEnabled Boolean @default(true)
-  intakePublishEnabled       Boolean  @default(true)
-  note                       String?
-  updatedByUserId            String?
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @updatedAt
+  id                          String   @id @default("platform")
+  crawlQueueWritesEnabled     Boolean  @default(true)
+  crawlMaterializationEnabled Boolean  @default(true)
+  intakePublishEnabled        Boolean  @default(true)
+  sourceSubmissionAutoBootstrapEnabled Boolean @default(true)
+  sourceSubmissionAutoBootstrapMaxPerTick Int  @default(20)
+  note                        String?
+  updatedByUserId             String?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
 }
 
 model RefreshToken {
@@ -138,14 +166,38 @@ model Restaurant {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  users      RestaurantUser[]
-  reviews    Review[]
-  insight    InsightSummary?
-  keywords   ComplaintKeyword[]
-  intakeBatches ReviewIntakeBatch[]
-  intakeItems ReviewIntakeItem[]
-  reviewCrawlSources ReviewCrawlSource[]
-  reviewCrawlRuns ReviewCrawlRun[]
+  users               RestaurantUser[]
+  reviews             Review[]
+  insight             InsightSummary?
+  keywords            ComplaintKeyword[]
+  entitlement         RestaurantEntitlement?
+  intakeBatches       ReviewIntakeBatch[]
+  intakeItems         ReviewIntakeItem[]
+  auditEvents         AuditEvent[]
+  sourceSubmission    RestaurantSourceSubmission?
+  reviewPublishEvents ReviewPublishEvent[]
+  reviewCrawlSources  ReviewCrawlSource[]
+  reviewCrawlRuns     ReviewCrawlRun[]
+}
+
+model AuditEvent {
+  id           String   @id @default(uuid())
+  action       String
+  resourceType String
+  resourceId   String
+  summary      String
+  restaurantId String?
+  actorUserId  String?
+  metadataJson Json?
+  createdAt    DateTime @default(now())
+
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  actor      User?       @relation("AuditEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([resourceType, resourceId, createdAt])
+  @@index([restaurantId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model RestaurantUser {
@@ -175,8 +227,9 @@ model Review {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @default(now()) @updatedAt
 
-  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  intakeItems ReviewIntakeItem[]
+  restaurant    Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  intakeItems   ReviewIntakeItem[]
+  publishEvents ReviewPublishEvent[]
 
   @@unique([restaurantId, externalId])
   @@index([restaurantId])
@@ -214,59 +267,68 @@ model ComplaintKeyword {
 }
 
 model ReviewIntakeBatch {
-  id              String                      @id @default(uuid())
-  restaurantId    String
-  createdByUserId String
-  crawlSourceId   String?
-  title           String?
-  sourceType      ReviewIntakeBatchSourceType @default(MANUAL)
-  status          ReviewIntakeBatchStatus    @default(DRAFT)
-  publishedAt     DateTime?
-  createdAt       DateTime                   @default(now())
-  updatedAt       DateTime                   @updatedAt
+  id                String                      @id @default(uuid())
+  restaurantId      String
+  createdByUserId   String
+  publishedByUserId String?
+  crawlSourceId     String?
+  title             String?
+  sourceType        ReviewIntakeBatchSourceType @default(MANUAL)
+  status            ReviewIntakeBatchStatus     @default(DRAFT)
+  publishedAt       DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
 
-  restaurant Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  createdBy  User            @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
-  crawlSource ReviewCrawlSource? @relation(fields: [crawlSourceId], references: [id], onDelete: SetNull)
-  items      ReviewIntakeItem[]
-  crawlRuns  ReviewCrawlRun[]
+  restaurant    Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdBy     User                 @relation("ReviewIntakeBatchCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  publishedBy   User?                @relation("ReviewIntakeBatchPublishedBy", fields: [publishedByUserId], references: [id], onDelete: SetNull)
+  crawlSource   ReviewCrawlSource?   @relation(fields: [crawlSourceId], references: [id], onDelete: SetNull)
+  items         ReviewIntakeItem[]
+  crawlRuns     ReviewCrawlRun[]
+  publishEvents ReviewPublishEvent[]
 
   @@index([restaurantId])
   @@index([restaurantId, status, createdAt])
   @@index([restaurantId, updatedAt, createdAt])
   @@index([createdByUserId, createdAt])
+  @@index([publishedByUserId, publishedAt])
   @@index([crawlSourceId])
 }
 
 model ReviewIntakeItem {
-  id                    String                        @id @default(uuid())
-  batchId               String
-  restaurantId          String
-  sourceProvider        ReviewCrawlProvider?
-  sourceExternalId      String?
-  sourceReviewUrl       String?
-  rawAuthorName         String?
-  rawRating             Int?
-  rawContent            String?
-  rawReviewDate         DateTime?
-  normalizedAuthorName  String?
-  normalizedRating      Int?
-  normalizedContent     String?
-  normalizedReviewDate  DateTime?
-  approvalStatus        ReviewIntakeItemApprovalStatus @default(PENDING)
-  reviewerNote          String?
+  id                   String                         @id @default(uuid())
+  batchId              String
+  restaurantId         String
+  sourceProvider       ReviewCrawlProvider?
+  sourceExternalId     String?
+  sourceReviewUrl      String?
+  rawAuthorName        String?
+  rawRating            Int?
+  rawContent           String?
+  rawReviewDate        DateTime?
+  normalizedAuthorName String?
+  normalizedRating     Int?
+  normalizedContent    String?
+  normalizedReviewDate DateTime?
+  approvalStatus       ReviewIntakeItemApprovalStatus @default(PENDING)
+  reviewerNote         String?
+  lastReviewedAt       DateTime?
+  lastReviewedByUserId String?
   /// Links intake items to the canonical Review created or updated at publish time.
-  canonicalReviewId     String?
-  createdAt             DateTime                      @default(now())
-  updatedAt             DateTime                      @updatedAt
+  canonicalReviewId    String?
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
 
-  batch          ReviewIntakeBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  restaurant     Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  canonicalReview Review?          @relation(fields: [canonicalReviewId], references: [id], onDelete: SetNull)
+  batch           ReviewIntakeBatch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  restaurant      Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  lastReviewedBy  User?               @relation("ReviewIntakeItemReviewedBy", fields: [lastReviewedByUserId], references: [id], onDelete: SetNull)
+  canonicalReview Review?             @relation(fields: [canonicalReviewId], references: [id], onDelete: SetNull)
+  publishEvent    ReviewPublishEvent?
 
   @@index([batchId, approvalStatus])
   @@index([batchId, createdAt])
   @@index([canonicalReviewId])
+  @@index([lastReviewedByUserId, lastReviewedAt])
   @@index([restaurantId, approvalStatus])
   @@index([sourceProvider, sourceExternalId])
 }
@@ -293,15 +355,68 @@ model ReviewCrawlSource {
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 
-  restaurant Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  runs       ReviewCrawlRun[]
-  rawReviews ReviewCrawlRawReview[]
+  restaurant    Restaurant             @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  runs          ReviewCrawlRun[]
+  rawReviews    ReviewCrawlRawReview[]
   intakeBatches ReviewIntakeBatch[]
+  publishEvents ReviewPublishEvent[]
+  sourceSubmissions RestaurantSourceSubmission[]
 
   @@unique([restaurantId, provider, canonicalCid])
   @@index([restaurantId, status])
   @@index([status, nextScheduledAt])
   @@index([restaurantId, provider, status])
+}
+
+model RestaurantSourceSubmission {
+  id                    String                           @id @default(uuid())
+  restaurantId          String                           @unique
+  submittedByUserId     String?
+  claimedByUserId       String?
+  linkedSourceId        String?
+  provider              ReviewCrawlProvider             @default(GOOGLE_MAPS)
+  inputUrl              String
+  normalizedUrl         String?
+  canonicalCid          String?
+  placeHexId            String?
+  googlePlaceId         String?
+  placeName             String?
+  dedupeKey             String
+  status                RestaurantSourceSubmissionStatus @default(PENDING_IDENTITY_RESOLUTION)
+  schedulingLane        RestaurantSourceSubmissionSchedulingLane @default(STANDARD)
+  schedulingLaneSource  RestaurantSourceSubmissionSchedulingLaneSource @default(ENTITLEMENT_DEFAULT)
+  recommendationCode    String?
+  recommendationMessage String?
+  submittedAt           DateTime                         @default(now())
+  lastResolvedAt        DateTime?
+  claimedAt             DateTime?
+  claimExpiresAt        DateTime?
+  createdAt             DateTime                         @default(now())
+  updatedAt             DateTime                         @updatedAt
+
+  restaurant  Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  submittedBy User?              @relation("RestaurantSourceSubmissionSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+  linkedSource ReviewCrawlSource? @relation(fields: [linkedSourceId], references: [id], onDelete: SetNull)
+
+  @@index([status, updatedAt])
+  @@index([schedulingLane, status, updatedAt])
+  @@index([schedulingLane, status, claimExpiresAt, submittedAt])
+  @@index([schedulingLaneSource, status, updatedAt])
+  @@index([provider, canonicalCid])
+  @@index([provider, dedupeKey])
+  @@index([linkedSourceId])
+}
+
+model RestaurantEntitlement {
+  id                              String                                  @id @default(uuid())
+  restaurantId                    String                                  @unique
+  planTier                        RestaurantPlanTier                      @default(FREE)
+  createdAt                       DateTime                                @default(now())
+  updatedAt                       DateTime                                @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([planTier, updatedAt])
 }
 
 model ReviewCrawlRun {
@@ -340,10 +455,11 @@ model ReviewCrawlRun {
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 
-  source      ReviewCrawlSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  restaurant  Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  requestedBy User?              @relation(fields: [requestedByUserId], references: [id], onDelete: SetNull)
-  intakeBatch ReviewIntakeBatch? @relation(fields: [intakeBatchId], references: [id], onDelete: SetNull)
+  source        ReviewCrawlSource    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  restaurant    Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  requestedBy   User?                @relation(fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  intakeBatch   ReviewIntakeBatch?   @relation(fields: [intakeBatchId], references: [id], onDelete: SetNull)
+  publishEvents ReviewPublishEvent[]
 
   @@index([sourceId, status, queuedAt])
   @@index([restaurantId, status, queuedAt])
@@ -352,7 +468,7 @@ model ReviewCrawlRun {
 }
 
 model ReviewCrawlRawReview {
-  id                String   @id @default(uuid())
+  id                String    @id @default(uuid())
   sourceId          String
   firstSeenRunId    String
   lastSeenRunId     String
@@ -365,17 +481,50 @@ model ReviewCrawlRawReview {
   reviewDate        DateTime?
   language          String?
   ownerResponseText String?
-  validForIntake    Boolean  @default(false)
+  validForIntake    Boolean   @default(false)
   validationIssues  Json?
   intakeItemPayload Json?
   payload           Json
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  source ReviewCrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  source        ReviewCrawlSource    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  publishEvents ReviewPublishEvent[]
 
   @@unique([sourceId, externalReviewKey])
   @@index([lastSeenRunId])
   @@index([sourceId, reviewDate])
   @@index([sourceId, updatedAt])
+}
+
+model ReviewPublishEvent {
+  id                   String   @id @default(uuid())
+  reviewId             String
+  restaurantId         String
+  batchId              String
+  intakeItemId         String   @unique
+  crawlSourceId        String?
+  crawlRunId           String?
+  rawReviewId          String?
+  rawReviewExternalKey String?
+  publishedByUserId    String?
+  publishedAt          DateTime
+  createdAt            DateTime @default(now())
+
+  review          Review                @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  restaurant      Restaurant            @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  batch           ReviewIntakeBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  intakeItem      ReviewIntakeItem      @relation(fields: [intakeItemId], references: [id], onDelete: Cascade)
+  crawlSource     ReviewCrawlSource?    @relation(fields: [crawlSourceId], references: [id], onDelete: SetNull)
+  crawlRun        ReviewCrawlRun?       @relation(fields: [crawlRunId], references: [id], onDelete: SetNull)
+  rawReview       ReviewCrawlRawReview? @relation(fields: [rawReviewId], references: [id], onDelete: SetNull)
+  publishedByUser User?                 @relation("ReviewPublishEventPublishedBy", fields: [publishedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([reviewId, publishedAt])
+  @@index([restaurantId, publishedAt])
+  @@index([batchId, publishedAt])
+  @@index([crawlSourceId, publishedAt])
+  @@index([crawlRunId, publishedAt])
+  @@index([rawReviewId])
+  @@index([publishedByUserId, publishedAt])
 }

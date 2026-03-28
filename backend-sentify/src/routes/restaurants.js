@@ -17,12 +17,19 @@ router.use(requireUserRole(USER_ROLE.USER))
 
 router.post('/', restaurantController.createRestaurant)
 router.get('/', restaurantController.listRestaurants)
+router.post('/:id/source-submission/preview', validateId, restaurantController.previewSourceSubmission)
+router.get(
+    '/:id/source-submission/history',
+    validateId,
+    restaurantController.getRestaurantSourceSubmissionHistory,
+)
 router.get('/:id/reviews', validateId, reviewsController.listReviews)
 router.get('/:id/dashboard/kpi', validateId, dashboardController.getKpi)
 router.get('/:id/dashboard/sentiment', validateId, dashboardController.getSentimentBreakdown)
 router.get('/:id/dashboard/trend', validateId, dashboardController.getTrend)
 router.get('/:id/dashboard/complaints', validateId, dashboardController.getComplaintKeywords)
 router.get('/:id/dashboard/top-issue', validateId, dashboardController.getTopIssue)
+router.get('/:id/dashboard/actions', validateId, dashboardController.getMerchantActions)
 router.get('/:id', validateId, restaurantController.getRestaurantDetail)
 router.patch('/:id', validateId, restaurantController.updateRestaurant)
 

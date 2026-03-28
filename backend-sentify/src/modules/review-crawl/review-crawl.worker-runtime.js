@@ -6,7 +6,10 @@ const {
     isQueueConfigured,
 } = require('./review-crawl.queue')
 const {
+    clearProcessorHeartbeat,
+    clearSchedulerHeartbeat,
     logReviewCrawlEvent,
+    releaseSchedulerLeadership,
     tryAcquireSchedulerLeadership,
     writeProcessorHeartbeat,
     writeSchedulerHeartbeat,
@@ -126,6 +129,21 @@ async function startReviewCrawlWorkerRuntime(options = {}) {
         if (processorHeartbeatTimer) {
             clearInterval(processorHeartbeatTimer)
             processorHeartbeatTimer = null
+        }
+
+        if (runProcessor) {
+            await clearProcessorHeartbeat(redis).catch(() => {})
+        }
+
+        if (runScheduler) {
+            const releasedLeadership = await releaseSchedulerLeadership(
+                redis,
+                schedulerToken,
+            ).catch(() => false)
+
+            if (releasedLeadership) {
+                await clearSchedulerHeartbeat(redis).catch(() => {})
+            }
         }
 
         if (worker) {

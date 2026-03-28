@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import type { ReviewIntakeBatch, ReviewIntakeItem, UpdateReviewIntakeItemInput } from '../../../lib/api'
 import type { AdminIntakeLabels } from '../adminIntakeLabels'
+import { AdminBadge, AdminButton } from '../../admin-shell/components/AdminPrimitives'
 
 interface ReviewCurationTableProps {
   batch: ReviewIntakeBatch
   labels: AdminIntakeLabels
   pending: boolean
   onSaveItem: (itemId: string, input: UpdateReviewIntakeItemInput) => Promise<void>
+  onDeleteItem?: (itemId: string) => Promise<void>
 }
 
 function EditableRow({
@@ -14,11 +16,13 @@ function EditableRow({
   labels,
   pending,
   onSaveItem,
+  onDeleteItem,
 }: {
   item: ReviewIntakeItem
   labels: AdminIntakeLabels
   pending: boolean
   onSaveItem: (itemId: string, input: UpdateReviewIntakeItemInput) => Promise<void>
+  onDeleteItem?: (itemId: string) => Promise<void>
 }) {
   const fieldIdBase = `review-intake-item-${item.id}`
   const [authorName, setAuthorName] = useState(item.normalizedAuthorName ?? item.rawAuthorName ?? '')
@@ -30,80 +34,76 @@ function EditableRow({
   const [reviewerNote, setReviewerNote] = useState(item.reviewerNote ?? '')
   const [approvalStatus, setApprovalStatus] = useState(item.approvalStatus)
 
+  const getToneForStatus = (status: string) => {
+    switch (status) {
+      case 'APPROVED': return 'success'
+      case 'REJECTED': return 'danger'
+      default: return 'warning'
+    }
+  }
+
   return (
-    <div className="rounded-[1.35rem] border border-border-light/70 bg-bg-light/70 p-4 dark:border-border-dark dark:bg-bg-dark/55">
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="inline-flex rounded-full border border-border-light/70 bg-surface-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-text-charcoal dark:border-border-dark dark:bg-surface-dark dark:text-white">
-          {labels.approvalStatuses[approvalStatus]}
-        </span>
+    <div
+      data-testid={`admin-intake-item-${item.id}`}
+      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#18181b]"
+    >
+      <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4 dark:border-white/10">
+        <AdminBadge 
+          label={labels.approvalStatuses[approvalStatus]} 
+          tone={getToneForStatus(approvalStatus)} 
+        />
         {item.canonicalReviewId ? (
-          <span className="inline-flex rounded-full border border-emerald-300/35 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-500/12 dark:text-emerald-200">
-            Published
-          </span>
+          <AdminBadge label="Published" tone="success" />
         ) : null}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <div className="grid gap-3">
-          <label
-            htmlFor={`${fieldIdBase}-author`}
-            className="grid gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-silver-light dark:text-text-silver-dark"
-          >
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div className="grid gap-4">
+          <label htmlFor={`${fieldIdBase}-author`} className="grid gap-2 text-[12px] font-bold uppercase tracking-wider text-slate-500">
             <span>{labels.authorLabel}</span>
             <input
               id={`${fieldIdBase}-author`}
-              aria-label={labels.authorLabel}
+              data-testid={`admin-intake-item-author-${item.id}`}
               value={authorName}
               onChange={(event) => setAuthorName(event.target.value)}
-              className="h-10 rounded-2xl border border-border-light bg-surface-white px-3 text-sm font-medium text-text-charcoal outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-white"
+              className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-[#18181b]"
             />
           </label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label
-              htmlFor={`${fieldIdBase}-rating`}
-              className="grid gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-silver-light dark:text-text-silver-dark"
-            >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label htmlFor={`${fieldIdBase}-rating`} className="grid gap-2 text-[12px] font-bold uppercase tracking-wider text-slate-500">
               <span>{labels.ratingLabel}</span>
               <select
                 id={`${fieldIdBase}-rating`}
-                aria-label={labels.ratingLabel}
+                data-testid={`admin-intake-item-rating-${item.id}`}
                 value={rating}
                 onChange={(event) => setRating(event.target.value)}
-                className="h-10 rounded-2xl border border-border-light bg-surface-white px-3 text-sm font-medium text-text-charcoal outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-white"
+                className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-[#18181b]"
               >
                 {[5, 4, 3, 2, 1].map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
+                  <option key={value} value={value}>{value}</option>
                 ))}
               </select>
             </label>
-            <label
-              htmlFor={`${fieldIdBase}-date`}
-              className="grid gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-silver-light dark:text-text-silver-dark"
-            >
+            <label htmlFor={`${fieldIdBase}-date`} className="grid gap-2 text-[12px] font-bold uppercase tracking-wider text-slate-500">
               <span>{labels.dateLabel}</span>
               <input
                 id={`${fieldIdBase}-date`}
-                aria-label={labels.dateLabel}
+                data-testid={`admin-intake-item-date-${item.id}`}
                 type="date"
                 value={reviewDate}
                 onChange={(event) => setReviewDate(event.target.value)}
-                className="h-10 rounded-2xl border border-border-light bg-surface-white px-3 text-sm font-medium text-text-charcoal outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-white"
+                className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-[#18181b]"
               />
             </label>
           </div>
-          <label
-            htmlFor={`${fieldIdBase}-decision`}
-            className="grid gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-silver-light dark:text-text-silver-dark"
-          >
+          <label htmlFor={`${fieldIdBase}-decision`} className="grid gap-2 text-[12px] font-bold uppercase tracking-wider text-slate-500">
             <span>Decision</span>
             <select
               id={`${fieldIdBase}-decision`}
-              aria-label="Decision"
+              data-testid={`admin-intake-item-decision-${item.id}`}
               value={approvalStatus}
               onChange={(event) => setApprovalStatus(event.target.value as ReviewIntakeItem['approvalStatus'])}
-              className="h-10 rounded-2xl border border-border-light bg-surface-white px-3 text-sm font-medium text-text-charcoal outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-white"
+              className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-[#18181b]"
             >
               <option value="PENDING">{labels.approvalStatuses.PENDING}</option>
               <option value="APPROVED">{labels.approvalStatuses.APPROVED}</option>
@@ -112,40 +112,35 @@ function EditableRow({
           </label>
         </div>
 
-        <div className="grid gap-3">
-          <label
-            htmlFor={`${fieldIdBase}-content`}
-            className="grid gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-silver-light dark:text-text-silver-dark"
-          >
+        <div className="grid gap-4">
+          <label htmlFor={`${fieldIdBase}-content`} className="grid gap-2 text-[12px] font-bold uppercase tracking-wider text-slate-500">
             <span>{labels.contentLabel}</span>
             <textarea
               id={`${fieldIdBase}-content`}
-              aria-label={labels.contentLabel}
+              data-testid={`admin-intake-item-content-${item.id}`}
               rows={4}
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              className="rounded-3xl border border-border-light bg-surface-white px-4 py-3 text-sm font-medium text-text-charcoal outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-white"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-[#18181b]"
             />
           </label>
-          <label
-            htmlFor={`${fieldIdBase}-note`}
-            className="grid gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-text-silver-light dark:text-text-silver-dark"
-          >
+          <label htmlFor={`${fieldIdBase}-note`} className="grid gap-2 text-[12px] font-bold uppercase tracking-wider text-slate-500">
             <span>Reviewer note</span>
             <textarea
               id={`${fieldIdBase}-note`}
-              aria-label="Reviewer note"
-              rows={3}
+              data-testid={`admin-intake-item-note-${item.id}`}
+              rows={2}
               value={reviewerNote}
               onChange={(event) => setReviewerNote(event.target.value)}
-              className="rounded-3xl border border-border-light bg-surface-white px-4 py-3 text-sm font-medium text-text-charcoal outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark dark:text-white"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-[#18181b]"
             />
           </label>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
+          
+          <div className="mt-2 flex flex-wrap gap-3">
+            <AdminButton
+              variant="primary"
               disabled={pending}
-              className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 dark:text-bg-dark"
+              dataTestId={`admin-intake-item-save-${item.id}`}
               onClick={() =>
                 void onSaveItem(item.id, {
                   normalizedAuthorName: authorName.trim() || null,
@@ -158,11 +153,11 @@ function EditableRow({
               }
             >
               Save review item
-            </button>
-            <button
-              type="button"
+            </AdminButton>
+            <AdminButton
+              variant="secondary"
               disabled={pending}
-              className="inline-flex h-10 items-center justify-center rounded-full border border-border-light/70 bg-surface-white px-4 text-sm font-semibold text-text-charcoal transition hover:border-primary/35 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60 dark:border-border-dark dark:bg-surface-dark dark:text-white"
+              dataTestId={`admin-intake-item-approve-${item.id}`}
               onClick={() =>
                 void onSaveItem(item.id, {
                   approvalStatus: 'APPROVED',
@@ -174,11 +169,11 @@ function EditableRow({
               }
             >
               Approve
-            </button>
-            <button
-              type="button"
+            </AdminButton>
+            <AdminButton
+              variant="danger"
               disabled={pending}
-              className="inline-flex h-10 items-center justify-center rounded-full border border-red-300/35 bg-red-500/8 px-4 text-sm font-semibold text-red-700 transition hover:border-red-400 hover:bg-red-500/12 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-400/25 dark:bg-red-500/10 dark:text-red-200"
+              dataTestId={`admin-intake-item-reject-${item.id}`}
               onClick={() =>
                 void onSaveItem(item.id, {
                   approvalStatus: 'REJECTED',
@@ -187,7 +182,21 @@ function EditableRow({
               }
             >
               Reject
-            </button>
+            </AdminButton>
+            {onDeleteItem ? (
+              <AdminButton
+                variant="ghost"
+                disabled={pending}
+                dataTestId={`admin-intake-item-delete-${item.id}`}
+                onClick={() => {
+                  if (confirm('Are you sure you want to permanently delete this item?')) {
+                    void onDeleteItem(item.id)
+                  }
+                }}
+              >
+                Delete
+              </AdminButton>
+            ) : null}
           </div>
         </div>
       </div>
@@ -200,10 +209,11 @@ export function ReviewCurationTable({
   labels,
   pending,
   onSaveItem,
+  onDeleteItem,
 }: ReviewCurationTableProps) {
   if (!batch.items?.length) {
     return (
-      <div className="rounded-[1.3rem] border border-dashed border-border-light/80 bg-bg-light/60 p-4 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/45 dark:text-text-silver-dark">
+      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-white/20 dark:bg-white/5 dark:text-zinc-400">
         {labels.emptyBatches}
       </div>
     )
@@ -218,6 +228,7 @@ export function ReviewCurationTable({
           labels={labels}
           pending={pending}
           onSaveItem={onSaveItem}
+          onDeleteItem={onDeleteItem}
         />
       ))}
     </div>
