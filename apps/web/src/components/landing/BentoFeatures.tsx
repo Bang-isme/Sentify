@@ -343,10 +343,6 @@ export function BentoFeatures() {
 
   return (
     <section id="dashboard" className="content-visibility-auto relative overflow-hidden py-20 lg:py-24">
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(162,63,0,0.022)_1px,transparent_1px),linear-gradient(90deg,rgba(162,63,0,0.022)_1px,transparent_1px)] [background-size:40px_40px]" />
-      </div>
-
       <div className="relative z-10 mx-auto w-full max-w-[88rem] px-4 md:px-6 lg:px-8 xl:px-10">
         <div ref={ref}>
           <div className={`${LANDING_SECTION_HEADER_MARGIN_CLASS} ${LANDING_SECTION_HEADER_CLASS} ${revealClass()}`} style={revealStyle(0)}>
@@ -392,7 +388,7 @@ export function BentoFeatures() {
             </div>
 
             <div className="grid grid-cols-1 gap-4.5 lg:grid-cols-[minmax(0,2fr)_minmax(17rem,0.92fr)] lg:gap-5">
-              <article className={`${panelClass} p-[1.35rem] md:p-6`}>
+              <article className={`${panelClass} dashboard-chart-card flex h-full flex-col p-[1.35rem] md:p-6`}>
                 <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <h3 className="font-serif text-[1.5rem] font-bold text-[#2c211b] dark:text-[#fff3e6] md:text-[1.65rem]">
                     {showcase.chartTitle}
@@ -404,13 +400,18 @@ export function BentoFeatures() {
                   </div>
                 </div>
 
-                <div className={`${softInnerClass} h-[17rem] px-3.5 pb-4 pt-5 md:h-[18rem] md:px-5`}>
-                  <div className="flex h-full items-end justify-between gap-2.5 md:gap-3.5">
+                <div className={`${softInnerClass} dashboard-chart-shell relative flex min-h-[17rem] flex-1 flex-col overflow-hidden px-3.5 pb-4 pt-5 md:min-h-[18rem] md:px-5`}>
+                  <div className="dashboard-chart-sheen pointer-events-none absolute inset-0" />
+                  <div className="relative z-10 flex flex-1 items-end justify-between gap-2.5 md:gap-3.5">
                     {chartColumns.map((column, index) => (
-                      <div key={showcase.days[index]} className="flex h-full flex-1 flex-col items-center gap-3">
+                      <div
+                        key={showcase.days[index]}
+                        className="dashboard-chart-column flex h-full flex-1 flex-col items-center gap-3"
+                        style={{ ['--dashboard-delay' as const]: `${index * 180}ms` }}
+                      >
                         <div className="flex h-full w-full flex-col justify-end gap-1">
                           <div
-                            className="w-full rounded-t-[0.75rem] bg-[#d19580]/35 transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                            className="dashboard-bar dashboard-bar-negative w-full rounded-t-[0.75rem] bg-[#d19580]/35 transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                             style={{
                               height: `${column.negative}%`,
                               opacity: visible ? 1 : 0.3,
@@ -420,7 +421,7 @@ export function BentoFeatures() {
                             }}
                           />
                           <div
-                            className="w-full rounded-t-[0.75rem] bg-[#ece4db] transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                            className="dashboard-bar dashboard-bar-neutral w-full rounded-t-[0.75rem] bg-[#ece4db] transition-[transform,opacity] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                             style={{
                               height: `${column.neutral}%`,
                               opacity: visible ? 1 : 0.3,
@@ -430,7 +431,7 @@ export function BentoFeatures() {
                             }}
                           />
                           <div
-                            className="w-full rounded-t-[1rem] bg-[#f3871c] transition-[transform,opacity,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                            className="dashboard-bar dashboard-bar-positive w-full rounded-t-[1rem] bg-[#f3871c] transition-[transform,opacity,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                             style={{
                               height: `${column.positive}%`,
                               opacity: visible ? 1 : 0.45,
@@ -537,7 +538,7 @@ export function BentoFeatures() {
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className={`h-2 w-2 rounded-full ${color}`} />
+      <span className={`dashboard-legend-dot h-2 w-2 rounded-full ${color}`} />
       <span>{label}</span>
     </div>
   )
