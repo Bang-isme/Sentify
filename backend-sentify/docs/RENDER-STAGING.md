@@ -14,6 +14,7 @@ The current `render.yaml` uses a single web service with:
 
 - `REVIEW_CRAWL_INLINE_QUEUE_MODE=false`
 - `REVIEW_CRAWL_RUNTIME_MODE=both`
+- `TRUST_PROXY=1`
 
 That keeps the first staging deploy simple. Once staging is stable, you can split scheduler and worker into separate Render services if you need closer production topology.
 
@@ -36,7 +37,10 @@ That keeps the first staging deploy simple. Once staging is stable, you can spli
    - `CORS_ORIGIN`
    - `APP_URL`
    - optional `AUTH_COOKIE_DOMAIN`
-5. Deploy the service.
+5. Keep `TRUST_PROXY=1` on Render.
+   - do not set `TRUST_PROXY=true`
+   - `express-rate-limit` treats boolean `true` as permissive and will raise `ERR_ERL_PERMISSIVE_TRUST_PROXY`
+6. Deploy the service.
 
 ## 4. Important Commands
 

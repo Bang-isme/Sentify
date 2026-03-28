@@ -1,6 +1,6 @@
 # Project Memory Long
 
-Updated: 2026-03-28 Asia/Bangkok
+Updated: 2026-03-29 Asia/Bangkok
 
 ## Stable Product Decisions
 
@@ -220,6 +220,72 @@ These tracked project-memory files exist so project context survives clone/sessi
     - stale heavy bundle artifacts downgrade to `COMPATIBILITY_PROOF_STALE` and `MANAGED_SIGNOFF_STALE`
     - stale preflight artifacts downgrade `managedSignoffPreflightStatus` to `MANAGED_SIGNOFF_STALE`
     - new readiness fields include `freshArtifactKeys`, `staleArtifactKeys`, `compatibilityProofFreshnessStatus`, and `managedSignoffPreflightFreshnessStatus`
+- On `2026-03-28`, the external staging baseline moved from planned to real:
+  - Render API is live at `https://sentify-2fu0.onrender.com`
+  - Neon Postgres is connected successfully
+  - `GET /api/health` on staging returns `{"status":"ok","db":"up"}`
+  - `npm run db:migrate:deploy` and `node prisma/seed.js` both succeeded against the Neon staging database
+  - seeded staging proof accounts:
+    - merchant: `demo.user.primary@sentify.local`
+    - admin: `demo.admin@sentify.local`
+    - password: `DemoPass123!`
+  - `node scripts/staging-api-proof.js --base-url https://sentify-2fu0.onrender.com --output load-reports/staging-api-proof-managed.json` returned `STAGING_PROOF_COMPLETE`
+  - `node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.latest.json` first showed one blocker:
+    - `RELEASE_EVIDENCE_MANAGED_DB_PROOF_ARTIFACT`
+  - the provider-managed DB restore drill then completed:
+    - review deleted from staging to create meaningful restore evidence:
+      - `id = 81c35358-64de-485e-9e8a-febbf07c7631`
+      - `externalId = source-review:v1:google_maps:demo-phohong-published-001`
+    - review count moved from `16` to `15`
+    - provider restore target originally requested:
+      - `2026-03-28T16:27:40.000Z`
+    - Neon restored the staging branch in place to:
+      - `2026-03-28T16:27:00.000Z`
+    - restored review count returned to `16`
+    - deleted review returned
+    - `managed-db-proof-staging.json` validated as `MANAGED_DB_PROOF_COMPLETE`
+  - `release-evidence.js --require-managed-signoff` now passes on the current Render plus Neon baseline:
+    - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+    - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+  - to keep strict sign-off reliable on Render free:
+    - `release-evidence.js` now supports `--staging-timeout-ms`
+    - env fallback added:
+      - `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS`
+    - current staging proof env uses `60000`
+  - operational follow-up after the DB proof:
+    - Neon DB credentials were rotated and Render `DATABASE_URL` was updated after the setup leak
+- On `2026-03-29`, a post-redeploy rerun changed the operational truth:
+  - first rerun after redeploy failed:
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/health` returned `{"status":"ok"}`
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/api/health` returned `{"status":"unavailable","db":"down"}`
+    - `node scripts/staging-api-proof.js --base-url https://sentify-2fu0.onrender.com --output load-reports/staging-api-proof-managed.json` returned `STAGING_PROOF_FAILED`
+    - merchant and admin staging login smoke both failed with `500` responses during login
+    - Render logs showed `ERR_ERL_PERMISSIVE_TRUST_PROXY`
+    - root cause was `TRUST_PROXY=true` on Render
+  - after changing Render to `TRUST_PROXY=1` and redeploying:
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/health` returned `{"status":"ok"}`
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/api/health` returned `{"status":"ok","db":"up"}`
+    - `node scripts/staging-api-proof.js --base-url https://sentify-2fu0.onrender.com --output load-reports/staging-api-proof-managed.json` returned `STAGING_PROOF_COMPLETE`
+    - `node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.latest.json` returned `MANAGED_SIGNOFF_READY`
+    - `node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` returned:
+      - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+      - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+  - conclusion:
+    - external inputs and historical DB/signoff artifacts remained configured throughout
+    - the redeploy regression was caused by trust-proxy config, not DB loss or broken credentials
+    - current live staging runtime is green again after the fix
+- On `2026-03-29`, full backend suite isolation was re-hardened:
+  - `cd D:\Project 3\backend-sentify && npm test` passed again (`176` tests: `163` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb` also passed on the same codebase state
+  - root cause of the one failing full-suite regression:
+    - `managed-signoff-preflight.test.js` was accidentally inheriting the operator's real `.env.release-evidence`
+    - once managed Redis URL and staging credentials existed locally, the test no longer saw the blockers it expected
+  - fix:
+    - `scripts/load-env-files.js` now supports explicit override file paths for both runtime and release-evidence envs
+    - `test/managed-signoff-preflight.test.js` now runs with a temp isolated empty release-evidence env file
+  - effect:
+    - full backend suite is green without depending on machine-local managed-signoff secrets
+    - release/readiness tests remain stable after staging setup work
 
 ## Latest Verified Commands
 

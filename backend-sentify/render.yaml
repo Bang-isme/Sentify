@@ -15,7 +15,7 @@ services:
       - key: LOG_FORMAT
         value: json
       - key: TRUST_PROXY
-        value: "true"
+        value: "1"
       - key: BODY_LIMIT
         value: 100kb
       - key: AUTH_COOKIE_SECURE

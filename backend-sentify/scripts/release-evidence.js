@@ -97,6 +97,7 @@ function printUsage() {
             '  --staging-user-password <password> Optional merchant USER password',
             '  --staging-admin-email <email> Optional ADMIN email for staging auth smoke',
             '  --staging-admin-password <password> Optional ADMIN password',
+            '  --staging-timeout-ms <ms>   Per-request timeout for staging API proof',
             '  --staging-insecure-tls      Disable TLS verification for staging API proof',
             '  --managed-db-proof-artifact <file> Optional provider-managed DB backup/PITR proof artifact',
             '  --managed-db-proof-output <file>   Write managed DB proof validation JSON',
@@ -116,6 +117,7 @@ function printUsage() {
             '  RELEASE_EVIDENCE_STAGING_USER_PASSWORD',
             '  RELEASE_EVIDENCE_STAGING_ADMIN_EMAIL',
             '  RELEASE_EVIDENCE_STAGING_ADMIN_PASSWORD',
+            '  RELEASE_EVIDENCE_STAGING_TIMEOUT_MS',
             '  RELEASE_EVIDENCE_STAGING_INSECURE_TLS',
             '  RELEASE_EVIDENCE_MANAGED_DB_PROOF_ARTIFACT',
             '  RELEASE_EVIDENCE_INCLUDE_PERFORMANCE_PROOF',
@@ -373,6 +375,9 @@ async function main() {
     const stagingAdminPassword =
         readFlag(args, '--staging-admin-password') ||
         process.env.RELEASE_EVIDENCE_STAGING_ADMIN_PASSWORD
+    const stagingTimeoutMs =
+        readFlag(args, '--staging-timeout-ms') ||
+        process.env.RELEASE_EVIDENCE_STAGING_TIMEOUT_MS
     const stagingInsecureTls =
         hasFlag(args, '--staging-insecure-tls') ||
         process.env.RELEASE_EVIDENCE_STAGING_INSECURE_TLS === 'true'
@@ -477,6 +482,10 @@ async function main() {
             '--output',
             stagingApiOutputPath,
         ]
+
+        if (stagingTimeoutMs) {
+            stagingApiArgs.push('--timeout-ms', String(stagingTimeoutMs))
+        }
 
         if (stagingUserEmail) {
             stagingApiArgs.push('--user-email', stagingUserEmail)

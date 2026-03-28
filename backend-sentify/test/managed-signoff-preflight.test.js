@@ -11,10 +11,18 @@ const SCRIPT_PATH = path.resolve(
 )
 
 function runPreflight({ args = [] } = {}) {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sentify-managed-preflight-env-'))
+    const emptyReleaseEnvPath = path.join(tempDir, '.env.release-evidence')
+    fs.writeFileSync(emptyReleaseEnvPath, '')
+
     return spawnSync(process.execPath, [SCRIPT_PATH, ...args], {
         cwd: path.resolve(__dirname, '..'),
         encoding: 'utf8',
         windowsHide: true,
+        env: {
+            ...process.env,
+            SENTIFY_RELEASE_EVIDENCE_ENV_FILE: emptyReleaseEnvPath,
+        },
     })
 }
 

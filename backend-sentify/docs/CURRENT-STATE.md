@@ -1,6 +1,6 @@
 # Sentify Backend Current State
 
-Updated: 2026-03-28
+Updated: 2026-03-29
 
 This document describes the backend exactly as it exists in the current codebase.
 
@@ -149,6 +149,70 @@ Behavior:
 - publish approved evidence into canonical reviews
 
 ## 4. What The Backend Already Has
+
+### External staging proof status
+
+- A real staging API is now live at `https://sentify-2fu0.onrender.com`.
+- The deployed staging stack is currently:
+  - Render web service for the API
+  - Neon Postgres for the staging database
+  - external managed Redis for release-evidence targeting
+- Historical healthy staging proof on `2026-03-28`:
+  - `GET /health` returned `200`
+  - `GET /api/health` returned `200` with `{"status":"ok","db":"up"}`
+  - `staging-api-proof-managed.json` reported `STAGING_PROOF_COMPLETE`
+  - merchant authenticated read smoke passed
+  - admin authenticated control-plane smoke passed
+- A short-lived post-redeploy regression happened on `2026-03-29`:
+  - `GET /health` still returned `200`
+  - `GET /api/health` regressed to `503` with `{"status":"unavailable","db":"down"}`
+  - `staging-api-proof-managed.json` regressed to `STAGING_PROOF_FAILED`
+  - merchant authenticated read smoke failed with login `500`
+  - admin authenticated control-plane smoke failed with login `500`
+  - root cause:
+    - Render had `TRUST_PROXY=true`
+    - `express-rate-limit` rejected permissive trust-proxy mode with `ERR_ERL_PERMISSIVE_TRUST_PROXY`
+  - fix:
+    - set `TRUST_PROXY=1` on Render
+    - repo baseline now also uses `TRUST_PROXY=1` in `render.yaml`
+- Latest post-fix staging revalidation on `2026-03-29`:
+  - `GET /health` returns `200`
+  - `GET /api/health` returns `200` with `{"status":"ok","db":"up"}`
+  - `staging-api-proof-managed.json` reports `STAGING_PROOF_COMPLETE`
+  - merchant authenticated read smoke passed
+  - admin authenticated control-plane smoke passed
+- Historical strict managed-signoff posture proven on `2026-03-28`:
+  - managed Redis target is configured and verified
+  - staging API target is configured and verified
+  - merchant and admin staging proof accounts are configured and verified
+  - a provider-managed DB proof artifact now validates cleanly
+  - `managed-release-evidence.latest.json` reports:
+    - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+    - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+- Current live runtime posture on `2026-03-29`:
+  - `managed-signoff-preflight.latest.json` reports `MANAGED_SIGNOFF_READY`
+  - `managed-release-evidence.latest.json` reports:
+    - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+    - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+  - live staging runtime has been revalidated green after the Render `TRUST_PROXY=1` fix
+- Current provider-managed DB proof drill status:
+  - the Neon restore or PITR drill is now completed for the current staging baseline
+  - one demo review was intentionally deleted so the restore proof is meaningful
+  - deleted review checkpoint:
+    - `checkpointUtc = 2026-03-28T16:27:47.747Z`
+    - `deletedReviewId = 81c35358-64de-485e-9e8a-febbf07c7631`
+    - `deletedExternalId = source-review:v1:google_maps:demo-phohong-published-001`
+    - `reviewsAfter = 15`
+  - Neon restored the staging branch to `2026-03-28T16:27:00.000Z`
+  - restored proof:
+    - review count returned to `16`
+    - deleted review id returned
+  - proof artifacts:
+    - `load-reports/managed-db-proof-staging.json`
+    - `load-reports/managed-db-proof-validation-staging.json`
+- Operational note:
+  - the Neon database password was exposed during setup in chat
+  - staging DB credentials have since been rotated and Render `DATABASE_URL` updated
 
 ### Auth and security
 
@@ -617,7 +681,9 @@ Fresh verification on `2026-03-28`:
 - `cd D:\Project 3\backend-sentify && node --test test/restaurant.service.test.js test/review-crawl.service.test.js test/review-crawl.worker-runtime.test.js test/admin-platform.integration.test.js` -> `34/34 passed`
 - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
 - `cd D:\Project 3\apps\web && npx playwright test e2e --workers=1` -> `12/12 passed`
-- `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --managed-redis-url redis://127.0.0.1:6379 --staging-api-url http://127.0.0.1:3000 --staging-user-email demo.user.primary@sentify.local --staging-user-password DemoPass123! --staging-admin-email demo.admin@sentify.local --staging-admin-password DemoPass123! --include-performance-proof --performance-scale-url https://maps.app.goo.gl/yWeP9xmjowpkYVbU7` -> `COMPATIBILITY_PROOF_COMPLETE`, with managed sign-off still pending because Redis/API targets were local and no provider-managed DB proof artifact was attached
+- `cd D:\Project 3\backend-sentify && node scripts/managed-db-proof-validate.js --artifact load-reports/managed-db-proof-staging.json --output load-reports/managed-db-proof-validation-staging.json` -> `MANAGED_DB_PROOF_COMPLETE`
+- `cd D:\Project 3\backend-sentify && node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.latest.json` -> `MANAGED_SIGNOFF_READY`
+- `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` -> `COMPATIBILITY_PROOF_COMPLETE`, with `managedEnvProofStatus=MANAGED_SIGNOFF_COMPLETE`
 - `release-evidence.js` now keeps local compatibility at `COMPATIBILITY_PROOF_COMPLETE` when only optional checks such as `managedDbProof` are `SKIPPED`
 - local `stack:review-crawl:status` was also patched to stop misreporting the new heartbeat index key as a stale processor
 - backend env hygiene is now explicit:
@@ -626,13 +692,19 @@ Fresh verification on `2026-03-28`:
   - proof scripts auto-load `.env.release-evidence` after `.env`
   - `npm run env:check` verifies the example files still match the runtime contract
 - `managed-signoff-preflight.js` now emits `nextSteps` with exact env keys and the next action per blocker, so missing managed-signoff inputs no longer have to be inferred manually
-- after wiring a real external managed Redis URL into `.env.release-evidence`, the latest preflight on `2026-03-28` reduced the remaining blockers to:
-  - missing `RELEASE_EVIDENCE_STAGING_API_URL`
-  - missing staging merchant credentials
-  - missing staging admin credentials
-  - missing provider-managed DB proof artifact
+- Render free cold starts now have an explicit release-proof timeout knob:
+  - `release-evidence.js` accepts `--staging-timeout-ms`
+  - `.env.release-evidence` can provide `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS`
+  - current staging proof uses `60000`
 - Render is now the chosen fast staging path:
   - blueprint: `backend-sentify/render.yaml`
   - runbook: `backend-sentify/docs/RENDER-STAGING.md`
   - deploy-safe Prisma command: `npm run db:migrate:deploy`
 - env parsing was hardened so `JWT_SECRET_PREVIOUS=` can be left blank without breaking backend startup or admin-platform integration tests
+- Fresh full backend rerun on `2026-03-29`:
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`176` tests: `163` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+  - `managed-signoff-preflight.test.js` is now hermetic against workstation-local `.env.release-evidence`
+  - proof scripts can now be isolated explicitly with:
+    - `SENTIFY_RUNTIME_ENV_FILE`
+    - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`

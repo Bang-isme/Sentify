@@ -190,13 +190,97 @@ Freshness controls:
   - the example managed DB proof artifact validates successfully, but it does not turn local loopback Redis or staging API targets into external sign-off
   - the preflight script surfaces those remaining blockers immediately without rerunning Redis, staging API smoke, or recovery drills
 
-## 6. What Is Still Missing
+## 6. Current External Staging Baseline
+
+The external staging baseline is live and healthy again after the latest Render fix:
+
+- API host:
+  - `https://sentify-2fu0.onrender.com`
+- deployment shape:
+  - Render web service
+  - Neon Postgres database
+  - external managed Redis target configured through release-evidence env
+- healthy baseline proven on `2026-03-28`:
+  - `GET /health` -> `200`
+  - `GET /api/health` -> `{"status":"ok","db":"up"}`
+  - `load-reports/staging-api-proof-managed.json` -> `STAGING_PROOF_COMPLETE`
+  - merchant authenticated read smoke passed
+  - admin authenticated control-plane smoke passed
+- redeploy regression and fix on `2026-03-29`:
+  - first rerun failed because Render had `TRUST_PROXY=true`
+  - `express-rate-limit` raised `ERR_ERL_PERMISSIVE_TRUST_PROXY`
+  - after changing Render to `TRUST_PROXY=1`:
+    - `GET /health` -> `{"status":"ok"}`
+    - `GET /api/health` -> `{"status":"ok","db":"up"}`
+    - `load-reports/staging-api-proof-managed.json` -> `STAGING_PROOF_COMPLETE`
+    - merchant authenticated read smoke passed
+    - admin authenticated control-plane smoke passed
+
+Current staging proof accounts:
+
+- merchant:
+  - `demo.user.primary@sentify.local`
+- admin:
+  - `demo.admin@sentify.local`
+- proof password:
+  - `DemoPass123!`
+
+Current strict managed-signoff preflight result:
+
+- `load-reports/managed-signoff-preflight.latest.json` -> `MANAGED_SIGNOFF_READY`
+- note:
+  - this preflight proves that managed Redis, staging API target, staging credentials, and DB proof artifact are configured
+  - current live runtime has also been revalidated green after the `TRUST_PROXY=1` fix
+
+## 7. Provider-Managed DB Proof Drill Status
+
+A real provider-managed restore drill has now been completed against Neon staging.
+
+Baseline before damage:
+
+- users: `5`
+- restaurants: `2`
+- reviews: `16`
+- batches: `3`
+- crawlRuns: `1`
+
+Intentional damage applied for restore proof:
+
+- deleted review id:
+  - `81c35358-64de-485e-9e8a-febbf07c7631`
+- deleted external id:
+  - `source-review:v1:google_maps:demo-phohong-published-001`
+- checkpoint after delete:
+  - `2026-03-28T16:27:47.747Z`
+- restore target chosen for provider PITR:
+  - `2026-03-28T16:27:40.000Z`
+- review count after delete:
+  - `15`
+
+What remains:
+
+1. Neon restored the staging branch in place to `2026-03-28T16:27:00.000Z`
+2. restored verification proved:
+   - review count returned to `16`
+   - deleted review id returned
+3. managed DB proof artifact written:
+   - `load-reports/managed-db-proof-staging.json`
+4. validator output written:
+   - `load-reports/managed-db-proof-validation-staging.json`
+5. strict sign-off output written:
+   - `load-reports/managed-release-evidence.latest.json`
+6. current strict result:
+   - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+   - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+7. staging timeout hardening added for Render free cold starts:
+   - `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS`
+   - current value used for proof: `60000`
+
+## 8. What Is Still Missing
 
 This runbook does not yet prove:
 
-- a real deployed staging environment
-- managed Postgres snapshot or point-in-time restore behavior
 - infrastructure rollback for the deployed app image or release artifact
 - end-to-end managed Redis and worker behavior in a deployed staging environment
 
-Those remain the next release-readiness step after the current shadow-database rehearsal.
+The external staging API, managed Redis, and provider-managed Postgres restore artifact are now proven for the current staging baseline. The next release-readiness steps are optional performance or deploy-rollback hardening.

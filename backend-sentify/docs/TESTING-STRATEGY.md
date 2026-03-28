@@ -1,6 +1,6 @@
 # Sentify Backend Testing Strategy
 
-Updated: 2026-03-28
+Updated: 2026-03-29
 
 This document tracks the current backend testing posture for the live codebase.
 
@@ -191,13 +191,82 @@ Unit tests                 Current baseline
     - this green bundle still used local Memurai `7.2.5` and local API base URL `http://127.0.0.1:3000`
     - repeat the same commands with real managed Redis and deployed staging URLs for external release sign-off
     - optional skipped checks now stay non-degrading, so `managedDbProof=SKIPPED` no longer downgrades the local compatibility artifact by itself
+    - Render plus Neon staging is now real and verified; the only strict managed-signoff blocker left is the provider-managed DB proof artifact
+- latest external staging verification on `2026-03-28`:
+  - staging backend:
+    - Render URL: `https://sentify-2fu0.onrender.com`
+    - `/health`: `200`
+    - `/api/health`: `{"status":"ok","db":"up"}`
+  - staging database:
+    - Neon direct connection was used for deploy-safe migration and seed
+    - `npm run db:migrate:deploy`: passed against staging
+    - `node prisma/seed.js`: passed against staging
+  - staging proof accounts:
+    - merchant: `demo.user.primary@sentify.local`
+    - admin: `demo.admin@sentify.local`
+    - password used for proof: `DemoPass123!`
+  - deployed staging auth smoke:
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-api-proof.js --base-url https://sentify-2fu0.onrender.com --output load-reports/staging-api-proof-managed.json` -> `STAGING_PROOF_COMPLETE`
+    - proof focus:
+      - root health endpoint
+      - API health endpoint
+      - merchant authenticated read smoke
+      - admin authenticated control-plane smoke
+  - strict managed-signoff preflight after wiring Render plus Neon:
+    - `cd D:\Project 3\backend-sentify && node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.latest.json` -> `MANAGED_SIGNOFF_READY`
+  - live managed DB restore drill status:
+    - staging review count before damage: `16`
+    - deleted review for restore proof:
+      - `id = 81c35358-64de-485e-9e8a-febbf07c7631`
+      - `externalId = source-review:v1:google_maps:demo-phohong-published-001`
+    - checkpoint used for provider restore target:
+      - `2026-03-28T16:27:40.000Z`
+    - review count after delete: `15`
+  - managed DB proof completion:
+    - Neon restored the staging branch to `2026-03-28T16:27:00.000Z`
+    - restored review count returned to `16`
+    - deleted review `81c35358-64de-485e-9e8a-febbf07c7631` was present again
+    - `cd D:\Project 3\backend-sentify && node scripts/managed-db-proof-validate.js --artifact load-reports/managed-db-proof-staging.json --output load-reports/managed-db-proof-validation-staging.json` -> `MANAGED_DB_PROOF_COMPLETE`
+  - strict managed sign-off completion:
+    - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` -> `COMPATIBILITY_PROOF_COMPLETE`
+    - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+  - staging timeout hardening for free-tier hosts:
+    - `release-evidence.js` now accepts `--staging-timeout-ms`
+    - env fallback added:
+      - `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS`
+    - current staging proof env uses `60000` to tolerate Render free cold starts
   - env/runtime caveat:
     - `.env.example` and `.env.release-evidence.example` are now intentionally split
     - `JWT_SECRET_PREVIOUS=` may be left blank safely after the env parser fix proved by `test/env.test.js`
+- latest post-redeploy staging rerun on `2026-03-29`:
+  - first rerun after the Render redeploy:
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/health` -> `{"status":"ok"}`
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/api/health` -> `{"status":"unavailable","db":"down"}`
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-api-proof.js --base-url https://sentify-2fu0.onrender.com --output load-reports/staging-api-proof-managed.json` -> `STAGING_PROOF_FAILED`
+    - root cause from Render logs:
+      - `TRUST_PROXY=true` triggered `ERR_ERL_PERMISSIVE_TRUST_PROXY`
+  - rerun after fixing Render env to `TRUST_PROXY=1`:
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/health` -> `{"status":"ok"}`
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/api/health` -> `{"status":"ok","db":"up"}`
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-api-proof.js --base-url https://sentify-2fu0.onrender.com --output load-reports/staging-api-proof-managed.json` -> `STAGING_PROOF_COMPLETE`
+  - `cd D:\Project 3\backend-sentify && node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.latest.json` -> `MANAGED_SIGNOFF_READY`
+  - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` -> `COMPATIBILITY_PROOF_COMPLETE` with `managedEnvProofStatus=MANAGED_SIGNOFF_COMPLETE`
+  - interpretation:
+    - managed sign-off inputs and historical artifacts remained present throughout
+    - live staging runtime is green again after the `TRUST_PROXY=1` fix
   - freshness rule:
     - release readiness should only be trusted while artifacts are fresh
     - default freshness windows are `24h` for required local proof and `72h` for managed proof artifacts
     - override via `ADMIN_PLATFORM_LOCAL_PROOF_MAX_AGE_HOURS` and `ADMIN_PLATFORM_MANAGED_PROOF_MAX_AGE_HOURS` when needed
+- latest full backend-suite verification on `2026-03-29`:
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`176` tests: `163` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+  - proof focus:
+    - full mocked/unit/integration suite is green alongside real-DB smoke
+    - managed-signoff preflight coverage no longer leaks workstation-local `.env.release-evidence`
+    - env loader override hooks now exist for test isolation:
+      - `SENTIFY_RUNTIME_ENV_FILE`
+      - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`
 - freshest backend and browser rerun on `2026-03-28`:
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - `cd D:\Project 3\backend-sentify && node --test test/admin-platform.integration.test.js` -> `4/4 passed`

@@ -14,7 +14,8 @@ function runEnvProbe(overrides = {}) {
                 const env = require(${JSON.stringify(ENV_MODULE_PATH)});
                 process.stdout.write(JSON.stringify({
                     jwtSecretPrevious: env.JWT_SECRET_PREVIOUS ?? null,
-                    authCookieDomain: env.AUTH_COOKIE_DOMAIN ?? null
+                    authCookieDomain: env.AUTH_COOKIE_DOMAIN ?? null,
+                    trustProxyValue: env.TRUST_PROXY_VALUE ?? null
                 }));
             `,
         ],
@@ -59,4 +60,14 @@ test('env config still rejects non-empty short JWT_SECRET_PREVIOUS values', () =
 
     assert.equal(result.status, 1)
     assert.match(result.stderr, /JWT_SECRET_PREVIOUS/)
+})
+
+test('env config parses numeric TRUST_PROXY values for hosted reverse proxies', () => {
+    const result = runEnvProbe({
+        TRUST_PROXY: '1',
+    })
+
+    assert.equal(result.status, 0)
+    const parsed = parseProbeJson(result.stdout)
+    assert.equal(parsed.trustProxyValue, 1)
 })

@@ -1,6 +1,6 @@
 # Project Memory Short
 
-Updated: 2026-03-28 Asia/Bangkok
+Updated: 2026-03-29 Asia/Bangkok
 
 ## Current Runtime Contract
 
@@ -143,11 +143,57 @@ Updated: 2026-03-28 Asia/Bangkok
   - blueprint at `backend-sentify/render.yaml`
   - deploy doc at `backend-sentify/docs/RENDER-STAGING.md`
   - deploy-safe Prisma command is `npm run db:migrate:deploy`
-- latest preflight after wiring the managed Redis URL now shows only 4 blockers:
-  - `RELEASE_EVIDENCE_STAGING_API_URL`
-  - merchant staging credentials
-  - admin staging credentials
-  - `RELEASE_EVIDENCE_MANAGED_DB_PROOF_ARTIFACT`
+- real staging is now live:
+  - Render API: `https://sentify-2fu0.onrender.com`
+  - Neon DB is connected
+  - `/api/health` returns `{"status":"ok","db":"up"}`
+- staging DB was migrated and seeded on `2026-03-28`:
+  - `npm run db:migrate:deploy` passed against Neon staging
+  - `node prisma/seed.js` passed against Neon staging
+  - staging proof accounts are:
+    - `demo.user.primary@sentify.local`
+    - `demo.admin@sentify.local`
+    - password: `DemoPass123!`
+- deployed staging auth and read proof now passes:
+  - `staging-api-proof-managed.json` -> `STAGING_PROOF_COMPLETE`
+- latest preflight after wiring Render + Neon + staging creds is now:
+  - `MANAGED_SIGNOFF_READY`
+- provider-managed DB proof drill history:
+  - deleted review id: `81c35358-64de-485e-9e8a-febbf07c7631`
+  - deleted external id: `source-review:v1:google_maps:demo-phohong-published-001`
+  - restore target timestamp originally requested: `2026-03-28T16:27:40.000Z`
+  - Neon actually restored staging to: `2026-03-28T16:27:00.000Z`
+- managed DB proof is now completed:
+  - Neon restored staging to `2026-03-28T16:27:00.000Z`
+  - restored review count is back to `16`
+  - deleted review `81c35358-64de-485e-9e8a-febbf07c7631` is present again
+  - artifact: `backend-sentify/load-reports/managed-db-proof-staging.json`
+- strict managed sign-off is now complete on the current Render + Neon baseline:
+  - preflight: `MANAGED_SIGNOFF_READY`
+  - release evidence: `COMPATIBILITY_PROOF_COMPLETE`
+  - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+- latest post-redeploy rerun on `2026-03-29`:
+  - first rerun after redeploy failed because Render had `TRUST_PROXY=true`
+  - Render logs showed `ERR_ERL_PERMISSIVE_TRUST_PROXY`
+  - after changing Render to `TRUST_PROXY=1`:
+    - `/health` returns `{"status":"ok"}`
+    - `/api/health` returns `{"status":"ok","db":"up"}`
+    - `staging-api-proof-managed.json` reports `STAGING_PROOF_COMPLETE`
+    - `managed-signoff-preflight.latest.json` still reports `MANAGED_SIGNOFF_READY`
+    - `managed-release-evidence.latest.json` reports `managedEnvProofStatus=MANAGED_SIGNOFF_COMPLETE`
+  - meaning:
+    - historical managed sign-off artifact still exists
+    - current live staging runtime is also green again
+- Freshest backend-only rerun evidence on `2026-03-29`:
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`176` tests: `163` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+  - `managed-signoff-preflight.test.js` no longer reads workstation-local `.env.release-evidence`
+  - test isolation now has explicit env-loader hooks:
+    - `SENTIFY_RUNTIME_ENV_FILE`
+    - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`
+- release-evidence now supports `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS`
+  - current staging proof env uses `60000` to survive Render free cold starts
+- after the DB proof finished, the Neon password was rotated and Render `DATABASE_URL` was updated
 - env parser now treats `JWT_SECRET_PREVIOUS=` as unset instead of failing startup; covered by `backend-sentify/test/env.test.js`
   - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --managed-redis-url redis://127.0.0.1:6379 --staging-api-url http://127.0.0.1:3000 --staging-user-email demo.user.primary@sentify.local --staging-user-password DemoPass123! --staging-admin-email demo.admin@sentify.local --staging-admin-password DemoPass123! --include-performance-proof --performance-scale-url https://maps.app.goo.gl/yWeP9xmjowpkYVbU7 --require-managed-signoff` -> expected non-zero exit while targets remain local and no managed DB artifact exists
   - `cd D:\Project 3\backend-sentify && node scripts/managed-db-proof-validate.js --artifact docs/examples/managed-db-proof-artifact.example.json --output load-reports/managed-db-proof-validation-example.json` -> `MANAGED_DB_PROOF_COMPLETE`
