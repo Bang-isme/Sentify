@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
 const fs = require('fs')
-const http = require('http')
-const https = require('https')
 const path = require('path')
 const { loadEnvFiles } = require('./load-env-files')
+const {
+    loginAndReadSession,
+    requestJson,
+} = require('./staging-proof-helpers')
 
 loadEnvFiles({
     includeReleaseEvidence: true,
@@ -70,7 +72,7 @@ function printUsage() {
             '  --admin-email <email>          Optional ADMIN email for control-plane smoke',
             '  --admin-password <password>    Optional ADMIN password',
             '  --admin-restaurant-id <id>     Optional admin restaurant id override',
-            '  --timeout-ms <ms>              Per-request timeout in milliseconds (default: 15000)',
+            '  --timeout-ms <ms>              Per-request timeout in milliseconds (default: 60000)',
             '  --insecure-tls                 Disable TLS certificate verification for this probe',
             `  --output <file>                Write JSON report (default: ${DEFAULT_OUTPUT_PATH})`,
             '  --help                         Show this help message',
@@ -86,118 +88,6 @@ function printUsage() {
             '  RELEASE_EVIDENCE_STAGING_INSECURE_TLS',
         ].join('\n'),
     )
-}
-
-function mergeSetCookies(cookieJar, setCookieHeader) {
-    const nextJar = { ...cookieJar }
-    const setCookies = Array.isArray(setCookieHeader)
-        ? setCookieHeader
-        : setCookieHeader
-          ? [setCookieHeader]
-          : []
-
-    for (const rawCookie of setCookies) {
-        const [pair] = String(rawCookie).split(';')
-        const separatorIndex = pair.indexOf('=')
-
-        if (separatorIndex === -1) {
-            continue
-        }
-
-        const name = pair.slice(0, separatorIndex).trim()
-        const value = pair.slice(separatorIndex + 1).trim()
-
-        if (!name) {
-            continue
-        }
-
-        nextJar[name] = value
-    }
-
-    return nextJar
-}
-
-function buildCookieHeader(cookieJar) {
-    return Object.entries(cookieJar)
-        .map(([name, value]) => `${name}=${value}`)
-        .join('; ')
-}
-
-async function requestJson(baseUrl, requestPath, options = {}) {
-    const url = new URL(requestPath, baseUrl)
-    const method = options.method || 'GET'
-    const body = options.body ? JSON.stringify(options.body) : null
-    const headers = {
-        Accept: 'application/json',
-        ...(options.headers || {}),
-    }
-    const cookieHeader = buildCookieHeader(options.cookieJar || {})
-
-    if (cookieHeader) {
-        headers.Cookie = cookieHeader
-    }
-
-    if (body) {
-        headers['Content-Type'] = 'application/json'
-        headers['Content-Length'] = Buffer.byteLength(body)
-    }
-
-    const client = url.protocol === 'https:' ? https : http
-
-    return new Promise((resolve, reject) => {
-        const req = client.request(
-            {
-                hostname: url.hostname,
-                port: url.port,
-                path: `${url.pathname}${url.search}`,
-                method,
-                headers,
-                rejectUnauthorized: !options.insecureTls,
-            },
-            (res) => {
-                let rawBody = ''
-
-                res.on('data', (chunk) => {
-                    rawBody += chunk
-                })
-                res.on('end', () => {
-                    let parsedBody = null
-
-                    if (rawBody) {
-                        try {
-                            parsedBody = JSON.parse(rawBody)
-                        } catch (error) {
-                            parsedBody = rawBody
-                        }
-                    }
-
-                    resolve({
-                        status: res.statusCode ?? 0,
-                        headers: res.headers,
-                        body: parsedBody,
-                        cookieJar: mergeSetCookies(
-                            options.cookieJar || {},
-                            res.headers['set-cookie'],
-                        ),
-                    })
-                })
-            },
-        )
-
-        req.setTimeout(options.timeoutMs || 15000, () => {
-            req.destroy(
-                new Error(`Request to ${url.toString()} timed out after ${options.timeoutMs || 15000}ms`),
-            )
-        })
-
-        req.on('error', reject)
-
-        if (body) {
-            req.write(body)
-        }
-
-        req.end()
-    })
 }
 
 function buildCheck(key, label, status, detail, required = true) {
@@ -229,47 +119,43 @@ async function runLoginFlow({
     timeoutMs,
     insecureTls,
 }) {
-    const login = await requestJson(baseUrl, '/api/auth/login', {
-        method: 'POST',
-        body: {
-            email,
-            password,
-        },
+    const auth = await loginAndReadSession({
+        baseUrl,
+        email,
+        password,
         timeoutMs,
         insecureTls,
     })
 
-    if (login.status !== 200) {
+    if (!auth.passed) {
         return {
             passed: false,
-            login,
+            login: {
+                status: auth.loginStatus,
+                cookieCount: Object.keys(auth.cookieJar || {}).length,
+            },
             session: null,
-            cookieNames: [],
+            cookieNames: auth.cookieNames,
+            cookieJar: auth.cookieJar,
         }
     }
 
-    const session = await requestJson(baseUrl, '/api/auth/session', {
-        cookieJar: login.cookieJar,
-        timeoutMs,
-        insecureTls,
-    })
-
     return {
-        passed: session.status === 200,
+        passed: auth.passed,
         login: {
-            status: login.status,
-            cookieCount: Object.keys(login.cookieJar || {}).length,
+            status: auth.loginStatus,
+            cookieCount: Object.keys(auth.cookieJar || {}).length,
         },
         session: {
-            status: session.status,
-            role: session.body?.data?.user?.role ?? null,
-            restaurantCount: Array.isArray(session.body?.data?.user?.restaurants)
-                ? session.body.data.user.restaurants.length
+            status: auth.sessionStatus,
+            role: auth.session?.user?.role ?? null,
+            restaurantCount: Array.isArray(auth.session?.user?.restaurants)
+                ? auth.session.user.restaurants.length
                 : 0,
         },
-        cookieJar: session.cookieJar,
-        sessionBody: session.body,
-        cookieNames: Object.keys(login.cookieJar || {}),
+        cookieJar: auth.cookieJar,
+        sessionBody: auth.session ? { data: auth.session } : null,
+        cookieNames: auth.cookieNames,
     }
 }
 
@@ -477,7 +363,9 @@ async function main() {
     }
 
     const timeoutMs =
-        Number.parseInt(readFlag(args, '--timeout-ms') || '', 10) || 15000
+        Number.parseInt(readFlag(args, '--timeout-ms') || '', 10) ||
+        Number.parseInt(process.env.RELEASE_EVIDENCE_STAGING_TIMEOUT_MS || '', 10) ||
+        60000
     const insecureTls =
         hasFlag(args, '--insecure-tls') ||
         process.env.RELEASE_EVIDENCE_STAGING_INSECURE_TLS === 'true'
@@ -651,6 +539,7 @@ async function main() {
         notes: [
             'This proof validates staging API health plus optional authenticated merchant and admin read flows.',
             'Provide both merchant and admin credentials when you want more than health-only proof.',
+            'The default timeout is intentionally higher on hosted free-tier staging so cold starts do not look like contract failures.',
             'Use --insecure-tls only for controlled staging environments with self-signed certificates.',
         ],
     }

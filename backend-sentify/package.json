@@ -22,6 +22,8 @@
     "proof:managed-db": "node scripts/managed-db-proof-validate.js",
     "proof:managed-signoff:preflight": "node scripts/managed-signoff-preflight.js",
     "proof:staging-api": "node scripts/staging-api-proof.js",
+    "proof:staging-performance": "node scripts/staging-performance-proof.js",
+    "proof:staging-review-ops": "node scripts/staging-review-ops-proof.js",
     "proof:performance": "node scripts/performance-proof.js",
     "proof:managed-signoff": "node scripts/release-evidence.js --require-managed-signoff",
     "proof:release-evidence": "node scripts/release-evidence.js",

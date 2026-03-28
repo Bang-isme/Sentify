@@ -185,12 +185,34 @@ Updated: 2026-03-29 Asia/Bangkok
     - historical managed sign-off artifact still exists
     - current live staging runtime is also green again
 - Freshest backend-only rerun evidence on `2026-03-29`:
-  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`176` tests: `163` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`184` tests: `171` pass, `13` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - `managed-signoff-preflight.test.js` no longer reads workstation-local `.env.release-evidence`
   - test isolation now has explicit env-loader hooks:
     - `SENTIFY_RUNTIME_ENV_FILE`
     - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`
+  - `TRUST_PROXY=true` is now rejected by env parsing; hosted deployments must use `1` or an explicit proxy list
+- external staging merchant read-performance proof on `2026-03-29`:
+  - `cd D:\Project 3\backend-sentify && node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json` -> `STAGING_PERFORMANCE_PROOF_COMPLETE`
+  - `40` authenticated merchant read requests
+  - `0%` error rate
+  - `p95 = 899.53ms`
+  - `3.37 req/s`
+  - deliberate boundary:
+    - this is only an HTTP read-path proof
+    - worker-pressure and queue throughput still rely on the local Redis harness
+- external staging operator queue proof on `2026-03-29`:
+  - `cd D:\Project 3\backend-sentify && node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json` currently fails against the deployed Render baseline because the seeded source's active run stays `QUEUED`
+  - control-plane evidence from `/api/admin/platform/health-jobs` on the same baseline:
+    - queue `HEALTHY`
+    - workers `DEGRADED`
+    - `scheduler = null`
+    - `processors = []`
+  - repo fix now exists:
+    - `src/server.js` starts review-crawl runtime whenever Redis is configured and inline mode is off
+  - operational next step:
+    - redeploy Render staging
+    - rerun `proof:staging-review-ops`
 - release-evidence now supports `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS`
   - current staging proof env uses `60000` to survive Render free cold starts
 - after the DB proof finished, the Neon password was rotated and Render `DATABASE_URL` was updated

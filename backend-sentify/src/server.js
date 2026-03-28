@@ -1,9 +1,17 @@
 const env = require('./config/env')
 const app = require('./app')
 const prisma = require('./lib/prisma')
+const {
+    isInlineQueueMode,
+    isQueueConfigured,
+} = require('./modules/review-crawl/review-crawl.queue')
+const {
+    startReviewCrawlWorkerRuntime,
+} = require('./modules/review-crawl/review-crawl.worker-runtime')
 const PORT = env.PORT
 
 let server = null
+let reviewCrawlRuntime = null
 let shuttingDown = false
 
 function logRuntimeEvent(event, context = {}) {
@@ -18,6 +26,20 @@ function logRuntimeEvent(event, context = {}) {
 }
 
 async function startServer() {
+    if (env.NODE_ENV !== 'test' && isQueueConfigured() && !isInlineQueueMode()) {
+        reviewCrawlRuntime = await startReviewCrawlWorkerRuntime()
+        logRuntimeEvent('server.review_crawl_runtime.started', {
+            runtimeMode: env.REVIEW_CRAWL_RUNTIME_MODE,
+            queueName: env.REVIEW_CRAWL_QUEUE_NAME,
+        })
+    } else {
+        logRuntimeEvent('server.review_crawl_runtime.skipped', {
+            nodeEnv: env.NODE_ENV,
+            queueConfigured: isQueueConfigured(),
+            inlineQueueMode: isInlineQueueMode(),
+        })
+    }
+
     server = app.listen(PORT, () => {
         logRuntimeEvent('server.started', { port: PORT, nodeEnv: env.NODE_ENV })
     })
@@ -52,6 +74,18 @@ async function shutdown(signal, exitCode = 0, error) {
                 }
             })
         })
+    }
+
+    if (reviewCrawlRuntime) {
+        try {
+            await reviewCrawlRuntime.stop()
+            reviewCrawlRuntime = null
+        } catch (runtimeError) {
+            logRuntimeEvent('server.shutdown.review_crawl_runtime_error', {
+                errorName: runtimeError.name || 'Error',
+                message: runtimeError.message,
+            })
+        }
     }
 
     try {

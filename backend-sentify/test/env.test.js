@@ -71,3 +71,12 @@ test('env config parses numeric TRUST_PROXY values for hosted reverse proxies', 
     const parsed = parseProbeJson(result.stdout)
     assert.equal(parsed.trustProxyValue, 1)
 })
+
+test('env config rejects permissive TRUST_PROXY=true values', () => {
+    const result = runEnvProbe({
+        TRUST_PROXY: 'true',
+    })
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /TRUST_PROXY=true is not allowed/)
+})

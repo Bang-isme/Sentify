@@ -275,7 +275,7 @@ These tracked project-memory files exist so project context survives clone/sessi
     - the redeploy regression was caused by trust-proxy config, not DB loss or broken credentials
     - current live staging runtime is green again after the fix
 - On `2026-03-29`, full backend suite isolation was re-hardened:
-  - `cd D:\Project 3\backend-sentify && npm test` passed again (`176` tests: `163` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm test` passed again (`184` tests: `171` pass, `13` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` also passed on the same codebase state
   - root cause of the one failing full-suite regression:
     - `managed-signoff-preflight.test.js` was accidentally inheriting the operator's real `.env.release-evidence`
@@ -286,6 +286,45 @@ These tracked project-memory files exist so project context survives clone/sessi
   - effect:
     - full backend suite is green without depending on machine-local managed-signoff secrets
     - release/readiness tests remain stable after staging setup work
+- On `2026-03-29`, trust-proxy config was hardened from “documented convention” into “enforced runtime guardrail”:
+  - `src/config/env.js` now rejects `TRUST_PROXY=true`
+  - intended hosted values are:
+    - numeric hop count such as `1`
+    - or an explicit proxy subnet list
+  - reason:
+    - `express-rate-limit` treats boolean `true` as permissive and can raise `ERR_ERL_PERMISSIVE_TRUST_PROXY`
+  - result:
+    - a bad hosted trust-proxy value now fails fast during startup instead of surfacing later under auth traffic
+- On `2026-03-29`, external staging merchant read latency was proven separately from the local worker harness:
+  - `node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json` returned `STAGING_PERFORMANCE_PROOF_COMPLETE`
+  - target:
+    - Render API `https://sentify-2fu0.onrender.com`
+    - merchant restaurant `demo-quan-pho-hong`
+  - observed result:
+    - `40` authenticated merchant read requests
+    - `0%` error rate
+    - `p95 = 899.53ms`
+    - `3.37 req/s`
+  - intentional scope:
+    - HTTP merchant read paths only
+    - no queue or worker throughput claims on Render free staging
+  - operational reading:
+    - current staging is good enough for merchant read latency confidence
+    - worker-pressure confidence still comes from the local Redis harness, not from external free-tier staging
+- On `2026-03-29`, external staging operator queue proof exposed a real deployment gap and the repo was fixed at the bootstrap layer:
+  - `node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json` targeted the seeded source behind `demo-quan-pho-hong`
+  - the proof failed because the active run stayed `QUEUED` for more than `305000ms`
+  - direct control-plane check via `GET /api/admin/platform/health-jobs` showed:
+    - queue `HEALTHY`
+    - workers `DEGRADED`
+    - `scheduler = null`
+    - `processors = []`
+  - root cause in repo:
+    - `src/server.js` only started the HTTP API and never called `startReviewCrawlWorkerRuntime()`
+  - repo fix now in place:
+    - `src/server.js` starts review-crawl runtime whenever Redis is configured and inline mode is off
+  - implication:
+    - the deployed Render service must be redeployed before the external operator proof can be rerun meaningfully
 
 ## Latest Verified Commands
 
@@ -303,6 +342,8 @@ These tracked project-memory files exist so project context survives clone/sessi
 - `cd D:\Project 3\backend-sentify && node --test test/dashboard.service.test.js test/restaurant.service.test.js test/restaurants.integration.test.js test/admin-restaurants.integration.test.js test/review-crawl.service.test.js`
 - `cd D:\Project 3\backend-sentify && node scripts/managed-redis-proof.js --redis-url "redis://127.0.0.1:6379"`
 - `cd D:\Project 3\backend-sentify && node scripts/staging-api-proof.js --base-url "http://127.0.0.1:3000" --user-email "demo.user.primary@sentify.local" --user-password "DemoPass123!" --admin-email "demo.admin@sentify.local" --admin-password "DemoPass123!" --output load-reports/staging-api-proof-local.json`
+- `cd D:\Project 3\backend-sentify && node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json`
+- `cd D:\Project 3\backend-sentify && node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json`
 - `cd D:\Project 3\apps\web && npx playwright test e2e/admin-platform-controls.spec.ts --workers=1`
 - `cd D:\Project 3\backend-sentify && node scripts/performance-proof.js --output load-reports/performance-proof-local.json --scale-url "https://maps.app.goo.gl/yWeP9xmjowpkYVbU7"`
 - `cd D:\Project 3\backend-sentify && node scripts/staging-recovery-drill.js --source-mode existing --restaurant-slug demo-quan-pho-hong --output load-reports/staging-recovery-drill-managed.json`
@@ -365,6 +406,19 @@ These tracked project-memory files exist so project context survives clone/sessi
   - merchant read load
   - Redis worker-pressure load
   - optional live-source scale estimate
+- `scripts/staging-performance-proof.js` now provides a separate external staging HTTP read-path proof:
+  - authenticated merchant session
+  - restaurant list/detail
+  - reviews page and rating filter
+  - dashboard KPI, sentiment, trend, complaints, top issue, and actions
+  - explicit caveat:
+    - keep queue and worker-throughput claims on the local Redis harness until a non-free external staging worker topology exists
+- `scripts/staging-review-ops-proof.js` now exists for external operator queue proof:
+  - prefers a pre-seeded active source over URL bootstrap
+  - only falls back to `sync-to-draft` when `--allow-url-bootstrap` is explicitly supplied
+  - separates request timeout from run-settle timeout so hosted free-tier runs do not fail after a single HTTP timeout budget
+  - follows `REVIEW_CRAWL_RUN_ALREADY_ACTIVE` conflicts instead of crashing immediately
+  - current live result remains blocked on a staging redeploy because the deployed Render service has not yet picked up the new server-side runtime bootstrap path
 - `scripts/release-evidence.js` now orchestrates:
   - managed Redis proof
   - existing-source restore/rollback proof

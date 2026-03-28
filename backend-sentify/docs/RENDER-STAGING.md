@@ -40,6 +40,7 @@ That keeps the first staging deploy simple. Once staging is stable, you can spli
 5. Keep `TRUST_PROXY=1` on Render.
    - do not set `TRUST_PROXY=true`
    - `express-rate-limit` treats boolean `true` as permissive and will raise `ERR_ERL_PERMISSIVE_TRUST_PROXY`
+   - backend config now also rejects `TRUST_PROXY=true` at startup, so the bad value fails fast instead of degrading later under auth traffic
 6. Deploy the service.
 
 ## 4. Important Commands
@@ -49,6 +50,14 @@ That keeps the first staging deploy simple. Once staging is stable, you can spli
 - start: `npm start`
 
 `db:migrate:deploy` is the correct deploy-time Prisma command for Render. Do not use `prisma migrate dev` on staging deploys.
+
+`npm start` now boots both:
+- the HTTP API from `src/server.js`
+- the review-crawl runtime from the same process when:
+  - `REDIS_URL` is configured
+  - `REVIEW_CRAWL_INLINE_QUEUE_MODE=false`
+
+That means a plain Render web service can host the first staging topology without a second worker service. Any change to crawl-runtime bootstrap code still requires a Render redeploy before queue health reflects it.
 
 ## 5. After Deploy
 

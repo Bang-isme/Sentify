@@ -22,12 +22,13 @@ Current status:
   - `node scripts/release-evidence.js ...`: `COMPATIBILITY_PROOF_COMPLETE`
   - `node scripts/release-evidence.js ... --require-managed-signoff`: failed correctly with `MANAGED_SIGNOFF_PENDING` while the proof still pointed at local targets and had no managed DB artifact
 - freshest backend-only rerun evidence on `2026-03-29`:
-  - `npm test`: passed (`176` tests: `163` pass, `13` skipped, `0` fail)
+  - `npm test`: passed (`184` tests: `171` pass, `13` skipped, `0` fail)
   - `npm run test:realdb`: passed
   - `managed-signoff-preflight.test.js` was hardened so the full suite no longer reads workstation-local `.env.release-evidence` state
   - env loader now supports explicit override files through:
     - `SENTIFY_RUNTIME_ENV_FILE`
     - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`
+  - env config now also rejects `TRUST_PROXY=true` and requires a hop count or explicit proxy list instead
 - freshest external staging evidence:
   - healthy baseline on `2026-03-28`:
   - Render staging API: `https://sentify-2fu0.onrender.com`
@@ -50,6 +51,28 @@ Current status:
     - implication:
       - input readiness still holds
       - live staging runtime health is green again after the fix
+  - external staging read-performance rerun on `2026-03-29`:
+    - `node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json`: `STAGING_PERFORMANCE_PROOF_COMPLETE`
+    - `40` authenticated merchant read requests
+    - `0%` error rate
+    - `p95 = 899.53ms`
+    - throughput `3.37 req/s`
+    - caveat:
+      - this is an HTTP read-path proof only
+      - worker-pressure and queue throughput still rely on the local Redis harness, not Render free staging
+  - external staging operator queue proof on `2026-03-29`:
+    - `node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json`: failed after the seeded source's active run remained `QUEUED` for more than `5m`
+    - `GET /api/admin/platform/health-jobs` on the same staging baseline showed:
+      - queue `HEALTHY`
+      - workers `DEGRADED`
+      - `scheduler = null`
+      - `processors = []`
+    - root cause in repo:
+      - `src/server.js` was not booting `startReviewCrawlWorkerRuntime()` for the Render web service
+    - repo fix now exists:
+      - `src/server.js` starts review-crawl runtime whenever Redis is configured and inline mode is off
+    - next operational step:
+      - redeploy Render staging and rerun `proof:staging-review-ops`
 
 Current product/backend completion goal is also locked more tightly now:
 
@@ -78,9 +101,9 @@ The backend is no longer a mock demo. It already behaves like a real product fou
 | Admin platform visibility | Done | Health & jobs, integrations & policies, audit feed, runtime controls, release-readiness summary, integration coverage, durable audit rows for intake, platform-control, membership, and crawl-source history going forward, managed release-evidence artifact ingestion from `managed-release-evidence.json`, and explicit visibility/control over merchant source auto-bootstrap enablement plus per-tick backpressure | Deployed staging API proof plus a product decision on whether user-lifecycle and crawl-run feed entries should also become fully durable |
 | Publish integrity | Mostly done | Stable external review identity, canonical reuse, and real-DB duplicate publish regression | Keep widening edge-case coverage as source rules evolve |
 | Database | Mostly done | Runtime models, crawl invariants, seed dataset, local logical recovery drill, local shadow-database restore rehearsal, durable `AuditEvent` ledger, intake review/publish lineage fields, durable `ReviewPublishEvent` lineage rows from canonical reviews back to staging/raw evidence, a persisted `RestaurantSourceSubmission` ingress model keyed to each restaurant, explicit persisted source-submission handoff states (`PENDING_IDENTITY_RESOLUTION`, `READY_FOR_SOURCE_LINK`, `LINKED_TO_SOURCE`), persisted submission `dedupeKey` and `schedulingLane` metadata for future queue policy, `schedulingLaneSource` so admin overrides stay distinct from entitlement defaults, `RestaurantEntitlement` as the only persisted merchant-facing plan truth, lease metadata (`claimedByUserId`, `claimedAt`, `claimExpiresAt`) for claimable deduped groups, explicit `PlatformControl` fields for merchant source auto-bootstrap enablement and max-per-tick backpressure, audit-backed `sourceSubmissionSnapshot` metadata so cross-attempt merchant source history survives URL replace/clear flows, and existing-source restore of platform controls plus durable history rows | Provider-managed backup and rollback evidence plus optional legacy-history backfill if older audit visibility is required |
-| Testing | Mostly done | `npm test`, `db:seed`, `db:reset:local-baseline`, `test:realdb`, queued crawl smoke, seeded HTTP read proof, local SMB load harnesses, Redis-backed operator and worker smoke on local Memurai, local logical recovery drill, local shadow-database recovery smoke, executable `proof:managed-redis`, executable `proof:staging-api`, executable `proof:performance`, executable `proof:release-evidence`, implemented browser E2E for `USER` and `ADMIN` critical paths plus publication-chain, concurrent dual-session role handoff proofs, review-ops guardrails, manual intake full flow, and crawl operations full flow on an isolated real stack (`4173` FE, `3100` API, `review-crawl-playwright` queue), targeted backend proof for durable membership audit, crawl-source mutation audit, publish lineage, merchant source-submission persistence under both resolved and unresolved Google Maps save paths, explicit persisted source-submission lifecycle/backfill migration proof, merchant-facing source-submission timeline/history derivation, admin source-submission queue grouping/read-model behavior, admin source-submission resolve/link write actions, scheduling-lane triage behavior, lease-based claim-next behavior, scheduler bootstrap from canonical-ready submissions into crawl-source linking plus initial queued runs, explicit platform-control coverage for auto-bootstrap enable/disable and per-tick backpressure, same-URL lease preservation versus changed-URL lease reset, audit-backed cross-attempt source history proof, entitlement policy regression for restaurant list/detail, merchant actions, crawl-source sync cadence, and admin entitlement update flow; full `test:realdb` now resets and reseeds before each `.realdb.test.js` file for deterministic suite isolation; real deployed staging auth/read proof now also passes on Render plus Neon; strict managed sign-off now passes against the current external baseline | Optional performance proof rerun |
+| Testing | Mostly done | `npm test`, `db:seed`, `db:reset:local-baseline`, `test:realdb`, queued crawl smoke, seeded HTTP read proof, local SMB load harnesses, Redis-backed operator and worker smoke on local Memurai, local logical recovery drill, local shadow-database recovery smoke, executable `proof:managed-redis`, executable `proof:staging-api`, executable `proof:staging-performance`, executable `proof:staging-review-ops`, executable `proof:performance`, executable `proof:release-evidence`, implemented browser E2E for `USER` and `ADMIN` critical paths plus publication-chain, concurrent dual-session role handoff proofs, review-ops guardrails, manual intake full flow, and crawl operations full flow on an isolated real stack (`4173` FE, `3100` API, `review-crawl-playwright` queue), targeted backend proof for durable membership audit, crawl-source mutation audit, publish lineage, merchant source-submission persistence under both resolved and unresolved Google Maps save paths, explicit persisted source-submission lifecycle/backfill migration proof, merchant-facing source-submission timeline/history derivation, admin source-submission queue grouping/read-model behavior, admin source-submission resolve/link write actions, scheduling-lane triage behavior, lease-based claim-next behavior, scheduler bootstrap from canonical-ready submissions into crawl-source linking plus initial queued runs, explicit platform-control coverage for auto-bootstrap enable/disable and per-tick backpressure, same-URL lease preservation versus changed-URL lease reset, audit-backed cross-attempt source history proof, entitlement policy regression for restaurant list/detail, merchant actions, crawl-source sync cadence, and admin entitlement update flow; full `test:realdb` now resets and reseeds before each `.realdb.test.js` file for deterministic suite isolation; real deployed staging auth/read proof now also passes on Render plus Neon; external staging merchant read latency now has a dedicated HTTP proof; repo code now also contains an external operator queue proof plus the server-side runtime bootstrap fix it exposed; strict managed sign-off now passes against the current external baseline | Redeploy Render staging and rerun external operator proof; after that, only non-free staging worker-throughput proof remains if queue-performance confidence must exceed the current Render free benchmark |
 | Docs | Mostly done | Source-of-truth docs now describe the simplified `USER` vs `ADMIN` contract | Keep sync as code evolves |
-| Ops and release | Mostly done | Health endpoints, worker runtime, setup docs, local recovery drills, existing-source restore runner, authenticated staging API proof, performance proof, managed release-evidence bundle, admin-surface visibility into managed proof artifacts, a live Render plus Neon staging baseline with seeded merchant and admin proof accounts, validated provider-managed DB proof artifact, a passing strict managed-signoff rerun against the external staging stack, and rotated staging DB credentials after the setup leak | Optional hardening for free-tier staging latency and performance-proof path |
+| Ops and release | Mostly done | Health endpoints, worker runtime, setup docs, local recovery drills, existing-source restore runner, authenticated staging API proof, external staging merchant read-performance proof, local bundled performance proof, managed release-evidence bundle, admin-surface visibility into managed proof artifacts, a live Render plus Neon staging baseline with seeded merchant and admin proof accounts, validated provider-managed DB proof artifact, a passing strict managed-signoff rerun against the external staging stack, rotated staging DB credentials after the setup leak, and a repo-level fix so the Render web service now boots review-crawl runtime instead of only the HTTP API | Redeploy Render staging to apply the runtime-bootstrap fix, then rerun external operator queue proof |
 
 ## 3. Key Contract Decisions
 
@@ -321,27 +344,43 @@ Key backend milestones already achieved:
     - `scripts/load-env-files.js` now accepts explicit env-file overrides for runtime and release-evidence contexts
     - `managed-signoff-preflight.test.js` now uses an isolated empty release-evidence env file during test execution
     - `npm test` is green again without depending on machine-local managed-signoff secrets
+113. Added a separate external staging read-performance proof on `2026-03-29`:
+    - `scripts/staging-performance-proof.js` now measures authenticated merchant read-path latency directly against deployed staging
+    - current Render plus Neon artifact: `STAGING_PERFORMANCE_PROOF_COMPLETE`
+    - observed result:
+      - `40` requests
+      - `0%` error rate
+      - `p95 = 899.53ms`
+      - `3.37 req/s`
+    - explicit caveat:
+      - this proves HTTP merchant reads on external staging
+      - it does not replace the local Redis worker-pressure proof
+114. Added a trust-proxy security guardrail on `2026-03-29`:
+    - `src/config/env.js` now rejects `TRUST_PROXY=true`
+    - hosted deployments must use a hop count like `1` or an explicit proxy subnet list
+    - regression coverage added in `test/env.test.js`
 
 ## 5. Risk If Work Stops Here
 
 - confidence no longer lacks strict managed sign-off on the current staging baseline
 - release-evidence tooling is green locally and the current external staging baseline is now fully signed off
-- queue worker behavior is measured under local Redis compatibility and an executable BullMQ probe harness, but not yet under a real managed Redis deployment or staging worker fleet
+- queue worker behavior is measured under local Redis compatibility and an executable BullMQ probe harness, but not yet under a non-free external staging worker fleet
 - audit history is now durable for intake, platform control, membership, and crawl-source mutations going forward, but legacy membership/source changes from before the durable ledger are not backfilled automatically
 - Google-reported totals can still exceed the public review rows exposed through the unofficial RPC, even though operator surfaces now label that mismatch as advisory when the public chain is exhausted
 - FE can now see lifecycle, runtime-control truth, audit-backed source-attempt history, and managed-evidence status, and the current staging baseline now has complete managed sign-off evidence
 - user-creation and crawl-run projections in the admin audit feed are still partly synthetic unless they are promoted to durable audit events later
-- release operations are not yet demonstrated against a real staging deployment or provider-managed backup and rollback workflows
+- release operations are already demonstrated against the current Render plus Neon staging baseline, but worker-throughput evidence still leans on local Redis rather than an external staging worker fleet
 
 ## 6. Recommended Next Order
 
 The next backend priorities should be:
 
-1. rerun `proof:release-evidence` against a real managed Redis URL and a real staging API base URL
-2. prove provider-managed Postgres snapshot or PITR restore instead of only shadow-database logical restore
-3. decide whether merchant actions remain a derived read model or later grow into a persisted task/ownership domain
-4. decide whether legacy membership/source history needs a one-time backfill into the durable audit ledger
-5. avoid new schema expansion unless the next product decision truly requires it; for current scope the BE + database contract is stable enough to drive FE safely
+1. redeploy Render staging so `src/server.js` can apply the new review-crawl runtime bootstrap path
+2. rerun `proof:staging-review-ops` against Render plus Neon to confirm external queue worker health is no longer `DEGRADED`
+3. if queue-performance confidence still needs to go higher after that, rerun throughput proof on a non-free external staging worker topology instead of relying only on Render free plus local Redis evidence
+4. decide whether merchant actions remain a derived read model or later grow into a persisted task/ownership domain
+5. decide whether legacy membership/source history needs a one-time backfill into the durable audit ledger
+6. avoid new schema expansion unless the next product decision truly requires it; for current scope the BE + database contract is stable enough to drive FE safely
 
 ## 7. Short Conclusion
 

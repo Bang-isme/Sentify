@@ -175,6 +175,7 @@ Behavior:
   - fix:
     - set `TRUST_PROXY=1` on Render
     - repo baseline now also uses `TRUST_PROXY=1` in `render.yaml`
+    - backend env parsing now rejects `TRUST_PROXY=true` so permissive trust-proxy config fails fast at startup
 - Latest post-fix staging revalidation on `2026-03-29`:
   - `GET /health` returns `200`
   - `GET /api/health` returns `200` with `{"status":"ok","db":"up"}`
@@ -213,6 +214,43 @@ Behavior:
 - Operational note:
   - the Neon database password was exposed during setup in chat
   - staging DB credentials have since been rotated and Render `DATABASE_URL` updated
+- External staging HTTP read-performance proof on `2026-03-29`:
+  - script:
+    - `scripts/staging-performance-proof.js`
+  - artifact:
+    - `load-reports/staging-performance-proof-managed.json`
+  - target:
+    - Render staging API `https://sentify-2fu0.onrender.com`
+    - merchant restaurant `demo-quan-pho-hong`
+  - result:
+    - `overallStatus = STAGING_PERFORMANCE_PROOF_COMPLETE`
+    - `40` measured requests
+    - `0%` error rate
+    - `p95 = 899.53ms`
+    - throughput `3.37 req/s`
+  - scope caveat:
+    - this proof measures authenticated merchant HTTP read paths only
+    - it intentionally does not replace the local Redis worker-pressure proof because Render free staging is not a reliable worker-throughput benchmark
+- External staging operator queue proof on `2026-03-29`:
+  - script:
+    - `scripts/staging-review-ops-proof.js`
+  - current target:
+    - pre-seeded crawl source for `demo-quan-pho-hong`
+  - last live result against the currently deployed Render service:
+    - direct source run creation hit `REVIEW_CRAWL_RUN_ALREADY_ACTIVE`
+    - the active run stayed `QUEUED` for more than `5m`
+    - `GET /api/admin/platform/health-jobs` showed:
+      - queue `HEALTHY`
+      - workers `DEGRADED`
+      - `scheduler = null`
+      - `processors = []`
+  - root cause in the codebase:
+    - `src/server.js` started the HTTP API only
+    - the web service never booted `startReviewCrawlWorkerRuntime()`
+  - repo fix now in place:
+    - `src/server.js` starts review-crawl runtime whenever Redis is configured and inline mode is off
+  - deployment implication:
+    - Render staging must be redeployed before external operator proof can be considered current again
 
 ### Auth and security
 
@@ -590,6 +628,8 @@ Important proof points already exist:
 - managed Redis release-evidence harness now exists through:
   - `scripts/managed-redis-proof.js`
   - `scripts/staging-api-proof.js`
+  - `scripts/staging-performance-proof.js`
+  - `scripts/staging-review-ops-proof.js`
   - `scripts/performance-proof.js`
   - `scripts/release-evidence.js`
 - `staging-recovery-drill.js` now supports `existing` source mode so a source database can be rehearsed without reseeding it first
@@ -631,6 +671,18 @@ Important proof points already exist:
     - stale heavy bundle artifacts downgrade to `COMPATIBILITY_PROOF_STALE` and `MANAGED_SIGNOFF_STALE`
     - stale preflight artifacts downgrade to `managedSignoffPreflightStatus=MANAGED_SIGNOFF_STALE`
     - release readiness now returns `freshArtifactKeys`, `staleArtifactKeys`, `compatibilityProofFreshnessStatus`, and `managedSignoffPreflightFreshnessStatus`
+- a separate external staging read-proof now exists on `2026-03-29`:
+  - command:
+    - `cd "D:\Project 3\backend-sentify" ; node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json`
+  - result:
+    - `overallStatus = STAGING_PERFORMANCE_PROOF_COMPLETE`
+    - `40` authenticated merchant read requests
+    - `0%` error rate
+    - `p95 = 899.53ms`
+    - `3.37 req/s`
+  - interpretation:
+    - Render plus Neon staging is fast enough for the current merchant read surface under a light external concurrency proof
+    - queue and worker throughput still rely on the local Redis worker-pressure harness, not on Render free staging
 - Google Maps short-link sync proof now includes retry-hardened source resolution for transient upstream fetch failures
 - crawl-operations UI now preserves an operator-typed URL after manual edits instead of letting late restaurant detail hydration overwrite it
 - shadow-database recovery proof covers restore plus app-level rollback smoke
@@ -702,9 +754,12 @@ Fresh verification on `2026-03-28`:
   - deploy-safe Prisma command: `npm run db:migrate:deploy`
 - env parsing was hardened so `JWT_SECRET_PREVIOUS=` can be left blank without breaking backend startup or admin-platform integration tests
 - Fresh full backend rerun on `2026-03-29`:
-  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`176` tests: `163` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`184` tests: `171` pass, `13` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - `managed-signoff-preflight.test.js` is now hermetic against workstation-local `.env.release-evidence`
   - proof scripts can now be isolated explicitly with:
     - `SENTIFY_RUNTIME_ENV_FILE`
     - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`
+  - the full suite now also covers:
+    - `staging-performance-proof.test.js`
+    - `staging-review-ops-proof.test.js`

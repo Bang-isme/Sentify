@@ -75,6 +75,8 @@ Unit tests                 Current baseline
 - release-evidence harness coverage now includes:
   - `managed-redis-proof.js` for BullMQ compatibility against a supplied Redis URL
   - `staging-api-proof.js` for authenticated merchant/admin smoke against a supplied staging API base URL
+  - `staging-performance-proof.js` for authenticated merchant read-path latency against the deployed staging API
+  - `staging-review-ops-proof.js` for deployed admin queue, run, and materialization flow against an existing seeded source
   - `performance-proof.js` for bundled merchant-read load, Redis worker-pressure load, and optional scale-estimate evidence
   - `staging-recovery-drill.js --source-mode existing` for staging-safe restore rehearsal without reseeding the source DB
   - `release-evidence.js` for a combined managed release-evidence report
@@ -258,8 +260,50 @@ Unit tests                 Current baseline
     - release readiness should only be trusted while artifacts are fresh
     - default freshness windows are `24h` for required local proof and `72h` for managed proof artifacts
     - override via `ADMIN_PLATFORM_LOCAL_PROOF_MAX_AGE_HOURS` and `ADMIN_PLATFORM_MANAGED_PROOF_MAX_AGE_HOURS` when needed
+  - external staging read-performance verification on `2026-03-29`:
+  - command:
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json`
+  - artifact:
+    - `load-reports/staging-performance-proof-managed.json`
+  - result:
+    - `overallStatus = STAGING_PERFORMANCE_PROOF_COMPLETE`
+    - `40` authenticated merchant read requests
+    - `0%` error rate
+    - `p95 = 899.53ms`
+    - `3.37 req/s`
+  - measured scope:
+    - `restaurants.list`
+    - `restaurant.detail`
+    - `reviews.page`
+    - `reviews.rating`
+    - `dashboard.kpi`
+    - `dashboard.sentiment`
+    - `dashboard.trend`
+    - `dashboard.complaints`
+    - `dashboard.topIssue`
+    - `dashboard.actions`
+  - caveat:
+    - this is an HTTP read-path proof only
+    - it intentionally does not replace the local Redis worker-pressure proof because Render free staging is not a reliable worker-throughput benchmark
+- external staging operator queue verification on `2026-03-29`:
+  - command:
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json`
+  - result against the currently deployed Render baseline:
+    - failed after the seeded source's active run remained `QUEUED` for more than `305000ms`
+  - supporting control-plane evidence:
+    - `GET /api/admin/platform/health-jobs` returned:
+      - queue `HEALTHY`
+      - workers `DEGRADED`
+      - `scheduler = null`
+      - `processors = []`
+  - repo-level root cause and fix:
+    - `src/server.js` was not booting `startReviewCrawlWorkerRuntime()` for the Render web service
+    - the codebase now starts review-crawl runtime from `src/server.js` whenever Redis is configured and inline mode is off
+  - next proof step:
+    - redeploy Render staging
+    - rerun `proof:staging-review-ops`
 - latest full backend-suite verification on `2026-03-29`:
-  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`176` tests: `163` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`184` tests: `171` pass, `13` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - proof focus:
     - full mocked/unit/integration suite is green alongside real-DB smoke
@@ -267,6 +311,7 @@ Unit tests                 Current baseline
     - env loader override hooks now exist for test isolation:
       - `SENTIFY_RUNTIME_ENV_FILE`
       - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`
+    - env config now also rejects permissive `TRUST_PROXY=true` values in tests and runtime config parsing
 - freshest backend and browser rerun on `2026-03-28`:
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - `cd D:\Project 3\backend-sentify && node --test test/admin-platform.integration.test.js` -> `4/4 passed`
@@ -526,8 +571,8 @@ npm run smoke:staging-recovery-drill
 
 The main testing gaps still left are:
 
-- managed Redis or staging-backed queue proof beyond local Memurai compatibility
-- real staging proof and managed-environment backup, restore, and rollback beyond local logical and shadow-database drills
+  - deployed staging queue proof is now implemented, but the Render baseline still needs one redeploy to pick up the new server-side runtime bootstrap path before the proof can be rerun cleanly
+  - real staging proof and managed-environment backup, restore, and rollback beyond local logical and shadow-database drills
 - browser coverage still treats admin `Access` and `Platform` as critical-path structure checks, not full lifecycle execution
 - browser coverage is still limited to first-wave critical paths and does not yet exercise deep intake publish or queue-backed crawl execution inside the browser
 
@@ -551,6 +596,11 @@ The main testing gaps still left are:
   - merchant reads: `p95=50.95ms`, `309.46 req/s`, `0%` error rate
   - worker pressure: `1342.58 raw reviews/s`, `totalRunP95=4322ms`, `24/24` completed
   - scale estimate: target `20,000` reviews still fits the current leg budget, but completeness at that scale is still an estimate until proven against a comparable live source
+- latest external staging read-performance numbers:
+  - merchant reads over Render plus Neon staging: `p95=899.53ms`, `3.37 req/s`, `0%` error rate
+  - interpretation:
+    - the merchant read surface is healthy under light external concurrency
+    - these numbers should not be compared directly to the local worker-pressure harness because the staging proof excludes queue throughput on purpose
 
 ## 8. Merge Gate
 
