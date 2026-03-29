@@ -5,6 +5,7 @@ import App from '../src/App'
 import {
   ApiClientError,
   createRestaurant,
+  forgotPassword,
   getComplaintKeywords,
   getDashboardKpi,
   getLatestImportRun,
@@ -38,6 +39,7 @@ vi.mock('../src/lib/api', async () => {
   return {
     ...actual,
     createRestaurant: vi.fn(),
+    forgotPassword: vi.fn(),
     getComplaintKeywords: vi.fn(),
     getDashboardKpi: vi.fn(),
     getLatestImportRun: vi.fn(),
@@ -61,6 +63,7 @@ const getRestaurantDetailMock = vi.mocked(getRestaurantDetail)
 const getDashboardKpiMock = vi.mocked(getDashboardKpi)
 const getLatestImportRunMock = vi.mocked(getLatestImportRun)
 const getSessionMock = vi.mocked(getSession)
+const forgotPasswordMock = vi.mocked(forgotPassword)
 const getSentimentBreakdownMock = vi.mocked(getSentimentBreakdown)
 const getTrendMock = vi.mocked(getTrend)
 const getComplaintKeywordsMock = vi.mocked(getComplaintKeywords)
@@ -216,6 +219,9 @@ beforeEach(() => {
     },
   })
   logoutMock.mockResolvedValue({ message: 'ok' })
+  forgotPasswordMock.mockResolvedValue({
+    message: 'If the email is registered, a reset link has been sent.',
+  })
   registerMock.mockResolvedValue({
     expiresIn: 3600,
     user: {
@@ -255,6 +261,31 @@ describe('Sentify app shell', () => {
     await waitFor(() => {
       expect(window.location.hash).toBe('#/login')
     })
+  })
+
+  it('lets a guest request a password reset from the login screen', async () => {
+    window.location.hash = '#/login'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    const forgotPasswordButton = await screen.findByRole('button', { name: 'Forgot password?' })
+
+    await user.click(forgotPasswordButton)
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/forgot-password')
+    })
+
+    await user.type(screen.getByLabelText('Account email'), 'owner@sentify.test')
+    await user.click(screen.getByRole('button', { name: 'Send reset link' }))
+
+    await waitFor(() => {
+      expect(forgotPasswordMock).toHaveBeenCalledWith({ email: 'owner@sentify.test' })
+    })
+
+    expect(
+      await screen.findByText('If the email is registered, a reset link has been sent.'),
+    ).toBeInTheDocument()
   })
 
   it('shows onboarding instead of the sidebar when no restaurants exist', async () => {

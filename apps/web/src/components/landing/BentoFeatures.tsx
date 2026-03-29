@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { getLocaleWithFallback } from '../../content/localeFallback'
 import { useLanguage, type Language } from '../../contexts/languageContext'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
@@ -407,7 +408,10 @@ export function BentoFeatures() {
                       <div
                         key={showcase.days[index]}
                         className="dashboard-chart-column flex h-full flex-1 flex-col items-center gap-3"
-                        style={{ ['--dashboard-delay' as const]: `${index * 180}ms` }}
+                        style={
+                          { '--dashboard-delay': `${index * 180}ms` } as CSSProperties &
+                            Record<'--dashboard-delay', string>
+                        }
                       >
                         <div className="flex h-full w-full flex-col justify-end gap-1">
                           <div

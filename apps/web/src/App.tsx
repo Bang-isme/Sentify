@@ -35,7 +35,14 @@ import {
   type ImportRunSummary,
 } from './lib/api'
 
-type AppRoute = '/' | '/login' | '/signup' | '/app' | '/app/reviews' | '/app/settings'
+type AppRoute =
+  | '/'
+  | '/login'
+  | '/signup'
+  | '/forgot-password'
+  | '/app'
+  | '/app/reviews'
+  | '/app/settings'
 
 interface StoredSession {
   user: AuthUser
@@ -91,6 +98,7 @@ function getRouteFromHash(hash: string): AppRoute {
     case '/':
     case '/login':
     case '/signup':
+    case '/forgot-password':
     case '/app':
     case '/app/reviews':
     case '/app/settings':
@@ -462,7 +470,7 @@ function SentifyShell() {
       return
     }
 
-    if ((route === '/login' || route === '/signup') && session) {
+    if ((route === '/login' || route === '/signup' || route === '/forgot-password') && session) {
       navigate('/app')
     }
   }, [route, session, authBootLoading])
@@ -991,17 +999,31 @@ function SentifyShell() {
             {productCopy.feedback.loadingSession}
           </div>
         </main>
-      ) : route === '/login' || route === '/signup' ? (
+      ) : route === '/login' || route === '/signup' || route === '/forgot-password' ? (
         <AuthScreen
           language={language}
           key={route}
-          mode={route === '/login' ? 'login' : 'signup'}
+          mode={
+            route === '/login'
+              ? 'login'
+              : route === '/signup'
+                ? 'signup'
+                : 'forgot-password'
+          }
           copy={productCopy.auth}
           pending={authPending}
           error={authError}
           onLogin={handleLogin}
           onSignup={handleSignup}
-          onSwitchMode={(mode) => navigate(mode === 'login' ? '/login' : '/signup')}
+          onSwitchMode={(mode) =>
+            navigate(
+              mode === 'login'
+                ? '/login'
+                : mode === 'signup'
+                  ? '/signup'
+                  : '/forgot-password',
+            )
+          }
         />
       ) : isAppRoute(route) ? (
         <ProductWorkspace

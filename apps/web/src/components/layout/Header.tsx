@@ -3,7 +3,14 @@ import { getProductUiCopy } from '../../content/productUiCopy'
 import { LANGUAGE_OPTIONS, useLanguage } from '../../contexts/languageContext'
 import { useTheme } from '../../contexts/useTheme'
 
-type HeaderRoute = '/' | '/login' | '/signup' | '/app' | '/app/reviews' | '/app/settings'
+type HeaderRoute =
+  | '/'
+  | '/login'
+  | '/signup'
+  | '/forgot-password'
+  | '/app'
+  | '/app/reviews'
+  | '/app/settings'
 
 interface HeaderAccountIdentity {
   displayName: string
@@ -47,7 +54,8 @@ export function Header({
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
   const isAppRoute = route.startsWith('/app')
   const isLandingRoute = route === '/'
-  const isAuthRoute = route === '/login' || route === '/signup'
+  const isAuthRoute =
+    route === '/login' || route === '/signup' || route === '/forgot-password'
   const useLandingChrome = !isAppRoute
   const marketingSurfaceVisible = isLandingRoute ? isLandingScrolled : true
   const isLandingCompact = isLandingRoute && isLandingScrolled
