@@ -309,7 +309,8 @@ describe('Sentify app shell', () => {
     expect(await screen.findByText('Operational triage dashboard')).toBeInTheDocument()
 
     const accountButton = screen.getByRole('button', { name: /open account menu/i })
-    expect(accountButton).toHaveTextContent('Casey Owner')
+    expect(accountButton).toHaveTextContent('CO')
+    expect(accountButton).not.toHaveTextContent('Casey Owner')
     expect(accountButton).toHaveAttribute('aria-expanded', 'false')
 
     await user.click(accountButton)

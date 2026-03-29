@@ -1781,24 +1781,25 @@ function OnboardingPanel({
   const visualCopy = getOnboardingVisualCopy(language)
 
   return (
-    <div className="mx-auto grid max-w-[1080px] gap-8">
-      <section className="relative isolate overflow-hidden rounded-[1.8rem] border border-[#e8d8c6] shadow-[0_26px_80px_-50px_rgba(34,23,15,0.5)]">
+    <div className="mx-auto grid max-w-[1160px] gap-7">
+      <section className="relative isolate overflow-hidden rounded-[2rem] border border-[#e7d3be]/90 bg-[#1f130d] shadow-[0_24px_70px_-42px_rgba(34,23,15,0.58)]">
         <img
           alt="Restaurant onboarding ambiance"
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover object-center"
           src={ONBOARDING_HERO_IMAGE}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#20130b]/86 via-[#20130b]/45 to-[#20130b]/12" />
-        <div className="relative min-h-[270px] px-6 py-8 text-white sm:px-8 sm:py-10 lg:px-10 lg:py-10">
-          <div className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#f3c9a5]/30 bg-[#eb7a1c]/15 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffe7d1] backdrop-blur">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(26,14,8,0.86)_0%,rgba(34,20,11,0.68)_38%,rgba(34,20,11,0.3)_68%,rgba(34,20,11,0.12)_100%)]" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-[62%] bg-[radial-gradient(circle_at_left_center,rgba(235,122,28,0.22),transparent_60%)]" />
+        <div className="relative flex min-h-[214px] items-end px-5 py-6 text-white sm:min-h-[236px] sm:px-7 sm:py-7 lg:min-h-[258px] lg:px-10 lg:py-8">
+          <div className="max-w-[42rem]">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f3c9a5]/30 bg-[#eb7a1c]/16 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffe7d1] backdrop-blur">
               <span className="size-2 rounded-full bg-primary" />
               {visualCopy.phaseLabel}
             </div>
-            <h1 className="mt-5 max-w-3xl font-serif text-[2.35rem] font-semibold tracking-[-0.04em] text-white sm:text-[2.95rem]">
+            <h1 className="mt-4 max-w-[36rem] font-serif text-[2rem] font-semibold tracking-[-0.05em] text-white sm:text-[2.45rem] lg:text-[2.9rem]">
               {copy.onboardingTitle}
             </h1>
-            <p className="mt-4 max-w-2xl text-[0.95rem] leading-7 text-white/82 sm:text-[1rem]">
+            <p className="mt-3 max-w-[40rem] text-[0.95rem] leading-7 text-white/84 sm:text-[0.98rem] lg:text-[1rem]">
               {copy.onboardingDescription}
             </p>
           </div>
