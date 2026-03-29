@@ -247,7 +247,7 @@ describe('Sentify app shell', () => {
     await waitFor(() => {
       expect(window.location.hash).toBe('#/login')
     })
-    expect(screen.getAllByRole('button', { name: /login/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: /log in/i }).length).toBeGreaterThan(0)
   })
 
   it('routes the hero dashboard CTA through auth for guest users', async () => {
@@ -450,7 +450,7 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Original reviews')).length).toBeGreaterThan(0)
     expect(
       screen.getByText('No reviews imported yet. Save the source URL and run the first import.'),
     ).toBeInTheDocument()
@@ -496,7 +496,7 @@ describe('Sentify app shell', () => {
 
     render(<App />)
 
-    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Original reviews')).length).toBeGreaterThan(0)
 
     listReviewEvidenceMock.mockClear()
     await user.click(screen.getByRole('button', { name: 'From' }))
@@ -506,7 +506,7 @@ describe('Sentify app shell', () => {
     await user.click(screen.getByRole('button', { name: 'Apply filters' }))
 
     expect(listReviewEvidenceMock).not.toHaveBeenCalled()
-    expect(screen.getByText('`From` must be before or equal to `To`.')).toBeInTheDocument()
+    expect(screen.getByText('The start date must be on or before the end date.')).toBeInTheDocument()
   })
 
   it('switches restaurant context through the custom switcher', async () => {
@@ -556,7 +556,7 @@ describe('Sentify app shell', () => {
 
     await user.click(screen.getAllByRole('button', { name: /reviews/i })[0])
 
-    expect((await screen.findAllByText('Review evidence')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Original reviews')).length).toBeGreaterThan(0)
     expect(getRestaurantDetailMock).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('Loading restaurant...')).not.toBeInTheDocument()
   })
