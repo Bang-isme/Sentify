@@ -625,10 +625,9 @@ export function HeroSection({
                   type="submit"
                   aria-label={ui.searchActionLabel}
                   disabled={isScanning}
-                  className="inline-flex h-[2.8rem] w-full items-center justify-center gap-2 whitespace-nowrap rounded-[1rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-4.5 text-[0.82rem] font-bold text-white shadow-[0_0.95rem_1.8rem_-1rem_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_1.15rem_2rem_-1rem_rgba(217,95,22,0.85)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-w-[10rem] sm:w-auto md:text-[0.84rem]"
+                  className="inline-flex h-[2.8rem] w-full items-center justify-center whitespace-nowrap rounded-[1rem] bg-gradient-to-r from-[#eb7a1c] to-[#d95f16] px-4.5 text-[0.82rem] font-bold text-white shadow-[0_0.95rem_1.8rem_-1rem_rgba(217,95,22,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_1.15rem_2rem_-1rem_rgba(217,95,22,0.85)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-w-[10rem] sm:w-auto md:text-[0.84rem]"
                 >
                   <span>{isScanning ? ui.scanningLabel : primaryLabel}</span>
-                  <span className="material-symbols-outlined text-[18px]">arrow_outward</span>
                 </button>
               </form>
 

@@ -54,9 +54,10 @@ export function Header({
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
   const isAppRoute = route.startsWith('/app')
   const isLandingRoute = route === '/'
+  const isOnboardingAppRoute = isAppRoute && isAuthenticated && (user?.restaurantCount ?? 0) === 0
   const isAuthRoute =
     route === '/login' || route === '/signup' || route === '/forgot-password'
-  const useLandingChrome = !isAppRoute
+  const useLandingChrome = !isAppRoute || isOnboardingAppRoute
   const marketingSurfaceVisible = isLandingRoute ? isLandingScrolled : true
   const isLandingCompact = isLandingRoute && isLandingScrolled
   const marketingShellCompact = isLandingRoute ? isLandingCompact : false
@@ -68,6 +69,11 @@ export function Header({
         : route === '/app/settings'
           ? productCopy.header.settings
           : null
+  const onboardingAppLinks = [
+    { id: 'dashboard', label: productCopy.header.dashboard, route: '/app' as const },
+    { id: 'settings', label: productCopy.header.settings, route: '/app/settings' as const },
+    { id: 'reviews', label: productCopy.header.reviews, route: '/app/reviews' as const },
+  ]
 
   useEffect(() => {
     if (!isLanguageMenuOpen && !isAccountMenuOpen) {
@@ -265,7 +271,9 @@ export function Header({
           <span
             className={`hidden tracking-tight sm:block ${
               useLandingChrome
-                ? `${marketingShellCompact ? 'text-[0.88rem] md:text-[0.9rem]' : 'text-[0.98rem]'} font-bold ${
+                ? `${isOnboardingAppRoute ? 'text-[1.22rem]' : marketingShellCompact ? 'text-[0.88rem] md:text-[0.9rem]' : 'text-[0.98rem]'} ${
+                    isOnboardingAppRoute ? 'font-bold' : 'font-bold'
+                  } ${
                     isAuthRoute
                       ? authHeaderLeftTextClass
                       : 'text-[#1a1a1a] dark:text-[#fff7ef]'
@@ -294,7 +302,27 @@ export function Header({
           }
         >
           {isAppRoute && isAuthenticated ? (
-            currentViewLabel ? (
+            isOnboardingAppRoute ? (
+              onboardingAppLinks.map((item) => {
+                const isActive = route === item.route
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`inline-flex items-center justify-center text-[0.82rem] font-semibold transition-all duration-300 ${
+                      isActive
+                        ? 'text-[#8b4214]'
+                        : 'text-[#7d6957] hover:text-[#eb7a1c] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]'
+                    }`}
+                    style={{ fontFamily: '"Work Sans", system-ui, sans-serif' }}
+                    onClick={() => onNavigate(item.route)}
+                  >
+                    {item.label}
+                  </button>
+                )
+              })
+            ) : currentViewLabel ? (
               <div className="inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
                 <span className="size-2 rounded-full bg-primary"></span>
                 <span>{currentViewLabel}</span>
@@ -445,29 +473,57 @@ export function Header({
                     setIsAccountMenuOpen((current) => !current)
                     setIsLanguageMenuOpen(false)
                   }}
-                  className={`group flex items-center rounded-full text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  className={`group flex min-w-0 items-center overflow-hidden rounded-full text-left transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     useLandingChrome
-                      ? `${marketingShellCompact ? 'h-9 gap-1.5 pl-1.5 pr-2.5' : 'h-10 gap-2 pl-2 pr-3'} border border-[#eadbc8] bg-white/78 hover:border-[#eb7a1c]/40 hover:bg-white dark:border-[#3d2c1f] dark:bg-[#1c140f]/88 dark:hover:border-[#f29a40]/45 dark:hover:bg-[#241912]`
+                      ? `${isOnboardingAppRoute ? 'h-11 max-w-[15rem] gap-2.5 pl-1.5 pr-3 sm:max-w-[16.75rem]' : marketingShellCompact ? 'h-9 max-w-[14.5rem] gap-2 pl-1.5 pr-3 lg:max-w-[15.75rem]' : 'h-10 max-w-[16rem] gap-2.5 pl-2 pr-3.5 lg:max-w-[17.75rem]'} border border-[#eadbc8] bg-white/78 hover:border-[#eb7a1c]/40 hover:bg-white dark:border-[#3d2c1f] dark:bg-[#1c140f]/88 dark:hover:border-[#f29a40]/45 dark:hover:bg-[#241912]`
                       : 'h-10 gap-2 border border-border-light/80 bg-surface-white/70 hover:border-primary/35 hover:bg-primary/6 dark:border-border-dark dark:bg-surface-dark/78'
                   }`}
                 >
                   <span
-                    className={`flex items-center justify-center rounded-full bg-primary text-xs font-black text-bg-dark transition-all duration-300 ${
-                      isLandingCompact ? 'size-[1.625rem]' : 'size-7'
+                    className={`flex shrink-0 items-center justify-center rounded-full bg-primary text-xs font-black text-bg-dark transition-all duration-300 ${
+                      isOnboardingAppRoute
+                        ? 'size-[1.85rem] text-[11px]'
+                        : isLandingCompact
+                          ? 'size-[1.625rem]'
+                          : 'size-7'
                     }`}
                   >
                     {user?.initials ?? 'S'}
                   </span>
-                  <span className="hidden min-w-0 md:block">
+                  <span
+                    className={`hidden min-w-0 flex-1 md:block ${
+                      useLandingChrome
+                        ? isOnboardingAppRoute
+                          ? 'max-w-[9.9rem] lg:max-w-[11.3rem]'
+                          : marketingShellCompact
+                            ? 'max-w-[9.1rem] lg:max-w-[10.35rem]'
+                            : 'max-w-[10.45rem] lg:max-w-[12rem]'
+                        : ''
+                    }`}
+                  >
                     <span
-                      className={`block truncate text-sm font-semibold ${
+                      className={`block truncate font-semibold ${
+                        useLandingChrome
+                          ? isOnboardingAppRoute
+                            ? 'text-[0.9rem] leading-tight'
+                            : marketingShellCompact
+                              ? 'text-[0.84rem] leading-tight'
+                              : 'text-[0.92rem] leading-tight'
+                          : 'text-sm'
+                      } ${
                         useLandingChrome ? 'text-[#201611] dark:text-[#fff7ef]' : 'text-text-charcoal dark:text-white'
                       }`}
                     >
                       {user?.displayName ?? productCopy.header.accountFallback}
                     </span>
                     <span
-                      className={`block truncate text-[12px] ${
+                      className={`block truncate ${
+                        useLandingChrome
+                          ? isOnboardingAppRoute
+                            ? 'mt-0.5 text-[11px] leading-tight'
+                            : 'mt-0.5 text-[11px] leading-tight'
+                          : 'text-[12px]'
+                      } ${
                         useLandingChrome ? 'text-[#7a6958] dark:text-[#cdb69c]' : 'text-text-silver-light dark:text-text-silver-dark'
                       }`}
                     >
@@ -475,7 +531,7 @@ export function Header({
                     </span>
                   </span>
                   <span
-                    className={`material-symbols-outlined text-base transition-transform duration-200 ${
+                    className={`material-symbols-outlined ml-1.5 shrink-0 text-base transition-transform duration-200 ${
                       useLandingChrome
                         ? `text-[#7a6958] group-hover:text-[#c95b14] dark:text-[#cdb69c] dark:group-hover:text-[#f29a40] ${isAccountMenuOpen ? 'rotate-180' : ''}`
                         : `text-text-silver-light group-hover:text-primary dark:text-text-silver-dark ${isAccountMenuOpen ? 'rotate-180' : ''}`

@@ -208,6 +208,62 @@ function formatSourcePreview(value: string | null) {
   }
 }
 
+const ONBOARDING_HERO_IMAGE =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuB6afblcPed1y-hBIwh7VBvjJ0e3ojiRtvLsF-xQd8hhwaY90ct8Edytwtn6sNKQ7LQgnkjedZAUDLL894JkAGMmEVkEG8y5fIhKnFxibIXKwHPECZCAtLlt8V60_yjSSpC3A31lrg46V2T8EaGmvdAH1kn7bLRWu4suelNkUUDS2oFCzW1sv8ncuy_FhxIUqb6xaok9DyJkKP4rnBwuw5cDmTTJhZpaX1bCZHY-V7KWR8cpo3BxfxZGBeEJstkl6CiEZ_9WPPvug'
+
+const ONBOARDING_MAP_PREVIEW_IMAGE =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuAvlIj_LmJz53jyEGEbrXgJywSkmLL2_AeNQp3khPDd31brjW4JLAktlmRdsH4Syc3eonQKLj8C11leP2zW1wfD4XrZ2Yt5rKnQG4KFjS3MnpHdpeRB4ab0ZaHSCLVEczQvyniFn0wJ8wSyUPl1XHSiYDusIpESshQ7ipSy6L-kpUOcht9vDBuz10siNb0HkeHVbkQWJ6Gf1gNkr4OD2JCv_er48oO3-RwNOx6-vFdej51gBcsiHR5quxCkNPS5dIsA_KK9Yu1yYQ'
+
+const ONBOARDING_STEP_ICONS = ['storefront', 'map', 'sync'] as const
+
+function getOnboardingVisualCopy(language: string) {
+  if (language.startsWith('vi')) {
+    return {
+      phaseLabel: 'Onboarding phase 01',
+      cuisineLabel: 'Loại hình ẩm thực',
+      cuisineOptions: ['Fine Dining', 'Bistro & Cafe', 'Ẩm thực bản địa', 'Fusion Cuisine'],
+      googleMapsHint:
+        '* Dùng để tự động cập nhật review và tín hiệu vận hành sát với thực tế hơn.',
+      mapWaiting: 'Đang chờ xác nhận vị trí...',
+      tipTitle: 'Mẹo nhỏ',
+      tipBody:
+        'Giữ đúng tên hiển thị và URL Google Maps sẽ giúp hệ thống đồng bộ ổn định hơn ở các lần nhập tiếp theo.',
+      backLabel: 'Quay lại',
+      trustedProvider: 'Verified Business Provider',
+    }
+  }
+
+  if (language.startsWith('ja')) {
+    return {
+      phaseLabel: 'Onboarding phase 01',
+      cuisineLabel: '料理カテゴリー',
+      cuisineOptions: ['Fine Dining', 'Bistro & Cafe', 'ローカル料理', 'Fusion Cuisine'],
+      googleMapsHint:
+        '* Google Maps のURLを正しく保つことで、レビュー同期と運営シグナルの再現性が高まります。',
+      mapWaiting: '地図上の位置確認を待機中...',
+      tipTitle: 'ヒント',
+      tipBody:
+        '表示名と Google Maps URL を揃えておくと、次回以降の取り込みがより安定します。',
+      backLabel: '戻る',
+      trustedProvider: 'Verified Business Provider',
+    }
+  }
+
+  return {
+    phaseLabel: 'Onboarding phase 01',
+    cuisineLabel: 'Cuisine type',
+    cuisineOptions: ['Fine Dining', 'Bistro & Cafe', 'Authentic Local', 'Fusion Cuisine'],
+    googleMapsHint:
+      '* Keep the Google Maps URL accurate so Sentify can pull fresher evidence on the next sync.',
+    mapWaiting: 'Waiting for location confirmation...',
+    tipTitle: 'Small tip',
+    tipBody:
+      'Matching the restaurant display name and Google Maps URL keeps imports more stable over time.',
+    backLabel: 'Back',
+    trustedProvider: 'Verified Business Provider',
+  }
+}
+
 function getReviewToneClasses(sentiment: SentimentBreakdownRow['label'] | null, rating: number) {
   if (sentiment === 'NEGATIVE' || rating <= 2) {
     return {
@@ -1227,6 +1283,8 @@ function RestaurantSetupForm({
   tone = 'default',
   actionTone = 'primary',
   embed = false,
+  variant = 'default',
+  onSecondaryAction,
   onSubmit,
 }: {
   copy: ProductUiCopy['app']
@@ -1237,12 +1295,16 @@ function RestaurantSetupForm({
   tone?: 'default' | 'accent'
   actionTone?: 'primary' | 'secondary'
   embed?: boolean
+  variant?: 'default' | 'onboarding'
+  onSecondaryAction?: () => void
   onSubmit: (input: CreateRestaurantInput) => Promise<void>
 }) {
+  const { language } = useLanguage()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [googleMapUrl, setGoogleMapUrl] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [cuisine, setCuisine] = useState(() => getOnboardingVisualCopy(language).cuisineOptions[0])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -1291,8 +1353,193 @@ function RestaurantSetupForm({
     setGoogleMapUrl('')
   }
 
+  const sourcePreview = formatSourcePreview(googleMapUrl)
+  const visualCopy = getOnboardingVisualCopy(language)
+  const baseInputClass =
+    'h-13 w-full rounded-[1rem] border border-[#eadbcc] bg-[#faf6ef] px-4 text-[0.95rem] text-[#22170f] outline-none transition placeholder:text-[#b09883] focus:border-primary focus:ring-0'
+  const iconInputClass = `${baseInputClass} pl-14`
+
+  if (variant === 'onboarding') {
+    return (
+      <section className="overflow-hidden rounded-[1.75rem] border border-[#ebddcd] bg-[#fffdf9] shadow-[0_24px_60px_-46px_rgba(34,23,15,0.45)]">
+        <div className="border-b border-[#f0e4d7] px-6 py-5 sm:px-7 sm:py-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="max-w-3xl">
+              <h2 className="font-serif text-[1.9rem] font-semibold tracking-[-0.03em] text-[#2a1c12] sm:text-[2.1rem]">
+                {title}
+              </h2>
+              <p className="mt-2 max-w-2xl text-[0.95rem] leading-7 text-[#7d6652]">{description}</p>
+            </div>
+            <span className="hidden size-12 items-center justify-center rounded-[1rem] bg-[#fff4e8] text-primary sm:flex">
+              <span className="material-symbols-outlined text-[24px]">restaurant</span>
+            </span>
+          </div>
+        </div>
+
+        <form className="space-y-7 px-6 py-6 sm:px-7 sm:py-7" onSubmit={handleSubmit} noValidate>
+          <div className="grid gap-5 md:grid-cols-2">
+            <label
+              htmlFor="setup-restaurant-name"
+              className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
+            >
+              <span>{copy.restaurantNameLabel}</span>
+              <input
+                id="setup-restaurant-name"
+                required
+                aria-label={copy.restaurantNameLabel}
+                maxLength={FIELD_LIMITS.restaurantName}
+                value={name}
+                onChange={(event) => {
+                  setName(event.target.value)
+                  setFieldErrors((current) => ({ ...current, name: undefined }))
+                }}
+                aria-invalid={fieldErrors.name ? 'true' : 'false'}
+                className={baseInputClass}
+                type="text"
+                placeholder="Ví dụ: Le Jardin Secret"
+              />
+              <FieldError message={fieldErrors.name} />
+            </label>
+
+            <label
+              htmlFor="setup-restaurant-cuisine"
+              className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
+            >
+              <span>{visualCopy.cuisineLabel}</span>
+              <div className="relative">
+                <select
+                  id="setup-restaurant-cuisine"
+                  value={cuisine}
+                  onChange={(event) => setCuisine(event.target.value)}
+                  className={`${baseInputClass} appearance-none pr-12`}
+                >
+                  {visualCopy.cuisineOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[20px] text-[#8f735d]">
+                  expand_more
+                </span>
+              </div>
+            </label>
+          </div>
+
+          <label
+            htmlFor="setup-restaurant-address"
+            className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
+          >
+            <span>{copy.restaurantAddressLabel}</span>
+            <div className="relative">
+              <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-[#9b7a5f]">
+                location_on
+              </span>
+              <input
+                id="setup-restaurant-address"
+                aria-label={copy.restaurantAddressLabel}
+                maxLength={FIELD_LIMITS.restaurantAddress}
+                value={address}
+                onChange={(event) => {
+                  setAddress(event.target.value)
+                  setFieldErrors((current) => ({ ...current, address: undefined }))
+                }}
+                aria-invalid={fieldErrors.address ? 'true' : 'false'}
+                className={iconInputClass}
+                type="text"
+                placeholder="Số nhà, tên đường, quận, thành phố..."
+              />
+            </div>
+            <FieldError message={fieldErrors.address} />
+          </label>
+
+          <label
+            htmlFor="setup-restaurant-source"
+            className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
+          >
+            <span>{copy.googleMapsUrlLabel}</span>
+            <div className="relative">
+              <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-[#9b7a5f]">
+                link
+              </span>
+              <input
+                id="setup-restaurant-source"
+                aria-label={copy.googleMapsUrlLabel}
+                value={googleMapUrl}
+                onChange={(event) => {
+                  setGoogleMapUrl(event.target.value)
+                  setFieldErrors((current) => ({ ...current, googleMapUrl: undefined }))
+                }}
+                aria-invalid={fieldErrors.googleMapUrl ? 'true' : 'false'}
+                className={iconInputClass}
+                type="url"
+                placeholder={copy.googleMapsUrlPlaceholder}
+              />
+            </div>
+            <FieldError message={fieldErrors.googleMapUrl} />
+            <p className="text-[0.78rem] leading-6 text-[#9a836f]">{visualCopy.googleMapsHint}</p>
+          </label>
+
+          <div className="relative min-h-[190px] overflow-hidden rounded-[1.25rem] border border-[#e3d7ca] bg-[#efebe6] shadow-inner">
+            <img
+              alt="Google Maps preview placeholder"
+              className="h-full w-full object-cover grayscale opacity-38 transition duration-700"
+              src={ONBOARDING_MAP_PREVIEW_IMAGE}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/28 via-white/5 to-[#1b120c]/10" />
+            <div className="absolute inset-x-5 top-1/2 flex -translate-y-1/2 justify-center">
+              <div className="inline-flex max-w-full items-center gap-3 rounded-full border border-white/75 bg-white/95 px-5 py-2.5 shadow-[0_16px_32px_-24px_rgba(34,23,15,0.55)]">
+                <span className="material-symbols-outlined text-[20px] text-primary">
+                  near_me
+                </span>
+                <div className="min-w-0 text-sm font-semibold text-[#3b291d]">
+                  {sourcePreview ?? visualCopy.mapWaiting}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[1.2rem] border-l-4 border-primary bg-[#fff4e8] px-5 py-5">
+            <div className="flex items-start gap-4">
+              <span className="material-symbols-outlined text-[24px] text-primary">lightbulb</span>
+              <div>
+                <div className="text-[0.8rem] font-bold uppercase tracking-[0.18em] text-primary">
+                  {visualCopy.tipTitle}
+                </div>
+                <p className="mt-2 text-[0.88rem] leading-7 text-[#755c46]">{visualCopy.tipBody}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 border-t border-[#f0e4d7] pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#6f5a47] transition hover:text-[#2a1c12]"
+              onClick={() => {
+                onSecondaryAction?.()
+              }}
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              <span>{visualCopy.backLabel}</span>
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-bold text-white shadow-[0_14px_28px_-18px_rgba(235,122,28,0.85)] transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto dark:text-bg-dark"
+            >
+              <span>{pending ? `${actionLabel}...` : actionLabel}</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+                chevron_right
+              </span>
+            </button>
+          </div>
+        </form>
+      </section>
+    )
+  }
+
   const formContent = (
-    <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+    <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit} noValidate>
         <label
           htmlFor="setup-restaurant-name"
           className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
@@ -1522,40 +1769,105 @@ function RestaurantSwitcher({
 function OnboardingPanel({
   copy,
   createPending,
+  onBack,
   onCreateRestaurant,
 }: {
   copy: ProductUiCopy['app']
   createPending: boolean
+  onBack: () => void
   onCreateRestaurant: (input: CreateRestaurantInput) => Promise<void>
 }) {
-  return (
-    <div className="grid gap-6">
-      <section className="rounded-[2rem] border border-border-light/70 bg-surface-white/88 p-6 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.32)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/82 sm:p-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-          <span className="size-2 rounded-full bg-primary"></span>
-          {copy.onboardingEyebrow}
-        </div>
-        <h1 className="mt-5 text-[2rem] font-black tracking-tight text-text-charcoal dark:text-white md:text-[2.3rem]">
-          {copy.onboardingTitle}
-        </h1>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-text-silver-light dark:text-text-silver-dark">
-          {copy.onboardingDescription}
-        </p>
+  const { language } = useLanguage()
+  const visualCopy = getOnboardingVisualCopy(language)
 
-        <div className="mt-8 grid gap-4 lg:grid-cols-3">
-          {copy.onboardingSteps.map((step, index) => (
-            <div
-              key={step}
-              className="rounded-[1.4rem] border border-border-light/70 bg-bg-light/70 p-5 dark:border-border-dark dark:bg-bg-dark/55"
-            >
-              <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-                {String(index + 1).padStart(2, '0')}
-              </div>
-              <p className="mt-3 text-sm leading-7 text-text-charcoal dark:text-white">{step}</p>
+  return (
+    <div className="mx-auto grid max-w-[1080px] gap-8">
+      <section className="relative isolate overflow-hidden rounded-[1.8rem] border border-[#e8d8c6] shadow-[0_26px_80px_-50px_rgba(34,23,15,0.5)]">
+        <img
+          alt="Restaurant onboarding ambiance"
+          className="absolute inset-0 h-full w-full object-cover"
+          src={ONBOARDING_HERO_IMAGE}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#20130b]/86 via-[#20130b]/45 to-[#20130b]/12" />
+        <div className="relative min-h-[270px] px-6 py-8 text-white sm:px-8 sm:py-10 lg:px-10 lg:py-10">
+          <div className="max-w-4xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#f3c9a5]/30 bg-[#eb7a1c]/15 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffe7d1] backdrop-blur">
+              <span className="size-2 rounded-full bg-primary" />
+              {visualCopy.phaseLabel}
             </div>
-          ))}
+            <h1 className="mt-5 max-w-3xl font-serif text-[2.35rem] font-semibold tracking-[-0.04em] text-white sm:text-[2.95rem]">
+              {copy.onboardingTitle}
+            </h1>
+            <p className="mt-4 max-w-2xl text-[0.95rem] leading-7 text-white/82 sm:text-[1rem]">
+              {copy.onboardingDescription}
+            </p>
+          </div>
         </div>
       </section>
+
+      <div className="relative hidden items-start justify-between gap-3 px-5 md:flex">
+        {copy.onboardingSteps.map((step, index) => (
+          <article
+            key={step}
+            className="relative z-10 flex w-full flex-col items-center gap-3"
+          >
+            {index < copy.onboardingSteps.length - 1 ? (
+              <span
+                aria-hidden="true"
+                className={`absolute left-[calc(50%+1.55rem)] right-[calc(-50%+1.55rem)] top-5 h-px ${
+                  index === 0 ? 'bg-primary/55' : 'bg-[#d9c9bb]'
+                }`}
+              />
+            ) : null}
+            <span
+              className={`flex size-10 items-center justify-center rounded-full border ${
+                index === 0
+                  ? 'border-primary/20 bg-primary text-white'
+                  : index === 1
+                    ? 'border-primary/25 bg-[#fff4e8] text-primary'
+                    : 'border-[#d6c7bb] bg-[#fffdf9] text-[#b69d88]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
+              </span>
+            </span>
+            <p
+              className={`text-center text-[0.82rem] font-semibold ${
+                index === 2 ? 'text-[#9f8874]' : 'text-[#2e1d14]'
+              }`}
+            >
+              {step}
+            </p>
+          </article>
+        ))}
+      </div>
+
+      <div className="grid gap-4 md:hidden">
+        {copy.onboardingSteps.map((step, index) => (
+          <article
+            key={`${step}-mobile`}
+            className="flex items-center gap-4 rounded-[1.25rem] border border-[#eadbcc] bg-[#fffdf9] px-4 py-4"
+          >
+            <span
+              className={`flex size-10 shrink-0 items-center justify-center rounded-full border ${
+                index === 0
+                  ? 'border-primary/20 bg-primary text-white'
+                  : index === 1
+                    ? 'border-primary/25 bg-[#fff4e8] text-primary'
+                    : 'border-[#d6c7bb] bg-[#fffdf9] text-[#b69d88]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
+              </span>
+            </span>
+            <p className={`text-sm font-semibold ${index === 2 ? 'text-[#9f8874]' : 'text-[#2e1d14]'}`}>
+              {step}
+            </p>
+          </article>
+        ))}
+      </div>
 
       <RestaurantSetupForm
         copy={copy}
@@ -1563,8 +1875,18 @@ function OnboardingPanel({
         actionLabel={copy.createRestaurant}
         title={copy.setupTitle}
         description={copy.setupDescription}
+        variant="onboarding"
+        onSecondaryAction={onBack}
         onSubmit={onCreateRestaurant}
       />
+
+      <div className="flex flex-wrap items-center justify-center gap-5 px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#ad9681]">
+        <span>{visualCopy.trustedProvider}</span>
+        <span className="h-4 w-px bg-[#d7c8b9]" />
+        <span className="material-symbols-outlined text-[18px]">verified_user</span>
+        <span className="material-symbols-outlined text-[18px]">lock</span>
+        <span className="material-symbols-outlined text-[18px]">cloud_done</span>
+      </div>
     </div>
   )
 }
@@ -2498,7 +2820,12 @@ export function ProductWorkspace({
   ]
 
   return (
-    <main id="main-content" className="min-h-screen bg-bg-light pb-16 pt-24 dark:bg-bg-dark sm:pt-28">
+    <main
+      id="main-content"
+      className={`min-h-screen pb-16 pt-24 sm:pt-28 ${
+        hasRestaurants ? 'bg-bg-light dark:bg-bg-dark' : 'landing-theme bg-bg-light dark:bg-bg-dark'
+      }`}
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 xl:px-10">
         {!hasRestaurants ? (
           <div className="grid gap-6">
@@ -2506,6 +2833,9 @@ export function ProductWorkspace({
             <OnboardingPanel
               copy={copy}
               createPending={createPending}
+              onBack={() => {
+                window.location.hash = '#/'
+              }}
               onCreateRestaurant={onCreateRestaurant}
             />
           </div>

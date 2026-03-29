@@ -244,6 +244,7 @@ export function AuthScreen({
   const [forgotFeedback, setForgotFeedback] = useState<InlineFeedback | null>(null)
 
   const isLogin = mode === 'login'
+  const isSignup = mode === 'signup'
   const isForgotPassword = mode === 'forgot-password'
   const scene = authSceneCopy[language]
   const authCopy = authFormCopy[language]
@@ -257,6 +258,29 @@ export function AuthScreen({
     : isLogin
       ? authCopy.loginDescription
       : authCopy.signupDescription
+  const compactSignupLayout = isSignup && !isForgotPassword
+  const authPanelClass = `flex w-full flex-col items-center bg-surface-white px-6 dark:bg-surface-dark/96 md:px-12 lg:w-5/12 lg:px-16 ${
+    compactSignupLayout
+      ? 'justify-start overflow-y-auto pt-[5.75rem] pb-8 md:pt-24 md:pb-8 lg:justify-center lg:overflow-hidden lg:pt-24 lg:pb-8'
+      : 'justify-start overflow-y-auto pt-[6.5rem] pb-10 md:pt-28 md:pb-12 lg:pt-28 lg:pb-12'
+  }`
+  const authContainerClass = compactSignupLayout ? 'w-full max-w-md lg:max-w-[28rem]' : 'w-full max-w-md'
+  const authHeaderClass = compactSignupLayout ? 'mb-7 text-center lg:mb-6 lg:text-left' : 'mb-10 text-center lg:text-left'
+  const socialButtonsClass = compactSignupLayout ? 'mb-6 grid grid-cols-2 gap-3' : 'mb-8 grid grid-cols-2 gap-4'
+  const dividerClass = compactSignupLayout ? 'relative mb-6' : 'relative mb-8'
+  const formClass = compactSignupLayout ? 'space-y-4' : 'space-y-5'
+  const authInputClass = `w-full rounded-xl border-none bg-[#f7f3ee] px-5 text-base text-text-charcoal outline-none transition-all placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50 ${
+    compactSignupLayout ? 'py-3.5' : 'py-4'
+  }`
+  const authPasswordInputClass = `${authInputClass} pr-14`
+  const socialButtonClass = `flex items-center justify-center gap-3 rounded-xl bg-[#ebe8e3] px-4 text-sm font-medium text-text-charcoal transition-colors hover:bg-[#e6e2dd] dark:bg-bg-dark/70 dark:text-white dark:hover:bg-surface-highlight/30 ${
+    compactSignupLayout ? 'py-2.5' : 'py-3'
+  }`
+  const submitButtonClass = `inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-primary to-[#fa7025] px-6 text-sm font-bold tracking-tight text-white shadow-[0_18px_38px_-16px_rgba(235,122,28,0.34)] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_22px_44px_-16px_rgba(235,122,28,0.42)] disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark ${
+    compactSignupLayout ? 'py-4 lg:py-3.5' : 'py-5'
+  }`
+  const footerClass = compactSignupLayout ? 'mt-8 text-center lg:mt-6' : 'mt-12 text-center'
+  const legalLinksClass = compactSignupLayout ? 'mt-8 flex items-center justify-center gap-6 lg:mt-6' : 'mt-12 flex items-center justify-center gap-6'
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -398,9 +422,9 @@ export function AuthScreen({
           </div>
         </section>
 
-        <section className="flex w-full flex-col items-center justify-start overflow-y-auto bg-surface-white px-6 pt-[6.5rem] pb-10 dark:bg-surface-dark/96 md:px-12 md:pt-28 md:pb-12 lg:w-5/12 lg:px-16 lg:pt-28 lg:pb-12">
-          <div className="w-full max-w-md">
-            <header className="mb-10 text-center lg:text-left">
+        <section className={authPanelClass}>
+          <div className={authContainerClass}>
+            <header className={authHeaderClass}>
               <h1 className="font-serif text-3xl tracking-tight text-[#8a3c10] dark:text-[#f2dfc7] md:text-4xl">
                 {authTitle}
               </h1>
@@ -411,10 +435,10 @@ export function AuthScreen({
 
             {!isForgotPassword ? (
               <>
-                <div className="mb-8 grid grid-cols-2 gap-4">
+                <div className={socialButtonsClass}>
                   <button
                     type="button"
-                    className="flex items-center justify-center gap-3 rounded-xl bg-[#ebe8e3] px-4 py-3 text-sm font-medium text-text-charcoal transition-colors hover:bg-[#e6e2dd] dark:bg-bg-dark/70 dark:text-white dark:hover:bg-surface-highlight/30"
+                    className={socialButtonClass}
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="currentColor"></path>
@@ -426,7 +450,7 @@ export function AuthScreen({
                   </button>
                   <button
                     type="button"
-                    className="flex items-center justify-center gap-3 rounded-xl bg-[#ebe8e3] px-4 py-3 text-sm font-medium text-text-charcoal transition-colors hover:bg-[#e6e2dd] dark:bg-bg-dark/70 dark:text-white dark:hover:bg-surface-highlight/30"
+                    className={socialButtonClass}
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-.5-.24-1.03-.37-1.58-.37-.58 0-1.12.14-1.63.41-1 .51-1.9.5-2.95-.45-3.15-3.15-2.66-8.72 1.05-10.7 1.77-.96 3.46-.38 4.45.02.4.15.7.26.9.26.2 0 .5-.11.9-.26 1.34-.54 3.22-.98 4.75.52.32.32 2.62 3.05 1.83 6.94-.15.4-.33.84-.54 1.28-.96 1.95-1.88 3.65-3.1 3.95h-.01zM12.03 7.25c-.02-2.23 1.54-4.22 3.65-4.5.21 2.31-1.46 4.44-3.65 4.5z" fill="currentColor"></path>
@@ -435,7 +459,7 @@ export function AuthScreen({
                   </button>
                 </div>
 
-                <div className="relative mb-8">
+                <div className={dividerClass}>
                   <div className="absolute inset-0 flex items-center">
                     <div className="h-px w-full bg-border-light dark:bg-border-dark"></div>
                   </div>
@@ -446,7 +470,7 @@ export function AuthScreen({
                   </div>
                 </div>
 
-                <form className="space-y-5" onSubmit={handleSubmit}>
+                <form className={formClass} onSubmit={handleSubmit}>
                   {!isLogin ? (
                     <label
                       htmlFor="auth-full-name"
@@ -466,7 +490,7 @@ export function AuthScreen({
                         }}
                         aria-invalid={fieldErrors.fullName ? 'true' : 'false'}
                         autoComplete="name"
-                        className="w-full rounded-xl border-none bg-[#f7f3ee] px-5 py-4 text-base text-text-charcoal outline-none transition-all placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
+                        className={authInputClass}
                         type="text"
                         placeholder="Elias Vance"
                       />
@@ -491,7 +515,7 @@ export function AuthScreen({
                         setFieldErrors((current) => ({ ...current, email: undefined }))
                       }}
                       aria-invalid={fieldErrors.email ? 'true' : 'false'}
-                      className="w-full rounded-xl border-none bg-[#f7f3ee] px-5 py-4 text-base text-text-charcoal outline-none transition-all placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
+                      className={authInputClass}
                       type="email"
                       autoComplete="email"
                       placeholder="elias@sentify.app"
@@ -517,7 +541,7 @@ export function AuthScreen({
                           setFieldErrors((current) => ({ ...current, password: undefined }))
                         }}
                         aria-invalid={fieldErrors.password ? 'true' : 'false'}
-                        className="w-full rounded-xl border-none bg-[#f7f3ee] px-5 py-4 pr-14 text-base text-text-charcoal outline-none transition-all placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
+                        className={authPasswordInputClass}
                         type={showPassword ? 'text' : 'password'}
                         autoComplete={isLogin ? 'current-password' : 'new-password'}
                         placeholder={scene.passwordPlaceholder}
@@ -554,11 +578,11 @@ export function AuthScreen({
                     </div>
                   ) : null}
 
-                  <div className="pt-4">
+                  <div className={compactSignupLayout ? 'pt-3' : 'pt-4'}>
                     <button
                       type="submit"
                       disabled={pending}
-                      className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-primary to-[#fa7025] px-6 py-5 text-sm font-bold tracking-tight text-white shadow-[0_18px_38px_-16px_rgba(235,122,28,0.34)] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_22px_44px_-16px_rgba(235,122,28,0.42)] disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
+                      className={submitButtonClass}
                     >
                       {pending
                         ? isLogin
@@ -602,7 +626,7 @@ export function AuthScreen({
                       setForgotFeedback(null)
                     }}
                     aria-invalid={forgotEmailError ? 'true' : 'false'}
-                    className="w-full rounded-xl border-none bg-[#f7f3ee] px-5 py-4 text-base text-text-charcoal outline-none transition-all placeholder:text-outline/50 focus:ring-2 focus:ring-primary/20 dark:bg-bg-dark/55 dark:text-white dark:placeholder:text-text-silver-dark/50"
+                    className={authInputClass}
                     type="email"
                     autoComplete="email"
                     placeholder="owner@sentify.app"
@@ -627,7 +651,7 @@ export function AuthScreen({
                   <button
                     type="submit"
                     disabled={forgotPending}
-                    className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-primary to-[#fa7025] px-6 py-5 text-sm font-bold tracking-tight text-white shadow-[0_18px_38px_-16px_rgba(235,122,28,0.34)] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_22px_44px_-16px_rgba(235,122,28,0.42)] disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
+                    className={submitButtonClass}
                   >
                     {forgotPending
                       ? `${authCopy.forgotPasswordSubmit}...`
@@ -637,7 +661,7 @@ export function AuthScreen({
               </form>
             )}
 
-            <footer className="mt-12 text-center">
+            <footer className={footerClass}>
               {!isForgotPassword ? (
                 <p className="text-sm text-text-silver-light dark:text-text-silver-dark">
                   {isLogin ? authCopy.loginAltPrompt : authCopy.signupAltPrompt}
@@ -650,7 +674,7 @@ export function AuthScreen({
                   </button>
                 </p>
               ) : null}
-              <div className="mt-12 flex items-center justify-center gap-6">
+              <div className={legalLinksClass}>
                 <span className="text-[10px] uppercase tracking-widest text-text-silver-light/80 dark:text-text-silver-dark/80">
                   {scene.privacy}
                 </span>
