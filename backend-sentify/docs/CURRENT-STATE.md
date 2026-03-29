@@ -61,6 +61,15 @@ Current FE shell contract on top of that split:
 
 The backend is a modular monolith. `admin-intake`, `review-crawl`, `review-ops`, and `admin-restaurants` are now clear backend feature modules. Auth and restaurant reads still use the older route-controller-service shape.
 
+Runtime hardening now also includes:
+
+- normalized runtime Postgres URLs with explicit `connect_timeout`, `statement_timeout`, and `idle_in_transaction_session_timeout` defaults when the connection string does not already define them
+- explicit HTTP server `requestTimeout`, `headersTimeout`, and `keepAliveTimeout` guards
+- fail-closed env validation so `HEADERS_TIMEOUT_MS` and `KEEP_ALIVE_TIMEOUT_MS` cannot be configured into an unsafe relationship
+- shared Prisma and timeout error mapping so pool exhaustion, initialization failure, transaction conflicts, and request timeouts no longer fall through as generic `500`
+- slow-request logging on successful responses so latency regressions become visible before they become outages
+- queue-health degradation and worker event logging for Redis/BullMQ runtime failures instead of silent hangs
+
 ## 3. Current Role Model
 
 ### System roles
@@ -96,6 +105,7 @@ Operational effect:
 
 Endpoints:
 
+- `PATCH /api/auth/profile`
 - `POST /api/restaurants`
 - `GET /api/restaurants`
 - `GET /api/restaurants/:id`
@@ -106,6 +116,7 @@ Endpoints:
 
 Behavior:
 
+- update the authenticated user's own `fullName` or `email`
 - create or select a restaurant
 - submit only public Google Maps place URLs as merchant source input
 - preview a Google Maps URL before saving it to resolve the canonical place identity and check duplicate-place hints
@@ -132,11 +143,13 @@ Endpoints:
 - `PATCH /api/admin/review-items/:id`
 - `POST /api/admin/review-crawl/*`
 - `POST /api/admin/review-ops/*`
+- `GET /api/admin/platform/controls`
 
 Behavior:
 
 - inspect all restaurants
 - inspect or update the merchant-facing restaurant entitlement contract without leaking queue internals into FE
+- read runtime controls through a dedicated admin platform endpoint instead of only through broader health or policy payloads
 - inspect merchant source-submission queue items grouped by canonical place identity before crawl-source creation
 - resolve or re-resolve a merchant-submitted Google Maps URL into canonical place identity
 - create or link a restaurant-specific crawl source from persisted canonical place identity without forcing a second Google resolution
@@ -182,6 +195,21 @@ Behavior:
   - `staging-api-proof-managed.json` reports `STAGING_PROOF_COMPLETE`
   - merchant authenticated read smoke passed
   - admin authenticated control-plane smoke passed
+- Latest managed Redis durability check on `2026-03-29`:
+  - `managed-redis-proof.latest.json` reports:
+    - Redis version `8.4.0`
+    - connectivity `PONG`
+    - BullMQ enqueue/process/complete probe passed
+    - `maxmemory-policy = volatile-lru`
+    - `evictionPolicyStatus = FAILED`
+    - `safeForBullMq = false`
+  - interpretation:
+    - the queue target is reachable and functionally compatible
+    - durability is still not acceptable for BullMQ because the provider eviction policy is not `noeviction`
+  - current codebase behavior:
+    - review-crawl queue health now exposes Redis deployment safety details to admin-platform
+    - unsafe eviction policy degrades queue health instead of only logging a raw BullMQ warning
+    - managed Redis proof now fails explicitly when eviction policy is not `noeviction`
 - Historical strict managed-signoff posture proven on `2026-03-28`:
   - managed Redis target is configured and verified
   - staging API target is configured and verified
@@ -196,6 +224,9 @@ Behavior:
     - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
     - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
   - live staging runtime has been revalidated green after the Render `TRUST_PROXY=1` fix
+  - managed Redis durability is still blocked by provider policy:
+    - latest managed Redis proof fails while `maxmemory-policy` remains `volatile-lru`
+    - current release-readiness claims should therefore be read as historical to the last green baseline, not as proof that the current Redis target is BullMQ-safe
 - Current provider-managed DB proof drill status:
   - the Neon restore or PITR drill is now completed for the current staging baseline
   - one demo review was intentionally deleted so the restore proof is meaningful
@@ -754,8 +785,15 @@ Fresh verification on `2026-03-28`:
   - deploy-safe Prisma command: `npm run db:migrate:deploy`
 - env parsing was hardened so `JWT_SECRET_PREVIOUS=` can be left blank without breaking backend startup or admin-platform integration tests
 - Fresh full backend rerun on `2026-03-29`:
-  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`184` tests: `171` pass, `13` skipped, `0` fail)
-  - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+- `cd D:\Project 3\backend-sentify && npm test` -> passed (`204` tests: `190` pass, `14` skipped, `0` fail)
+- `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+- runtime hardening now also has direct regression proof for:
+  - env timeout invariants
+  - database URL timeout normalization
+  - Prisma pool/init/transaction error mapping
+  - queue-health degradation when Redis probes fail
+  - worker stalled/runtime-error event wiring
+  - slow-request request logging
   - `managed-signoff-preflight.test.js` is now hermetic against workstation-local `.env.release-evidence`
   - proof scripts can now be isolated explicitly with:
     - `SENTIFY_RUNTIME_ENV_FILE`

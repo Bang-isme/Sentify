@@ -53,6 +53,20 @@ async function startReviewCrawlWorkerRuntime(options = {}) {
                 message: error?.message ?? 'Unknown worker error',
             })
         })
+
+        worker.on('error', (error) => {
+            logReviewCrawlEvent('worker.runtime_error', {
+                errorCode: error?.code ?? null,
+                message: error?.message ?? 'Unknown worker runtime error',
+            })
+        })
+
+        worker.on('stalled', (jobId, previousState) => {
+            logReviewCrawlEvent('worker.job_stalled', {
+                jobId: jobId ?? null,
+                previousState: previousState ?? null,
+            })
+        })
     }
 
     let schedulerTimer = null

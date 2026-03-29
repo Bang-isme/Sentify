@@ -33,10 +33,17 @@ Updated: 2026-03-29 Asia/Bangkok
       - `LINKED_TO_SOURCE`
     - restaurant list/detail and merchant actions now expose `entitlement` and entitlement-derived capability policy directly from BE
     - admin now has `PATCH /api/admin/restaurants/:id/entitlement`
+  - optional endpoint backlog is now tracked explicitly in docs, not as live contract:
+    - `DELETE /api/restaurants/:id`
+    - `GET /api/restaurants/:id/reviews/:reviewId`
+    - `DELETE /api/admin/restaurants/:id`
+    - `GET /api/admin/restaurants/:id/reviews`
+    - `POST /api/admin/review-batches/:id/archive`
 
 ## Current Live Backend Surfaces
 
 - Merchant:
+  - self profile update
   - restaurant list/detail
   - reviews
   - KPI, sentiment, trend, complaints, top issue
@@ -58,6 +65,7 @@ Updated: 2026-03-29 Asia/Bangkok
 - Admin `Platform`:
   - health & jobs
   - integrations & policies
+  - controls
   - audit feed
   - runtime controls for queue writes, materialization, and publish
   - release-readiness summary separating local proof from managed-env gap
@@ -185,13 +193,29 @@ Updated: 2026-03-29 Asia/Bangkok
     - historical managed sign-off artifact still exists
     - current live staging runtime is also green again
 - Freshest backend-only rerun evidence on `2026-03-29`:
-  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`184` tests: `171` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`204` tests: `190` pass, `14` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+  - `PATCH /api/auth/profile` is now live and covered by mocked plus real-DB auth proof
+  - `GET /api/admin/platform/controls` is now live and covered by admin-platform integration proof
+  - `scripts/run-realdb-tests.js` now retries baseline reset before each `.realdb.test.js` file to absorb transient Prisma reset races
   - `managed-signoff-preflight.test.js` no longer reads workstation-local `.env.release-evidence`
   - test isolation now has explicit env-loader hooks:
     - `SENTIFY_RUNTIME_ENV_FILE`
     - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`
   - `TRUST_PROXY=true` is now rejected by env parsing; hosted deployments must use `1` or an explicit proxy list
+  - runtime Postgres URLs now normalize:
+    - `sslmode=verify-full`
+    - `connect_timeout`
+    - `statement_timeout`
+    - `idle_in_transaction_session_timeout`
+  - HTTP runtime now enforces:
+    - `requestTimeout`
+    - `headersTimeout`
+    - `keepAliveTimeout`
+  - Prisma pool/init/transaction conflicts now map to explicit API errors instead of generic `500`
+  - request logging now flags slow successful responses
+  - queue health now degrades when Redis deployment safety is below BullMQ durability requirements or when queue probes fail outright
+  - worker runtime now logs `error` and `stalled` events explicitly
 - external staging merchant read-performance proof on `2026-03-29`:
   - `cd D:\Project 3\backend-sentify && node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json` -> `STAGING_PERFORMANCE_PROOF_COMPLETE`
   - `40` authenticated merchant read requests
@@ -217,6 +241,15 @@ Updated: 2026-03-29 Asia/Bangkok
   - current staging proof env uses `60000` to survive Render free cold starts
 - after the DB proof finished, the Neon password was rotated and Render `DATABASE_URL` was updated
 - env parser now treats `JWT_SECRET_PREVIOUS=` as unset instead of failing startup; covered by `backend-sentify/test/env.test.js`
+- latest managed Redis durability proof on `2026-03-29`:
+  - `managed-redis-proof.latest.json` shows:
+    - Redis `8.4.0`
+    - `maxmemory-policy = volatile-lru`
+    - `evictionPolicyStatus = FAILED`
+    - `safeForBullMq = false`
+  - interpretation:
+    - external Redis is reachable
+    - external Redis is still not BullMQ-safe until provider policy changes to `noeviction`
   - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --managed-redis-url redis://127.0.0.1:6379 --staging-api-url http://127.0.0.1:3000 --staging-user-email demo.user.primary@sentify.local --staging-user-password DemoPass123! --staging-admin-email demo.admin@sentify.local --staging-admin-password DemoPass123! --include-performance-proof --performance-scale-url https://maps.app.goo.gl/yWeP9xmjowpkYVbU7 --require-managed-signoff` -> expected non-zero exit while targets remain local and no managed DB artifact exists
   - `cd D:\Project 3\backend-sentify && node scripts/managed-db-proof-validate.js --artifact docs/examples/managed-db-proof-artifact.example.json --output load-reports/managed-db-proof-validation-example.json` -> `MANAGED_DB_PROOF_COMPLETE`
   - `cd D:\Project 3\backend-sentify && node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.json` -> `MANAGED_SIGNOFF_PENDING` with blocker list on the local env

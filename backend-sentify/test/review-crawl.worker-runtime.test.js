@@ -115,6 +115,8 @@ test('review crawl worker runtime starts processor and scheduler lanes with hear
     assert.deepEqual(serviceCalls, ['schedule'])
     assert.ok(events.includes('completed'))
     assert.ok(events.includes('failed'))
+    assert.ok(events.includes('error'))
+    assert.ok(events.includes('stalled'))
     assert.ok(events.some((event) => event.name === 'processor_heartbeat'))
     assert.ok(events.some((event) => event.name === 'scheduler_heartbeat'))
     assert.ok(

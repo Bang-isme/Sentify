@@ -1,30 +1,18 @@
 const { PrismaPg } = require('@prisma/adapter-pg')
 const { PrismaClient } = require('@prisma/client')
 const env = require('../config/env')
+const { normalizeDatabaseUrl } = require('./database-url')
 
 // Prisma client should be a singleton in development to avoid exhausting connections on hot reload.
 const globalForPrisma = globalThis
 
-function withConnectionLimit(databaseUrl, connectionLimit) {
-    if (!databaseUrl || !connectionLimit) {
-        return databaseUrl
-    }
-
-    try {
-        const url = new URL(databaseUrl)
-
-        if (!url.searchParams.has('connection_limit')) {
-            url.searchParams.set('connection_limit', String(connectionLimit))
-        }
-
-        return url.toString()
-    } catch (error) {
-        return databaseUrl
-    }
-}
-
 const adapter = new PrismaPg({
-    connectionString: withConnectionLimit(env.DATABASE_URL, env.DB_POOL_MAX),
+    connectionString: normalizeDatabaseUrl(env.DATABASE_URL, {
+        connectionLimit: env.DB_POOL_MAX,
+        connectTimeoutSeconds: env.DB_CONNECT_TIMEOUT_SECONDS,
+        statementTimeoutMs: env.DB_STATEMENT_TIMEOUT_MS,
+        idleInTransactionTimeoutMs: env.DB_IDLE_IN_TRANSACTION_TIMEOUT_MS,
+    }),
 })
 
 const prisma =

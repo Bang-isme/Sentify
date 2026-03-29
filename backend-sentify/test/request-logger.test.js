@@ -107,3 +107,50 @@ test('request logger downgrades 404 responses to warning logs', async (t) => {
     assert.equal(payload.path, '/api/missing')
     assert.equal(payload.statusCode, 404)
 })
+
+test('request logger marks slow successful responses for monitoring', async (t) => {
+    const warnLogs = []
+    const originalWarn = console.warn
+    const originalBigInt = process.hrtime.bigint
+    let hrtimeCallCount = 0
+
+    console.warn = (message) => {
+        warnLogs.push(message)
+    }
+    process.hrtime.bigint = () => {
+        hrtimeCallCount += 1
+        return hrtimeCallCount === 1 ? 0n : 1500000000n
+    }
+
+    const originalQueryRaw = prisma.$queryRaw
+    prisma.$queryRaw = async () => 1
+
+    const server = await listen(app)
+
+    t.after(async () => {
+        console.warn = originalWarn
+        process.hrtime.bigint = originalBigInt
+        prisma.$queryRaw = originalQueryRaw
+        await new Promise((resolve, reject) => {
+            server.close((error) => {
+                if (error) {
+                    reject(error)
+                    return
+                }
+
+                resolve()
+            })
+        })
+    })
+
+    const { response } = await makeRequest(server, '/api/health')
+
+    assert.equal(response.status, 200)
+    assert.equal(warnLogs.length, 1)
+
+    const payload = JSON.parse(warnLogs[0])
+    assert.equal(payload.type, 'request_log')
+    assert.equal(payload.path, '/api/health')
+    assert.equal(payload.statusCode, 200)
+    assert.equal(payload.slowRequest, true)
+})

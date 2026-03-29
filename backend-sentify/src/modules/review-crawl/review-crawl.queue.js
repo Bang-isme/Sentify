@@ -3,9 +3,16 @@ const { Queue, Worker } = require('bullmq')
 
 const env = require('../../config/env')
 const { serviceUnavailable } = require('../../lib/app-error')
+const { buildRedisDeploymentReport } = require('../../lib/redis-deployment')
 
 let sharedConnection = null
 let sharedQueue = null
+
+function buildQueueServiceUnavailableError(code, message, error) {
+    return serviceUnavailable(code, message, {
+        reason: error?.message || 'Redis operation failed',
+    })
+}
 
 function buildReviewCrawlJobId(runId) {
     return `review-crawl-${runId}`
@@ -34,6 +41,32 @@ function getRedisConnection() {
     return sharedConnection
 }
 
+async function readRedisDeployment(connection = getRedisConnection()) {
+    if (!connection) {
+        return {
+            configured: false,
+            status: 'UNCONFIGURED',
+            safeForBullMq: false,
+            warnings: [],
+        }
+    }
+
+    try {
+        return {
+            configured: true,
+            ...buildRedisDeploymentReport(await connection.info()),
+        }
+    } catch (error) {
+        return {
+            configured: true,
+            status: 'UNKNOWN',
+            safeForBullMq: false,
+            warnings: ['Redis deployment metadata could not be read.'],
+            errorMessage: error?.message || 'Redis INFO probe failed',
+        }
+    }
+}
+
 function getReviewCrawlQueue() {
     if (!isQueueConfigured()) {
         throw serviceUnavailable(
@@ -45,6 +78,7 @@ function getReviewCrawlQueue() {
     if (!sharedQueue) {
         sharedQueue = new Queue(env.REVIEW_CRAWL_QUEUE_NAME, {
             connection: getRedisConnection(),
+            skipVersionCheck: true,
             defaultJobOptions: {
                 attempts: env.REVIEW_CRAWL_MAX_RETRIES + 1,
                 backoff: {
@@ -79,16 +113,24 @@ async function enqueueReviewCrawlRun(runId, options = {}) {
 
     const queue = getReviewCrawlQueue()
 
-    return queue.add(
-        'process-run',
-        {
-            runId,
-        },
-        {
-            jobId: buildReviewCrawlJobId(runId),
-            delay: options.delayMs ?? 0,
-        },
-    )
+    try {
+        return await queue.add(
+            'process-run',
+            {
+                runId,
+            },
+            {
+                jobId: buildReviewCrawlJobId(runId),
+                delay: options.delayMs ?? 0,
+            },
+        )
+    } catch (error) {
+        throw buildQueueServiceUnavailableError(
+            'REVIEW_CRAWL_QUEUE_ENQUEUE_FAILED',
+            'Review crawl queue is unavailable right now',
+            error,
+        )
+    }
 }
 
 async function getReviewCrawlJob(runId) {
@@ -96,7 +138,15 @@ async function getReviewCrawlJob(runId) {
         return null
     }
 
-    return getReviewCrawlQueue().getJob(buildReviewCrawlJobId(runId))
+    try {
+        return await getReviewCrawlQueue().getJob(buildReviewCrawlJobId(runId))
+    } catch (error) {
+        throw buildQueueServiceUnavailableError(
+            'REVIEW_CRAWL_QUEUE_LOOKUP_FAILED',
+            'Review crawl queue status is unavailable right now',
+            error,
+        )
+    }
 }
 
 async function getReviewCrawlQueueHealth() {
@@ -109,18 +159,33 @@ async function getReviewCrawlQueueHealth() {
     }
 
     const queue = getReviewCrawlQueue()
-    const counts = await queue.getJobCounts(
-        'waiting',
-        'active',
-        'completed',
-        'failed',
-        'delayed',
-    )
 
-    return {
-        configured: true,
-        counts,
-        inlineMode: false,
+    try {
+        const counts = await queue.getJobCounts(
+            'waiting',
+            'active',
+            'completed',
+            'failed',
+            'delayed',
+        )
+
+        return {
+            configured: true,
+            counts,
+            inlineMode: false,
+            deployment: await readRedisDeployment(),
+        }
+    } catch (error) {
+        return {
+            configured: true,
+            counts: null,
+            inlineMode: false,
+            deployment: await readRedisDeployment(),
+            errorMessage:
+                error instanceof Error
+                    ? error.message
+                    : 'Review crawl queue health probe failed',
+        }
     }
 }
 
@@ -140,6 +205,7 @@ function createReviewCrawlWorker(processor) {
         },
         {
             connection: getRedisConnection(),
+            skipVersionCheck: true,
             concurrency: env.REVIEW_CRAWL_WORKER_CONCURRENCY,
             lockDuration: env.REVIEW_CRAWL_LEASE_SECONDS * 1000,
         },
@@ -169,4 +235,5 @@ module.exports = {
     getReviewCrawlQueueHealth,
     isInlineQueueMode,
     isQueueConfigured,
+    readRedisDeployment,
 }

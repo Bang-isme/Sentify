@@ -25,6 +25,18 @@ function logRuntimeEvent(event, context = {}) {
     )
 }
 
+function configureHttpServerTimeouts(httpServer) {
+    httpServer.requestTimeout = env.REQUEST_TIMEOUT_MS
+    httpServer.headersTimeout = env.HEADERS_TIMEOUT_MS
+    httpServer.keepAliveTimeout = env.KEEP_ALIVE_TIMEOUT_MS
+    httpServer.setTimeout(env.REQUEST_TIMEOUT_MS, (socket) => {
+        logRuntimeEvent('server.socket_timeout', {
+            requestTimeoutMs: env.REQUEST_TIMEOUT_MS,
+        })
+        socket.destroy()
+    })
+}
+
 async function startServer() {
     if (env.NODE_ENV !== 'test' && isQueueConfigured() && !isInlineQueueMode()) {
         reviewCrawlRuntime = await startReviewCrawlWorkerRuntime()
@@ -41,8 +53,15 @@ async function startServer() {
     }
 
     server = app.listen(PORT, () => {
-        logRuntimeEvent('server.started', { port: PORT, nodeEnv: env.NODE_ENV })
+        logRuntimeEvent('server.started', {
+            port: PORT,
+            nodeEnv: env.NODE_ENV,
+            requestTimeoutMs: env.REQUEST_TIMEOUT_MS,
+            headersTimeoutMs: env.HEADERS_TIMEOUT_MS,
+            keepAliveTimeoutMs: env.KEEP_ALIVE_TIMEOUT_MS,
+        })
     })
+    configureHttpServerTimeouts(server)
 }
 
 async function shutdown(signal, exitCode = 0, error) {

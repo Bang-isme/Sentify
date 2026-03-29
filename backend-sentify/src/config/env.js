@@ -39,11 +39,19 @@ function emptyStringToUndefined(value) {
     return value
 }
 
-const envSchema = z.object({
+const envSchema = z
+    .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     LOG_FORMAT: z.enum(['auto', 'json', 'pretty']).default('auto'),
     PORT: z.coerce.number().int().positive().default(3000),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+    DB_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().positive().max(60).default(10),
+    DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(15 * 1000),
+    DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: z.coerce
+        .number()
+        .int()
+        .positive()
+        .default(15 * 1000),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
     JWT_SECRET_PREVIOUS: z.preprocess(
         emptyStringToUndefined,
@@ -53,6 +61,10 @@ const envSchema = z.object({
     JWT_AUDIENCE: z.string().min(1).default('sentify-web'),
     CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
     BODY_LIMIT: z.string().min(1).default('100kb'),
+    REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30 * 1000),
+    HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(31 * 1000),
+    KEEP_ALIVE_TIMEOUT_MS: z.coerce.number().int().positive().default(5 * 1000),
+    SLOW_REQUEST_THRESHOLD_MS: z.coerce.number().int().positive().default(1000),
     AUTH_COOKIE_NAME: z.string().min(1).default('sentify_access_token'),
     AUTH_COOKIE_DOMAIN: z.string().trim().optional(),
     AUTH_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
@@ -107,7 +119,24 @@ const envSchema = z.object({
     REVIEW_CRAWL_SCHEDULER_LOCK_KEY: z.string().min(1).default('review-crawl:scheduler:lock'),
     REVIEW_CRAWL_SCHEDULER_LOCK_TTL_MS: z.coerce.number().int().positive().default(45 * 1000),
     REVIEW_CRAWL_RUNTIME_HEALTH_TTL_MS: z.coerce.number().int().positive().default(90 * 1000),
-})
+    })
+    .superRefine((value, context) => {
+        if (value.HEADERS_TIMEOUT_MS <= value.REQUEST_TIMEOUT_MS) {
+            context.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['HEADERS_TIMEOUT_MS'],
+                message: 'HEADERS_TIMEOUT_MS must be greater than REQUEST_TIMEOUT_MS',
+            })
+        }
+
+        if (value.KEEP_ALIVE_TIMEOUT_MS >= value.HEADERS_TIMEOUT_MS) {
+            context.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['KEEP_ALIVE_TIMEOUT_MS'],
+                message: 'KEEP_ALIVE_TIMEOUT_MS must be lower than HEADERS_TIMEOUT_MS',
+            })
+        }
+    })
 
 const parsedEnv = envSchema.parse(process.env)
 

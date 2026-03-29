@@ -13,9 +13,13 @@ const ANSI = {
     red: '\x1b[31m',
 }
 
-function getLogMethod(statusCode, aborted) {
+function getLogMethod(statusCode, aborted, slowRequest) {
     if (aborted || statusCode >= 500) {
         return console.error
+    }
+
+    if (slowRequest) {
+        return console.warn
     }
 
     if (statusCode >= 400) {
@@ -135,7 +139,14 @@ function getDurationStyle(durationMs) {
 }
 
 function formatPrettyLog(payload) {
-    const level = payload.statusCode >= 500 ? 'ERR' : payload.statusCode >= 400 ? 'WARN' : 'HTTP'
+    const level =
+        payload.statusCode >= 500
+            ? 'ERR'
+            : payload.statusCode >= 400
+              ? 'WARN'
+              : payload.slowRequest
+                ? 'SLOW'
+                : 'HTTP'
     const time = payload.timestamp.slice(11, 19)
     const parts = [
         colorize(`[${time}]`, ANSI.dim, ANSI.gray),
@@ -194,6 +205,7 @@ function requestLogger(req, res, next) {
             request: `${req.method} ${sanitizePath(req.originalUrl || req.url || req.path)}`,
             statusCode: res.statusCode,
             durationMs: toDurationMs(startTime),
+            slowRequest: false,
             ip: req.ip || null,
             userAgent: sanitizeUserAgent(req.get('user-agent')),
             ...(req.user?.userId ? { userId: req.user.userId } : {}),
@@ -201,8 +213,9 @@ function requestLogger(req, res, next) {
                 ? { responseBytes: Number(res.getHeader('content-length')) || 0 }
                 : {}),
         }
+        payload.slowRequest = payload.durationMs >= env.SLOW_REQUEST_THRESHOLD_MS
 
-        const log = getLogMethod(res.statusCode, aborted)
+        const log = getLogMethod(res.statusCode, aborted, payload.slowRequest)
         log(shouldUsePrettyLogs() ? formatPrettyLog(payload) : JSON.stringify(payload))
     }
 

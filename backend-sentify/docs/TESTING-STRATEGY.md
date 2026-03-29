@@ -53,6 +53,13 @@ Unit tests                 Current baseline
 - admin-access integration coverage for durable membership assignment/removal audit behavior
 - review-crawl and review-ops service coverage for durable crawl-source mutation audit behavior
 - queue/runtime coverage for BullMQ-safe job ids and worker lifecycle
+- runtime hardening coverage for:
+  - HTTP timeout env invariants
+  - explicit database URL timeout normalization
+  - Prisma operational error mapping
+  - slow-request logging
+  - queue-health degradation when Redis probes fail
+  - worker `error` and `stalled` event wiring
 - role-boundary integration coverage for `USER` versus `ADMIN`
 - admin restaurant overview coverage for the new admin discovery flow and restaurant-specific source-submission work item wiring
 - restaurant service coverage for merchant `sourceSubmission` state and timeline/history derivation
@@ -303,7 +310,7 @@ Unit tests                 Current baseline
     - redeploy Render staging
     - rerun `proof:staging-review-ops`
 - latest full backend-suite verification on `2026-03-29`:
-  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`184` tests: `171` pass, `13` skipped, `0` fail)
+- `cd D:\Project 3\backend-sentify && npm test` -> passed (`204` tests: `190` pass, `14` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - proof focus:
     - full mocked/unit/integration suite is green alongside real-DB smoke
@@ -312,6 +319,7 @@ Unit tests                 Current baseline
       - `SENTIFY_RUNTIME_ENV_FILE`
       - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`
     - env config now also rejects permissive `TRUST_PROXY=true` values in tests and runtime config parsing
+    - `scripts/run-realdb-tests.js` now retries `db:reset:local-baseline` before each real-DB file, which removes transient Prisma schema-engine reset failures without weakening any assertions
 - freshest backend and browser rerun on `2026-03-28`:
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - `cd D:\Project 3\backend-sentify && node --test test/admin-platform.integration.test.js` -> `4/4 passed`
@@ -601,6 +609,29 @@ The main testing gaps still left are:
   - interpretation:
     - the merchant read surface is healthy under light external concurrency
     - these numbers should not be compared directly to the local worker-pressure harness because the staging proof excludes queue throughput on purpose
+
+## 7.2 2026-03-29 Security And Provider-Safety Regressions
+
+- `node --test test/database-url.test.js test/redis-deployment.test.js test/review-crawl.queue.test.js test/admin-platform.integration.test.js` now covers:
+  - external Postgres URL normalization from `sslmode=require|prefer|verify-ca` to `sslmode=verify-full`
+  - Redis deployment safety classification from raw `INFO` output
+  - queue health degradation when external Redis is not BullMQ-safe
+  - admin-platform visibility of unsafe Redis deployment posture
+- `npm test` reran green after this slice: `204` tests, `190` pass, `14` skipped, `0` fail
+- `npm run test:realdb` reran green on the same slice
+- latest managed Redis proof on the current external target:
+  - `node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json`
+  - result:
+    - Redis `8.4.0`
+    - connectivity `PONG`
+    - BullMQ enqueue/process/complete probe succeeded
+    - `maxmemory-policy = volatile-lru`
+    - `evictionPolicyStatus = FAILED`
+    - overall `passed = false`
+- interpretation:
+  - the code no longer relies on provider SSL aliases or raw BullMQ console warnings
+  - external Redis connectivity is fine
+  - external Redis durability is still not acceptable for BullMQ until provider policy is changed to `noeviction`
 
 ## 8. Merge Gate
 

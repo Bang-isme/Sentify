@@ -1,6 +1,5 @@
-const { Prisma } = require('@prisma/client')
 const { AppError } = require('../lib/app-error')
-const { sendError } = require('../lib/controller-error')
+const { mapOperationalError, sendError } = require('../lib/controller-error')
 
 function logUnhandledError(err, req) {
     const payload = {
@@ -36,8 +35,15 @@ function errorHandler(err, req, res, next) {
         return sendError(req, res, err.statusCode, err.code, err.message, err.details)
     }
 
-    if (err instanceof Prisma.PrismaClientValidationError) {
-        return sendError(req, res, 400, 'INVALID_REQUEST', 'Request validation failed')
+    const mappedError = mapOperationalError(err)
+    if (mappedError) {
+        return sendError(
+            req,
+            res,
+            mappedError.status,
+            mappedError.code,
+            mappedError.message,
+        )
     }
 
     logUnhandledError(err, req)

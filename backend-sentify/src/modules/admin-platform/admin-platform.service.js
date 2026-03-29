@@ -392,10 +392,15 @@ function summarizeWorkerHealth(workerHealth) {
 
 function summarizeQueueHealth(queueHealth) {
     const counts = queueHealth.counts ?? null
+    const deployment = queueHealth.deployment ?? null
+    const deploymentUnsafe =
+        deployment?.minimumVersionStatus === 'FAILED' ||
+        deployment?.evictionPolicyStatus === 'FAILED'
     const healthy =
         queueHealth.configured &&
         counts &&
-        Number(counts.failed || 0) === 0
+        Number(counts.failed || 0) === 0 &&
+        !deploymentUnsafe
 
     return {
         status: queueHealth.configured
@@ -409,6 +414,8 @@ function summarizeQueueHealth(queueHealth) {
         inlineMode: isInlineQueueMode(),
         queueName: env.REVIEW_CRAWL_QUEUE_NAME,
         counts,
+        deployment,
+        ...(queueHealth.errorMessage ? { errorMessage: queueHealth.errorMessage } : {}),
     }
 }
 
@@ -644,6 +651,17 @@ async function getIntegrationsPolicies({ userId }) {
     }
 }
 
+async function getControls({ userId }) {
+    await ensureAdminAccess(userId)
+
+    const controls = await getPlatformControls()
+
+    return {
+        generatedAt: new Date().toISOString(),
+        controls,
+    }
+}
+
 function buildAuditActor(user) {
     if (!user) {
         return null
@@ -871,6 +889,7 @@ async function updateControls({ userId, input }) {
 
 module.exports = {
     getAuditFeed,
+    getControls,
     getHealthJobs,
     getIntegrationsPolicies,
     updateControls,

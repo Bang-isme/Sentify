@@ -156,6 +156,13 @@ Principles:
       - action cards limit `3`
   - admin can update that plan truth through `PATCH /api/admin/restaurants/:id/entitlement`
   - do not jump straight to larger freemium matrices or 1M-submission pricing policy until this simple contract stays stable in production-like proof
+  - optional endpoint backlog is intentionally tracked separately from the live contract:
+    - `DELETE /api/restaurants/:id`
+    - `GET /api/restaurants/:id/reviews/:reviewId`
+    - `DELETE /api/admin/restaurants/:id`
+    - `GET /api/admin/restaurants/:id/reviews`
+    - `POST /api/admin/review-batches/:id/archive`
+  - do not describe those backlog endpoints as implemented until the repo contains routes, tests, and docs updates for them
 
 ## Docs To Trust First
 
@@ -275,7 +282,7 @@ These tracked project-memory files exist so project context survives clone/sessi
     - the redeploy regression was caused by trust-proxy config, not DB loss or broken credentials
     - current live staging runtime is green again after the fix
 - On `2026-03-29`, full backend suite isolation was re-hardened:
-  - `cd D:\Project 3\backend-sentify && npm test` passed again (`184` tests: `171` pass, `13` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm test` passed again (`195` tests: `181` pass, `14` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` also passed on the same codebase state
   - root cause of the one failing full-suite regression:
     - `managed-signoff-preflight.test.js` was accidentally inheriting the operator's real `.env.release-evidence`
@@ -286,6 +293,18 @@ These tracked project-memory files exist so project context survives clone/sessi
   - effect:
     - full backend suite is green without depending on machine-local managed-signoff secrets
     - release/readiness tests remain stable after staging setup work
+  - additional harness fix:
+    - `scripts/run-realdb-tests.js` now retries `db:reset:local-baseline` before each `.realdb.test.js` file
+    - this absorbs transient Prisma schema-engine reset failures between real-DB files without changing business assertions
+- On `2026-03-29`, two API-gap backlog items were promoted into the live backend contract:
+  - `PATCH /api/auth/profile`
+    - authenticated self-service update of `fullName` and `email`
+    - guarded by existing CSRF, auth, and email uniqueness rules
+    - verified by service tests, auth integration tests, and `auth.realdb.test.js`
+  - `GET /api/admin/platform/controls`
+    - dedicated admin read model for runtime controls
+    - keeps FE from scraping control state indirectly out of broader health or policy payloads
+    - verified by `admin-platform.integration.test.js`
 - On `2026-03-29`, trust-proxy config was hardened from “documented convention” into “enforced runtime guardrail”:
   - `src/config/env.js` now rejects `TRUST_PROXY=true`
   - intended hosted values are:
@@ -295,6 +314,32 @@ These tracked project-memory files exist so project context survives clone/sessi
     - `express-rate-limit` treats boolean `true` as permissive and can raise `ERR_ERL_PERMISSIVE_TRUST_PROXY`
   - result:
     - a bad hosted trust-proxy value now fails fast during startup instead of surfacing later under auth traffic
+- On `2026-03-29`, backend provider-security handling was tightened beyond trust-proxy:
+  - `src/lib/database-url.js` now normalizes external Postgres URLs so provider aliases like:
+    - `sslmode=require`
+    - `sslmode=prefer`
+    - `sslmode=verify-ca`
+    are upgraded to `sslmode=verify-full`
+  - `src/lib/redis-deployment.js` now parses Redis deployment facts from `INFO` output and classifies:
+    - minimum Redis version
+    - recommended Redis version
+    - `maxmemory-policy`
+    - BullMQ safety
+  - `src/modules/review-crawl/review-crawl.queue.js` now exposes that deployment report in queue health and suppresses BullMQ's raw version-warning path through `skipVersionCheck`
+  - `src/modules/admin-platform/admin-platform.service.js` now degrades queue health when Redis deployment safety is below BullMQ durability requirements
+  - `scripts/managed-redis-proof.js` now fails explicitly when provider eviction policy is not `noeviction`
+- On `2026-03-29`, the current external Redis target was proven reachable but still not BullMQ-safe:
+  - `node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json` completed with:
+    - Redis `8.4.0`
+    - connectivity `PONG`
+    - successful enqueue/process/complete probe
+    - `maxmemory-policy = volatile-lru`
+    - `evictionPolicyStatus = FAILED`
+    - `safeForBullMq = false`
+  - operational reading:
+    - this is not a code bug anymore
+    - it is a provider configuration problem
+    - external managed Redis must be changed to `maxmemory-policy=noeviction` or replaced before calling BullMQ durability done
 - On `2026-03-29`, external staging merchant read latency was proven separately from the local worker harness:
   - `node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json` returned `STAGING_PERFORMANCE_PROOF_COMPLETE`
   - target:
@@ -960,3 +1005,27 @@ These tracked project-memory files exist so project context survives clone/sessi
   - env parser hardening now allows `JWT_SECRET_PREVIOUS=` to be blank without breaking startup; regression coverage lives in `backend-sentify/test/env.test.js`
 - Auxiliary runtime-tooling fix:
   - `local-review-stack.js` now filters out the heartbeat index key so stack status no longer reports it as a stale processor.
+- On `2026-03-29`, backend runtime hardening was extended beyond staging fixes:
+  - `npm test` now passes at `204` tests with `190` pass and `14` skipped
+  - `npm run test:realdb` still passes after the hardening slice
+  - env parsing now enforces safe timeout relationships:
+    - `HEADERS_TIMEOUT_MS > REQUEST_TIMEOUT_MS`
+    - `KEEP_ALIVE_TIMEOUT_MS < HEADERS_TIMEOUT_MS`
+  - runtime Postgres URLs now normalize:
+    - `sslmode=verify-full`
+    - `connect_timeout`
+    - `statement_timeout`
+    - `idle_in_transaction_session_timeout`
+  - HTTP runtime now sets explicit:
+    - `requestTimeout`
+    - `headersTimeout`
+    - `keepAliveTimeout`
+  - controller/middleware error handling now maps:
+    - Prisma initialization failures
+    - Prisma pool exhaustion
+    - Prisma transaction API failures
+    - Prisma concurrency conflicts
+    - explicit request timeout errors
+  - queue health now degrades gracefully when BullMQ or Redis count probes fail instead of throwing through admin surfaces
+  - worker runtime now logs `error` and `stalled` events explicitly
+  - request logging now marks slow successful requests so latency regressions are visible before they become outages

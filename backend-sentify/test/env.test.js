@@ -15,7 +15,10 @@ function runEnvProbe(overrides = {}) {
                 process.stdout.write(JSON.stringify({
                     jwtSecretPrevious: env.JWT_SECRET_PREVIOUS ?? null,
                     authCookieDomain: env.AUTH_COOKIE_DOMAIN ?? null,
-                    trustProxyValue: env.TRUST_PROXY_VALUE ?? null
+                    trustProxyValue: env.TRUST_PROXY_VALUE ?? null,
+                    requestTimeoutMs: env.REQUEST_TIMEOUT_MS,
+                    headersTimeoutMs: env.HEADERS_TIMEOUT_MS,
+                    keepAliveTimeoutMs: env.KEEP_ALIVE_TIMEOUT_MS
                 }));
             `,
         ],
@@ -79,4 +82,25 @@ test('env config rejects permissive TRUST_PROXY=true values', () => {
 
     assert.equal(result.status, 1)
     assert.match(result.stderr, /TRUST_PROXY=true is not allowed/)
+})
+
+test('env config rejects headers timeout values that do not exceed request timeout', () => {
+    const result = runEnvProbe({
+        REQUEST_TIMEOUT_MS: '30000',
+        HEADERS_TIMEOUT_MS: '30000',
+    })
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /HEADERS_TIMEOUT_MS must be greater than REQUEST_TIMEOUT_MS/)
+})
+
+test('env config rejects keep-alive timeouts that are higher than headers timeout', () => {
+    const result = runEnvProbe({
+        REQUEST_TIMEOUT_MS: '30000',
+        HEADERS_TIMEOUT_MS: '31000',
+        KEEP_ALIVE_TIMEOUT_MS: '31000',
+    })
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /KEEP_ALIVE_TIMEOUT_MS must be lower than HEADERS_TIMEOUT_MS/)
 })
