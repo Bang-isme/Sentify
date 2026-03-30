@@ -204,7 +204,7 @@ export function Header({
   const authHeaderLeftTextClass = isAuthRoute
     ? 'text-white drop-shadow-[0_1px_10px_rgba(0,0,0,0.45)]'
     : ''
-  const authHeaderRightTextClass = isAuthRoute ? 'text-[#1a1a1a]' : ''
+  const authHeaderRightTextClass = isAuthRoute ? 'text-[#1a1a1a] dark:text-[#f1dfca]' : ''
   const accountTriggerClass = useLandingChrome
     ? `${isOnboardingAppRoute ? 'size-11 p-1.5' : marketingShellCompact ? 'size-10 p-1.5' : 'size-11 p-1.5'} border ${
         isAccountMenuOpen
@@ -583,7 +583,7 @@ export function Header({
             <>
               <button
                 type="button"
-                className={`hidden items-center justify-center rounded-full px-2 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex ${
+                className={`${isAuthRoute ? 'inline-flex' : 'hidden sm:inline-flex'} items-center justify-center rounded-full px-2 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   useLandingChrome
                     ? `${marketingShellCompact ? 'h-[1.8rem] text-[0.72rem] md:text-[0.75rem]' : 'h-[1.95rem] text-[0.78rem]'} leading-tight rounded-none px-0 font-bold ${
                         isAuthRoute

@@ -259,11 +259,8 @@ export function AuthScreen({
       ? authCopy.loginDescription
       : authCopy.signupDescription
   const compactSignupLayout = isSignup && !isForgotPassword
-  const authPanelClass = `flex w-full flex-col items-center bg-surface-white px-6 dark:bg-surface-dark/96 md:px-12 lg:w-5/12 lg:px-16 ${
-    compactSignupLayout
-      ? 'justify-start overflow-y-auto pt-[5.75rem] pb-8 md:pt-24 md:pb-8 lg:justify-center lg:overflow-hidden lg:pt-24 lg:pb-8'
-      : 'justify-start overflow-y-auto pt-[6.5rem] pb-10 md:pt-28 md:pb-12 lg:pt-28 lg:pb-12'
-  }`
+  const authPanelClass =
+    'flex w-full flex-col items-center justify-start overflow-y-auto bg-surface-white px-6 pt-[6.5rem] pb-10 dark:bg-surface-dark/96 md:px-12 md:pt-28 md:pb-12 lg:w-5/12 lg:px-16 lg:pt-28 lg:pb-12'
   const authContainerClass = compactSignupLayout ? 'w-full max-w-md lg:max-w-[28rem]' : 'w-full max-w-md'
   const authHeaderClass = compactSignupLayout ? 'mb-7 text-center lg:mb-6 lg:text-left' : 'mb-10 text-center lg:text-left'
   const socialButtonsClass = compactSignupLayout ? 'mb-6 grid grid-cols-2 gap-3' : 'mb-8 grid grid-cols-2 gap-4'

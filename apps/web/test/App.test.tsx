@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../src/App'
@@ -286,6 +286,48 @@ describe('Sentify app shell', () => {
     expect(
       await screen.findByText('If the email is registered, a reset link has been sent.'),
     ).toBeInTheDocument()
+  })
+
+  it('keeps the header log in action visible on signup routes', async () => {
+    window.location.hash = '#/signup'
+
+    const { container } = render(<App />)
+
+    await screen.findByRole('button', { name: 'Create account' })
+
+    const pageHeader = container.querySelector('header')
+
+    expect(pageHeader).not.toBeNull()
+
+    const headerLoginButton = within(pageHeader as HTMLElement).getByRole('button', {
+      name: 'Log in',
+    })
+
+    expect(headerLoginButton.className).not.toContain('hidden')
+    expect(headerLoginButton.className).toContain('dark:text-[#f1dfca]')
+  })
+
+  it('keeps the login and signup panels aligned on the same vertical offset', async () => {
+    window.location.hash = '#/login'
+
+    const loginView = render(<App />)
+    await screen.findByRole('button', { name: 'Log in' })
+    const loginPanel = loginView.container.querySelectorAll('main section')[1]
+
+    expect(loginPanel).not.toBeNull()
+
+    const loginPanelClassName = (loginPanel as HTMLElement).className
+
+    loginView.unmount()
+
+    window.location.hash = '#/signup'
+
+    const signupView = render(<App />)
+    await screen.findByRole('button', { name: 'Create account' })
+    const signupPanel = signupView.container.querySelectorAll('main section')[1]
+
+    expect(signupPanel).not.toBeNull()
+    expect((signupPanel as HTMLElement).className).toBe(loginPanelClassName)
   })
 
   it('shows onboarding instead of the sidebar when no restaurants exist', async () => {
