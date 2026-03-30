@@ -5,7 +5,8 @@ const path = require('path')
 const { loadEnvFiles } = require('./load-env-files')
 const {
     loginAndReadSession,
-    requestJson,
+    requestJsonWithRetries,
+    warmupStagingBaseUrl,
 } = require('./staging-proof-helpers')
 
 loadEnvFiles({
@@ -72,7 +73,7 @@ function printUsage() {
             '  --admin-email <email>          Optional ADMIN email for control-plane smoke',
             '  --admin-password <password>    Optional ADMIN password',
             '  --admin-restaurant-id <id>     Optional admin restaurant id override',
-            '  --timeout-ms <ms>              Per-request timeout in milliseconds (default: 60000)',
+            '  --timeout-ms <ms>              Per-request timeout in milliseconds (default: 90000)',
             '  --insecure-tls                 Disable TLS certificate verification for this probe',
             `  --output <file>                Write JSON report (default: ${DEFAULT_OUTPUT_PATH})`,
             '  --help                         Show this help message',
@@ -187,20 +188,20 @@ async function runMerchantSmoke({
         auth.sessionBody?.data?.user?.restaurants?.[0]?.id ||
         null
 
-    const restaurants = await requestJson(baseUrl, '/api/restaurants', {
+    const restaurants = await requestJsonWithRetries(baseUrl, '/api/restaurants', {
         cookieJar: auth.cookieJar,
         timeoutMs,
         insecureTls,
     })
     const detail = resolvedRestaurantId
-        ? await requestJson(baseUrl, `/api/restaurants/${resolvedRestaurantId}`, {
+        ? await requestJsonWithRetries(baseUrl, `/api/restaurants/${resolvedRestaurantId}`, {
               cookieJar: auth.cookieJar,
               timeoutMs,
               insecureTls,
           })
         : null
     const actions = resolvedRestaurantId
-        ? await requestJson(
+        ? await requestJsonWithRetries(
               baseUrl,
               `/api/restaurants/${resolvedRestaurantId}/dashboard/actions`,
               {
@@ -279,7 +280,7 @@ async function runAdminSmoke({
         }
     }
 
-    const restaurants = await requestJson(baseUrl, '/api/admin/restaurants', {
+    const restaurants = await requestJsonWithRetries(baseUrl, '/api/admin/restaurants', {
         cookieJar: auth.cookieJar,
         timeoutMs,
         insecureTls,
@@ -289,13 +290,13 @@ async function runAdminSmoke({
         restaurants.body?.data?.[0]?.id ||
         null
     const detail = resolvedRestaurantId
-        ? await requestJson(baseUrl, `/api/admin/restaurants/${resolvedRestaurantId}`, {
+        ? await requestJsonWithRetries(baseUrl, `/api/admin/restaurants/${resolvedRestaurantId}`, {
               cookieJar: auth.cookieJar,
               timeoutMs,
               insecureTls,
           })
         : null
-    const sourceSubmissionQueue = await requestJson(
+    const sourceSubmissionQueue = await requestJsonWithRetries(
         baseUrl,
         '/api/admin/restaurants/source-submissions',
         {
@@ -365,7 +366,7 @@ async function main() {
     const timeoutMs =
         Number.parseInt(readFlag(args, '--timeout-ms') || '', 10) ||
         Number.parseInt(process.env.RELEASE_EVIDENCE_STAGING_TIMEOUT_MS || '', 10) ||
-        60000
+        90000
     const insecureTls =
         hasFlag(args, '--insecure-tls') ||
         process.env.RELEASE_EVIDENCE_STAGING_INSECURE_TLS === 'true'
@@ -394,16 +395,25 @@ async function main() {
     const startedAt = new Date()
     const checks = []
 
-    const [health, apiHealth] = await Promise.all([
-        requestJson(baseUrl, '/health', {
-            timeoutMs,
-            insecureTls,
-        }),
-        requestJson(baseUrl, '/api/health', {
-            timeoutMs,
-            insecureTls,
-        }),
-    ])
+    await warmupStagingBaseUrl(baseUrl, {
+        timeoutMs,
+        insecureTls,
+        retryAttempts: 3,
+        retryDelayMs: 2000,
+    })
+
+    const health = await requestJsonWithRetries(baseUrl, '/health', {
+        timeoutMs,
+        insecureTls,
+        retryAttempts: 4,
+        retryDelayMs: 3000,
+    })
+    const apiHealth = await requestJsonWithRetries(baseUrl, '/api/health', {
+        timeoutMs,
+        insecureTls,
+        retryAttempts: 4,
+        retryDelayMs: 3000,
+    })
 
     checks.push(
         buildCheck(
