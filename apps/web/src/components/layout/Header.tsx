@@ -58,6 +58,7 @@ export function Header({
   const isAuthRoute =
     route === '/login' || route === '/signup' || route === '/forgot-password'
   const useLandingChrome = !isAppRoute || isOnboardingAppRoute
+  const useImmersiveOnboardingChrome = isOnboardingAppRoute
   const marketingSurfaceVisible = isLandingRoute ? isLandingScrolled : true
   const isLandingCompact = isLandingRoute && isLandingScrolled
   const marketingShellCompact = isLandingRoute ? isLandingCompact : false
@@ -208,8 +209,12 @@ export function Header({
   const accountTriggerClass = useLandingChrome
     ? `${isOnboardingAppRoute ? 'size-11 p-1.5' : marketingShellCompact ? 'size-10 p-1.5' : 'size-11 p-1.5'} border ${
         isAccountMenuOpen
-          ? 'border-[#eb7a1c]/55 bg-white shadow-[0_12px_28px_-18px_rgba(235,122,28,0.55)] dark:border-[#f29a40]/55 dark:bg-[#241912]'
-          : 'border-[#eadbc8] bg-white/82 hover:border-[#eb7a1c]/40 hover:bg-white dark:border-[#3d2c1f] dark:bg-[#1c140f]/88 dark:hover:border-[#f29a40]/45 dark:hover:bg-[#241912]'
+          ? useImmersiveOnboardingChrome
+            ? 'border-[#f6d9b5]/28 bg-[rgba(22,14,10,0.82)] shadow-[0_14px_32px_-18px_rgba(0,0,0,0.62)]'
+            : 'border-[#eb7a1c]/55 bg-white shadow-[0_12px_28px_-18px_rgba(235,122,28,0.55)] dark:border-[#f29a40]/55 dark:bg-[#241912]'
+          : useImmersiveOnboardingChrome
+            ? 'border-white/14 bg-[rgba(20,12,8,0.42)] hover:border-[#f3cfab]/28 hover:bg-[rgba(24,14,9,0.54)]'
+            : 'border-[#eadbc8] bg-white/82 hover:border-[#eb7a1c]/40 hover:bg-white dark:border-[#3d2c1f] dark:bg-[#1c140f]/88 dark:hover:border-[#f29a40]/45 dark:hover:bg-[#241912]'
       }`
     : `size-10 border ${
         isAccountMenuOpen
@@ -218,12 +223,12 @@ export function Header({
       }`
   const accountAvatarClass =
     isOnboardingAppRoute
-      ? 'size-8 text-[11px]'
+      ? 'size-[1.9rem] text-[11px] leading-none tracking-[-0.01em]'
       : isLandingCompact
-        ? 'size-7 text-[11px]'
+        ? 'size-7 text-[11px] leading-none tracking-[-0.01em]'
         : useLandingChrome
-          ? 'size-[1.9rem] text-[11px]'
-          : 'size-7 text-xs'
+          ? 'size-[1.9rem] text-[11px] leading-none tracking-[-0.01em]'
+          : 'size-7 text-xs leading-none tracking-[-0.01em]'
 
   const shellClassName = useLandingChrome
     ? `pointer-events-auto relative grid w-full max-w-[1820px] ${
@@ -245,9 +250,11 @@ export function Header({
     ? `pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${
         isAuthRoute
           ? 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0'
+          : useImmersiveOnboardingChrome
+            ? 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0'
           : marketingSurfaceVisible
-          ? 'border-b border-[#f3e4d3] bg-white/98 shadow-[0_2px_15px_rgba(0,0,0,0.03)] backdrop-blur-sm dark:border-[#3f2c1f] dark:bg-[#17100c]/96 dark:shadow-[0_12px_30px_-22px_rgba(0,0,0,0.65)]'
-          : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0'
+            ? 'border-b border-[#f3e4d3] bg-white/98 shadow-[0_2px_15px_rgba(0,0,0,0.03)] backdrop-blur-sm dark:border-[#3f2c1f] dark:bg-[#17100c]/96 dark:shadow-[0_12px_30px_-22px_rgba(0,0,0,0.65)]'
+            : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0'
       }`
     : 'pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center transition-transform duration-300 ease-out md:top-5'
 
@@ -295,7 +302,9 @@ export function Header({
                   } ${
                     isAuthRoute
                       ? authHeaderLeftTextClass
-                      : 'text-[#1a1a1a] dark:text-[#fff7ef]'
+                      : useImmersiveOnboardingChrome
+                        ? 'text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.48)]'
+                        : 'text-[#1a1a1a] dark:text-[#fff7ef]'
                   } transition-all duration-300`
                 : 'text-lg font-bold text-text-charcoal dark:text-white'
             }`}
@@ -331,8 +340,8 @@ export function Header({
                     type="button"
                     className={`inline-flex items-center justify-center text-[0.82rem] font-semibold transition-all duration-300 ${
                       isActive
-                        ? 'text-[#8b4214]'
-                        : 'text-[#7d6957] hover:text-[#eb7a1c] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]'
+                        ? 'text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.48)]'
+                        : 'text-white/68 hover:text-[#ffd6ad]'
                     }`}
                     style={{ fontFamily: '"Work Sans", system-ui, sans-serif' }}
                     onClick={() => onNavigate(item.route)}
@@ -386,6 +395,8 @@ export function Header({
                 ? `${marketingShellCompact ? 'size-[1.5rem]' : 'size-[1.625rem]'} ${
                     isAuthRoute
                       ? `${authHeaderRightTextClass} hover:bg-[#fff4e8] hover:text-[#ff8c00]`
+                      : useImmersiveOnboardingChrome
+                        ? 'text-[#f6e5d1] hover:bg-white/8 hover:text-white'
                       : 'text-[#1a1a1a] hover:bg-[#fff4e8] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:bg-[#211710] dark:hover:text-[#f29a40]'
                   }`
                 : 'size-9 text-text-silver-light hover:scale-110 hover:bg-black/5 hover:text-primary hover:shadow-[0_0_12px_rgba(212,175,55,0.3)] dark:text-text-silver-dark dark:hover:bg-white/5'
@@ -415,6 +426,8 @@ export function Header({
                   ? `${marketingShellCompact ? 'h-[1.8rem] gap-1 text-[0.72rem] md:text-[0.75rem]' : 'h-[1.95rem] gap-1 text-[0.78rem]'} leading-tight rounded-none border-0 bg-transparent px-0 font-bold ${
                       isAuthRoute
                         ? `${authHeaderRightTextClass} hover:text-[#ff8c00]`
+                        : useImmersiveOnboardingChrome
+                          ? 'text-[#f6e5d1] hover:text-white'
                         : 'text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]'
                     }`
                   : 'h-9 gap-2 border border-border-light text-text-charcoal hover:border-primary/40 hover:text-primary dark:border-border-dark dark:text-white'
@@ -493,12 +506,12 @@ export function Header({
                     setIsAccountMenuOpen((current) => !current)
                     setIsLanguageMenuOpen(false)
                   }}
-                  className={`group flex shrink-0 items-center justify-center rounded-full transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                  className={`group grid shrink-0 place-items-center rounded-full transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                     accountTriggerClass
                   }`}
                 >
                   <span
-                    className={`flex shrink-0 items-center justify-center rounded-full bg-primary font-black text-bg-dark transition-all duration-300 ${
+                    className={`grid shrink-0 place-items-center rounded-full bg-primary font-black text-bg-dark transition-all duration-300 ${
                       accountAvatarClass
                     }`}
                   >

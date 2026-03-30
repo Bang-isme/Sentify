@@ -341,6 +341,48 @@ describe('Sentify app shell', () => {
     expect(screen.queryByText('Current restaurant')).not.toBeInTheDocument()
   })
 
+  it('shows the import launch screen before the first review sync', async () => {
+    const membership = createMembership({ totalReviews: 0 })
+    const emptyInsight: InsightSummary = {
+      totalReviews: 0,
+      averageRating: 0,
+      positivePercentage: 0,
+      neutralPercentage: 0,
+      negativePercentage: 0,
+    }
+
+    mockAuthenticatedSession({ restaurants: [membership] })
+    listRestaurantsMock.mockResolvedValue([membership])
+    getRestaurantDetailMock.mockResolvedValue(
+      createDetail(membership, {
+        insightSummary: emptyInsight,
+      }),
+    )
+    getDashboardKpiMock.mockResolvedValue(emptyInsight)
+    getSentimentBreakdownMock.mockResolvedValue([])
+    getTrendMock.mockResolvedValue([])
+    getComplaintKeywordsMock.mockResolvedValue([])
+    getLatestImportRunMock.mockResolvedValue(null)
+    listImportRunsMock.mockResolvedValue([])
+
+    window.location.hash = '#/app'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Run the first import and inspect the signal.' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Sync status' })).toBeInTheDocument()
+    expect(screen.queryByText('Operational triage dashboard')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Import reviews' }))
+
+    await waitFor(() => {
+      expect(importReviewsMock).toHaveBeenCalledWith(membership.id)
+    })
+  })
+
   it('renders the authenticated header with avatar menu and closes it on Escape', async () => {
     mockAuthenticatedSession({ restaurants: [createMembership()] })
     window.location.hash = '#/app'
@@ -415,16 +457,37 @@ describe('Sentify app shell', () => {
   })
 
   it('guides the user to settings when the selected restaurant is missing a source URL', async () => {
-    const membership = createMembership({ googleMapUrl: null })
+    const membership = createMembership({ googleMapUrl: null, totalReviews: 0 })
+    const emptyInsight: InsightSummary = {
+      totalReviews: 0,
+      averageRating: 0,
+      positivePercentage: 0,
+      neutralPercentage: 0,
+      negativePercentage: 0,
+    }
+
     mockAuthenticatedSession({ restaurants: [membership] })
     listRestaurantsMock.mockResolvedValue([membership])
-    getRestaurantDetailMock.mockResolvedValue(createDetail(membership, { googleMapUrl: null }))
+    getRestaurantDetailMock.mockResolvedValue(
+      createDetail(membership, {
+        googleMapUrl: null,
+        insightSummary: emptyInsight,
+      }),
+    )
+    getDashboardKpiMock.mockResolvedValue(emptyInsight)
+    getLatestImportRunMock.mockResolvedValue(null)
+    listImportRunsMock.mockResolvedValue([])
     window.location.hash = '#/app'
+    const user = userEvent.setup()
 
     render(<App />)
 
-    expect(await screen.findByText('Add a source URL before running import.')).toBeInTheDocument()
-    expect(screen.getAllByText('Open settings').length).toBeGreaterThan(0)
+    expect(await screen.findByText('Save the Google Maps source URL.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Open settings' }))
+
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/app/settings')
+    })
   })
 
   it('renders a compact sync status on the dashboard instead of full import history', async () => {

@@ -1000,7 +1000,7 @@ function SettingsSourceSummary({
   language,
 }: {
   copy: ProductUiCopy['app']
-  detail: RestaurantDetail
+  detail: { googleMapUrl: string | null | undefined }
   latestRun: ImportRunSummary | null
   language: string
 }) {
@@ -1356,28 +1356,28 @@ function RestaurantSetupForm({
   const sourcePreview = formatSourcePreview(googleMapUrl)
   const visualCopy = getOnboardingVisualCopy(language)
   const baseInputClass =
-    'h-13 w-full rounded-[1rem] border border-[#eadbcc] bg-[#faf6ef] px-4 text-[0.95rem] text-[#22170f] outline-none transition placeholder:text-[#b09883] focus:border-primary focus:ring-0'
+    'h-13 w-full rounded-[1.05rem] border border-[#e5d8ca] bg-[rgba(252,247,239,0.92)] px-4 text-[0.95rem] text-[#22170f] shadow-[inset_0_1px_0_rgba(255,255,255,0.62)] outline-none transition placeholder:text-[#b09883] focus:border-primary focus:bg-white focus:shadow-[0_0_0_4px_rgba(235,122,28,0.12)] focus:ring-0'
   const iconInputClass = `${baseInputClass} pl-14`
 
   if (variant === 'onboarding') {
     return (
-      <section className="overflow-hidden rounded-[1.75rem] border border-[#ebddcd] bg-[#fffdf9] shadow-[0_24px_60px_-46px_rgba(34,23,15,0.45)]">
-        <div className="border-b border-[#f0e4d7] px-6 py-5 sm:px-7 sm:py-6">
+      <section className="overflow-hidden rounded-[1.7rem] border border-[#e7dccd] bg-[linear-gradient(180deg,#fffdfa_0%,#fbf4ea_100%)] shadow-[0_34px_90px_-56px_rgba(17,11,8,0.72)] backdrop-blur-sm">
+        <div className="border-b border-[#f0e4d7] px-5 py-4 sm:px-6 sm:py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="max-w-3xl">
-              <h2 className="font-serif text-[1.9rem] font-semibold tracking-[-0.03em] text-[#2a1c12] sm:text-[2.1rem]">
+              <h2 className="font-serif text-[1.65rem] font-semibold tracking-[-0.04em] text-[#2a1c12] sm:text-[1.8rem]">
                 {title}
               </h2>
-              <p className="mt-2 max-w-2xl text-[0.95rem] leading-7 text-[#7d6652]">{description}</p>
+              <p className="mt-2 max-w-2xl text-[0.9rem] leading-7 text-[#7d6652]">{description}</p>
             </div>
-            <span className="hidden size-12 items-center justify-center rounded-[1rem] bg-[#fff4e8] text-primary sm:flex">
-              <span className="material-symbols-outlined text-[24px]">restaurant</span>
+            <span className="hidden size-11 items-center justify-center rounded-[0.95rem] border border-[#efd8be] bg-[linear-gradient(180deg,#fff6eb_0%,#fff0dc_100%)] text-primary shadow-[0_18px_32px_-24px_rgba(235,122,28,0.6)] sm:flex">
+              <span className="material-symbols-outlined text-[22px]">restaurant</span>
             </span>
           </div>
         </div>
 
-        <form className="space-y-7 px-6 py-6 sm:px-7 sm:py-7" onSubmit={handleSubmit} noValidate>
-          <div className="grid gap-5 md:grid-cols-2">
+        <form className="space-y-6 px-5 py-5 sm:px-6 sm:py-6" onSubmit={handleSubmit} noValidate>
+          <div className="grid gap-4 md:grid-cols-2">
             <label
               htmlFor="setup-restaurant-name"
               className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
@@ -1480,38 +1480,48 @@ function RestaurantSetupForm({
             <p className="text-[0.78rem] leading-6 text-[#9a836f]">{visualCopy.googleMapsHint}</p>
           </label>
 
-          <div className="relative min-h-[190px] overflow-hidden rounded-[1.25rem] border border-[#e3d7ca] bg-[#efebe6] shadow-inner">
-            <img
-              alt="Google Maps preview placeholder"
-              className="h-full w-full object-cover grayscale opacity-38 transition duration-700"
-              src={ONBOARDING_MAP_PREVIEW_IMAGE}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/28 via-white/5 to-[#1b120c]/10" />
-            <div className="absolute inset-x-5 top-1/2 flex -translate-y-1/2 justify-center">
-              <div className="inline-flex max-w-full items-center gap-3 rounded-full border border-white/75 bg-white/95 px-5 py-2.5 shadow-[0_16px_32px_-24px_rgba(34,23,15,0.55)]">
-                <span className="material-symbols-outlined text-[20px] text-primary">
-                  near_me
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(220px,0.85fr)]">
+            <div className="relative min-h-[168px] overflow-hidden rounded-[1.2rem] border border-[#e3d7ca] bg-[#efebe6] shadow-[inset_0_1px_0_rgba(255,255,255,0.56)]">
+              <img
+                alt="Google Maps preview placeholder"
+                className="h-full w-full object-cover object-center opacity-88 saturate-[0.9] contrast-[1.03] brightness-[0.96] transition duration-700"
+                src={ONBOARDING_MAP_PREVIEW_IMAGE}
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,250,244,0.12)_0%,rgba(255,250,244,0.02)_34%,rgba(27,18,12,0.08)_100%)]" />
+              <div className="absolute inset-x-4 top-4 flex items-center justify-start">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/78 bg-white/90 px-3 py-1.5 text-[0.64rem] font-bold uppercase tracking-[0.2em] text-[#8c623f] backdrop-blur">
+                  <span className="material-symbols-outlined text-[15px] text-primary">public</span>
+                  <span>{copy.googleMapsUrlLabel}</span>
+                </div>
+              </div>
+              <div className="absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-center">
+                <div className="inline-flex max-w-full items-center gap-3 rounded-full border border-white/82 bg-white/96 px-4 py-2 shadow-[0_16px_32px_-24px_rgba(34,23,15,0.55)]">
+                  <span className="material-symbols-outlined text-[20px] text-primary">
+                    near_me
+                  </span>
+                  <div className="min-w-0 text-[0.92rem] font-semibold text-[#3b291d]">
+                    {sourcePreview ?? visualCopy.mapWaiting}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[1.2rem] border border-[#efd7bf] bg-[linear-gradient(180deg,rgba(255,246,233,0.96)_0%,rgba(252,239,220,0.94)_100%)] px-4 py-4 shadow-[0_18px_36px_-30px_rgba(235,122,28,0.38)]">
+              <div className="flex items-start gap-4">
+                <span className="material-symbols-outlined rounded-full bg-white/78 p-2 text-[20px] text-primary shadow-[0_10px_20px_-16px_rgba(34,23,15,0.5)]">
+                  lightbulb
                 </span>
-                <div className="min-w-0 text-sm font-semibold text-[#3b291d]">
-                  {sourcePreview ?? visualCopy.mapWaiting}
+                <div>
+                  <div className="text-[0.72rem] font-bold uppercase tracking-[0.2em] text-primary/82">
+                    {visualCopy.tipTitle}
+                  </div>
+                  <p className="mt-2 text-[0.84rem] leading-7 text-[#755c46]">{visualCopy.tipBody}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[1.2rem] border-l-4 border-primary bg-[#fff4e8] px-5 py-5">
-            <div className="flex items-start gap-4">
-              <span className="material-symbols-outlined text-[24px] text-primary">lightbulb</span>
-              <div>
-                <div className="text-[0.8rem] font-bold uppercase tracking-[0.18em] text-primary">
-                  {visualCopy.tipTitle}
-                </div>
-                <p className="mt-2 text-[0.88rem] leading-7 text-[#755c46]">{visualCopy.tipBody}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4 border-t border-[#f0e4d7] pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 border-t border-[#f0e4d7] pt-5 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               className="inline-flex items-center gap-2 text-sm font-semibold text-[#6f5a47] transition hover:text-[#2a1c12]"
@@ -1525,7 +1535,7 @@ function RestaurantSetupForm({
             <button
               type="submit"
               disabled={pending}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-bold text-white shadow-[0_14px_28px_-18px_rgba(235,122,28,0.85)] transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto dark:text-bg-dark"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-bold text-white shadow-[0_18px_36px_-18px_rgba(235,122,28,0.88)] transition hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto dark:text-bg-dark"
             >
               <span>{pending ? `${actionLabel}...` : actionLabel}</span>
               <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
@@ -1781,112 +1791,330 @@ function OnboardingPanel({
   const visualCopy = getOnboardingVisualCopy(language)
 
   return (
-    <div className="mx-auto grid max-w-[1160px] gap-7">
-      <section className="relative isolate overflow-hidden rounded-[2rem] border border-[#e7d3be]/90 bg-[#1f130d] shadow-[0_24px_70px_-42px_rgba(34,23,15,0.58)]">
+    <section className="relative isolate overflow-hidden">
+      <div className="absolute inset-0">
         <img
           alt="Restaurant onboarding ambiance"
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          className="h-full w-full object-cover object-[34%_35%]"
           src={ONBOARDING_HERO_IMAGE}
         />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(26,14,8,0.86)_0%,rgba(34,20,11,0.68)_38%,rgba(34,20,11,0.3)_68%,rgba(34,20,11,0.12)_100%)]" />
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-[62%] bg-[radial-gradient(circle_at_left_center,rgba(235,122,28,0.22),transparent_60%)]" />
-        <div className="relative flex min-h-[214px] items-end px-5 py-6 text-white sm:min-h-[236px] sm:px-7 sm:py-7 lg:min-h-[258px] lg:px-10 lg:py-8">
-          <div className="max-w-[42rem]">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f3c9a5]/30 bg-[#eb7a1c]/16 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffe7d1] backdrop-blur">
-              <span className="size-2 rounded-full bg-primary" />
-              {visualCopy.phaseLabel}
-            </div>
-            <h1 className="mt-4 max-w-[36rem] font-serif text-[2rem] font-semibold tracking-[-0.05em] text-white sm:text-[2.45rem] lg:text-[2.9rem]">
-              {copy.onboardingTitle}
-            </h1>
-            <p className="mt-3 max-w-[40rem] text-[0.95rem] leading-7 text-white/84 sm:text-[0.98rem] lg:text-[1rem]">
-              {copy.onboardingDescription}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <div className="relative hidden items-start justify-between gap-3 px-5 md:flex">
-        {copy.onboardingSteps.map((step, index) => (
-          <article
-            key={step}
-            className="relative z-10 flex w-full flex-col items-center gap-3"
-          >
-            {index < copy.onboardingSteps.length - 1 ? (
-              <span
-                aria-hidden="true"
-                className={`absolute left-[calc(50%+1.55rem)] right-[calc(-50%+1.55rem)] top-5 h-px ${
-                  index === 0 ? 'bg-primary/55' : 'bg-[#d9c9bb]'
-                }`}
-              />
-            ) : null}
-            <span
-              className={`flex size-10 items-center justify-center rounded-full border ${
-                index === 0
-                  ? 'border-primary/20 bg-primary text-white'
-                  : index === 1
-                    ? 'border-primary/25 bg-[#fff4e8] text-primary'
-                    : 'border-[#d6c7bb] bg-[#fffdf9] text-[#b69d88]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
-              </span>
-            </span>
-            <p
-              className={`text-center text-[0.82rem] font-semibold ${
-                index === 2 ? 'text-[#9f8874]' : 'text-[#2e1d14]'
-              }`}
-            >
-              {step}
-            </p>
-          </article>
-        ))}
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,7,5,0.58)_0%,rgba(10,7,5,0.42)_24%,rgba(10,7,5,0.52)_54%,rgba(10,7,5,0.86)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,rgba(255,231,205,0.16),transparent_24%),linear-gradient(90deg,rgba(8,5,4,0.34)_0%,rgba(8,5,4,0.12)_18%,rgba(8,5,4,0.12)_82%,rgba(8,5,4,0.42)_100%)]" />
+        <div className="absolute inset-x-0 top-0 h-[16%] bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.02)_46%,rgba(255,255,255,0)_100%)] mix-blend-screen blur-sm" />
       </div>
 
-      <div className="grid gap-4 md:hidden">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1320px] flex-col items-center px-4 pb-10 pt-28 sm:px-6 sm:pb-12 sm:pt-32 lg:px-10 lg:pb-14 lg:pt-36">
+        <div className="w-full max-w-[720px] text-center text-white">
+          <div className="font-serif text-[1.5rem] font-semibold italic tracking-[-0.03em] text-white/94 sm:text-[1.8rem]">
+            Sentify
+          </div>
+          <h1 className="mt-5 font-serif text-[2.45rem] font-semibold tracking-[-0.06em] text-white sm:text-[3.35rem] lg:text-[4.6rem] lg:leading-[0.93]">
+            {copy.onboardingTitle}
+          </h1>
+          <p className="mx-auto mt-4 max-w-[38rem] text-[0.98rem] leading-7 text-white/80 sm:text-[1.04rem]">
+            {copy.onboardingDescription}
+          </p>
+        </div>
+
+        <div className="mt-12 hidden w-full max-w-[700px] lg:block">
+          <div className="relative flex items-start justify-between gap-4">
+            {copy.onboardingSteps.map((step, index) => (
+              <article
+                key={`${step}-desktop-immersive`}
+                className="relative z-10 flex w-full flex-col items-center gap-3"
+              >
+                {index < copy.onboardingSteps.length - 1 ? (
+                  <span
+                    aria-hidden="true"
+                    className={`absolute left-[calc(50%+1.55rem)] right-[calc(-50%+1.55rem)] top-5 h-px ${
+                      index === 0 ? 'bg-primary/75' : 'bg-white/24'
+                    }`}
+                  />
+                ) : null}
+                <span
+                  className={`flex size-10 items-center justify-center rounded-full border shadow-[0_12px_24px_-18px_rgba(0,0,0,0.55)] backdrop-blur ${
+                    index === 0
+                      ? 'border-primary/24 bg-primary text-white'
+                      : index === 1
+                        ? 'border-[#f3d1ae]/34 bg-[#fff4e8] text-primary'
+                        : 'border-white/24 bg-white/10 text-white/58'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
+                  </span>
+                </span>
+                <p
+                  className={`max-w-[12rem] text-center text-[0.8rem] font-semibold leading-6 ${
+                    index === 2 ? 'text-white/56' : 'text-white/86'
+                  }`}
+                >
+                  {step}
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8 grid w-full gap-4 lg:hidden">
         {copy.onboardingSteps.map((step, index) => (
           <article
             key={`${step}-mobile`}
-            className="flex items-center gap-4 rounded-[1.25rem] border border-[#eadbcc] bg-[#fffdf9] px-4 py-4"
+            className="flex items-center gap-4 rounded-[1.35rem] border border-white/14 bg-[rgba(20,14,10,0.54)] px-4 py-4 text-white shadow-[0_20px_40px_-36px_rgba(0,0,0,0.45)] backdrop-blur-md"
           >
             <span
               className={`flex size-10 shrink-0 items-center justify-center rounded-full border ${
                 index === 0
-                  ? 'border-primary/20 bg-primary text-white'
+                  ? 'border-primary/24 bg-primary text-white'
                   : index === 1
-                    ? 'border-primary/25 bg-[#fff4e8] text-primary'
-                    : 'border-[#d6c7bb] bg-[#fffdf9] text-[#b69d88]'
+                    ? 'border-[#f3d1ae]/34 bg-[#fff4e8] text-primary'
+                    : 'border-white/24 bg-white/10 text-white/58'
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">
                 {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
               </span>
             </span>
-            <p className={`text-sm font-semibold ${index === 2 ? 'text-[#9f8874]' : 'text-[#2e1d14]'}`}>
+            <p className={`text-sm font-semibold ${index === 2 ? 'text-white/56' : 'text-white/88'}`}>
               {step}
             </p>
           </article>
         ))}
+        </div>
+
+        <div className="mt-10 w-full max-w-[680px]">
+            <RestaurantSetupForm
+              copy={copy}
+              pending={createPending}
+              actionLabel={copy.createRestaurant}
+              title={copy.setupTitle}
+              description={copy.setupDescription}
+              variant="onboarding"
+              onSecondaryAction={onBack}
+              onSubmit={onCreateRestaurant}
+            />
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-5 px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-white/56">
+          <span>{visualCopy.trustedProvider}</span>
+          <span className="h-4 w-px bg-white/18" />
+          <span className="material-symbols-outlined text-[18px]">verified_user</span>
+          <span className="material-symbols-outlined text-[18px]">lock</span>
+          <span className="material-symbols-outlined text-[18px]">cloud_done</span>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ImportLaunchPanel({
+  copy,
+  restaurant,
+  detail,
+  loading,
+  importPending,
+  latestImportRun,
+  importRunsLoading,
+  importRunsError,
+  language,
+  onImportReviews,
+  onNavigate,
+}: {
+  copy: ProductUiCopy['app']
+  restaurant: RestaurantMembership | null
+  detail: RestaurantDetail | null
+  loading: boolean
+  importPending: boolean
+  latestImportRun: ImportRunSummary | null
+  importRunsLoading: boolean
+  importRunsError: string | null
+  language: string
+  onImportReviews: () => Promise<void>
+  onNavigate: (route: '/app' | '/app/reviews' | '/app/settings') => void
+}) {
+  const restaurantName = detail?.name ?? restaurant?.name ?? copy.anonymousGuest
+  const restaurantAddress = detail?.address?.trim()
+  const googleMapUrl = detail?.googleMapUrl ?? restaurant?.googleMapUrl ?? null
+  const hasSource = Boolean(googleMapUrl)
+  const sourcePreview = formatSourcePreview(googleMapUrl)
+  const isSyncInFlight =
+    importPending || latestImportRun?.status === 'QUEUED' || latestImportRun?.status === 'RUNNING'
+  const heroTitle =
+    copy.onboardingSteps[hasSource ? 2 : 1] ??
+    (hasSource ? copy.dashboardPrimaryCta : copy.settingsSourceTitle)
+  const heroDescription = latestImportRun
+    ? getImportRunMerchantSummary(copy, latestImportRun)
+    : hasSource
+      ? copy.syncStatusEmpty
+      : copy.settingsSourceDescription
+  const launchSteps = copy.onboardingSteps.map((step, index) => {
+    const state =
+      index === 0 ? 'done' : index === 1 ? (hasSource ? 'done' : 'active') : hasSource ? 'active' : 'pending'
+
+    return {
+      icon: ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked',
+      label: step,
+      state,
+    }
+  })
+
+  return (
+    <div className="mx-auto grid max-w-[1160px] gap-6">
+      <section className="relative isolate overflow-hidden rounded-[2rem] border border-[#e8d8c8] bg-[radial-gradient(circle_at_top_left,rgba(235,122,28,0.24),transparent_34%),linear-gradient(135deg,#fffaf3_0%,#fff7ee_48%,#fff2e2_100%)] p-6 shadow-[0_24px_70px_-42px_rgba(34,23,15,0.28)] sm:p-7 lg:p-8 dark:border-[#4b3421] dark:bg-[radial-gradient(circle_at_top_left,rgba(242,154,64,0.18),transparent_34%),linear-gradient(135deg,#1d140f_0%,#241912_48%,#2c1d14_100%)]">
+        <div className="absolute inset-y-0 right-0 hidden w-[38%] bg-[radial-gradient(circle_at_center,rgba(235,122,28,0.16),transparent_70%)] lg:block dark:bg-[radial-gradient(circle_at_center,rgba(242,154,64,0.12),transparent_70%)]" />
+        <div className="relative">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#f1c8a1] bg-white/72 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-primary backdrop-blur dark:border-[#5a3d25] dark:bg-white/5">
+            <span className={`size-2 rounded-full ${hasSource ? 'bg-primary' : 'bg-amber-500'}`}></span>
+            <span>{hasSource ? copy.syncStatusTitle : copy.settingsSourceTitle}</span>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <h1 className="font-serif text-[2rem] font-semibold tracking-[-0.05em] text-[#26190f] sm:text-[2.45rem] dark:text-[#fff3e8]">
+                {heroTitle}
+              </h1>
+              <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 text-[#755c46] dark:text-[#e6d3c0]">
+                {heroDescription}
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <SidebarStatusPill icon="storefront" label={restaurantName} />
+                <SidebarStatusPill
+                  icon={hasSource ? 'task_alt' : 'warning'}
+                  label={hasSource ? copy.sourceStatusConnected : copy.sourceStatusNeedsConfiguration}
+                  tone={hasSource ? 'success' : 'warning'}
+                />
+                {latestImportRun ? (
+                  <SidebarStatusPill
+                    icon={latestImportRun.status === 'FAILED' ? 'error' : 'sync'}
+                    label={getImportRunMerchantSummary(copy, latestImportRun)}
+                    tone={latestImportRun.status === 'FAILED' ? 'warning' : 'neutral'}
+                  />
+                ) : null}
+              </div>
+            </div>
+
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:w-auto [&>*]:w-full [&>*]:justify-center sm:[&>*]:w-auto">
+              {hasSource ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={isSyncInFlight}
+                    className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-55 dark:text-bg-dark"
+                    onClick={() => {
+                      void onImportReviews()
+                    }}
+                  >
+                    {isSyncInFlight ? copy.importing : copy.dashboardPrimaryCta}
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-primary/24 bg-white/72 px-5 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/8 dark:border-primary/20 dark:bg-white/5"
+                    onClick={() => onNavigate('/app/settings')}
+                  >
+                    {copy.dashboardSecondaryCta}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-dark dark:text-bg-dark"
+                  onClick={() => onNavigate('/app/settings')}
+                >
+                  {copy.dashboardSecondaryCta}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {launchSteps.map((step, index) => (
+          <article
+            key={step.label}
+            className={`rounded-[1.4rem] border px-5 py-4 transition-all duration-300 ${
+              step.state === 'done'
+                ? 'border-primary/22 bg-primary/[0.06] dark:border-primary/20 dark:bg-primary/[0.08]'
+                : step.state === 'active'
+                  ? 'border-[#f2c79d] bg-[#fff5eb] shadow-[0_18px_40px_-30px_rgba(235,122,28,0.45)] dark:border-[#6b4728] dark:bg-[#241912]'
+                  : 'border-border-light/70 bg-surface-white/82 dark:border-border-dark dark:bg-surface-dark/78'
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <span
+                className={`flex size-11 shrink-0 items-center justify-center rounded-full border ${
+                  step.state === 'done'
+                    ? 'border-primary/18 bg-primary text-white'
+                    : step.state === 'active'
+                      ? 'border-primary/18 bg-[#fff1e1] text-primary dark:bg-[#322117]'
+                      : 'border-border-light/70 bg-bg-light/70 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark'
+                }`}
+              >
+                <span
+                  className={`material-symbols-outlined text-[20px] ${
+                    step.state === 'active' ? 'motion-safe:animate-pulse' : ''
+                  }`}
+                >
+                  {step.icon}
+                </span>
+              </span>
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-text-silver-light dark:text-text-silver-dark">
+                  {String(index + 1).padStart(2, '0')}
+                </div>
+                <p className="mt-2 text-sm font-semibold leading-6 text-text-charcoal dark:text-white">
+                  {step.label}
+                </p>
+              </div>
+            </div>
+          </article>
+        ))}
       </div>
 
-      <RestaurantSetupForm
-        copy={copy}
-        pending={createPending}
-        actionLabel={copy.createRestaurant}
-        title={copy.setupTitle}
-        description={copy.setupDescription}
-        variant="onboarding"
-        onSecondaryAction={onBack}
-        onSubmit={onCreateRestaurant}
-      />
+      {loading ? <StatusMessage>{copy.loadingRestaurant}</StatusMessage> : null}
 
-      <div className="flex flex-wrap items-center justify-center gap-5 px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#ad9681]">
-        <span>{visualCopy.trustedProvider}</span>
-        <span className="h-4 w-px bg-[#d7c8b9]" />
-        <span className="material-symbols-outlined text-[18px]">verified_user</span>
-        <span className="material-symbols-outlined text-[18px]">lock</span>
-        <span className="material-symbols-outlined text-[18px]">cloud_done</span>
+      <SectionCard
+        title={copy.currentRestaurant}
+        description={restaurantAddress || copy.setupDescription}
+        headerAside={
+          sourcePreview ? (
+            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
+              <span className="material-symbols-outlined text-[15px] text-primary">link</span>
+              <span className="truncate">{sourcePreview}</span>
+            </div>
+          ) : null
+        }
+      >
+        <div className="grid gap-3 md:grid-cols-3">
+          <SidebarStatusPill icon="storefront" label={restaurantName} />
+          <SidebarStatusPill
+            icon={hasSource ? 'task_alt' : 'warning'}
+            label={hasSource ? copy.sourceReady : copy.sourceMissing}
+            tone={hasSource ? 'success' : 'warning'}
+          />
+          <SidebarStatusPill
+            icon={hasSource ? 'sync' : 'tune'}
+            label={hasSource ? copy.importReady : copy.importBlocked}
+            tone={hasSource ? 'success' : 'warning'}
+          />
+        </div>
+      </SectionCard>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SettingsSourceSummary
+          copy={copy}
+          detail={{ googleMapUrl }}
+          latestRun={latestImportRun}
+          language={language}
+        />
+        <ImportStatusSummary
+          copy={copy}
+          latestRun={latestImportRun}
+          loading={importRunsLoading}
+          error={importRunsError}
+          language={language}
+          onOpenSettings={() => onNavigate('/app/settings')}
+        />
       </div>
     </div>
   )
@@ -2799,9 +3027,15 @@ export function ProductWorkspace({
   const hasRestaurants = restaurants.length > 0
   const currentRestaurant =
     restaurants.find((restaurant) => restaurant.id === selectedRestaurantId) ?? restaurants[0] ?? null
+  const totalReviews =
+    dashboard.kpi?.totalReviews ??
+    selectedRestaurantDetail?.insightSummary?.totalReviews ??
+    currentRestaurant?.totalReviews ??
+    0
   const hasSource = Boolean(selectedRestaurantDetail?.googleMapUrl ?? currentRestaurant?.googleMapUrl)
   const currentRestaurantAddress = selectedRestaurantDetail?.address?.trim()
   const hasMultipleRestaurants = restaurants.length > 1
+  const showImportLaunchScreen = hasRestaurants && route === '/app' && totalReviews === 0
   const navItems = [
     {
       routeId: '/app' as const,
@@ -2820,27 +3054,53 @@ export function ProductWorkspace({
     },
   ]
 
+  if (!hasRestaurants) {
+    return (
+      <main
+        id="main-content"
+        className="landing-theme relative min-h-screen overflow-hidden bg-[#140f0c] pb-0 pt-0"
+      >
+        {restaurantError ? (
+          <div className="relative z-20 mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-28 xl:px-10">
+            <StatusMessage tone="error">{restaurantError}</StatusMessage>
+          </div>
+        ) : null}
+        <OnboardingPanel
+          copy={copy}
+          createPending={createPending}
+          onBack={() => {
+            window.location.hash = '#/'
+          }}
+          onCreateRestaurant={onCreateRestaurant}
+        />
+      </main>
+    )
+  }
+
   return (
     <main
       id="main-content"
-      className={`min-h-screen pb-16 pt-24 sm:pt-28 ${
-        hasRestaurants ? 'bg-bg-light dark:bg-bg-dark' : 'landing-theme bg-bg-light dark:bg-bg-dark'
-      }`}
+      className="min-h-screen bg-bg-light pb-16 pt-24 dark:bg-bg-dark sm:pt-28"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 xl:px-10">
-        {!hasRestaurants ? (
-          <div className="grid gap-6">
-            {restaurantError ? <StatusMessage tone="error">{restaurantError}</StatusMessage> : null}
-            <OnboardingPanel
-              copy={copy}
-              createPending={createPending}
-              onBack={() => {
-                window.location.hash = '#/'
-              }}
-              onCreateRestaurant={onCreateRestaurant}
-            />
-          </div>
-        ) : (
+        {showImportLaunchScreen ? (
+            <div className="grid gap-6">
+              {restaurantError ? <StatusMessage tone="error">{restaurantError}</StatusMessage> : null}
+              <ImportLaunchPanel
+                copy={copy}
+                restaurant={currentRestaurant}
+                detail={selectedRestaurantDetail}
+                loading={restaurantLoading || dashboardLoading}
+                importPending={importPending}
+                latestImportRun={latestImportRun}
+                importRunsLoading={importRunsLoading}
+                importRunsError={importRunsError || dashboardError}
+                language={language}
+                onImportReviews={onImportReviews}
+                onNavigate={onNavigate}
+              />
+            </div>
+          ) : (
           <div className="grid gap-6 xl:grid-cols-[264px_minmax(0,1fr)]">
             <aside className="hidden xl:grid xl:gap-4 xl:self-start xl:sticky xl:top-28">
               <section className="rounded-[1.75rem] border border-border-light/70 bg-surface-white/90 p-4 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/84">
@@ -3067,7 +3327,7 @@ export function ProductWorkspace({
               )}
             </section>
           </div>
-        )}
+          )}
       </div>
     </main>
   )
