@@ -377,6 +377,42 @@ test('refresh accepts a body token without session cookies and skips csrf enforc
     )
 })
 
+test('refresh rejects malformed body tokens before rotation service is called', async (t) => {
+    let rotateCallCount = 0
+
+    const { server } = await startApp({}, {
+        mockCsrf: false,
+        refreshTokenServiceOverrides: {
+            rotateRefreshToken: async () => {
+                rotateCallCount += 1
+                return {
+                    newRawToken: 'rotated-body-refresh-token',
+                    userId: 'user-1',
+                    user: {
+                        id: 'user-1',
+                        role: 'USER',
+                        tokenVersion: 3,
+                    },
+                }
+            },
+        },
+    })
+
+    t.after(async () => {
+        await stopApp(server)
+    })
+
+    const response = await request(server, 'POST', '/api/auth/refresh', {
+        body: {
+            refreshToken: { nested: 'not-a-token' },
+        },
+    })
+
+    assert.equal(response.status, 400)
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED')
+    assert.equal(rotateCallCount, 0)
+})
+
 test('refresh clears cookies when rotation fails', async (t) => {
     const validPassword = `pw-${randomUUID()}`
 

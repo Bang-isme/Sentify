@@ -75,6 +75,15 @@ function buildDraftPolicy(source, run, options = {}) {
     }
 }
 
+function canBuildReviewPayload(restaurantId, item) {
+    try {
+        adminIntakeDomain.buildReviewPayload(restaurantId, item)
+        return true
+    } catch {
+        return false
+    }
+}
+
 function determineDefaultStrategy(source, input) {
     if (input.strategy) {
         return input.strategy
@@ -428,10 +437,9 @@ async function getBatchReadiness({ userId, batchId }) {
             continue
         }
 
-        try {
-            adminIntakeDomain.buildReviewPayload(batch.restaurantId, item)
+        if (canBuildReviewPayload(batch.restaurantId, item)) {
             bulkApprovableCount += 1
-        } catch {}
+        }
     }
 
     const publishState = buildPublishBlockingReasons(batch, batch.items || [])
@@ -469,10 +477,9 @@ async function approveValidBatchItems({ userId, batchId, reviewerNote }) {
             continue
         }
 
-        try {
-            adminIntakeDomain.buildReviewPayload(batch.restaurantId, item)
+        if (canBuildReviewPayload(batch.restaurantId, item)) {
             approvableItemIds.push(item.id)
-        } catch {}
+        }
     }
 
     if (approvableItemIds.length > 0) {

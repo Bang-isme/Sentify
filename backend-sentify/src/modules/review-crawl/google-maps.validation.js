@@ -1,4 +1,5 @@
 const { z } = require('zod')
+const { requiredUuid } = require('../../lib/validation')
 
 const SUPPORTED_SHORT_HOSTS = new Set(['maps.app.goo.gl', 'g.co', 'goo.gl'])
 
@@ -78,12 +79,14 @@ const crawlGoogleMapsOptionsSchema = z.object({
     delayMs: z.coerce.number().int().min(0).max(5000).default(0),
 })
 
+const restaurantIdSchema = requiredUuid('restaurantId')
+
 const crawlGoogleMapsRequestSchema = crawlGoogleMapsOptionsSchema.extend({
-    restaurantId: z.string().trim().min(1, 'restaurantId is required'),
+    restaurantId: restaurantIdSchema,
 })
 
 const upsertReviewCrawlSourceSchema = z.object({
-    restaurantId: z.string().trim().min(1, 'restaurantId is required'),
+    restaurantId: restaurantIdSchema,
     url: googleMapsUrlSchema,
     language: crawlGoogleMapsOptionsSchema.shape.language,
     region: crawlGoogleMapsOptionsSchema.shape.region,

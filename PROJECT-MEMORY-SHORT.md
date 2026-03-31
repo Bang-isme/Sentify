@@ -53,10 +53,9 @@ Updated: 2026-04-01 Asia/Bangkok
     - `managed-redis-proof.latest.json` -> `maxmemory-policy = noeviction`, `safeForBullMq = true`
     - `managed-release-evidence.latest.json` -> `overallStatus = COMPATIBILITY_PROOF_COMPLETE`, `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
     - `operational-health-check.current.json` -> `overallStatus = OPERATIONAL_HEALTH_COMPLETE`
-  - remaining step here is optional hardening only:
-    - set hosted `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true`
-    - redeploy
-    - rerun strict managed sign-off
+  - hosted durability guard is now enabled on the active Render baseline:
+    - `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true`
+    - post-redeploy strict managed sign-off rerun stays green
   - merchant-actions read path is now tightened:
     - recent negative-review window first
     - targeted fallback query only for missing top complaint keywords
@@ -207,6 +206,12 @@ Updated: 2026-04-01 Asia/Bangkok
   - preflight: `MANAGED_SIGNOFF_READY`
   - release evidence: `COMPATIBILITY_PROOF_COMPLETE`
   - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+- latest hosted rerun on `2026-04-01` after public-readiness hardening:
+  - `/api/health` returns `{"status":"ok","db":"up","redis":"up"}`
+  - `staging-api-proof-managed.json` reports `STAGING_PROOF_COMPLETE`
+  - `managed-release-evidence.latest.json` reports:
+    - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+    - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
 - latest post-redeploy rerun on `2026-03-29`:
   - first rerun after redeploy failed because Render had `TRUST_PROXY=true`
   - Render logs showed `ERR_ERL_PERMISSIVE_TRUST_PROXY`
@@ -368,6 +373,15 @@ Updated: 2026-04-01 Asia/Bangkok
     - `src/server.js` starts review-crawl runtime whenever Redis is configured and inline mode is off
     - `staging-review-ops-proof.js` now evaluates the post-materialization snapshot instead of failing on a stale terminal-run snapshot
 - release-evidence now supports `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS`
+- On `2026-04-01`, backend trust-boundary hardening was tightened without expanding the public contract:
+  - shared UUID validation now guards `restaurantId` inputs in admin-intake, review-crawl admin paths, and review-ops
+  - body-supplied refresh tokens are schema-validated before refresh rotation
+  - console-email fallback logs only masked delivery metadata, not raw HTML or reset-link secrets
+  - review-ops approvable-item filtering now uses an explicit helper instead of silent `try/catch {}`
+  - gates after the pass:
+    - `npm run env:check` -> passed
+    - `npm test` -> `241 tests`, `227 passed`, `14 skipped`, `0 failed`
+    - `npm run test:realdb` -> passed
   - current staging proof env uses `90000` to survive Render free cold starts
 - after the DB proof finished, the Neon password was rotated and Render `DATABASE_URL` was updated
 - env parser now treats `JWT_SECRET_PREVIOUS=` as unset instead of failing startup; covered by `backend-sentify/test/env.test.js`

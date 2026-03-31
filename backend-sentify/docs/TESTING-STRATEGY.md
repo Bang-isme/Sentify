@@ -131,6 +131,16 @@ Unit tests                 Current baseline
     - queued-run enqueue fails fast with `REVIEW_CRAWL_REDIS_DURABILITY_UNSAFE` when the flag is enabled and Redis uses an unsafe eviction policy
     - review-crawl worker runtime fails fast before boot when the flag is enabled and Redis durability is unsafe
     - admin-platform queue health exposes `durabilityEnforced` and `durabilityBlocking` instead of only degrading status implicitly
+- latest input-validation and secret-handling verification on `2026-04-01`:
+  - `node --test test/admin-intake.validation.test.js test/google-maps.validation.test.js test/review-ops.validation.test.js test/review-ops.controller.test.js test/admin-intake.controller.test.js test/email.service.test.js test/auth.integration.test.js test/review-ops.service.test.js` -> `34/34 passed`
+  - `npm run env:check` -> passed
+  - `npm test` -> `241 tests`, `227 passed`, `14 skipped`, `0 failed`
+  - `npm run test:realdb` -> passed
+  - proof focus:
+    - `restaurantId` is now UUID-validated at the controller boundary for admin-intake, review-crawl admin inputs, and review-ops inputs
+    - malformed body refresh tokens are rejected before refresh-token rotation logic runs
+    - console-email fallback no longer writes reset-link secrets or full HTML bodies into logs
+    - review-ops valid-item filtering no longer hides parser failures behind silent catch blocks
 
 ### Real-data coverage already in place
 
@@ -331,6 +341,14 @@ Unit tests                 Current baseline
   - interpretation:
     - managed sign-off inputs and historical artifacts remained present throughout
     - live staging runtime is green again after the `TRUST_PROXY=1` fix
+  - latest hosted rerun on `2026-04-01` after public-readiness hardening and Redis durability guard enablement:
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/health` -> `{"status":"ok"}`
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/api/health` -> `{"status":"ok","db":"up","redis":"up"}`
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-api-proof.js --output load-reports/staging-api-proof-managed.json` -> `STAGING_PROOF_COMPLETE`
+    - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` -> `COMPATIBILITY_PROOF_COMPLETE`
+    - interpretation:
+      - lightweight public readiness now stays green on the active Render baseline
+      - strict managed sign-off remains green with hosted `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true`
   - freshness rule:
     - release readiness should only be trusted while artifacts are fresh
     - default freshness windows are `24h` for required local proof and `72h` for managed proof artifacts

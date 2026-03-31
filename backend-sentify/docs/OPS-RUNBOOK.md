@@ -300,6 +300,15 @@ Expected final state:
 - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
 - queue health no longer reports unsafe durability
 
+Current hosted baseline on `2026-04-01`:
+
+- provider-side Redis policy is `noeviction`
+- Render runtime has `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true`
+- `load-reports/managed-redis-proof.latest.json` passes
+- `load-reports/managed-release-evidence.latest.json` reports:
+  - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+  - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+
 Latest successful rerun on `2026-03-31`:
 
 - `node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json`

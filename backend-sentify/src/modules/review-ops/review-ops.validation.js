@@ -1,12 +1,15 @@
 const { z } = require('zod')
+const { requiredUuid } = require('../../lib/validation')
 
 const {
     googleMapsUrlSchema,
     crawlGoogleMapsOptionsSchema,
 } = require('../review-crawl/google-maps.validation')
 
+const restaurantIdSchema = requiredUuid('restaurantId')
+
 const syncToDraftSchema = z.object({
-    restaurantId: z.string().trim().min(1, 'restaurantId is required'),
+    restaurantId: restaurantIdSchema,
     url: googleMapsUrlSchema,
     language: crawlGoogleMapsOptionsSchema.shape.language.optional(),
     region: crawlGoogleMapsOptionsSchema.shape.region.optional(),
@@ -19,7 +22,7 @@ const syncToDraftSchema = z.object({
 })
 
 const listSourcesQuerySchema = z.object({
-    restaurantId: z.string().trim().min(1, 'restaurantId is required'),
+    restaurantId: restaurantIdSchema,
 })
 
 const listSourceRunsQuerySchema = z.object({

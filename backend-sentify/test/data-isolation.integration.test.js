@@ -3,9 +3,9 @@ const assert = require('node:assert/strict')
 
 const { createTestToken, request, startApp, stopApp } = require('./test-helpers')
 
-const RESTAURANT_A = '00000000-0000-0000-0000-00000000000a'
-const RESTAURANT_B = '00000000-0000-0000-0000-00000000000b'
-const BATCH_ID = '00000000-0000-0000-0000-0000000000b1'
+const RESTAURANT_A = '11111111-1111-4111-8111-111111111111'
+const RESTAURANT_B = '22222222-2222-4222-8222-222222222222'
+const BATCH_ID = '33333333-3333-4333-8333-333333333333'
 
 test('data isolation blocks cross-restaurant access', async (t) => {
     const prismaOverrides = {

@@ -1,4 +1,5 @@
 const { z } = require('zod')
+const { requiredUuid } = require('../../lib/validation')
 
 function preprocessOptionalTrimmedString(value) {
     if (typeof value !== 'string') {
@@ -67,14 +68,16 @@ const reviewItemInputSchema = z.object({
     rawReviewDate: nullableDateNotInFuture(),
 })
 
+const restaurantIdSchema = requiredUuid('restaurantId')
+
 const createReviewBatchSchema = z.object({
-    restaurantId: z.string().trim().min(1, 'restaurantId is required'),
+    restaurantId: restaurantIdSchema,
     sourceType: z.enum(['MANUAL', 'BULK_PASTE', 'CSV', 'GOOGLE_MAPS_CRAWL']).default('MANUAL'),
     title: optionalTrimmedString(z.string().max(120)),
 })
 
 const listReviewBatchesQuerySchema = z.object({
-    restaurantId: z.string().trim().min(1, 'restaurantId is required'),
+    restaurantId: restaurantIdSchema,
 })
 
 const createReviewItemsSchema = z.object({

@@ -1,5 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const RESTAURANT_ID = '11111111-1111-4111-8111-111111111111'
 
 const {
     createReviewCrawlRunSchema,
@@ -37,7 +38,7 @@ test('google maps crawl request validation requires restaurantId for the admin e
 
 test('review crawl source validation accepts sync configuration for Google Maps sources', () => {
     const parsed = upsertReviewCrawlSourceSchema.parse({
-        restaurantId: 'restaurant-1',
+        restaurantId: RESTAURANT_ID,
         url: 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8',
         syncEnabled: true,
         syncIntervalMinutes: 720,
@@ -47,6 +48,22 @@ test('review crawl source validation accepts sync configuration for Google Maps 
     assert.equal(parsed.region, 'us')
     assert.equal(parsed.syncEnabled, true)
     assert.equal(parsed.syncIntervalMinutes, 720)
+})
+
+test('google maps crawl validation rejects non-uuid restaurant ids on admin endpoints', () => {
+    assert.throws(() => {
+        crawlGoogleMapsRequestSchema.parse({
+            restaurantId: 'restaurant-1',
+            url: 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8',
+        })
+    })
+
+    assert.throws(() => {
+        upsertReviewCrawlSourceSchema.parse({
+            restaurantId: 'restaurant-1',
+            url: 'https://maps.app.goo.gl/KXqY87PxsQUr6Tmc8',
+        })
+    })
 })
 
 test('review crawl run validation clamps run creation options to supported values', () => {

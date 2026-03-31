@@ -46,6 +46,10 @@ const resetPasswordSchema = z.object({
     newPassword: z.string().min(8, 'Password must be at least 8 characters long'),
 })
 
+const refreshBodyTokenSchema = z.object({
+    refreshToken: z.string().trim().min(1, 'Refresh token is required').max(2048),
+})
+
 function buildRequestContext(req) {
     return {
         ip: req.ip,
@@ -178,8 +182,14 @@ async function updateProfile(req, res) {
 
 async function refresh(req, res) {
     try {
-        // Read refresh token from cookie or body
-        const rawToken = readRefreshCookie(req) || req.body?.refreshToken
+        const cookieToken = readRefreshCookie(req)
+        const bodyToken =
+            !cookieToken &&
+            req.body &&
+            Object.prototype.hasOwnProperty.call(req.body, 'refreshToken')
+                ? refreshBodyTokenSchema.parse(req.body).refreshToken
+                : undefined
+        const rawToken = cookieToken || bodyToken
 
         if (!rawToken) {
             return res.status(401).json({

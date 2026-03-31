@@ -1,5 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const RESTAURANT_ID = '11111111-1111-4111-8111-111111111111'
 
 function clearModule(modulePath) {
     delete require.cache[require.resolve(modulePath)]
@@ -57,7 +58,7 @@ test('admin intake controller creates a batch with 201', async () => {
     const controller = require('../src/modules/admin-intake/admin-intake.controller')
     const req = {
         body: {
-            restaurantId: 'restaurant-1',
+            restaurantId: RESTAURANT_ID,
             sourceType: 'MANUAL',
             title: 'March batch',
         },
@@ -70,7 +71,7 @@ test('admin intake controller creates a batch with 201', async () => {
     assert.equal(res.statusCode, 201)
     assert.deepEqual(res.body, { data: { id: 'batch-1' } })
     assert.equal(receivedPayload.userId, 'user-1')
-    assert.equal(receivedPayload.restaurantId, 'restaurant-1')
+    assert.equal(receivedPayload.restaurantId, RESTAURANT_ID)
     assert.equal(handledErrors.length, 0)
 
     restoreModules()
@@ -97,7 +98,7 @@ test('admin intake controller lists batches with 200', async () => {
 
     const controller = require('../src/modules/admin-intake/admin-intake.controller')
     const req = {
-        query: { restaurantId: 'restaurant-1' },
+        query: { restaurantId: RESTAURANT_ID },
         user: { userId: 'user-1' },
     }
     const res = createRes()
@@ -107,7 +108,7 @@ test('admin intake controller lists batches with 200', async () => {
     assert.equal(res.statusCode, 200)
     assert.deepEqual(res.body, { data: [{ id: 'batch-1' }] })
     assert.equal(receivedPayload.userId, 'user-1')
-    assert.equal(receivedPayload.restaurantId, 'restaurant-1')
+    assert.equal(receivedPayload.restaurantId, RESTAURANT_ID)
     assert.equal(handledErrors.length, 0)
 
     restoreModules()

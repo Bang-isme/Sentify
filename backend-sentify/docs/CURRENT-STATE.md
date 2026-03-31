@@ -217,6 +217,14 @@ Behavior:
   - `staging-api-proof-managed.json` reports `STAGING_PROOF_COMPLETE`
   - merchant authenticated read smoke passed
   - admin authenticated control-plane smoke passed
+- Latest post-public-readiness revalidation on `2026-04-01`:
+  - `GET /health` returns `200`
+  - `GET /api/health` returns `200` with `{"status":"ok","db":"up","redis":"up"}`
+  - `staging-api-proof-managed.json` reports `STAGING_PROOF_COMPLETE`
+  - `managed-release-evidence.latest.json` reports:
+    - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+    - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+  - hosted `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true` is enabled on the active Render baseline
 - Latest managed Redis durability check on `2026-03-31`:
   - `managed-redis-proof.latest.json` reports:
     - Redis version `8.4.0`
@@ -250,12 +258,14 @@ Behavior:
   - `managed-release-evidence.latest.json` reports:
     - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
     - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
-- Current live runtime posture on `2026-03-31`:
+- Current live runtime posture on `2026-04-01`:
   - `managed-signoff-preflight.latest.json` reports `MANAGED_SIGNOFF_READY`
   - `managed-release-evidence.latest.json` reports:
     - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
     - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
-  - live staging runtime remains green after the earlier Render `TRUST_PROXY=1` fix
+  - live staging runtime remains green after the earlier Render `TRUST_PROXY=1` fix, the lightweight `/api/health` hardening, and hosted Redis durability enforcement
+  - public readiness now returns:
+    - `GET /api/health` -> `{"status":"ok","db":"up","redis":"up"}`
   - current required checks now evaluate as:
     - managed Redis proof: `PASSED`
     - backup/restore/rollback proof: `PASSED`
@@ -369,12 +379,16 @@ Behavior:
 - register, login, session, logout
 - password change
 - refresh token rotation
+- body-token refresh now schema-validates `refreshToken` before the rotation service sees it
 - forgot password and reset password
 - cookie auth and bearer auth
 - CSRF double-submit protection for cookie writes
 - rate limits and login lockout
 - token revocation through `tokenVersion`
 - explicit route separation between `USER` and `ADMIN`
+- console-email fallback now logs only redacted delivery metadata instead of full HTML bodies or reset-link secrets
+- shared UUID validation now guards `restaurantId` across admin-intake, review-crawl admin endpoints, and review-ops inputs
+- review-ops approvable-item checks now use an explicit helper instead of silent `try/catch {}` loops
 
 ### User-facing reads
 

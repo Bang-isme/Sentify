@@ -1,5 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const RESTAURANT_ID = '11111111-1111-4111-8111-111111111111'
 
 function clearModule(modulePath) {
     delete require.cache[require.resolve(modulePath)]
@@ -60,7 +61,7 @@ test('review ops controller syncs a google maps source to draft with 202', async
     const controller = require('../src/modules/review-ops/review-ops.controller')
     const req = {
         body: {
-            restaurantId: 'restaurant-1',
+            restaurantId: RESTAURANT_ID,
             url: 'https://maps.app.goo.gl/example',
             language: 'en',
             region: 'us',
@@ -74,7 +75,7 @@ test('review ops controller syncs a google maps source to draft with 202', async
     assert.equal(res.statusCode, 202)
     assert.deepEqual(res.body, { data: { source: { id: 'source-1' }, run: { id: 'run-1' } } })
     assert.equal(receivedPayload.userId, 'user-1')
-    assert.equal(receivedPayload.input.restaurantId, 'restaurant-1')
+    assert.equal(receivedPayload.input.restaurantId, RESTAURANT_ID)
     assert.equal(handledErrors.length, 0)
 
     restoreModules()
@@ -102,7 +103,7 @@ test('review ops controller lists sources with 200', async () => {
     const controller = require('../src/modules/review-ops/review-ops.controller')
     const req = {
         query: {
-            restaurantId: 'restaurant-1',
+            restaurantId: RESTAURANT_ID,
         },
         user: { userId: 'user-1' },
     }
@@ -113,7 +114,7 @@ test('review ops controller lists sources with 200', async () => {
     assert.equal(res.statusCode, 200)
     assert.deepEqual(res.body, { data: { sources: [] } })
     assert.equal(receivedPayload.userId, 'user-1')
-    assert.equal(receivedPayload.restaurantId, 'restaurant-1')
+    assert.equal(receivedPayload.restaurantId, RESTAURANT_ID)
     assert.equal(handledErrors.length, 0)
 
     restoreModules()

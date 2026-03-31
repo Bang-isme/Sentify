@@ -1,4 +1,5 @@
 const { z } = require('zod')
+const { requiredUuid } = require('../../lib/validation')
 
 const accountStateEnum = z.enum(['ACTIVE', 'LOCKED', 'DEACTIVATED'])
 const accountActionEnum = z.enum(['LOCK', 'UNLOCK', 'DEACTIVATE', 'REACTIVATE'])
@@ -10,7 +11,7 @@ const optionalTrimmedString = z
     .optional()
     .transform((value) => (value && value.length > 0 ? value : undefined))
 
-const uuid = z.string().uuid()
+const uuid = requiredUuid()
 
 const listUsersQuerySchema = z.object({
     search: optionalTrimmedString,

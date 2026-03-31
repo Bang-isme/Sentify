@@ -147,6 +147,12 @@ Principles:
       - Redis `INFO`
     - heavy queue/runtime posture remains on:
       - `/api/admin/platform/health-jobs`
+  - hosted rerun after redeploy on the same baseline now proves the lightweight readiness path externally:
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/health` -> `{"status":"ok"}`
+    - `curl.exe -sS https://sentify-2fu0.onrender.com/api/health` -> `{"status":"ok","db":"up","redis":"up"}`
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-api-proof.js --output load-reports/staging-api-proof-managed.json` -> `STAGING_PROOF_COMPLETE`
+    - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` -> `COMPATIBILITY_PROOF_COMPLETE`
+    - hosted `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true` is enabled on the active Render baseline and did not regress sign-off
 - `review-crawl-materialization.service` is now the shared contract for:
   - draft-batch reuse or creation for crawl output
   - intake dedupe for raw-review payloads
@@ -1350,3 +1356,25 @@ These tracked project-memory files exist so project context survives clone/sessi
   - follow-up:
     - this removed a false-negative proof mode caused by transport bootstrap fragility
     - it did not change the operator-path business contract or Redis durability blocker
+- On `2026-04-01`, BE trust-boundary hardening was tightened in four concrete places without changing the product contract:
+  - input validation:
+    - added `src/lib/validation.js` with shared UUID parsing
+    - `restaurantId` is now UUID-validated in admin-intake, review-crawl admin requests, and review-ops inputs instead of accepting any trimmed non-empty string
+  - auth boundary:
+    - `auth.controller.refresh()` now validates body-supplied `refreshToken` through Zod before the token-rotation service sees it
+    - malformed object or non-string refresh tokens now fail at the controller boundary with validation semantics instead of flowing deeper
+  - logging hygiene:
+    - `src/services/email.service.js` console fallback no longer prints full email HTML bodies
+    - password-reset links and token-bearing bodies are no longer written to console logs; only masked recipient and message metadata remain
+  - fail-loud/readability:
+    - `src/modules/review-ops/review-ops.service.js` no longer uses silent `try/catch {}` loops to count valid approvable items
+    - an explicit helper now makes filtering behavior visible and testable
+  - regression coverage added:
+    - `test/review-ops.validation.test.js`
+    - `test/email.service.test.js`
+    - extra validation/auth cases in `test/admin-intake.validation.test.js`, `test/google-maps.validation.test.js`, `test/auth.integration.test.js`, and `test/data-isolation.integration.test.js`
+  - verification after the pass:
+    - targeted hardening slice: `34/34 passed`
+    - `npm run env:check` -> passed
+    - `npm test` -> `241 tests`, `227 passed`, `14 skipped`, `0 failed`
+    - `npm run test:realdb` -> passed

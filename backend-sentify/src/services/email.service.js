@@ -2,24 +2,49 @@ const env = require('../config/env')
 
 /**
  * Email service abstraction.
- * Development: logs to console.
- * Production: plug in Resend / SendGrid via EMAIL_PROVIDER env var.
+ * Development uses a console preview with redacted metadata only.
+ * Production can plug in Resend via EMAIL_PROVIDER.
  */
+
+function maskEmailAddress(value) {
+    if (typeof value !== 'string') {
+        return null
+    }
+
+    const trimmed = value.trim()
+    const atIndex = trimmed.indexOf('@')
+
+    if (atIndex <= 0 || atIndex === trimmed.length - 1) {
+        return '***'
+    }
+
+    const local = trimmed.slice(0, atIndex)
+    const domain = trimmed.slice(atIndex + 1)
+    const visibleLocal = local.slice(0, Math.min(2, local.length))
+    return `${visibleLocal}${'*'.repeat(Math.max(1, local.length - visibleLocal.length))}@${domain}`
+}
+
+function logConsoleEmailPreview({ to, subject, html }) {
+    const payload = {
+        type: 'email_preview',
+        provider: 'console',
+        to: maskEmailAddress(to),
+        subject,
+        htmlLength: typeof html === 'string' ? html.length : 0,
+    }
+
+    console.info(JSON.stringify(payload))
+}
 
 async function sendEmail({ to, subject, html }) {
     const provider = env.EMAIL_PROVIDER || 'console'
 
     if (provider === 'console') {
-        console.log('─────────────── EMAIL ───────────────')
-        console.log(`To:      ${to}`)
-        console.log(`Subject: ${subject}`)
-        console.log(`Body:    ${html.replace(/<[^>]*>/g, '')}`)
-        console.log('─────────────────────────────────────')
+        logConsoleEmailPreview({ to, subject, html })
         return { success: true, provider: 'console' }
     }
 
     if (provider === 'resend') {
-        // Lazy-load to avoid requiring the package if not used
         const { Resend } = require('resend')
         const resend = new Resend(env.RESEND_API_KEY)
 
@@ -58,7 +83,7 @@ async function sendPasswordResetEmail({ to, name, resetToken }) {
 
     return sendEmail({
         to,
-        subject: 'Sentify — Đặt lại mật khẩu',
+        subject: 'Sentify - Đặt lại mật khẩu',
         html,
     })
 }
@@ -66,4 +91,5 @@ async function sendPasswordResetEmail({ to, name, resetToken }) {
 module.exports = {
     sendEmail,
     sendPasswordResetEmail,
+    maskEmailAddress,
 }
