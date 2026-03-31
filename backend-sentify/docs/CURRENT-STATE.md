@@ -1,6 +1,6 @@
 # Sentify Backend Current State
 
-Updated: 2026-03-31
+Updated: 2026-04-01
 
 This document describes the backend exactly as it exists in the current codebase.
 
@@ -88,7 +88,8 @@ Runtime hardening now also includes:
 - shared Prisma and timeout error mapping so pool exhaustion, initialization failure, transaction conflicts, missing-record writes, foreign-key conflicts, and request timeouts no longer fall through as generic `500`
 - slow-request logging on successful responses so latency regressions become visible before they become outages
 - queue-health degradation and worker event logging for Redis/BullMQ runtime failures instead of silent hangs
-- `/api/health` now checks both database and Redis queue availability instead of reporting only Postgres state
+- `/api/health` now stays lightweight by checking Postgres plus a bounded Redis `PING` instead of running BullMQ queue counts on the public readiness path
+- heavy queue, Redis deployment-safety, and worker diagnostics stay on admin platform health surfaces instead of the public health route
 - the default `npm test` path now preloads `scripts/runtime-env-bootstrap.js`, which keeps unit and mocked integration tests hermetic against workstation-local `.env` values such as external `REDIS_URL`
 
 ## 3. Current Role Model

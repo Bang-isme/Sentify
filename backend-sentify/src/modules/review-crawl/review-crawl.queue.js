@@ -7,6 +7,7 @@ const { buildRedisDeploymentReport } = require('../../lib/redis-deployment')
 
 let sharedConnection = null
 let sharedQueue = null
+const PUBLIC_REDIS_HEALTH_TIMEOUT_MS = 1500
 
 function buildQueueServiceUnavailableError(code, message, error) {
     return serviceUnavailable(code, message, {
@@ -30,6 +31,28 @@ function buildUnsafeRedisDeploymentError(deployment) {
 
 function buildReviewCrawlJobId(runId) {
     return `review-crawl-${runId}`
+}
+
+function createHealthProbeTimeoutError(label, timeoutMs) {
+    const error = new Error(`${label} timed out after ${timeoutMs}ms`)
+    error.code = 'REVIEW_CRAWL_HEALTH_TIMEOUT'
+    return error
+}
+
+function withHealthProbeTimeout(promise, timeoutMs, label) {
+    let timer = null
+
+    const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+            reject(createHealthProbeTimeoutError(label, timeoutMs))
+        }, timeoutMs)
+    })
+
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+        if (timer) {
+            clearTimeout(timer)
+        }
+    })
 }
 
 function isQueueConfigured() {
@@ -178,6 +201,46 @@ async function getReviewCrawlJob(runId) {
     }
 }
 
+async function getReviewCrawlRedisHealth(options = {}) {
+    const timeoutMs =
+        Number.isFinite(options.timeoutMs) && options.timeoutMs > 0
+            ? options.timeoutMs
+            : PUBLIC_REDIS_HEALTH_TIMEOUT_MS
+
+    if (!isQueueConfigured()) {
+        return {
+            configured: false,
+            inlineMode: isInlineQueueMode(),
+            status: isInlineQueueMode() ? 'SKIPPED' : 'UNCONFIGURED',
+            timeoutMs,
+        }
+    }
+
+    try {
+        const ping = await withHealthProbeTimeout(
+            getRedisConnection().ping(),
+            timeoutMs,
+            'Redis ping',
+        )
+
+        return {
+            configured: true,
+            inlineMode: false,
+            status: ping === 'PONG' ? 'UP' : 'DOWN',
+            timeoutMs,
+        }
+    } catch (error) {
+        return {
+            configured: true,
+            inlineMode: false,
+            status: 'DOWN',
+            timeoutMs,
+            errorMessage:
+                error instanceof Error ? error.message : 'Redis ping probe failed',
+        }
+    }
+}
+
 async function getReviewCrawlQueueHealth() {
     const durabilityEnforced = env.REVIEW_CRAWL_REQUIRE_SAFE_REDIS === true
 
@@ -274,6 +337,7 @@ module.exports = {
     getRedisConnection,
     getReviewCrawlJob,
     getReviewCrawlQueue,
+    getReviewCrawlRedisHealth,
     getReviewCrawlQueueHealth,
     isInlineQueueMode,
     isQueueConfigured,

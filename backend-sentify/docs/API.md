@@ -1,6 +1,6 @@
 # Sentify API Reference
 
-Updated: 2026-03-29
+Updated: 2026-04-01
 Base URL: `http://localhost:3000/api`
 
 This document describes the API surface that exists in the backend today.
@@ -144,7 +144,11 @@ Current semantics:
 The endpoint now checks both:
 
 - Postgres availability through Prisma
-- review-crawl Redis queue availability through the queue-health probe
+- lightweight review-crawl Redis availability through a bounded `PING` probe
+
+Heavy BullMQ queue counts, Redis deployment safety, and worker/runtime posture stay on:
+
+- `GET /api/admin/platform/health-jobs`
 
 ## Auth
 

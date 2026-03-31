@@ -1,6 +1,6 @@
 # Sentify Backend Testing Strategy
 
-Updated: 2026-03-31
+Updated: 2026-04-01
 
 This document tracks the current backend testing posture for the live codebase.
 
@@ -68,7 +68,7 @@ Unit tests                 Current baseline
   - explicit database URL timeout normalization
   - Prisma operational error mapping
   - Prisma `P2025` and `P2003` API downgrade coverage
-  - `/api/health` DB + Redis status behavior
+  - `/api/health` DB + lightweight Redis `PING` status behavior
   - slow-request logging
   - queue-health degradation when Redis probes fail
   - opt-in Redis durability enforcement for queue enqueue and worker-runtime bootstrap
@@ -110,7 +110,7 @@ Unit tests                 Current baseline
   - `release-evidence.js` for a combined managed release-evidence report
 - latest source-submission history seam verification on `2026-03-30`:
   - `node --test test/restaurant-source-submission-history.service.test.js test/restaurant.service.test.js test/restaurants.integration.test.js` -> `25/25 passed`
-  - `npm test` -> `230 tests`, `216 passed`, `14 skipped`, `0 failed`
+  - `npm test` -> `235 tests`, `221 passed`, `14 skipped`, `0 failed`
   - `npm run test:realdb` -> passed on `2026-03-31`
   - proof focus:
     - audit snapshot parsing and attempt-key grouping moved behind a dedicated service without changing existing merchant history or timeline contracts
@@ -433,7 +433,8 @@ Unit tests                 Current baseline
   - proof focus:
     - `P2025 -> 404 RECORD_NOT_FOUND`
     - `P2003 -> 409 FOREIGN_KEY_CONSTRAINT_FAILED`
-    - `/api/health` returns `503` when Redis queue health is down even if Postgres is still reachable
+- `/api/health` returns `503` when the lightweight Redis readiness probe is down even if Postgres is still reachable
+- `/api/health` no longer depends on BullMQ queue counts or Redis `INFO`; those remain on admin/operator diagnostics
 - freshest backend and browser rerun on `2026-03-28`:
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - `cd D:\Project 3\backend-sentify && node --test test/admin-platform.integration.test.js` -> `4/4 passed`

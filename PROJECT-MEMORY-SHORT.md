@@ -1,6 +1,6 @@
 # Project Memory Short
 
-Updated: 2026-03-31 Asia/Bangkok
+Updated: 2026-04-01 Asia/Bangkok
 
 ## Current Runtime Contract
 
@@ -221,7 +221,10 @@ Updated: 2026-03-31 Asia/Bangkok
     - current managed release-evidence state must be read separately from the historical artifact
 - Freshest backend-only rerun evidence on `2026-03-31`:
   - `cd D:\Project 3\backend-sentify && npm run env:check` -> passed
-  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`230` tests: `216` pass, `14` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`235` tests: `221` pass, `14` skipped, `0` fail)
+  - public readiness hardening on `2026-04-01`:
+    - `/api/health` now stays on Postgres `SELECT 1` plus bounded Redis `PING`
+    - heavy BullMQ queue counts and Redis deployment metadata stay on `/api/admin/platform/health-jobs`
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed on `2026-03-31`
   - `scripts/run-realdb-tests.js` now retries `db:reset:local-baseline` with backoff before each real-DB file, which removed the transient Prisma reset race seen after a green file
   - `restaurant-state.service.js` now owns the shared restaurant source-submission and dataset-state helpers that used to leak through `restaurant.service.__private`
@@ -329,7 +332,8 @@ Updated: 2026-03-31 Asia/Bangkok
     - `cd D:\Project 3\backend-sentify && node --test test/staging-proof-helpers.test.js test/staging-review-ops-proof.test.js test/staging-performance-proof.test.js` -> `12/12 passed`
     - `cd D:\Project 3\backend-sentify && node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json` -> `STAGING_REVIEW_OPS_PROOF_COMPLETE`
     - `P2003 -> 409 FOREIGN_KEY_CONSTRAINT_FAILED`
-  - `/api/health` now checks both Postgres and Redis queue availability and returns a `redis` field in the contract
+  - `/api/health` now checks Postgres plus a bounded Redis `PING` and returns a `redis` field in the contract
+  - heavy BullMQ queue counts and worker diagnostics stay on `/api/admin/platform/health-jobs`
   - `render.yaml` now pins the current runtime timeout defaults explicitly
 - external staging merchant read-performance proof on `2026-03-29` is now tracked as two bars:
   - average-case:

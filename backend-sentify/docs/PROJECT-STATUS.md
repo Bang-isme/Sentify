@@ -1,6 +1,6 @@
 # Sentify Backend Project Status
 
-Updated: 2026-03-31
+Updated: 2026-04-01
 
 This document answers three questions: where the backend is now, what is already done, and what should happen next.
 
@@ -32,7 +32,7 @@ Current status:
   - `node scripts/release-evidence.js ... --require-managed-signoff`: failed correctly with `MANAGED_SIGNOFF_PENDING` while the proof still pointed at local targets and had no managed DB artifact
 - freshest backend-only rerun evidence on `2026-03-31`:
   - `npm run env:check`: passed
-  - `npm test`: passed (`230` tests: `216` pass, `14` skipped, `0` fail)
+  - `npm test`: passed (`235` tests: `221` pass, `14` skipped, `0` fail)
   - `npm run test:realdb`: passed on `2026-03-31`
   - `scripts/run-realdb-tests.js` now retries `db:reset:local-baseline` with backoff before each real-DB file, which removed the transient Prisma reset race seen after a green file
   - restaurant shared-state helpers were extracted into `src/services/restaurant-state.service.js`
@@ -63,7 +63,7 @@ Current status:
   - controller and middleware error handling now map Prisma pool exhaustion, initialization failure, transaction failure, concurrency conflicts, missing-record writes, and foreign-key conflicts to explicit non-500 API errors
   - request logging now flags slow successful requests instead of only status-code failures
   - queue health now degrades cleanly when Redis/BullMQ probes fail, and worker runtime logs `error` plus `stalled` events explicitly
-  - `/api/health` now checks Redis queue availability instead of returning healthy while Redis-backed crawl infrastructure is down
+  - `/api/health` now uses a lightweight Redis `PING` readiness probe instead of heavy BullMQ queue counts, so the public route stays reliable without weakening Redis failure detection
   - `render.yaml` now pins the runtime timeout env defaults explicitly instead of relying on code-only defaults
   - external Postgres URLs are now normalized to `sslmode=verify-full`
   - queue health now degrades if Redis deployment safety says BullMQ durability is unsafe

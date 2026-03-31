@@ -113,6 +113,77 @@ test('review crawl queue health surfaces unsafe Redis deployment policy', async 
     restoreModules()
 })
 
+test('review crawl Redis health uses a lightweight ping probe', async () => {
+    restoreModules()
+
+    let pingCalls = 0
+
+    withMock('../src/config/env', {
+        NODE_ENV: 'development',
+        REDIS_URL: 'redis://127.0.0.1:6379',
+        REVIEW_CRAWL_QUEUE_NAME: 'review-crawl',
+        REVIEW_CRAWL_MAX_RETRIES: 3,
+        REVIEW_CRAWL_RETRY_BASE_DELAY_MS: 5000,
+        REVIEW_CRAWL_JOB_TIMEOUT_MS: 600000,
+        REVIEW_CRAWL_WORKER_CONCURRENCY: 2,
+        REVIEW_CRAWL_LEASE_SECONDS: 90,
+    })
+    withMock('ioredis', function MockIORedis() {
+        return {
+            ping: async () => {
+                pingCalls += 1
+                return 'PONG'
+            },
+        }
+    })
+    withMock('bullmq', {
+        Queue: class MockQueue {},
+        Worker: class MockWorker {},
+    })
+
+    const queue = require('../src/modules/review-crawl/review-crawl.queue')
+    const health = await queue.getReviewCrawlRedisHealth()
+
+    assert.equal(health.configured, true)
+    assert.equal(health.status, 'UP')
+    assert.equal(pingCalls, 1)
+
+    restoreModules()
+})
+
+test('review crawl Redis health fails fast when the ping probe times out', async () => {
+    restoreModules()
+
+    withMock('../src/config/env', {
+        NODE_ENV: 'development',
+        REDIS_URL: 'redis://127.0.0.1:6379',
+        REVIEW_CRAWL_QUEUE_NAME: 'review-crawl',
+        REVIEW_CRAWL_MAX_RETRIES: 3,
+        REVIEW_CRAWL_RETRY_BASE_DELAY_MS: 5000,
+        REVIEW_CRAWL_JOB_TIMEOUT_MS: 600000,
+        REVIEW_CRAWL_WORKER_CONCURRENCY: 2,
+        REVIEW_CRAWL_LEASE_SECONDS: 90,
+    })
+    withMock('ioredis', function MockIORedis() {
+        return {
+            ping: async () => new Promise(() => {}),
+        }
+    })
+    withMock('bullmq', {
+        Queue: class MockQueue {},
+        Worker: class MockWorker {},
+    })
+
+    const queue = require('../src/modules/review-crawl/review-crawl.queue')
+    const health = await queue.getReviewCrawlRedisHealth({ timeoutMs: 10 })
+
+    assert.equal(health.configured, true)
+    assert.equal(health.status, 'DOWN')
+    assert.match(health.errorMessage, /timed out/i)
+
+    restoreModules()
+})
+
 test('review crawl queue can enforce BullMQ-safe Redis durability before enqueueing', async () => {
     restoreModules()
 

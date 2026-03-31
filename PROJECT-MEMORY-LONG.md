@@ -1,6 +1,6 @@
 # Project Memory Long
 
-Updated: 2026-03-31 Asia/Bangkok
+Updated: 2026-04-01 Asia/Bangkok
 
 ## Stable Product Decisions
 
@@ -134,10 +134,19 @@ Principles:
     - `node scripts/release-evidence.js --require-managed-signoff`
   - only after Redis proof is green should hosted runtime set:
     - `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true`
-- On `2026-03-31`, the latest full backend gates were rerun after the opt-in Redis durability enforcement slice:
+- On `2026-04-01`, the latest full backend gates were rerun after the public-readiness hardening slice:
   - `cd D:\Project 3\backend-sentify && npm run env:check` -> passed
-  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`230` tests: `216` pass, `14` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`235` tests: `221` pass, `14` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+  - public readiness is now intentionally decoupled from operator diagnostics:
+    - `/api/health` probes:
+      - Postgres through Prisma
+      - bounded review-crawl Redis `PING`
+    - `/api/health` no longer runs:
+      - BullMQ `getJobCounts(...)`
+      - Redis `INFO`
+    - heavy queue/runtime posture remains on:
+      - `/api/admin/platform/health-jobs`
 - `review-crawl-materialization.service` is now the shared contract for:
   - draft-batch reuse or creation for crawl output
   - intake dedupe for raw-review payloads
@@ -1176,7 +1185,7 @@ These tracked project-memory files exist so project context survives clone/sessi
     - `P2003 -> 409 FOREIGN_KEY_CONSTRAINT_FAILED`
   - `src/app.js` now makes `/api/health` probe both:
     - Postgres through Prisma
-    - Redis-backed review-crawl queue health
+    - bounded review-crawl Redis `PING`
   - `/api/health` response now includes `redis` with:
     - `up`
     - `down`
@@ -1197,6 +1206,7 @@ These tracked project-memory files exist so project context survives clone/sessi
     - missing-record writes no longer surface as generic `500`
     - FK conflicts no longer surface as generic `500`
     - API health no longer reports green while Redis-backed crawl infrastructure is unavailable
+    - API health also no longer runs BullMQ queue counts or Redis `INFO` on the public readiness path
 - On `2026-03-29`, the fast backend suite was made hermetic against workstation-local runtime secrets:
   - root cause:
     - workstation `.env` still pointed `REDIS_URL` at a managed Redis target

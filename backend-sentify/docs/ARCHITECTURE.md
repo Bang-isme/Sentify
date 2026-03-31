@@ -1,6 +1,6 @@
 # Sentify Backend Architecture
 
-Updated: 2026-03-25
+Updated: 2026-04-01
 
 This document describes the backend as it exists in the current codebase.
 
@@ -28,6 +28,15 @@ Entry points:
 
 - `src/server.js`: process lifecycle and graceful shutdown
 - `src/app.js`: middleware and route mounting
+
+Health boundary:
+
+- `/health` is a minimal liveness route
+- `/api/health` is a lightweight readiness route:
+  - Postgres `SELECT 1`
+  - bounded Redis `PING`
+- heavy queue and worker diagnostics stay on admin platform surfaces such as:
+  - `/api/admin/platform/health-jobs`
 
 Mounted route groups:
 

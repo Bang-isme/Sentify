@@ -12,7 +12,7 @@ const reviewOpsRoutes = require('./modules/review-ops/review-ops.routes')
 const reviewCrawlRoutes = require('./modules/review-crawl/google-maps.routes')
 const { sendError } = require('./lib/controller-error')
 const prisma = require('./lib/prisma')
-const { getReviewCrawlQueueHealth } = require('./modules/review-crawl/review-crawl.queue')
+const { getReviewCrawlRedisHealth } = require('./modules/review-crawl/review-crawl.queue')
 const { csrfProtection } = require('./middleware/csrf')
 const errorHandler = require('./middleware/error-handler')
 const requireInternalRole = require('./middleware/require-internal-role')
@@ -60,23 +60,23 @@ app.get('/api/health', async (req, res) => {
         return res.status(200).json({ status: 'ok', db: 'skipped', redis: 'skipped' })
     }
 
-    const [databaseProbe, queueHealthProbe] = await Promise.allSettled([
+    const [databaseProbe, redisHealthProbe] = await Promise.allSettled([
         prisma.$queryRaw`SELECT 1`,
-        getReviewCrawlQueueHealth(),
+        getReviewCrawlRedisHealth(),
     ])
 
     const dbStatus = databaseProbe.status === 'fulfilled' ? 'up' : 'down'
 
     let redisStatus = 'down'
-    if (queueHealthProbe.status === 'fulfilled') {
-        if (queueHealthProbe.value.inlineMode) {
+    if (redisHealthProbe.status === 'fulfilled') {
+        if (redisHealthProbe.value.inlineMode) {
             redisStatus = 'skipped'
-        } else if (!queueHealthProbe.value.configured) {
+        } else if (!redisHealthProbe.value.configured) {
             redisStatus = 'unconfigured'
-        } else if (queueHealthProbe.value.errorMessage) {
-            redisStatus = 'down'
-        } else {
+        } else if (redisHealthProbe.value.status === 'UP') {
             redisStatus = 'up'
+        } else if (redisHealthProbe.value.errorMessage) {
+            redisStatus = 'down'
         }
     }
 

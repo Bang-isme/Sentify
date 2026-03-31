@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 
 const { request, startApp, stopApp } = require('./test-helpers')
 
-test('api health returns redis up when database and queue probes succeed', async () => {
+test('api health returns redis up when database and lightweight Redis probe succeed', async () => {
     const { server } = await startApp(
         {
             $queryRaw: async () => 1,
@@ -12,16 +12,10 @@ test('api health returns redis up when database and queue probes succeed', async
             nodeEnv: 'development',
             moduleOverrides: {
                 '../src/modules/review-crawl/review-crawl.queue': {
-                    getReviewCrawlQueueHealth: async () => ({
+                    getReviewCrawlRedisHealth: async () => ({
                         configured: true,
                         inlineMode: false,
-                        counts: {
-                            waiting: 0,
-                            active: 0,
-                            completed: 0,
-                            failed: 0,
-                            delayed: 0,
-                        },
+                        status: 'UP',
                     }),
                 },
             },
@@ -42,7 +36,7 @@ test('api health returns redis up when database and queue probes succeed', async
     }
 })
 
-test('api health returns unavailable when Redis queue probe fails', async () => {
+test('api health returns unavailable when lightweight Redis probe fails', async () => {
     const { server } = await startApp(
         {
             $queryRaw: async () => 1,
@@ -51,10 +45,10 @@ test('api health returns unavailable when Redis queue probe fails', async () => 
             nodeEnv: 'development',
             moduleOverrides: {
                 '../src/modules/review-crawl/review-crawl.queue': {
-                    getReviewCrawlQueueHealth: async () => ({
+                    getReviewCrawlRedisHealth: async () => ({
                         configured: true,
                         inlineMode: false,
-                        counts: null,
+                        status: 'DOWN',
                         errorMessage: 'redis down',
                     }),
                 },

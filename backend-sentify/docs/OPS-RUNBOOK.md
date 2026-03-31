@@ -1,4 +1,4 @@
-Updated: 2026-03-28
+Updated: 2026-04-01
 
 Environment split:
 
@@ -107,6 +107,11 @@ For the current codebase, the drill is considered green when:
 - target `/api/health` returns `200` with:
   - `db: up`
   - `redis: up` or `redis: skipped`
+- `/api/health` remains a lightweight readiness probe:
+  - Postgres `SELECT 1`
+  - bounded Redis `PING`
+- heavy queue counts, Redis deployment metadata, and worker posture stay on:
+  - `/api/admin/platform/health-jobs`
 - authenticated merchant-read smoke returns the expected seeded restaurant slice
 - restored semantic digest matches the source backup digest
 - rollback smoke against the source database returns healthy health and read-route responses
