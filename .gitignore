@@ -28,6 +28,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .tmp/
+dump.rdb
+
+# Local tools and workspace caches
+.agent/
+Memurai-Developer-v4.1.2/
+tools/
 
 # Generated screenshots and scratch outputs
 stitch_landing_screenshot.png
