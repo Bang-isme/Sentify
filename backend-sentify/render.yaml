@@ -18,6 +18,20 @@ services:
         value: "1"
       - key: BODY_LIMIT
         value: 100kb
+      - key: REQUEST_TIMEOUT_MS
+        value: "30000"
+      - key: HEADERS_TIMEOUT_MS
+        value: "31000"
+      - key: KEEP_ALIVE_TIMEOUT_MS
+        value: "5000"
+      - key: SLOW_REQUEST_THRESHOLD_MS
+        value: "1000"
+      - key: DB_CONNECT_TIMEOUT_SECONDS
+        value: "10"
+      - key: DB_STATEMENT_TIMEOUT_MS
+        value: "15000"
+      - key: DB_IDLE_IN_TRANSACTION_TIMEOUT_MS
+        value: "15000"
       - key: AUTH_COOKIE_SECURE
         value: "true"
       - key: AUTH_COOKIE_SAME_SITE

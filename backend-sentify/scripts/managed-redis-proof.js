@@ -7,6 +7,7 @@ const { loadEnvFiles } = require('./load-env-files')
 
 const IORedis = require('ioredis')
 const { Queue, Worker } = require('bullmq')
+const { buildRedisDeploymentReport } = require('../src/lib/redis-deployment')
 
 loadEnvFiles({
     includeReleaseEvidence: true,
@@ -98,29 +99,6 @@ function normalizeForDigest(value) {
     return value
 }
 
-function parseRedisInfoBlock(info) {
-    const parsed = {}
-
-    for (const line of info.split('\n')) {
-        const trimmed = line.trim()
-
-        if (!trimmed || trimmed.startsWith('#')) {
-            continue
-        }
-
-        const separatorIndex = trimmed.indexOf(':')
-        if (separatorIndex === -1) {
-            continue
-        }
-
-        const key = trimmed.slice(0, separatorIndex)
-        const value = trimmed.slice(separatorIndex + 1)
-        parsed[key] = value
-    }
-
-    return parsed
-}
-
 async function waitForJobToSettle(queue, jobId, timeoutMs) {
     const startedAt = Date.now()
 
@@ -202,14 +180,14 @@ async function main() {
             enableReadyCheck: false,
         })
 
-        const [ping, serverInfo, clientsInfo] = await Promise.all([
+        const [ping, redisInfo] = await Promise.all([
             commandConnection.ping(),
-            commandConnection.info('server'),
-            commandConnection.info('clients'),
+            commandConnection.info(),
         ])
 
         queue = new Queue(queueName, {
             connection: queueConnection,
+            skipVersionCheck: true,
             defaultJobOptions: {
                 removeOnComplete: 100,
                 removeOnFail: 100,
@@ -224,6 +202,7 @@ async function main() {
             }),
             {
                 connection: workerConnection,
+                skipVersionCheck: true,
                 concurrency: 1,
             },
         )
@@ -249,8 +228,7 @@ async function main() {
             'delayed',
         )
         const finishedAt = new Date()
-        const parsedServerInfo = parseRedisInfoBlock(serverInfo)
-        const parsedClientsInfo = parseRedisInfoBlock(clientsInfo)
+        const deployment = buildRedisDeploymentReport(redisInfo)
 
         const report = {
             benchmark: {
@@ -262,10 +240,7 @@ async function main() {
             redis: {
                 url: redactRedisUrl(redisUrl),
                 ping,
-                redisVersion: parsedServerInfo.redis_version || 'unknown',
-                redisMode: parsedServerInfo.redis_mode || 'unknown',
-                tcpPort: parsedServerInfo.tcp_port || 'unknown',
-                connectedClients: parsedClientsInfo.connected_clients || 'unknown',
+                ...deployment,
             },
             bullmq: {
                 queueName,
@@ -278,11 +253,16 @@ async function main() {
                 countsAfterProbe: jobCounts,
             },
             result: {
-                passed: completion.state === 'completed' && ping === 'PONG',
+                passed:
+                    completion.state === 'completed' &&
+                    ping === 'PONG' &&
+                    deployment.minimumVersionStatus !== 'FAILED' &&
+                    deployment.evictionPolicyStatus === 'PASS',
             },
             notes: [
                 'This proof uses a dedicated ephemeral BullMQ queue and worker against the supplied Redis URL.',
                 'A passing result proves Redis connectivity plus basic BullMQ enqueue/process/complete compatibility.',
+                'Managed sign-off requires Redis maxmemory-policy=noeviction so BullMQ jobs are not dropped under memory pressure.',
                 'Use a managed Redis URL here for release evidence; local Redis is still valid for script verification.',
             ],
         }
@@ -301,6 +281,7 @@ async function main() {
                 {
                     queueName,
                     redisVersion: report.redis.redisVersion,
+                    maxMemoryPolicy: report.redis.maxMemoryPolicy,
                     status: report.bullmq.status,
                     passed: report.result.passed,
                 },
@@ -309,6 +290,10 @@ async function main() {
             )}\n`,
         )
         process.stdout.write(`Managed Redis proof report written to ${resolvedOutputPath}\n`)
+
+        if (!report.result.passed) {
+            process.exitCode = 1
+        }
     } finally {
         if (worker) {
             await worker.close()

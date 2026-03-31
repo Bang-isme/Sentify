@@ -122,3 +122,39 @@ test('evaluateReviewOpsProof requires a materialized terminal run without active
     assert.equal(failing.passed, false)
     assert.equal(failing.observed.reusedActiveRun, true)
 })
+
+test('evaluateReviewOpsProof accepts materialization fallback when the terminal snapshot predates intake linkage', () => {
+    const evaluated = evaluateReviewOpsProof(
+        {
+            run: {
+                status: 'COMPLETED',
+                intakeBatchId: null,
+                extractedCount: 30,
+                validCount: 30,
+                pagesFetched: 3,
+                crawlCoverage: {
+                    operatorPolicy: {
+                        code: 'NONE',
+                    },
+                },
+            },
+            batch: {
+                id: 'batch-materialized',
+            },
+            queueJob: {
+                state: 'completed',
+            },
+            totalWallClockMs: 15000,
+            draftPolicy: {
+                reusedActiveRun: false,
+            },
+        },
+        {
+            maxTotalWallClockMs: 300000,
+            minExtractedCount: 1,
+        },
+    )
+
+    assert.equal(evaluated.passed, true)
+    assert.equal(evaluated.observed.intakeBatchId, 'batch-materialized')
+})

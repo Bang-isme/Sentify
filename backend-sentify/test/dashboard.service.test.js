@@ -7,6 +7,9 @@ const {
     MERCHANT_ACTION_SUMMARY_STATE,
     MERCHANT_ACTION_RECOMMENDATION_CODE,
     buildMerchantActionsPayload,
+    buildMerchantEvidenceReviewWhere,
+    collectMerchantEvidenceKeywords,
+    findMissingMerchantEvidenceKeywords,
 } = dashboardService.__private
 
 test('buildMerchantActionsPayload returns AWAITING_SOURCE when no Google Maps URL exists', () => {
@@ -109,4 +112,48 @@ test('buildMerchantActionsPayload returns evidence-backed actionable cards from 
     assert.equal(payload.actionCards[1].status, 'NEXT')
     assert.equal(payload.capabilities.sourceSubmissionLane, 'PRIORITY')
     assert.equal(payload.executionLayer.nextCapabilityCode, 'ASSIGN_AND_TRACK')
+})
+
+test('collectMerchantEvidenceKeywords keeps only the top unique keywords needed for evidence lookup', () => {
+    const keywords = collectMerchantEvidenceKeywords([
+        { keyword: 'slow service' },
+        { keyword: 'dirty tables' },
+        { keyword: 'slow service' },
+        { keyword: 'overpriced' },
+        { keyword: 'noisy room' },
+    ])
+
+    assert.deepEqual(keywords, ['slow service', 'dirty tables', 'overpriced'])
+})
+
+test('findMissingMerchantEvidenceKeywords returns only keywords without a matching review', () => {
+    const missing = findMissingMerchantEvidenceKeywords(
+        [
+            {
+                id: 'review-1',
+                content: 'Slow service again and the soup arrived cold.',
+                keywords: ['slow service'],
+            },
+        ],
+        ['slow service', 'dirty tables'],
+    )
+
+    assert.deepEqual(missing, ['dirty tables'])
+})
+
+test('buildMerchantEvidenceReviewWhere scopes targeted evidence lookups to keyword hits only', () => {
+    const where = buildMerchantEvidenceReviewWhere('restaurant-1', [
+        'slow service',
+        'dirty tables',
+    ])
+
+    assert.equal(where.restaurantId, 'restaurant-1')
+    assert.equal(where.sentiment, 'NEGATIVE')
+    assert.deepEqual(where.OR[0], {
+        keywords: {
+            hasSome: ['slow service', 'dirty tables'],
+        },
+    })
+    assert.equal(where.OR[1].AND[1].content.contains, 'slow service')
+    assert.equal(where.OR[2].AND[1].content.contains, 'dirty tables')
 })

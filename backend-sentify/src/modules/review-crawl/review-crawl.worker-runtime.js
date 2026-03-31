@@ -1,5 +1,6 @@
 const env = require('../../config/env')
 const {
+    assertSafeRedisDeployment,
     closeReviewCrawlQueueResources,
     createReviewCrawlWorker,
     getRedisConnection,
@@ -30,6 +31,8 @@ async function startReviewCrawlWorkerRuntime(options = {}) {
     const runScheduler = runtimeMode === 'scheduler' || runtimeMode === 'both'
     const redis = getRedisConnection()
     const schedulerToken = `${process.pid}:${Date.now()}`
+
+    await assertSafeRedisDeployment(redis)
 
     const worker = runProcessor
         ? createReviewCrawlWorker((runId, job) =>

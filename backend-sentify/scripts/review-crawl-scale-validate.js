@@ -6,6 +6,11 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const { spawn } = require('child_process')
+const {
+    round,
+    summarizeLatencySeries,
+    summarizeNumericSeries,
+} = require('./proof-metrics')
 
 const env = require('../src/config/env')
 const { crawlGoogleMapsReviews } = require('../src/modules/review-crawl/google-maps.service')
@@ -64,11 +69,6 @@ function mean(values) {
     return values.reduce((sum, value) => sum + value, 0) / values.length
 }
 
-function round(value, digits = 2) {
-    const factor = 10 ** digits
-    return Math.round(value * factor) / factor
-}
-
 function summarizeRuns(runs) {
     const durations = runs.map((run) => run.durationMs)
     const extractedCounts = runs.map((run) => run.extractedCount)
@@ -88,12 +88,14 @@ function summarizeRuns(runs) {
         extractedCounts,
         pagesFetched,
         durationMs: durations,
+        durationSummary: summarizeLatencySeries(durations),
         averageDurationMs: round(mean(durations), 2),
         averageExtractedCount: round(mean(extractedCounts), 2),
         averagePagesFetched: round(mean(pagesFetched), 2),
         averageReviewsPerSecond: round(mean(reviewsPerSecond), 2),
         averagePagesPerSecond: round(mean(pagesPerSecond), 3),
         averageReviewsPerPage: round(mean(reviewsPerPage), 3),
+        reviewsPerSecondSummary: summarizeNumericSeries(reviewsPerSecond),
         convergedExtractedCount:
             new Set(extractedCounts).size === 1 ? extractedCounts[0] : null,
     }

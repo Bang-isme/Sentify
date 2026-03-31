@@ -1,6 +1,22 @@
 const http = require('http')
 const https = require('https')
 
+const RETRYABLE_HTTP_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504])
+const TRANSIENT_ERROR_CODES = new Set([
+    'ECONNABORTED',
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'EAI_AGAIN',
+    'EHOSTUNREACH',
+    'ENETDOWN',
+    'ENETRESET',
+    'ENETUNREACH',
+    'ENOTFOUND',
+    'EPIPE',
+    'ETIMEDOUT',
+    'UND_ERR_CONNECT_TIMEOUT',
+])
+
 function mergeSetCookies(cookieJar, setCookieHeader) {
     const nextJar = { ...cookieJar }
     const setCookies = Array.isArray(setCookieHeader)
@@ -34,6 +50,29 @@ function buildCookieHeader(cookieJar) {
     return Object.entries(cookieJar)
         .map(([name, value]) => `${name}=${value}`)
         .join('; ')
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms)
+    })
+}
+
+function isTransientRequestError(error) {
+    if (!error) {
+        return false
+    }
+
+    if (TRANSIENT_ERROR_CODES.has(error.code)) {
+        return true
+    }
+
+    const message = String(error.message || error)
+    return /timed out|socket hang up|network|fetch failed/i.test(message)
+}
+
+function isRetryableStatus(status) {
+    return RETRYABLE_HTTP_STATUSES.has(Number(status))
 }
 
 async function requestJson(baseUrl, requestPath, options = {}) {
@@ -126,6 +165,62 @@ async function requestJson(baseUrl, requestPath, options = {}) {
     })
 }
 
+async function requestJsonWithRetries(baseUrl, requestPath, options = {}) {
+    const retryAttempts = Number.parseInt(options.retryAttempts || '3', 10)
+    const retryDelayMs = Number.parseInt(options.retryDelayMs || '2000', 10)
+    const attempts = Number.isNaN(retryAttempts) || retryAttempts < 1 ? 1 : retryAttempts
+    const delayMs = Number.isNaN(retryDelayMs) || retryDelayMs < 0 ? 0 : retryDelayMs
+    const requestFn = options.requestFn || requestJson
+    let lastError = null
+    let lastResponse = null
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            const response = await requestFn(baseUrl, requestPath, options)
+            lastResponse = response
+
+            if (!isRetryableStatus(response.status) || attempt === attempts) {
+                return response
+            }
+        } catch (error) {
+            lastError = error
+
+            if (!isTransientRequestError(error) || attempt === attempts) {
+                throw error
+            }
+        }
+
+        if (attempt < attempts && delayMs > 0) {
+            await sleep(delayMs * attempt)
+        }
+    }
+
+    if (lastResponse) {
+        return lastResponse
+    }
+
+    throw lastError || new Error(`Request to ${requestPath} failed after ${attempts} attempts`)
+}
+
+async function warmupStagingBaseUrl(baseUrl, options = {}) {
+    const warmupTimeoutMs = Math.min(Number.parseInt(options.timeoutMs || '15000', 10) || 15000, 15000)
+    const warmupPaths = ['/health', '/api/health']
+
+    for (const requestPath of warmupPaths) {
+        try {
+            await requestJsonWithRetries(baseUrl, requestPath, {
+                timeoutMs: warmupTimeoutMs,
+                insecureTls: options.insecureTls,
+                agent: options.agent,
+                retryAttempts: options.retryAttempts || 2,
+                retryDelayMs: options.retryDelayMs || 1000,
+            })
+        } catch (_error) {
+            // Warmup is best-effort. Login/session requests still perform strict validation.
+        }
+    }
+}
+
 async function loginAndReadSession({
     baseUrl,
     email,
@@ -133,8 +228,18 @@ async function loginAndReadSession({
     timeoutMs,
     insecureTls,
     agent,
+    retryAttempts,
+    retryDelayMs,
 }) {
-    const login = await requestJson(baseUrl, '/api/auth/login', {
+    await warmupStagingBaseUrl(baseUrl, {
+        timeoutMs,
+        insecureTls,
+        agent,
+        retryAttempts,
+        retryDelayMs,
+    })
+
+    const login = await requestJsonWithRetries(baseUrl, '/api/auth/login', {
         method: 'POST',
         body: {
             email,
@@ -143,6 +248,8 @@ async function loginAndReadSession({
         timeoutMs,
         insecureTls,
         agent,
+        retryAttempts,
+        retryDelayMs,
     })
 
     if (login.status !== 200) {
@@ -157,11 +264,13 @@ async function loginAndReadSession({
         }
     }
 
-    const session = await requestJson(baseUrl, '/api/auth/session', {
+    const session = await requestJsonWithRetries(baseUrl, '/api/auth/session', {
         cookieJar: login.cookieJar,
         timeoutMs,
         insecureTls,
         agent,
+        retryAttempts,
+        retryDelayMs,
     })
 
     return {
@@ -176,6 +285,11 @@ async function loginAndReadSession({
 }
 
 module.exports = {
+    isRetryableStatus,
+    isTransientRequestError,
     loginAndReadSession,
     requestJson,
+    requestJsonWithRetries,
+    sleep,
+    warmupStagingBaseUrl,
 }

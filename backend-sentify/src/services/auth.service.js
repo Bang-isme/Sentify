@@ -371,6 +371,91 @@ async function changePassword({ userId, currentPassword, newPassword, context = 
     }
 }
 
+async function updateProfile({ userId, email, fullName, context = {} }) {
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+        include: {
+            restaurants: {
+                include: {
+                    restaurant: true,
+                },
+            },
+        },
+    })
+
+    if (!user) {
+        throw unauthorized('AUTH_INVALID_TOKEN', 'Access token is invalid or expired')
+    }
+
+    assertUserAccountAvailable(user)
+
+    const nextEmail = typeof email === 'string' ? normalizeEmail(email) : user.email
+    const nextFullName = typeof fullName === 'string' ? fullName.trim() : user.fullName
+
+    if (nextEmail !== user.email) {
+        const existingUser = await prisma.user.findUnique({
+            where: {
+                email: nextEmail,
+            },
+        })
+
+        if (existingUser && existingUser.id !== user.id) {
+            throw conflict('EMAIL_ALREADY_EXISTS', 'Email already exists')
+        }
+    }
+
+    if (nextEmail === user.email && nextFullName === user.fullName) {
+        return {
+            user: {
+                ...mapUser(user, user.restaurants),
+            },
+        }
+    }
+
+    const updatedUser = await prisma.user.update({
+        where: {
+            id: user.id,
+        },
+        data: {
+            email: nextEmail,
+            fullName: nextFullName,
+        },
+        include: {
+            restaurants: {
+                include: {
+                    restaurant: true,
+                },
+            },
+        },
+    })
+
+    const changedFields = []
+
+    if (updatedUser.email !== user.email) {
+        changedFields.push('email')
+    }
+
+    if (updatedUser.fullName !== user.fullName) {
+        changedFields.push('fullName')
+    }
+
+    logSecurityEvent('auth.profile.updated', {
+        requestId: context.requestId,
+        ip: context.ip,
+        userAgent: context.userAgent,
+        userId: updatedUser.id,
+        changedFields,
+    })
+
+    return {
+        user: {
+            ...mapUser(updatedUser, updatedUser.restaurants),
+        },
+    }
+}
+
 module.exports = {
     ACCESS_TOKEN_EXPIRES_IN_SECONDS,
     buildAccessToken,
@@ -379,4 +464,5 @@ module.exports = {
     login,
     logout,
     changePassword,
+    updateProfile,
 }

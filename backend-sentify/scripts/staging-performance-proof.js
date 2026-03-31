@@ -7,8 +7,13 @@ const path = require('path')
 const { performance } = require('perf_hooks')
 const { loadEnvFiles } = require('./load-env-files')
 const {
+    round,
+    summarizeLatencySeries,
+} = require('./proof-metrics')
+const {
     loginAndReadSession,
     requestJson,
+    requestJsonWithRetries,
 } = require('./staging-proof-helpers')
 
 loadEnvFiles({
@@ -46,38 +51,6 @@ function parsePositiveInt(value, fallback) {
 
     const parsed = Number.parseInt(value, 10)
     return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed
-}
-
-function round(value, digits = 2) {
-    if (value === null || value === undefined || Number.isNaN(value)) {
-        return null
-    }
-
-    const factor = 10 ** digits
-    return Math.round(value * factor) / factor
-}
-
-function percentile(values, targetPercentile) {
-    if (!values.length) {
-        return null
-    }
-
-    const sorted = [...values].sort((left, right) => left - right)
-    const index = Math.min(
-        sorted.length - 1,
-        Math.max(0, Math.ceil((targetPercentile / 100) * sorted.length) - 1),
-    )
-
-    return round(sorted[index], 2)
-}
-
-function mean(values) {
-    if (!values.length) {
-        return null
-    }
-
-    const total = values.reduce((sum, value) => sum + value, 0)
-    return round(total / values.length, 2)
 }
 
 function buildScenarios(restaurantId) {
@@ -127,13 +100,17 @@ function buildScenarios(restaurantId) {
 
 function summarizeRequestRecords(records, totalDurationMs = null) {
     const successful = records.filter((record) => record.ok)
-    const durations = successful.map((record) => record.durationMs)
     const statusCounts = {}
 
     for (const record of records) {
         const key = record.status === null ? 'ERROR' : String(record.status)
         statusCounts[key] = (statusCounts[key] || 0) + 1
     }
+
+    const latency = summarizeLatencySeries(
+        successful.map((record) => record.durationMs),
+        totalDurationMs,
+    )
 
     return {
         requestCount: records.length,
@@ -142,12 +119,7 @@ function summarizeRequestRecords(records, totalDurationMs = null) {
         errorRatePercent: records.length
             ? round(((records.length - successful.length) / records.length) * 100, 2)
             : 0,
-        averageMs: mean(durations),
-        p50Ms: percentile(durations, 50),
-        p95Ms: percentile(durations, 95),
-        p99Ms: percentile(durations, 99),
-        maxMs: durations.length ? round(Math.max(...durations), 2) : null,
-        minMs: durations.length ? round(Math.min(...durations), 2) : null,
+        ...latency,
         requestsPerSecond:
             totalDurationMs && totalDurationMs > 0
                 ? round(records.length / (totalDurationMs / 1000), 2)
@@ -161,9 +133,14 @@ function evaluateOverall(summary, thresholds) {
         typeof summary.errorRatePercent === 'number' &&
         typeof summary.p95Ms === 'number' &&
         typeof summary.requestsPerSecond === 'number' &&
+        typeof summary.coefficientOfVariationPercent === 'number' &&
+        typeof summary.p95ToP50Ratio === 'number' &&
         summary.errorRatePercent <= thresholds.maxErrorRatePercent &&
         summary.p95Ms <= thresholds.maxP95Ms &&
-        summary.requestsPerSecond >= thresholds.minRequestsPerSecond
+        summary.requestsPerSecond >= thresholds.minRequestsPerSecond &&
+        summary.coefficientOfVariationPercent <=
+            thresholds.maxCoefficientOfVariationPercent &&
+        summary.p95ToP50Ratio <= thresholds.maxP95ToP50Ratio
 
     return {
         passed,
@@ -171,6 +148,10 @@ function evaluateOverall(summary, thresholds) {
             errorRatePercent: summary.errorRatePercent,
             p95Ms: summary.p95Ms,
             requestsPerSecond: summary.requestsPerSecond,
+            coefficientOfVariationPercent: summary.coefficientOfVariationPercent,
+            p95ToP50Ratio: summary.p95ToP50Ratio,
+            predictabilityClassification:
+                summary.predictability?.classification ?? null,
         },
         thresholds,
     }
@@ -194,6 +175,8 @@ function printUsage() {
             '  --max-p95-ms <ms>              Default: 5000',
             '  --max-error-rate <percent>     Default: 0',
             '  --min-rps <n>                  Default: 2',
+            '  --max-cv-percent <n>           Default: 35',
+            '  --max-p95-p50-ratio <n>        Default: 3',
             '  --insecure-tls                 Disable TLS verification',
             `  --output <file>                Write JSON report (default: ${DEFAULT_OUTPUT_PATH})`,
             '  --help                         Show this help message',
@@ -249,7 +232,7 @@ function resolveRestaurant(restaurants, restaurantId, restaurantSlug) {
 
 async function warmup(baseUrl, scenarios, cookieJar, options) {
     for (const scenario of scenarios) {
-        await requestJson(baseUrl, scenario.path, {
+        await requestJsonWithRetries(baseUrl, scenario.path, {
             cookieJar,
             timeoutMs: options.timeoutMs,
             insecureTls: options.insecureTls,
@@ -369,6 +352,11 @@ async function main() {
         maxP95Ms: parsePositiveInt(readFlag(args, '--max-p95-ms'), 5000),
         maxErrorRatePercent: parsePositiveInt(readFlag(args, '--max-error-rate'), 0),
         minRequestsPerSecond: parsePositiveInt(readFlag(args, '--min-rps'), 2),
+        maxCoefficientOfVariationPercent: parsePositiveInt(
+            readFlag(args, '--max-cv-percent'),
+            35,
+        ),
+        maxP95ToP50Ratio: parsePositiveInt(readFlag(args, '--max-p95-p50-ratio'), 3),
     }
 
     if (!baseUrl || !userEmail || !userPassword) {
@@ -403,7 +391,7 @@ async function main() {
             )
         }
 
-        const restaurantsResponse = await requestJson(
+        const restaurantsResponse = await requestJsonWithRetries(
             normalizedBaseUrl,
             '/api/restaurants',
             {

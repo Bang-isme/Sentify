@@ -61,6 +61,10 @@ test('auth integration flows', async (t) => {
                     }
                 }
 
+                if (where.email === 'updated@sentify.com') {
+                    return null
+                }
+
                 if (where.id === 'user-1') {
                     return {
                         id: 'user-1',
@@ -84,13 +88,25 @@ test('auth integration flows', async (t) => {
                 role: data.role,
                 tokenVersion: 0,
             }),
-            update: async ({ where }) => ({
-                id: where.id,
-                email: 'owner@sentify.com',
-                fullName: 'Owner',
-                role: 'USER',
-                tokenVersion: 1,
-            }),
+            update: async ({ where, data }) => {
+                if (Object.prototype.hasOwnProperty.call(data, 'tokenVersion')) {
+                    return {
+                        id: where.id,
+                        email: 'owner@sentify.com',
+                        fullName: 'Owner',
+                        role: 'USER',
+                        tokenVersion: 1,
+                    }
+                }
+
+                return {
+                    id: where.id,
+                    email: data.email,
+                    fullName: data.fullName,
+                    role: 'USER',
+                    restaurants: [],
+                }
+            },
         },
     }
 
@@ -157,6 +173,19 @@ test('auth integration flows', async (t) => {
         token: createInvalidToken(),
     })
     assert.equal(sessionInvalid.status, 401)
+
+    const updateProfileResponse = await request(server, 'PATCH', '/api/auth/profile', {
+        token: createTestToken({ userId: 'user-1', tokenVersion: 0 }),
+        body: {
+            email: 'updated@sentify.com',
+            fullName: 'Updated Owner',
+        },
+    })
+
+    assert.equal(updateProfileResponse.status, 200)
+    assert.equal(updateProfileResponse.body.data.user.email, 'updated@sentify.com')
+    assert.equal(updateProfileResponse.body.data.user.fullName, 'Updated Owner')
+    assert.equal(updateProfileResponse.body.data.user.role, 'USER')
 
     const changePasswordResponse = await request(
         server,

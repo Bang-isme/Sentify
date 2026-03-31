@@ -33,8 +33,9 @@ The goal is not to implement every suggested endpoint. The goal is to:
   - admin audit filters
   - admin list pagination
 - latest backend gates after the first two accepted slices:
-  - `npm test` -> passed (`204` tests: `190` pass, `14` skipped, `0` fail)
+  - `npm test` -> passed (`195` tests: `181` pass, `14` skipped, `0` fail)
   - `npm run test:realdb` -> passed
+  - `scripts/run-realdb-tests.js` now retries `db:reset:local-baseline` with backoff before each real-DB file, which keeps the full real-DB gate stable after transient Prisma reset races
 
 ## 3. Tech Stack
 

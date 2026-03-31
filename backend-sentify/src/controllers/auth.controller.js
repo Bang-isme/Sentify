@@ -23,6 +23,20 @@ const changePasswordSchema = z.object({
     newPassword: z.string().min(8, 'Password must be at least 8 characters long'),
 })
 
+const updateProfileSchema = z
+    .object({
+        email: z.email().trim().toLowerCase().optional(),
+        fullName: z.string().trim().min(1, 'Full name is required').max(100).optional(),
+    })
+    .refine(
+        (value) =>
+            Object.prototype.hasOwnProperty.call(value, 'email') ||
+            Object.prototype.hasOwnProperty.call(value, 'fullName'),
+        {
+            message: 'At least one profile field must be provided',
+        },
+    )
+
 const forgotPasswordSchema = z.object({
     email: z.email().trim().toLowerCase(),
 })
@@ -140,6 +154,28 @@ async function changePassword(req, res) {
     }
 }
 
+async function updateProfile(req, res) {
+    try {
+        const input = updateProfileSchema.parse(req.body)
+        const result = await authService.updateProfile({
+            userId: req.user.userId,
+            email: input.email,
+            fullName: input.fullName,
+            context: buildRequestContext(req),
+        })
+
+        setCsrfCookie(res)
+
+        return res.status(200).json({
+            data: {
+                user: result.user,
+            },
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 async function refresh(req, res) {
     try {
         // Read refresh token from cookie or body
@@ -221,6 +257,7 @@ module.exports = {
     register,
     login,
     logout,
+    updateProfile,
     changePassword,
     refresh,
     forgotPassword,

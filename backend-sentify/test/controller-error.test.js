@@ -36,6 +36,40 @@ test('controller error mapping downgrades Prisma pool exhaustion to service unav
     })
 })
 
+test('controller error mapping downgrades missing records to not found', () => {
+    const error = Object.assign(
+        Object.create(Prisma.PrismaClientKnownRequestError.prototype),
+        {
+            code: 'P2025',
+        },
+    )
+
+    const mapped = mapOperationalError(error)
+
+    assert.deepEqual(mapped, {
+        status: 404,
+        code: 'RECORD_NOT_FOUND',
+        message: 'The requested record could not be found',
+    })
+})
+
+test('controller error mapping downgrades foreign key conflicts to conflict', () => {
+    const error = Object.assign(
+        Object.create(Prisma.PrismaClientKnownRequestError.prototype),
+        {
+            code: 'P2003',
+        },
+    )
+
+    const mapped = mapOperationalError(error)
+
+    assert.deepEqual(mapped, {
+        status: 409,
+        code: 'FOREIGN_KEY_CONSTRAINT_FAILED',
+        message: 'The requested change conflicts with an existing related record',
+    })
+})
+
 test('controller error mapping downgrades Prisma initialization failures to database unavailable', () => {
     const error = Object.create(Prisma.PrismaClientInitializationError.prototype)
     const mapped = mapOperationalError(error)

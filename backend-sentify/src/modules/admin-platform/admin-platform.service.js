@@ -396,11 +396,13 @@ function summarizeQueueHealth(queueHealth) {
     const deploymentUnsafe =
         deployment?.minimumVersionStatus === 'FAILED' ||
         deployment?.evictionPolicyStatus === 'FAILED'
+    const durabilityBlocking = queueHealth.durabilityBlocking === true
     const healthy =
         queueHealth.configured &&
         counts &&
         Number(counts.failed || 0) === 0 &&
-        !deploymentUnsafe
+        !deploymentUnsafe &&
+        !durabilityBlocking
 
     return {
         status: queueHealth.configured
@@ -415,6 +417,8 @@ function summarizeQueueHealth(queueHealth) {
         queueName: env.REVIEW_CRAWL_QUEUE_NAME,
         counts,
         deployment,
+        durabilityEnforced: queueHealth.durabilityEnforced === true,
+        durabilityBlocking,
         ...(queueHealth.errorMessage ? { errorMessage: queueHealth.errorMessage } : {}),
     }
 }

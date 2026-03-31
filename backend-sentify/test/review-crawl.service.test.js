@@ -73,32 +73,30 @@ function mockAuditEvents(overrides = {}) {
     })
 }
 
-function mockRestaurantServicePrivate() {
-    withMock('../src/services/restaurant.service', {
-        __private: {
-            PERSISTED_SOURCE_SUBMISSION_STATUS: {
-                PENDING_IDENTITY_RESOLUTION: 'PENDING_IDENTITY_RESOLUTION',
-                READY_FOR_SOURCE_LINK: 'READY_FOR_SOURCE_LINK',
-                LINKED_TO_SOURCE: 'LINKED_TO_SOURCE',
-            },
-            SOURCE_SUBMISSION_SCHEDULING_LANE: {
-                STANDARD: 'STANDARD',
-                PRIORITY: 'PRIORITY',
-            },
-            SOURCE_SUBMISSION_PREVIEW_RECOMMENDATION: {
-                ALREADY_CONNECTED: 'ALREADY_CONNECTED',
-            },
-            buildSourceSubmissionAuditSnapshot: (submission) => ({
-                submissionId: submission.id ?? null,
-                inputUrl: submission.inputUrl ?? null,
-                canonicalCid: submission.canonicalCid ?? null,
-                linkedSourceId: submission.linkedSourceId ?? null,
-                schedulingLane: submission.schedulingLane ?? null,
-                schedulingLaneSource: submission.schedulingLaneSource ?? null,
-                submittedAt: submission.submittedAt ?? null,
-                lastResolvedAt: submission.lastResolvedAt ?? null,
-            }),
+function mockRestaurantStateService() {
+    withMock('../src/services/restaurant-state.service', {
+        PERSISTED_SOURCE_SUBMISSION_STATUS: {
+            PENDING_IDENTITY_RESOLUTION: 'PENDING_IDENTITY_RESOLUTION',
+            READY_FOR_SOURCE_LINK: 'READY_FOR_SOURCE_LINK',
+            LINKED_TO_SOURCE: 'LINKED_TO_SOURCE',
         },
+        SOURCE_SUBMISSION_SCHEDULING_LANE: {
+            STANDARD: 'STANDARD',
+            PRIORITY: 'PRIORITY',
+        },
+        SOURCE_SUBMISSION_PREVIEW_RECOMMENDATION: {
+            ALREADY_CONNECTED: 'ALREADY_CONNECTED',
+        },
+        buildSourceSubmissionAuditSnapshot: (submission) => ({
+            submissionId: submission.id ?? null,
+            inputUrl: submission.inputUrl ?? null,
+            canonicalCid: submission.canonicalCid ?? null,
+            linkedSourceId: submission.linkedSourceId ?? null,
+            schedulingLane: submission.schedulingLane ?? null,
+            schedulingLaneSource: submission.schedulingLaneSource ?? null,
+            submittedAt: submission.submittedAt ?? null,
+            lastResolvedAt: submission.lastResolvedAt ?? null,
+        }),
     })
 }
 
@@ -133,6 +131,9 @@ function mockPrisma(overrides = {}) {
 
 function restoreModules() {
     clearModule('../src/modules/review-crawl/review-crawl.service')
+    clearModule('../src/modules/review-crawl/review-crawl-source-submission-bootstrap.service')
+    clearModule('../src/modules/review-crawl/review-crawl-source-persistence.service')
+    clearModule('../src/modules/review-crawl/review-crawl-materialization.service')
     clearModule('../src/modules/review-crawl/review-crawl.repository')
     clearModule('../src/modules/review-crawl/review-crawl.queue')
     clearModule('../src/modules/review-crawl/review-crawl.runtime')
@@ -141,14 +142,14 @@ function restoreModules() {
     clearModule('../src/services/audit-event.service')
     clearModule('../src/services/restaurant-access.service')
     clearModule('../src/services/restaurant-entitlement.service')
-    clearModule('../src/services/restaurant.service')
+    clearModule('../src/services/restaurant-state.service')
     clearModule('../src/services/user-access.service')
     clearModule('../src/modules/admin-intake/admin-intake.domain')
     clearModule('../src/modules/admin-intake/admin-intake.repository')
     clearModule('../src/lib/prisma')
     clearModule('../src/config/env')
     mockAuditEvents()
-    mockRestaurantServicePrivate()
+    mockRestaurantStateService()
     mockPrisma()
 }
 

@@ -15,6 +15,14 @@ The current `render.yaml` uses a single web service with:
 - `REVIEW_CRAWL_INLINE_QUEUE_MODE=false`
 - `REVIEW_CRAWL_RUNTIME_MODE=both`
 - `TRUST_PROXY=1`
+- explicit runtime timeout defaults:
+  - `REQUEST_TIMEOUT_MS=30000`
+  - `HEADERS_TIMEOUT_MS=31000`
+  - `KEEP_ALIVE_TIMEOUT_MS=5000`
+  - `SLOW_REQUEST_THRESHOLD_MS=1000`
+  - `DB_CONNECT_TIMEOUT_SECONDS=10`
+  - `DB_STATEMENT_TIMEOUT_MS=15000`
+  - `DB_IDLE_IN_TRANSACTION_TIMEOUT_MS=15000`
 
 That keeps the first staging deploy simple. Once staging is stable, you can split scheduler and worker into separate Render services if you need closer production topology.
 
@@ -42,6 +50,24 @@ That keeps the first staging deploy simple. Once staging is stable, you can spli
    - `express-rate-limit` treats boolean `true` as permissive and will raise `ERR_ERL_PERMISSIVE_TRUST_PROXY`
    - backend config now also rejects `TRUST_PROXY=true` at startup, so the bad value fails fast instead of degrading later under auth traffic
 6. Deploy the service.
+7. When you run release-proof scripts against a free Render staging host, set:
+   - `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS=90000`
+   - this is the current proven baseline for `staging-api-proof.js` on the Render free tier
+
+Database and Redis hardening for staging:
+
+- external Postgres URLs should use an explicit TLS mode such as `sslmode=verify-full`
+  - the runtime now upgrades external `sslmode=require|prefer|verify-ca` URLs to `verify-full` before Prisma connects so the stronger behavior is explicit
+- managed Redis should use `maxmemory-policy=noeviction`
+  - BullMQ queue durability is not sign-off safe on `volatile-lru`, `allkeys-lru`, or similar eviction policies
+  - if your Redis provider plan cannot set `noeviction`, treat that as a staging limitation and keep managed sign-off blocked
+  - once the provider really does use `noeviction`, you can enable `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true` to make the runtime fail fast on future drift instead of only reporting degraded health
+  - if the active database or plan cannot change policy in place, migrate to a new Redis database or provider that supports `noeviction`, then update both:
+    - Render `REDIS_URL`
+    - release-evidence `RELEASE_EVIDENCE_MANAGED_REDIS_URL`
+  - after the provider change, rerun:
+    - `node scripts/managed-redis-proof.js`
+    - `node scripts/release-evidence.js --require-managed-signoff`
 
 ## 4. Important Commands
 

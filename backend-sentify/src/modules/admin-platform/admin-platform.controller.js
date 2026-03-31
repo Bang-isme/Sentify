@@ -30,6 +30,20 @@ async function getIntegrationsPolicies(req, res) {
     }
 }
 
+async function getControls(req, res) {
+    try {
+        const result = await service.getControls({
+            userId: req.user.userId,
+        })
+
+        return res.status(200).json({
+            data: result,
+        })
+    } catch (error) {
+        return handleControllerError(req, res, error)
+    }
+}
+
 async function getAudit(req, res) {
     try {
         const query = listAuditQuerySchema.parse(req.query)
@@ -64,6 +78,7 @@ async function updateControls(req, res) {
 
 module.exports = {
     getAudit,
+    getControls,
     getHealthJobs,
     getIntegrationsPolicies,
     updateControls,

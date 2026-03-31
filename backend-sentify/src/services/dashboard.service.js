@@ -40,6 +40,19 @@ const MERCHANT_ACTION_RECOMMENDATION_CODE = {
     REVIEW_OPERATIONS: 'REVIEW_OPERATIONS',
 }
 
+const MERCHANT_ACTION_EVIDENCE_RECENT_LIMIT = 50
+const MERCHANT_ACTION_EVIDENCE_KEYWORD_LIMIT = 3
+const MERCHANT_ACTION_EVIDENCE_REVIEW_SELECT = {
+    id: true,
+    authorName: true,
+    rating: true,
+    sentiment: true,
+    content: true,
+    reviewDate: true,
+    createdAt: true,
+    keywords: true,
+}
+
 function buildIsoWeekLabel(date) {
     const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
     const day = utcDate.getUTCDay() || 7
@@ -278,6 +291,127 @@ function buildMerchantEvidenceReview(review) {
 
 function selectEvidenceReviewForKeyword(reviews, keyword) {
     return reviews.find((review) => reviewMatchesKeyword(review, keyword)) || reviews[0] || null
+}
+
+function dedupeMerchantEvidenceReviews(reviews = []) {
+    const reviewsById = new Map()
+
+    for (const review of reviews) {
+        if (review?.id && !reviewsById.has(review.id)) {
+            reviewsById.set(review.id, review)
+        }
+    }
+
+    return [...reviewsById.values()].sort((left, right) => {
+        const leftTime = new Date(left.reviewDate || left.createdAt || 0).getTime()
+        const rightTime = new Date(right.reviewDate || right.createdAt || 0).getTime()
+
+        return rightTime - leftTime
+    })
+}
+
+function collectMerchantEvidenceKeywords(complaintKeywords = []) {
+    const keywordsByNormalizedValue = new Map()
+
+    for (const complaintKeyword of complaintKeywords) {
+        const keyword = complaintKeyword?.keyword ?? null
+        const normalizedKeyword = normalizeDashboardKeyword(keyword)
+
+        if (!keyword || !normalizedKeyword || keywordsByNormalizedValue.has(normalizedKeyword)) {
+            continue
+        }
+
+        keywordsByNormalizedValue.set(normalizedKeyword, keyword)
+
+        if (keywordsByNormalizedValue.size >= MERCHANT_ACTION_EVIDENCE_KEYWORD_LIMIT) {
+            break
+        }
+    }
+
+    return [...keywordsByNormalizedValue.values()]
+}
+
+function findMissingMerchantEvidenceKeywords(reviews, keywords) {
+    return keywords.filter(
+        (keyword) => !reviews.some((review) => reviewMatchesKeyword(review, keyword)),
+    )
+}
+
+function buildMerchantEvidenceReviewWhere(restaurantId, keywords) {
+    if (!keywords.length) {
+        return null
+    }
+
+    return {
+        restaurantId,
+        sentiment: 'NEGATIVE',
+        OR: [
+            {
+                keywords: {
+                    hasSome: keywords,
+                },
+            },
+            ...keywords.map((keyword) => ({
+                AND: [
+                    {
+                        content: {
+                            not: null,
+                        },
+                    },
+                    {
+                        content: {
+                            contains: keyword,
+                            mode: 'insensitive',
+                        },
+                    },
+                ],
+            })),
+        ],
+    }
+}
+
+async function fetchMerchantActionEvidenceReviews(restaurantId, complaintKeywords) {
+    const prioritizedKeywords = collectMerchantEvidenceKeywords(complaintKeywords)
+
+    if (!prioritizedKeywords.length) {
+        return []
+    }
+
+    const recentReviews = await prisma.review.findMany({
+        where: {
+            restaurantId,
+            sentiment: 'NEGATIVE',
+        },
+        orderBy: [{ reviewDate: 'desc' }, { createdAt: 'desc' }],
+        take: MERCHANT_ACTION_EVIDENCE_RECENT_LIMIT,
+        select: MERCHANT_ACTION_EVIDENCE_REVIEW_SELECT,
+    })
+
+    const missingKeywords = findMissingMerchantEvidenceKeywords(
+        recentReviews,
+        prioritizedKeywords,
+    )
+
+    if (!missingKeywords.length) {
+        return recentReviews
+    }
+
+    const targetedWhere = buildMerchantEvidenceReviewWhere(
+        restaurantId,
+        missingKeywords,
+    )
+
+    if (!targetedWhere) {
+        return recentReviews
+    }
+
+    const targetedReviews = await prisma.review.findMany({
+        where: targetedWhere,
+        orderBy: [{ reviewDate: 'desc' }, { createdAt: 'desc' }],
+        select: MERCHANT_ACTION_EVIDENCE_REVIEW_SELECT,
+    })
+
+    return dedupeMerchantEvidenceReviews([...recentReviews, ...targetedReviews])
 }
 
 function buildMerchantActionCard({ complaintKeyword, evidenceReview, negativeReviewTotal, index }) {
@@ -616,7 +750,7 @@ async function getMerchantActions({ userId, restaurantId }) {
     const restaurant = access.restaurantWithRelations
     const insightSummary = buildInsightSummary(restaurant.insight)
 
-    const [complaintKeywords, negativeReviews, entitlement] = await Promise.all([
+    const [complaintKeywords, entitlement] = await Promise.all([
         prisma.complaintKeyword.findMany({
             where: {
                 restaurantId,
@@ -629,25 +763,12 @@ async function getMerchantActions({ userId, restaurantId }) {
                 lastUpdatedAt: true,
             },
         }),
-        prisma.review.findMany({
-            where: {
-                restaurantId,
-                sentiment: 'NEGATIVE',
-            },
-            orderBy: [{ reviewDate: 'desc' }, { createdAt: 'desc' }],
-            select: {
-                id: true,
-                authorName: true,
-                rating: true,
-                sentiment: true,
-                content: true,
-                reviewDate: true,
-                createdAt: true,
-                keywords: true,
-            },
-        }),
         getEffectiveRestaurantEntitlement(restaurantId),
     ])
+    const negativeReviews = await fetchMerchantActionEvidenceReviews(
+        restaurantId,
+        complaintKeywords,
+    )
 
     return buildMerchantActionsPayload({
         restaurant,
@@ -676,6 +797,10 @@ module.exports = {
         buildMerchantActionCard,
         buildMerchantTopIssue,
         deriveMerchantActionPriority,
+        collectMerchantEvidenceKeywords,
+        findMissingMerchantEvidenceKeywords,
+        buildMerchantEvidenceReviewWhere,
+        fetchMerchantActionEvidenceReviews,
         resolveMerchantActionRecommendationCode,
         reviewMatchesKeyword,
     },

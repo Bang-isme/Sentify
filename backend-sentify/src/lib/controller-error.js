@@ -60,11 +60,23 @@ function mapPrismaError(error) {
                 code: 'UNIQUE_CONSTRAINT_FAILED',
                 message: 'A unique field already exists',
             }
+        case 'P2003':
+            return {
+                status: 409,
+                code: 'FOREIGN_KEY_CONSTRAINT_FAILED',
+                message: 'The requested change conflicts with an existing related record',
+            }
         case 'P2024':
             return {
                 status: 503,
                 code: 'DATABASE_POOL_EXHAUSTED',
                 message: 'Database connection pool is exhausted',
+            }
+        case 'P2025':
+            return {
+                status: 404,
+                code: 'RECORD_NOT_FOUND',
+                message: 'The requested record could not be found',
             }
         case 'P2028':
             return {

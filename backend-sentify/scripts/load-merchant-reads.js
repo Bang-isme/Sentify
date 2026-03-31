@@ -7,6 +7,11 @@ const http = require('http')
 const path = require('path')
 const { randomBytes } = require('crypto')
 const { performance } = require('perf_hooks')
+const {
+    round,
+    summarizeLatencySeries,
+} = require('./proof-metrics')
+const { runResetBaseline } = require('./proof-baseline')
 
 function readFlag(args, name) {
     const inline = args.find((value) => value.startsWith(`${name}=`))
@@ -33,38 +38,6 @@ function parsePositiveInt(value, fallback) {
     return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed
 }
 
-function round(value, digits = 2) {
-    if (value === null || value === undefined || Number.isNaN(value)) {
-        return null
-    }
-
-    const factor = 10 ** digits
-    return Math.round(value * factor) / factor
-}
-
-function percentile(values, targetPercentile) {
-    if (!values.length) {
-        return null
-    }
-
-    const sorted = [...values].sort((left, right) => left - right)
-    const index = Math.min(
-        sorted.length - 1,
-        Math.max(0, Math.ceil((targetPercentile / 100) * sorted.length) - 1),
-    )
-
-    return round(sorted[index], 2)
-}
-
-function mean(values) {
-    if (!values.length) {
-        return null
-    }
-
-    const total = values.reduce((sum, value) => sum + value, 0)
-    return round(total / values.length, 2)
-}
-
 function printUsage() {
     console.error(
         [
@@ -78,6 +51,7 @@ function printUsage() {
             '  --concurrency <n>          Concurrent HTTP workers (default: 8).',
             '  --rounds <n>               Requests per worker (default: 45).',
             '  --timeout-ms <n>           Per-request timeout (default: 10000).',
+            '  --skip-baseline-reset      Reuse the current local database instead of resetting to the seeded baseline first.',
             '  --output <file>            Write JSON report to a file.',
         ].join('\n'),
     )
@@ -263,13 +237,17 @@ function executeJsonRequest(server, agent, requestPath, token, timeoutMs) {
 
 function summarizeRequestRecords(records, totalDurationMs = null) {
     const successful = records.filter((record) => record.ok)
-    const durations = successful.map((record) => record.durationMs)
     const statusCounts = {}
 
     for (const record of records) {
         const key = record.status === null ? 'ERROR' : String(record.status)
         statusCounts[key] = (statusCounts[key] || 0) + 1
     }
+
+    const latency = summarizeLatencySeries(
+        successful.map((record) => record.durationMs),
+        totalDurationMs,
+    )
 
     return {
         requestCount: records.length,
@@ -278,12 +256,7 @@ function summarizeRequestRecords(records, totalDurationMs = null) {
         errorRatePercent: records.length
             ? round(((records.length - successful.length) / records.length) * 100, 2)
             : 0,
-        averageMs: mean(durations),
-        p50Ms: percentile(durations, 50),
-        p95Ms: percentile(durations, 95),
-        p99Ms: percentile(durations, 99),
-        maxMs: durations.length ? round(Math.max(...durations), 2) : null,
-        minMs: durations.length ? round(Math.min(...durations), 2) : null,
+        ...latency,
         requestsPerSecond:
             totalDurationMs && totalDurationMs > 0
                 ? round(records.length / (totalDurationMs / 1000), 2)
@@ -389,16 +362,22 @@ async function main() {
         concurrency: parsePositiveInt(readFlag(args, '--concurrency'), 8),
         rounds: parsePositiveInt(readFlag(args, '--rounds'), 45),
         timeoutMs: parsePositiveInt(readFlag(args, '--timeout-ms'), 10000),
+        skipBaselineReset: args.includes('--skip-baseline-reset'),
         output: readFlag(args, '--output'),
     }
 
     process.env.NODE_ENV = 'test'
     process.env.LOG_FORMAT = process.env.LOG_FORMAT || 'json'
-    process.env.API_RATE_LIMIT_MAX = process.env.API_RATE_LIMIT_MAX || '100000'
+    process.env.API_RATE_LIMIT_WINDOW_MS = '60000'
+    process.env.API_RATE_LIMIT_MAX = '100000'
     process.env.JWT_SECRET =
         process.env.JWT_SECRET || randomBytes(32).toString('hex')
     process.env.JWT_ISSUER = process.env.JWT_ISSUER || 'sentify-api'
     process.env.JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'sentify-web'
+
+    if (!options.skipBaselineReset) {
+        runResetBaseline()
+    }
 
     const prisma = require('../src/lib/prisma')
     const { seedDemoData } = require('../prisma/seed-data')
@@ -465,6 +444,7 @@ async function main() {
                 concurrency: options.concurrency,
                 roundsPerWorker: options.rounds,
                 timeoutMs: options.timeoutMs,
+                baselineReset: !options.skipBaselineReset,
                 scenarioCount: scenarios.length,
                 totalRequests: options.concurrency * options.rounds,
             },

@@ -1,6 +1,6 @@
 # Sentify Backend Testing Strategy
 
-Updated: 2026-03-29
+Updated: 2026-03-31
 
 This document tracks the current backend testing posture for the live codebase.
 
@@ -38,6 +38,16 @@ Seeded read-path smoke     Implemented
 Real Postgres smoke        Implemented
 Queued crawl smoke         Implemented
 Mocked integration         Current baseline
+
+The fast suite is now explicitly hermetic:
+
+- `npm test` preloads `backend-sentify/scripts/runtime-env-bootstrap.js`
+- the bootstrap pins safe defaults for DB/JWT and forces:
+  - `REDIS_URL=''`
+  - `REVIEW_CRAWL_INLINE_QUEUE_MODE=true`
+- result:
+  - mocked and unit-style tests no longer inherit workstation-local Redis or staging credentials from `.env`
+  - app-level tests that hit `/api/health` no longer retry against external Redis by accident
 Unit tests                 Current baseline
 ```
 
@@ -57,9 +67,19 @@ Unit tests                 Current baseline
   - HTTP timeout env invariants
   - explicit database URL timeout normalization
   - Prisma operational error mapping
+  - Prisma `P2025` and `P2003` API downgrade coverage
+  - `/api/health` DB + Redis status behavior
   - slow-request logging
   - queue-health degradation when Redis probes fail
+  - opt-in Redis durability enforcement for queue enqueue and worker-runtime bootstrap
   - worker `error` and `stalled` event wiring
+- architecture cleanup coverage for:
+  - `restaurant-state.service.js` shared helper extraction
+  - `restaurant-source-submission-view.service.js` read-model extraction
+  - `restaurant-source-submission-history.service.js` history and audit reconstruction extraction
+  - `admin-restaurants-source-submission.service.js` control-plane queue/read-write extraction
+  - removal of `restaurant.service.__private` cross-module coupling from `admin-restaurants` and `review-crawl`
+  - explicit aggregate dataset-status counts without synthetic intake-item reconstruction
 - role-boundary integration coverage for `USER` versus `ADMIN`
 - admin restaurant overview coverage for the new admin discovery flow and restaurant-specific source-submission work item wiring
 - restaurant service coverage for merchant `sourceSubmission` state and timeline/history derivation
@@ -84,9 +104,33 @@ Unit tests                 Current baseline
   - `staging-api-proof.js` for authenticated merchant/admin smoke against a supplied staging API base URL
   - `staging-performance-proof.js` for authenticated merchant read-path latency against the deployed staging API
   - `staging-review-ops-proof.js` for deployed admin queue, run, and materialization flow against an existing seeded source
+  - `operational-health-check.js` for a single current runtime posture across live health, admin control plane, operator flow, read-path latency, and Redis durability
   - `performance-proof.js` for bundled merchant-read load, Redis worker-pressure load, and optional scale-estimate evidence
   - `staging-recovery-drill.js --source-mode existing` for staging-safe restore rehearsal without reseeding the source DB
   - `release-evidence.js` for a combined managed release-evidence report
+- latest source-submission history seam verification on `2026-03-30`:
+  - `node --test test/restaurant-source-submission-history.service.test.js test/restaurant.service.test.js test/restaurants.integration.test.js` -> `25/25 passed`
+  - `npm test` -> `230 tests`, `216 passed`, `14 skipped`, `0 failed`
+  - `npm run test:realdb` -> passed on `2026-03-31`
+  - proof focus:
+    - audit snapshot parsing and attempt-key grouping moved behind a dedicated service without changing existing merchant history or timeline contracts
+    - `restaurant-source-submission-view.service.js` stayed compatible through re-exports while losing direct audit reconstruction weight
+- latest staging proof-helper hardening verification on `2026-03-30`:
+  - `node --test test/staging-proof-helpers.test.js test/staging-review-ops-proof.test.js test/staging-performance-proof.test.js` -> `12/12 passed`
+  - `node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json` -> `STAGING_REVIEW_OPS_PROOF_COMPLETE`
+  - proof focus:
+    - transient timeout classification and retry behavior in `scripts/staging-proof-helpers.js`
+    - Render free-tier cold-start tolerance for staging auth/bootstrap/operator polling
+    - no retry masking inside the measured HTTP load loop for `staging-performance-proof.js`
+- latest Redis durability enforcement verification on `2026-03-31`:
+  - `node --test test/env.test.js test/review-crawl.queue.test.js test/review-crawl.worker-runtime.test.js test/admin-platform.integration.test.js` -> `20/20 passed`
+  - `npm run env:check` -> passed
+  - `npm test` -> `230 tests`, `216 passed`, `14 skipped`, `0 failed`
+  - proof focus:
+    - `REVIEW_CRAWL_REQUIRE_SAFE_REDIS` parses as a runtime boolean flag
+    - queued-run enqueue fails fast with `REVIEW_CRAWL_REDIS_DURABILITY_UNSAFE` when the flag is enabled and Redis uses an unsafe eviction policy
+    - review-crawl worker runtime fails fast before boot when the flag is enabled and Redis durability is unsafe
+    - admin-platform queue health exposes `durabilityEnforced` and `durabilityBlocking` instead of only degrading status implicitly
 
 ### Real-data coverage already in place
 
@@ -201,6 +245,28 @@ Unit tests                 Current baseline
     - repeat the same commands with real managed Redis and deployed staging URLs for external release sign-off
     - optional skipped checks now stay non-degrading, so `managedDbProof=SKIPPED` no longer downgrades the local compatibility artifact by itself
     - Render plus Neon staging is now real and verified; the only strict managed-signoff blocker left is the provider-managed DB proof artifact
+- latest backend architecture verification on `2026-03-30`:
+  - `cd D:\Project 3\backend-sentify && node --test test/restaurant-state.service.test.js test/restaurant.service.test.js test/review-crawl.service.test.js test/admin-restaurants.integration.test.js` -> `38/38 passed`
+  - `cd D:\Project 3\backend-sentify && node --test test/admin-restaurants-source-submission.service.test.js test/admin-restaurants.integration.test.js` -> `10/10 passed`
+  - `cd D:\Project 3\backend-sentify && node --test test/restaurant.service.test.js test/review-crawl.service.test.js test/admin-restaurants.integration.test.js` -> `36/36 passed`
+  - `cd D:\Project 3\backend-sentify && node --test test/review-crawl.service.test.js` -> `14/14 passed`
+  - `cd D:\Project 3\backend-sentify && npm test` -> `195 tests`, `181 passed`, `14 skipped`, `0 failed`
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+  - `scripts/run-realdb-tests.js` now retries `db:reset:local-baseline` with backoff before each real-DB file, which removed the transient Prisma reset failure seen inside the full harness
+  - proof focus:
+    - shared restaurant state helpers are stable after extraction into `src/services/restaurant-state.service.js`
+    - merchant-facing source-submission timeline/history builders are stable after extraction into `src/services/restaurant-source-submission-view.service.js`
+    - source-submission read-side DB fetch and query composition are stable after extraction into `src/services/restaurant-source-submission-read.service.js`
+    - source-submission write-side sync and merchant audit helpers are stable after extraction into `src/services/restaurant-source-submission-write.service.js`
+    - admin source-submission queue grouping, resolve/link actions, lease-aware claim-next, and lane updates are stable after extraction into `src/modules/admin-restaurants/admin-restaurants-source-submission.service.js`
+    - source-submission scheduler bootstrap orchestration is stable after extraction into `src/modules/review-crawl/review-crawl-source-submission-bootstrap.service.js`
+    - canonical crawl-source upsert and mutation-audit persistence are stable after extraction into `src/modules/review-crawl/review-crawl-source-persistence.service.js`
+    - intake materialization is stable after extraction into `src/modules/review-crawl/review-crawl-materialization.service.js`
+    - admin and crawl modules now consume explicit shared contracts instead of `restaurant.service.__private`
+    - dataset-status aggregation now uses real summary counts instead of synthetic review items
+    - `restaurant.service.js` now composes the source-submission read and write flows through dedicated services instead of embedding the full seam inline
+    - `admin-restaurants.service.js` now keeps restaurant overview/detail/entitlement composition while the source-submission control-plane lives in its own service
+    - `review-crawl.service.js` now keeps run-processing orchestration separate from canonical-ready source-submission bootstrap scheduling, lease/link queue composition, canonical source persistence/audit writes, and intake materialization
 - latest external staging verification on `2026-03-28`:
   - staging backend:
     - Render URL: `https://sentify-2fu0.onrender.com`
@@ -243,7 +309,7 @@ Unit tests                 Current baseline
     - `release-evidence.js` now accepts `--staging-timeout-ms`
     - env fallback added:
       - `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS`
-    - current staging proof env uses `60000` to tolerate Render free cold starts
+    - current staging proof env uses `90000` to tolerate Render free cold starts
   - env/runtime caveat:
     - `.env.example` and `.env.release-evidence.example` are now intentionally split
     - `JWT_SECRET_PREVIOUS=` may be left blank safely after the env parser fix proved by `test/env.test.js`
@@ -259,7 +325,9 @@ Unit tests                 Current baseline
     - `curl.exe -sS https://sentify-2fu0.onrender.com/api/health` -> `{"status":"ok","db":"up"}`
     - `cd D:\Project 3\backend-sentify && node scripts/staging-api-proof.js --base-url https://sentify-2fu0.onrender.com --output load-reports/staging-api-proof-managed.json` -> `STAGING_PROOF_COMPLETE`
   - `cd D:\Project 3\backend-sentify && node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.latest.json` -> `MANAGED_SIGNOFF_READY`
-  - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` -> `COMPATIBILITY_PROOF_COMPLETE` with `managedEnvProofStatus=MANAGED_SIGNOFF_COMPLETE`
+  - historical `managed-release-evidence.latest.json` from the `2026-03-28` green baseline still reported `managedEnvProofStatus=MANAGED_SIGNOFF_COMPLETE`
+  - historical strict rerun on `2026-03-29` used `managed-release-evidence-current.json` and reported `managedEnvProofStatus=MANAGED_SIGNOFF_BLOCKED`
+  - latest strict rerun on `2026-03-31` now reports `managedEnvProofStatus=MANAGED_SIGNOFF_COMPLETE`
   - interpretation:
     - managed sign-off inputs and historical artifacts remained present throughout
     - live staging runtime is green again after the `TRUST_PROXY=1` fix
@@ -272,12 +340,35 @@ Unit tests                 Current baseline
     - `cd D:\Project 3\backend-sentify && node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json`
   - artifact:
     - `load-reports/staging-performance-proof-managed.json`
-  - result:
-    - `overallStatus = STAGING_PERFORMANCE_PROOF_COMPLETE`
-    - `40` authenticated merchant read requests
-    - `0%` error rate
-    - `p95 = 899.53ms`
-    - `3.37 req/s`
+  - result is now split by load bar:
+    - average-case:
+      - `overallStatus = STAGING_PERFORMANCE_PROOF_COMPLETE`
+      - `40` authenticated merchant read requests
+      - `0%` error rate
+      - `p50 = 464.41ms`
+      - `p95 = 892.93ms`
+      - `p99 = 1119.11ms`
+      - `3.32 req/s`
+      - `predictability = VARIABLE`
+    - stronger-concurrency:
+      - `overallStatus = STAGING_PERFORMANCE_PROOF_COMPLETE`
+      - `120` authenticated merchant read requests
+      - `0%` error rate
+      - `p50 = 460.91ms`
+      - `p95 = 872.16ms`
+      - `p99 = 1207.29ms`
+      - `6.74 req/s`
+      - `predictability = VARIABLE`
+  - aggregate current runtime audit on `2026-03-31`:
+    - `cd D:\Project 3\backend-sentify && node scripts/operational-health-check.js --refresh --output load-reports/operational-health-check.current.json`
+    - `overallStatus = OPERATIONAL_HEALTH_COMPLETE`
+    - pass:
+      - `liveRuntime`
+      - `adminControlPlane`
+      - `operatorPathCorrectness`
+      - `redisDurability`
+      - `averageCaseRead`
+      - `strongerConcurrencyRead`
   - measured scope:
     - `restaurants.list`
     - `restaurant.detail`
@@ -295,22 +386,19 @@ Unit tests                 Current baseline
 - external staging operator queue verification on `2026-03-29`:
   - command:
     - `cd D:\Project 3\backend-sentify && node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json`
-  - result against the currently deployed Render baseline:
-    - failed after the seeded source's active run remained `QUEUED` for more than `305000ms`
-  - supporting control-plane evidence:
-    - `GET /api/admin/platform/health-jobs` returned:
-      - queue `HEALTHY`
-      - workers `DEGRADED`
-      - `scheduler = null`
-      - `processors = []`
-  - repo-level root cause and fix:
-    - `src/server.js` was not booting `startReviewCrawlWorkerRuntime()` for the Render web service
-    - the codebase now starts review-crawl runtime from `src/server.js` whenever Redis is configured and inline mode is off
-  - next proof step:
-    - redeploy Render staging
-    - rerun `proof:staging-review-ops`
+  - current result against the deployed Render baseline:
+    - `STAGING_REVIEW_OPS_PROOF_COMPLETE`
+    - run status `COMPLETED`
+    - queue job state `completed`
+    - `intakeBatchId = bb81bf83-b5e1-4930-a335-8c84b028c313`
+    - `extractedCount = 30`
+    - `validCount = 30`
+    - `pagesFetched = 3`
+  - repo-level hardening behind the green proof:
+    - `src/server.js` now boots `startReviewCrawlWorkerRuntime()` for the Render web service when Redis is configured and inline mode is off
+    - `scripts/staging-review-ops-proof.js` now evaluates the post-materialization snapshot instead of falsely failing when the terminal run snapshot predates intake linkage
 - latest full backend-suite verification on `2026-03-29`:
-- `cd D:\Project 3\backend-sentify && npm test` -> passed (`204` tests: `190` pass, `14` skipped, `0` fail)
+- `cd D:\Project 3\backend-sentify && npm test` -> passed (`218` tests: `204` pass, `14` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - proof focus:
     - full mocked/unit/integration suite is green alongside real-DB smoke
@@ -320,6 +408,32 @@ Unit tests                 Current baseline
       - `SENTIFY_RELEASE_EVIDENCE_ENV_FILE`
     - env config now also rejects permissive `TRUST_PROXY=true` values in tests and runtime config parsing
     - `scripts/run-realdb-tests.js` now retries `db:reset:local-baseline` before each real-DB file, which removes transient Prisma schema-engine reset failures without weakening any assertions
+- latest strict managed release-evidence rerun on `2026-03-31`:
+  - `cd D:\Project 3\backend-sentify && node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json` -> completed with:
+    - Redis `8.4.0`
+    - `maxmemory-policy = noeviction`
+    - `passed = true`
+  - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` -> `COMPATIBILITY_PROOF_COMPLETE`
+  - required check results in the current bundle:
+    - managed Redis: `PASSED`
+    - backup/restore/rollback: `PASSED`
+    - staging API: `PASSED`
+    - managed DB proof artifact: `PASSED`
+  - current reading:
+    - strict managed sign-off is green on the active staging baseline
+    - Redis durability is no longer the blocker
+    - current external staging read-path bars are also green on the active baseline
+  - retained hardening from the earlier blocked rerun:
+    - `managed-redis-proof.js` exits non-zero when BullMQ durability requirements are not met
+    - `release-evidence.js` marks managed Redis as `FAILED` when the child artifact reports `passed=false`
+    - `staging-recovery-drill.js` boots the verification server with `REVIEW_CRAWL_INLINE_QUEUE_MODE=true`, so restore proof stays isolated from workstation queue-runtime config
+- latest backend contract hardening verification on `2026-03-29`:
+  - `cd D:\Project 3\backend-sentify && node --test test/controller-error.test.js test/health.integration.test.js` -> `7/7 passed`
+  - `cd D:\Project 3\backend-sentify && npm run env:check` -> passed
+  - proof focus:
+    - `P2025 -> 404 RECORD_NOT_FOUND`
+    - `P2003 -> 409 FOREIGN_KEY_CONSTRAINT_FAILED`
+    - `/api/health` returns `503` when Redis queue health is down even if Postgres is still reachable
 - freshest backend and browser rerun on `2026-03-28`:
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
   - `cd D:\Project 3\backend-sentify && node --test test/admin-platform.integration.test.js` -> `4/4 passed`
@@ -600,15 +714,56 @@ The main testing gaps still left are:
   - `stagingApi`: passed against `http://127.0.0.1:3000`
   - `performanceProof`: passed
   - `managedDbProof`: skipped
-- latest local performance proof numbers from the same bundle:
-  - merchant reads: `p95=50.95ms`, `309.46 req/s`, `0%` error rate
-  - worker pressure: `1342.58 raw reviews/s`, `totalRunP95=4322ms`, `24/24` completed
+- latest local deterministic performance proof numbers on `2026-03-29`:
+  - both proof harnesses now reset the local database baseline automatically before benchmarking unless `--skip-baseline-reset` is supplied
+  - merchant reads:
+    - `node scripts/load-merchant-reads.js --extra-reviews 8000 --chunk-size 1000 --concurrency 16 --rounds 80 --timeout-ms 15000 --output load-reports/merchant-read-load-strengthened.json`
+    - `1280` requests
+    - `0%` error rate
+    - `p50=57.91ms`
+    - `p95=119.76ms`
+    - `p99=163.23ms`
+    - `244.05 req/s`
+    - mixed-route overall `predictability=VOLATILE`
+  - worker pressure:
+    - `node scripts/load-review-crawl-workers.js --force-inline --source-count 36 --concurrency 6 --pages-per-run 15 --reviews-per-page 25 --step-ms 35 --sample-ms 100 --output load-reports/review-crawl-worker-load-strengthened.json`
+    - `36/36` runs completed
+    - `13500` raw reviews persisted
+    - `2318.83 raw reviews/s`
+    - processing leg: `p95=988ms`, `predictability=STABLE`
+    - queue wait leg: `p95=4760ms`, `predictability=VOLATILE`
+    - utilization proxy: `SATURATED` at average `94.17%`
   - scale estimate: target `20,000` reviews still fits the current leg budget, but completeness at that scale is still an estimate until proven against a comparable live source
-- latest external staging read-performance numbers:
-  - merchant reads over Render plus Neon staging: `p95=899.53ms`, `3.37 req/s`, `0%` error rate
+- latest external staging read-performance numbers on `2026-03-29`:
+  - average-case:
+    - `node scripts/staging-performance-proof.js --concurrency 2 --rounds 20 --timeout-ms 120000 --max-p95-ms 5000 --max-error-rate 0 --min-rps 2 --max-cv-percent 45 --max-p95-p50-ratio 3 --output load-reports/staging-performance-proof-average.json`
+    - `overallStatus=STAGING_PERFORMANCE_PROOF_COMPLETE`
+    - `40` requests
+    - `0%` error rate
+    - `p95=892.93ms`
+    - `p99=1119.11ms`
+    - `3.32 req/s`
+    - `predictability=VARIABLE`
+  - stronger-concurrency:
+    - `node scripts/staging-performance-proof.js --concurrency 4 --rounds 30 --timeout-ms 120000 --max-p95-ms 5000 --max-error-rate 0 --min-rps 2 --max-cv-percent 45 --max-p95-p50-ratio 3.5 --output load-reports/staging-performance-proof-strengthened.json`
+    - `overallStatus=STAGING_PERFORMANCE_PROOF_COMPLETE`
+    - `120` requests
+    - `0%` error rate
+    - `p95=872.16ms`
+    - `p99=1207.29ms`
+    - `6.74 req/s`
+    - `predictability=VARIABLE`
+  - aggregate runtime audit:
+    - `node scripts/operational-health-check.js --refresh --output load-reports/operational-health-check.current.json`
+    - historical `2026-03-29` result:
+      - `overallStatus=OPERATIONAL_HEALTH_DEGRADED`
+      - only degraded dimension is `redisDurability`
+    - latest `2026-03-31` result:
+      - `overallStatus=OPERATIONAL_HEALTH_COMPLETE`
+      - average-case and stronger-concurrency read bars both pass on the active baseline
   - interpretation:
-    - the merchant read surface is healthy under light external concurrency
-    - these numbers should not be compared directly to the local worker-pressure harness because the staging proof excludes queue throughput on purpose
+    - the deployed Render plus Neon stack now clears correctness, Redis durability, and current read bars on the latest rerun
+    - the response shape is still variable enough that worst-case latency claims should remain conservative
 
 ## 7.2 2026-03-29 Security And Provider-Safety Regressions
 
@@ -617,9 +772,9 @@ The main testing gaps still left are:
   - Redis deployment safety classification from raw `INFO` output
   - queue health degradation when external Redis is not BullMQ-safe
   - admin-platform visibility of unsafe Redis deployment posture
-- `npm test` reran green after this slice: `204` tests, `190` pass, `14` skipped, `0` fail
+- `npm test` reran green after this slice: `218` tests, `204` pass, `14` skipped, `0` fail
 - `npm run test:realdb` reran green on the same slice
-- latest managed Redis proof on the current external target:
+- historical managed Redis proof on the current external target before the provider-side fix:
   - `node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json`
   - result:
     - Redis `8.4.0`
@@ -630,8 +785,17 @@ The main testing gaps still left are:
     - overall `passed = false`
 - interpretation:
   - the code no longer relies on provider SSL aliases or raw BullMQ console warnings
-  - external Redis connectivity is fine
-  - external Redis durability is still not acceptable for BullMQ until provider policy is changed to `noeviction`
+  - external Redis connectivity was already fine
+  - durability was not acceptable until the provider-side policy change to `noeviction`
+- latest managed Redis proof after the provider-side fix on `2026-03-31`:
+  - `node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json`
+  - result:
+    - Redis `8.4.0`
+    - connectivity `PONG`
+    - BullMQ enqueue/process/complete probe succeeded
+    - `maxmemory-policy = noeviction`
+    - `evictionPolicyStatus = PASSED`
+    - overall `passed = true`
 
 ## 8. Merge Gate
 

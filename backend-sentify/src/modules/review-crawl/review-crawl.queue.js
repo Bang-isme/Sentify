@@ -14,6 +14,20 @@ function buildQueueServiceUnavailableError(code, message, error) {
     })
 }
 
+function buildUnsafeRedisDeploymentError(deployment) {
+    return serviceUnavailable(
+        'REVIEW_CRAWL_REDIS_DURABILITY_UNSAFE',
+        'Review crawl runtime requires a BullMQ-safe Redis deployment',
+        {
+            maxMemoryPolicy: deployment?.maxMemoryPolicy ?? null,
+            requiredMaxMemoryPolicy: deployment?.requiredMaxMemoryPolicy ?? null,
+            redisVersion: deployment?.redisVersion ?? null,
+            safeForBullMq: deployment?.safeForBullMq ?? false,
+            warnings: deployment?.warnings ?? [],
+        },
+    )
+}
+
 function buildReviewCrawlJobId(runId) {
     return `review-crawl-${runId}`
 }
@@ -67,6 +81,20 @@ async function readRedisDeployment(connection = getRedisConnection()) {
     }
 }
 
+async function assertSafeRedisDeployment(connection = getRedisConnection()) {
+    if (!env.REVIEW_CRAWL_REQUIRE_SAFE_REDIS || !connection) {
+        return null
+    }
+
+    const deployment = await readRedisDeployment(connection)
+
+    if (!deployment.safeForBullMq) {
+        throw buildUnsafeRedisDeploymentError(deployment)
+    }
+
+    return deployment
+}
+
 function getReviewCrawlQueue() {
     if (!isQueueConfigured()) {
         throw serviceUnavailable(
@@ -111,6 +139,7 @@ async function enqueueReviewCrawlRun(runId, options = {}) {
         )
     }
 
+    await assertSafeRedisDeployment()
     const queue = getReviewCrawlQueue()
 
     try {
@@ -150,11 +179,15 @@ async function getReviewCrawlJob(runId) {
 }
 
 async function getReviewCrawlQueueHealth() {
+    const durabilityEnforced = env.REVIEW_CRAWL_REQUIRE_SAFE_REDIS === true
+
     if (!isQueueConfigured()) {
         return {
             configured: false,
             counts: null,
             inlineMode: isInlineQueueMode(),
+            durabilityEnforced,
+            durabilityBlocking: false,
         }
     }
 
@@ -169,18 +202,26 @@ async function getReviewCrawlQueueHealth() {
             'delayed',
         )
 
+        const deployment = await readRedisDeployment()
+
         return {
             configured: true,
             counts,
             inlineMode: false,
-            deployment: await readRedisDeployment(),
+            deployment,
+            durabilityEnforced,
+            durabilityBlocking: durabilityEnforced && !deployment.safeForBullMq,
         }
     } catch (error) {
+        const deployment = await readRedisDeployment()
+
         return {
             configured: true,
             counts: null,
             inlineMode: false,
-            deployment: await readRedisDeployment(),
+            deployment,
+            durabilityEnforced,
+            durabilityBlocking: durabilityEnforced && !deployment.safeForBullMq,
             errorMessage:
                 error instanceof Error
                     ? error.message
@@ -228,6 +269,7 @@ module.exports = {
     buildReviewCrawlJobId,
     closeReviewCrawlQueueResources,
     createReviewCrawlWorker,
+    assertSafeRedisDeployment,
     enqueueReviewCrawlRun,
     getRedisConnection,
     getReviewCrawlJob,

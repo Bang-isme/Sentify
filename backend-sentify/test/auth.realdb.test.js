@@ -186,3 +186,71 @@ realDbTest('real DB auth smoke persists refresh tokens for register, refresh, an
 
     assert.equal(userAfterLogout.tokenVersion, 1)
 })
+
+realDbTest('real DB auth smoke updates the authenticated user profile', async (t) => {
+    const uniqueSuffix = randomUUID()
+    const email = `auth-profile-${uniqueSuffix}@sentify.test`
+    const updatedEmail = `auth-profile-updated-${uniqueSuffix}@sentify.test`
+    const password = `SentifyProfile!${uniqueSuffix}`
+    const server = await startRealApp()
+
+    t.after(async () => {
+        await stopRealApp(server)
+        await prisma.user.deleteMany({
+            where: {
+                email: {
+                    in: [email, updatedEmail],
+                },
+            },
+        })
+    })
+
+    const registerResponse = await request(server, 'POST', '/api/auth/register', {
+        body: {
+            email,
+            password,
+            fullName: 'Profile Smoke',
+        },
+    })
+
+    assert.equal(registerResponse.status, 201)
+
+    const registerCookies = registerResponse.headers['set-cookie']
+    const accessSessionCookies = buildCookieHeader(registerCookies, [
+        'sentify_access_token',
+        'sentify_refresh_token',
+        'XSRF-TOKEN',
+    ])
+    const csrfToken = readCookieValue(registerCookies, 'XSRF-TOKEN')
+
+    const updateResponse = await request(server, 'PATCH', '/api/auth/profile', {
+        cookies: accessSessionCookies,
+        headers: {
+            'X-CSRF-Token': csrfToken,
+        },
+        body: {
+            email: updatedEmail,
+            fullName: 'Profile Smoke Updated',
+        },
+    })
+
+    assert.equal(updateResponse.status, 200)
+    assert.equal(updateResponse.body.data.user.email, updatedEmail)
+    assert.equal(updateResponse.body.data.user.fullName, 'Profile Smoke Updated')
+    assert.deepEqual(updateResponse.body.data.user.restaurants, [])
+
+    const persistedUser = await prisma.user.findUnique({
+        where: {
+            email: updatedEmail,
+        },
+        select: {
+            email: true,
+            fullName: true,
+        },
+    })
+
+    assert.deepEqual(persistedUser, {
+        email: updatedEmail,
+        fullName: 'Profile Smoke Updated',
+    })
+})

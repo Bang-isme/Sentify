@@ -1,6 +1,6 @@
 # Sentify API Reference
 
-Updated: 2026-03-27
+Updated: 2026-03-29
 Base URL: `http://localhost:3000/api`
 
 This document describes the API surface that exists in the backend today.
@@ -120,14 +120,31 @@ Current FE route mapping on top of this API contract:
 ### `GET /api/health`
 
 ```json
-{ "status": "ok", "db": "up" }
+{ "status": "ok", "db": "up", "redis": "up" }
 ```
 
 or
 
 ```json
-{ "status": "unavailable", "db": "down" }
+{ "status": "unavailable", "db": "down", "redis": "down" }
 ```
+
+Current semantics:
+
+- `db`
+  - `up`
+  - `down`
+  - `skipped` in `NODE_ENV=test`
+- `redis`
+  - `up`
+  - `down`
+  - `unconfigured`
+  - `skipped` in `NODE_ENV=test` or inline queue mode
+
+The endpoint now checks both:
+
+- Postgres availability through Prisma
+- review-crawl Redis queue availability through the queue-health probe
 
 ## Auth
 
@@ -221,6 +238,48 @@ Clears auth, refresh, and CSRF cookies and revokes the current token version.
   }
 }
 ```
+
+### `PATCH /api/auth/profile`
+
+Updates the authenticated user's own profile fields.
+
+Currently supported writable fields:
+
+- `fullName`
+- `email`
+
+Request body:
+
+```json
+{
+  "fullName": "Tran Van B",
+  "email": "user.updated@example.com"
+}
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "user.updated@example.com",
+      "fullName": "Tran Van B",
+      "role": "USER",
+      "restaurants": []
+    }
+  }
+}
+```
+
+Rules:
+
+- authenticated user only
+- cookie-authenticated requests must still send `X-CSRF-Token`
+- at least one profile field must be provided
+- email remains globally unique
+- role, memberships, and account lifecycle are not editable here
 
 ### `PATCH /api/auth/password`
 
@@ -689,6 +748,7 @@ Mounted under `/api/admin`.
 
 - `GET /platform/health-jobs`
 - `GET /platform/integrations-policies`
+- `GET /platform/controls`
 - `GET /platform/audit?limit=25`
 - `PATCH /platform/controls`
 
@@ -696,6 +756,7 @@ Purpose:
 
 - expose API, database, queue, and worker posture for the admin shell
 - show the real role model, route boundary, source coverage, and crawler defaults that FE should design around
+- expose a dedicated read model for runtime controls without requiring FE to parse health or policy payloads
 - expose a unified audit feed spanning users, memberships, intake, crawl, publish, and platform-control activity
 - allow safe runtime controls for crawl queue writes, crawl materialization, and intake publish
 
@@ -706,6 +767,25 @@ Health and policy additions:
   - local proof coverage
   - managed-environment proof status
   - remaining managed-environment gap
+
+## Optional Endpoint Backlog
+
+These endpoints are not part of the live backend contract today.
+They are tracked here so FE and future BE work do not have to rediscover them.
+
+| Endpoint | Priority | Rationale |
+|---|---|---|
+| `DELETE /api/restaurants/:id` | Low | Let a `USER` remove one of their restaurants if the product later needs soft-delete or self-service cleanup. |
+| `GET /api/restaurants/:id/reviews/:reviewId` | Low | Expose a canonical single-review detail endpoint if FE later needs deep links or focused evidence views. |
+| `DELETE /api/admin/restaurants/:id` | Low | Let `ADMIN` archive or delete a restaurant explicitly instead of only reading and operating on it. |
+| `GET /api/admin/restaurants/:id/reviews` | Low | Let `ADMIN` inspect canonical published reviews directly from the admin surface instead of inferring them from restaurant detail plus user-facing reads. |
+| `POST /api/admin/review-batches/:id/archive` | Low | Expose an explicit archive action for review batches because the schema already supports archived batch state. |
+
+Backlog rules:
+
+- do not treat these endpoints as implemented
+- add them only when a concrete FE or operator workflow needs them
+- prefer soft-delete or archive semantics over destructive hard-delete for restaurant or batch lifecycles
 
 ## Final Contract Summary
 

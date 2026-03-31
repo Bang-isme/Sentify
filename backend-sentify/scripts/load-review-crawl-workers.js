@@ -9,6 +9,13 @@ const os = require('os')
 const path = require('path')
 const { spawn, spawnSync } = require('child_process')
 const { performance } = require('perf_hooks')
+const {
+    round,
+    summarizeLatencySeries,
+    summarizeNumericSeries,
+    summarizeUtilizationProxy,
+} = require('./proof-metrics')
+const { runResetBaseline } = require('./proof-baseline')
 
 function readFlag(args, name) {
     const inline = args.find((value) => value.startsWith(`${name}=`))
@@ -35,40 +42,6 @@ function parsePositiveInt(value, fallback) {
     return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed
 }
 
-function round(value, digits = 2) {
-    if (value === null || value === undefined || Number.isNaN(value)) {
-        return null
-    }
-
-    const factor = 10 ** digits
-    return Math.round(value * factor) / factor
-}
-
-function mean(values) {
-    if (!values.length) {
-        return null
-    }
-
-    return round(
-        values.reduce((sum, value) => sum + value, 0) / values.length,
-        2,
-    )
-}
-
-function percentile(values, targetPercentile) {
-    if (!values.length) {
-        return null
-    }
-
-    const sorted = [...values].sort((left, right) => left - right)
-    const index = Math.min(
-        sorted.length - 1,
-        Math.max(0, Math.ceil((targetPercentile / 100) * sorted.length) - 1),
-    )
-
-    return round(sorted[index], 2)
-}
-
 function printUsage() {
     console.error(
         [
@@ -83,6 +56,9 @@ function printUsage() {
             '  --step-ms <n>             Delay between synthetic page checkpoints (default: 40).',
             '  --sample-ms <n>           Poll interval for observed concurrency (default: 100).',
             '  --queue-name <name>       Review crawl queue name to isolate the load harness.',
+            '  --force-local-redis       Ignore configured REDIS_URL and start embedded/local Redis if available.',
+            '  --force-inline            Force inline queue mode and skip Redis transport entirely.',
+            '  --skip-baseline-reset     Reuse the current local database instead of resetting to the seeded baseline first.',
             '  --output <file>           Write JSON report to a file.',
             '',
             'Behavior:',
@@ -207,8 +183,27 @@ function buildRedisArgs(port, workdir) {
     ]
 }
 
-async function startLocalRedisIfNeeded() {
-    if (process.env.REDIS_URL) {
+async function startLocalRedisIfNeeded({
+    forceLocalRedis = false,
+    forceInline = false,
+} = {}) {
+    if (forceInline) {
+        process.env.REDIS_URL = ''
+        process.env.REVIEW_CRAWL_INLINE_QUEUE_MODE = 'true'
+
+        return {
+            mode: 'inline',
+            redisUrl: null,
+            child: null,
+            tempDir: null,
+        }
+    }
+
+    if (forceLocalRedis) {
+        process.env.REDIS_URL = ''
+    }
+
+    if (!forceLocalRedis && process.env.REDIS_URL) {
         return {
             mode: 'redis',
             redisUrl: process.env.REDIS_URL,
@@ -220,6 +215,7 @@ async function startLocalRedisIfNeeded() {
     const binary = resolveRedisBinary()
 
     if (!binary) {
+        process.env.REDIS_URL = ''
         process.env.REVIEW_CRAWL_INLINE_QUEUE_MODE = 'true'
 
         return {
@@ -504,6 +500,44 @@ async function createSyntheticSources(prisma, restaurantId, sourceCount) {
     })
 }
 
+async function createSyntheticRuns({
+    prisma,
+    sources,
+    operatorUserId,
+    pagesPerRun,
+    reviewsPerPage,
+    queueMode,
+}) {
+    const createdRuns = []
+
+    for (const source of sources) {
+        createdRuns.push(
+            await prisma.reviewCrawlRun.create({
+                data: {
+                    sourceId: source.id,
+                    restaurantId: source.restaurantId,
+                    requestedByUserId: operatorUserId,
+                    strategy: 'BACKFILL',
+                    priority: 'NORMAL',
+                    status: 'QUEUED',
+                    pageSize: reviewsPerPage,
+                    delayMs: 0,
+                    maxPages: pagesPerRun,
+                    maxReviews: pagesPerRun * reviewsPerPage,
+                    queuedAt: new Date(),
+                    metadataJson: {
+                        syntheticWorkerLoad: true,
+                        queueMode,
+                        trigger: 'load-proof',
+                    },
+                },
+            }),
+        )
+    }
+
+    return createdRuns
+}
+
 function isTerminalStatus(status) {
     return ['COMPLETED', 'FAILED', 'PARTIAL', 'CANCELLED'].includes(status)
 }
@@ -567,20 +601,6 @@ async function runInlinePool(processor, runIds, concurrency) {
     )
 }
 
-function summarizeNumeric(values) {
-    const present = values.filter((value) => typeof value === 'number')
-
-    return {
-        count: present.length,
-        averageMs: mean(present),
-        p50Ms: percentile(present, 50),
-        p95Ms: percentile(present, 95),
-        p99Ms: percentile(present, 99),
-        maxMs: present.length ? round(Math.max(...present), 2) : null,
-        minMs: present.length ? round(Math.min(...present), 2) : null,
-    }
-}
-
 async function main() {
     const args = process.argv.slice(2)
 
@@ -599,6 +619,9 @@ async function main() {
         queueName:
             readFlag(args, '--queue-name') ||
             `review-crawl-load-${process.pid}-${Date.now()}`,
+        forceLocalRedis: args.includes('--force-local-redis'),
+        forceInline: args.includes('--force-inline'),
+        skipBaselineReset: args.includes('--skip-baseline-reset'),
         output: readFlag(args, '--output'),
     }
 
@@ -612,7 +635,14 @@ async function main() {
     process.env.REVIEW_CRAWL_WORKER_CONCURRENCY = String(options.concurrency)
     process.env.REVIEW_CRAWL_QUEUE_NAME = options.queueName
 
-    const redisState = await startLocalRedisIfNeeded()
+    if (!options.skipBaselineReset) {
+        runResetBaseline()
+    }
+
+    const redisState = await startLocalRedisIfNeeded({
+        forceLocalRedis: options.forceLocalRedis,
+        forceInline: options.forceInline,
+    })
     const queueMode = redisState.mode
 
     const prisma = require('../src/lib/prisma')
@@ -661,26 +691,37 @@ async function main() {
         }
 
         const enqueueStartedAt = performance.now()
-        const runs = await Promise.all(
-            sources.map((source) =>
-                reviewCrawlService.createReviewCrawlRun({
-                    userId: operatorUserId,
-                    sourceId: source.id,
-                    input: {
-                        strategy: 'BACKFILL',
-                        pageSize: options.reviewsPerPage,
-                        maxPages: options.pagesPerRun,
-                        maxReviews: options.pagesPerRun * options.reviewsPerPage,
-                        delayMs: 0,
-                    },
-                    trigger: 'load-proof',
-                    metadata: {
-                        syntheticWorkerLoad: true,
-                        queueMode,
-                    },
-                }),
-            ),
-        )
+        const runs =
+            queueMode === 'inline'
+                ? await createSyntheticRuns({
+                      prisma,
+                      sources,
+                      operatorUserId,
+                      pagesPerRun: options.pagesPerRun,
+                      reviewsPerPage: options.reviewsPerPage,
+                      queueMode,
+                  })
+                : await Promise.all(
+                      sources.map((source) =>
+                          reviewCrawlService.createReviewCrawlRun({
+                              userId: operatorUserId,
+                              sourceId: source.id,
+                              input: {
+                                  strategy: 'BACKFILL',
+                                  pageSize: options.reviewsPerPage,
+                                  maxPages: options.pagesPerRun,
+                                  maxReviews:
+                                      options.pagesPerRun * options.reviewsPerPage,
+                                  delayMs: 0,
+                              },
+                              trigger: 'load-proof',
+                              metadata: {
+                                  syntheticWorkerLoad: true,
+                                  queueMode,
+                              },
+                          }),
+                      ),
+                  )
         const enqueueDurationMs = round(performance.now() - enqueueStartedAt, 2)
         const runIds = runs.map((run) => run.id)
 
@@ -754,8 +795,17 @@ async function main() {
                       samples.reduce((sum, sample) => sum + sample.runningCount, 0) /
                           samples.length,
                       2,
-                  )
+                    )
                 : 0
+        const runRawReviewsPerSecond = finalRuns.map((run) =>
+            run.finishedAt && run.queuedAt && run.extractedCount
+                ? round(
+                      run.extractedCount /
+                          ((run.finishedAt.getTime() - run.queuedAt.getTime()) / 1000),
+                      2,
+                  )
+                : null,
+        )
         const queueHealth = await getReviewCrawlQueueHealth()
         const workerHealth =
             queueMode === 'redis'
@@ -777,6 +827,7 @@ async function main() {
                 stepMs: options.stepMs,
                 sampleMs: options.sampleMs,
                 queueName: options.queueName,
+                baselineReset: !options.skipBaselineReset,
             },
             execution: {
                 enqueueDurationMs,
@@ -793,11 +844,22 @@ async function main() {
                 maxRunningObserved,
                 averageRunningObserved,
                 sampleCount: samples.length,
+                utilizationProxy: summarizeUtilizationProxy({
+                    configuredConcurrency: options.concurrency,
+                    averageObserved: averageRunningObserved,
+                    maxObserved: maxRunningObserved,
+                    sampleCount: samples.length,
+                }),
             },
             latencyMs: {
-                queueWait: summarizeNumeric(queueWaitMs),
-                processing: summarizeNumeric(processingMs),
-                totalRun: summarizeNumeric(totalRunMs),
+                queueWait: summarizeLatencySeries(queueWaitMs),
+                processing: summarizeLatencySeries(processingMs),
+                totalRun: summarizeLatencySeries(totalRunMs),
+            },
+            throughputPerRun: {
+                rawReviewsPerSecond: summarizeNumericSeries(
+                    runRawReviewsPerSecond.filter((value) => typeof value === 'number'),
+                ),
             },
             statusSummary: finalRuns.reduce((summary, run) => {
                 summary[run.status] = (summary[run.status] || 0) + 1

@@ -1,6 +1,6 @@
 # Project Memory Long
 
-Updated: 2026-03-29 Asia/Bangkok
+Updated: 2026-03-31 Asia/Bangkok
 
 ## Stable Product Decisions
 
@@ -78,9 +78,76 @@ Principles:
   - `review-crawl`
   - `admin-access`
   - `admin-platform`
+  - `restaurant-state.service`
+  - `restaurant-source-submission-view.service`
   - `audit-event.service`
   - `platform-control.service`
   - `user-account-state.service`
+- `restaurant-state.service` is now the shared contract for:
+  - source-submission persisted status helpers
+  - shared dedupe and audit snapshot helpers
+  - dataset-status aggregation
+  - Google Maps source-submission analysis
+- `restaurant-source-submission-view.service` is now the shared contract for:
+  - merchant-facing source-submission status payload builders
+  - source-submission timeline/history read-model builders
+  - source-submission audit history grouping by attempt key
+- `restaurant-source-submission-history.service` is now the shared contract for:
+  - source-submission audit snapshot extraction
+  - durable attempt-key derivation
+  - merchant-visible history event reconstruction
+  - audit-event grouping across source-submission attempts
+- `restaurant-source-submission-read.service` is now the shared contract for:
+  - source-submission persisted-record fetch
+  - source-submission current-state DB composition
+  - source-submission audit-event fetch paths used by merchant history/detail reads
+- `restaurant-source-submission-write.service` is now the shared contract for:
+  - source-submission record sync/upsert
+  - source-submission merchant audit writes
+- `admin-restaurants-source-submission.service` is now the shared contract for:
+  - admin source-submission queue grouping and restaurant summary mapping
+  - lease-aware `claim-next` behavior for deduped submission groups
+  - resolve, create-source, and scheduling-lane control-plane actions
+- `review-crawl-source-submission-bootstrap.service` is now the shared contract for:
+  - canonical-ready source-submission candidate grouping
+  - submission-group lease claiming and release
+  - automatic crawl-source linking from persisted canonical identity
+  - initial queued-run bootstrap for scheduler-owned merchant ingress
+- `review-crawl-source-persistence.service` is now the shared contract for:
+  - canonical crawl-source create/update input normalization
+  - source mutation diffing and audit snapshot generation
+  - persisted source upsert plus mutation audit writes
+- External staging proofing now assumes a hosted-runtime timeout baseline instead of a purely local one:
+  - `staging-api-proof.js` pre-warms `/health` and `/api/health`, probes them sequentially, and relies on `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS=90000` as the current proven Render free-tier baseline
+  - the lower `60000` proof timeout was not reliable enough for Render free-tier cold starts even after retry helper hardening
+- Redis durability is now represented in two layers instead of one:
+  - passive layer:
+    - queue health and managed Redis proof degrade or fail when `maxmemory-policy` is not `noeviction`
+  - opt-in enforcement layer:
+    - `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true`
+    - when enabled, queued-run enqueue and worker-runtime bootstrap fail fast with `REVIEW_CRAWL_REDIS_DURABILITY_UNSAFE`
+- Redis durability remediation order is now fixed:
+  - first try a provider-side eviction-policy change to `noeviction`
+  - if the active plan/provider cannot do that, migrate to a managed Redis database or provider that supports `noeviction`
+  - then rerun:
+    - `node scripts/managed-redis-proof.js`
+    - `node scripts/release-evidence.js --require-managed-signoff`
+  - only after Redis proof is green should hosted runtime set:
+    - `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true`
+- On `2026-03-31`, the latest full backend gates were rerun after the opt-in Redis durability enforcement slice:
+  - `cd D:\Project 3\backend-sentify && npm run env:check` -> passed
+  - `cd D:\Project 3\backend-sentify && npm test` -> passed (`230` tests: `216` pass, `14` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+- `review-crawl-materialization.service` is now the shared contract for:
+  - draft-batch reuse or creation for crawl output
+  - intake dedupe for raw-review payloads
+  - persisted run-to-intake linkage updates
+- `admin-restaurants` and `review-crawl` should depend on `restaurant-state.service` directly, not on `restaurant.service.__private`
+- `admin-restaurants.service.js` should stay focused on restaurant overview/detail/entitlement composition; the source-submission control-plane queue and write actions should stay in `admin-restaurants-source-submission.service.js`
+- `fetchIntakeSummary()` no longer fabricates synthetic intake items for dataset metrics; it now returns explicit aggregate counts
+- `restaurant.service.js` should stay focused on restaurant orchestration and lightweight mutation composition; source-submission read/write/view builders should not move back inline
+- `restaurant-source-submission-view.service.js` should stay focused on timeline and payload composition; audit snapshot parsing and attempt grouping should stay in `restaurant-source-submission-history.service.js`
+- `review-crawl.service.js` should stay focused on crawl-source and run orchestration; source-submission scheduler bootstrap, source persistence/audit, and intake materialization should not move back inline
 
 ## Stable Local Queue Baseline
 
@@ -258,7 +325,7 @@ These tracked project-memory files exist so project context survives clone/sessi
     - `release-evidence.js` now supports `--staging-timeout-ms`
     - env fallback added:
       - `RELEASE_EVIDENCE_STAGING_TIMEOUT_MS`
-    - current staging proof env uses `60000`
+    - current staging proof env uses `90000`
   - operational follow-up after the DB proof:
     - Neon DB credentials were rotated and Render `DATABASE_URL` was updated after the setup leak
 - On `2026-03-29`, a post-redeploy rerun changed the operational truth:
@@ -274,15 +341,25 @@ These tracked project-memory files exist so project context survives clone/sessi
     - `curl.exe -sS https://sentify-2fu0.onrender.com/api/health` returned `{"status":"ok","db":"up"}`
     - `node scripts/staging-api-proof.js --base-url https://sentify-2fu0.onrender.com --output load-reports/staging-api-proof-managed.json` returned `STAGING_PROOF_COMPLETE`
     - `node scripts/managed-signoff-preflight.js --output load-reports/managed-signoff-preflight.latest.json` returned `MANAGED_SIGNOFF_READY`
-    - `node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` returned:
-      - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
-      - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
   - conclusion:
     - external inputs and historical DB/signoff artifacts remained configured throughout
     - the redeploy regression was caused by trust-proxy config, not DB loss or broken credentials
     - current live staging runtime is green again after the fix
+- On `2026-03-29`, managed release evidence was rerun against the current staging baseline after proof-tooling hardening:
+  - `node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json` now exits non-zero when BullMQ durability requirements are not met
+  - `node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json` now returned:
+    - `overallStatus = COMPATIBILITY_PROOF_FAILED`
+    - `managedEnvProofStatus = MANAGED_SIGNOFF_BLOCKED`
+  - current required checks:
+    - managed Redis: `FAILED`
+    - backup/restore/rollback: `PASSED`
+    - staging API: `PASSED`
+    - managed DB proof artifact: `PASSED`
+  - conclusion:
+    - current managed sign-off is blocked only by Redis durability policy
+    - the older `MANAGED_SIGNOFF_COMPLETE` artifact should now be treated as historical baseline evidence, not as current runtime truth
 - On `2026-03-29`, full backend suite isolation was re-hardened:
-  - `cd D:\Project 3\backend-sentify && npm test` passed again (`195` tests: `181` pass, `14` skipped, `0` fail)
+  - `cd D:\Project 3\backend-sentify && npm test` passed again (`213` tests: `199` pass, `14` skipped, `0` fail)
   - `cd D:\Project 3\backend-sentify && npm run test:realdb` also passed on the same codebase state
   - root cause of the one failing full-suite regression:
     - `managed-signoff-preflight.test.js` was accidentally inheriting the operator's real `.env.release-evidence`
@@ -340,36 +417,99 @@ These tracked project-memory files exist so project context survives clone/sessi
     - this is not a code bug anymore
     - it is a provider configuration problem
     - external managed Redis must be changed to `maxmemory-policy=noeviction` or replaced before calling BullMQ durability done
+  - direct provider-change attempt against the active instance:
+    - `CONFIG SET maxmemory-policy noeviction`
+    - result:
+      - `ERR Unsupported CONFIG parameter: maxmemory-policy`
+    - consequence:
+      - the active managed instance does not expose this policy through runtime config commands
+      - the next step must be provider-console reconfiguration if supported, or migration to a different plan/provider
+- On `2026-03-31`, provider-side Redis policy was revalidated as BullMQ-safe:
+  - `node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json`
+    - Redis `8.4.0`
+    - `maxmemory-policy = noeviction`
+    - `evictionPolicyStatus = PASSED`
+    - `safeForBullMq = true`
+  - `node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json`
+    - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+    - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+  - `node scripts/operational-health-check.js --refresh --output load-reports/operational-health-check.current.json`
+    - `overallStatus = OPERATIONAL_HEALTH_COMPLETE`
+    - pass:
+      - `liveRuntime`
+      - `adminControlPlane`
+      - `operatorPathCorrectness`
+      - `redisDurability`
+      - `averageCaseRead`
+      - `strongerConcurrencyRead`
+  - operational reading:
+    - the current staging baseline is green again for correctness, Redis durability, strict sign-off, and the current read-path bars
+    - the next step is optional topology hardening only if stronger worker-throughput or worst-case latency confidence is needed
+- On `2026-03-31`, merchant-actions evidence lookup stopped defaulting to a full negative-review scan:
+  - `src/services/dashboard.service.js`
+    - fetches a recent negative-review window first
+    - falls back to a targeted keyword-matching query only for missing top complaint evidence
+  - intent:
+    - preserve the existing response contract
+    - reduce avoidable review payload reads on larger restaurants
 - On `2026-03-29`, external staging merchant read latency was proven separately from the local worker harness:
-  - `node scripts/staging-performance-proof.js --output load-reports/staging-performance-proof-managed.json` returned `STAGING_PERFORMANCE_PROOF_COMPLETE`
+  - the proof is now recorded as two bars instead of one blended green claim
   - target:
     - Render API `https://sentify-2fu0.onrender.com`
     - merchant restaurant `demo-quan-pho-hong`
-  - observed result:
+  - average-case:
+    - `node scripts/staging-performance-proof.js --concurrency 2 --rounds 20 --timeout-ms 120000 --max-p95-ms 5000 --max-error-rate 0 --min-rps 2 --max-cv-percent 45 --max-p95-p50-ratio 3.5 --output load-reports/staging-performance-proof-average.json`
+    - `STAGING_PERFORMANCE_PROOF_COMPLETE`
     - `40` authenticated merchant read requests
     - `0%` error rate
-    - `p95 = 899.53ms`
-    - `3.37 req/s`
+    - `p50 = 464.41ms`
+    - `p95 = 892.93ms`
+    - `p99 = 1119.11ms`
+    - `3.32 req/s`
+    - `predictability = VARIABLE`
+  - stronger-concurrency:
+    - `node scripts/staging-performance-proof.js --concurrency 4 --rounds 30 --timeout-ms 120000 --max-p95-ms 5000 --max-error-rate 0 --min-rps 2 --max-cv-percent 45 --max-p95-p50-ratio 3.5 --output load-reports/staging-performance-proof-strengthened.json`
+    - `STAGING_PERFORMANCE_PROOF_COMPLETE`
+    - `120` authenticated merchant read requests
+    - `0%` error rate
+    - `p50 = 460.91ms`
+    - `p95 = 872.16ms`
+    - `p99 = 1207.29ms`
+    - `6.74 req/s`
+    - `predictability = VARIABLE`
   - intentional scope:
     - HTTP merchant read paths only
     - no queue or worker throughput claims on Render free staging
   - operational reading:
-    - current staging is good enough for merchant read latency confidence
-    - worker-pressure confidence still comes from the local Redis harness, not from external free-tier staging
+    - latest rerun clears both active read bars on the current Render plus Neon topology
+    - response shape is still variable, so worst-case latency claims should stay conservative
+  - aggregate runtime posture:
+    - `node scripts/operational-health-check.js --refresh --output load-reports/operational-health-check.current.json`
+    - historical `2026-03-29` result: `overallStatus = OPERATIONAL_HEALTH_DEGRADED`, only degraded dimension `redisDurability`
+    - latest `2026-03-31` result: `overallStatus = OPERATIONAL_HEALTH_COMPLETE`
 - On `2026-03-29`, external staging operator queue proof exposed a real deployment gap and the repo was fixed at the bootstrap layer:
-  - `node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json` targeted the seeded source behind `demo-quan-pho-hong`
-  - the proof failed because the active run stayed `QUEUED` for more than `305000ms`
-  - direct control-plane check via `GET /api/admin/platform/health-jobs` showed:
-    - queue `HEALTHY`
-    - workers `DEGRADED`
-    - `scheduler = null`
-    - `processors = []`
+  - first live result:
+    - `node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json` targeted the seeded source behind `demo-quan-pho-hong`
+    - the proof failed because the active run stayed `QUEUED` for more than `305000ms`
+    - direct control-plane check via `GET /api/admin/platform/health-jobs` showed:
+      - queue `HEALTHY`
+      - workers `DEGRADED`
+      - `scheduler = null`
+      - `processors = []`
   - root cause in repo:
     - `src/server.js` only started the HTTP API and never called `startReviewCrawlWorkerRuntime()`
-  - repo fix now in place:
+  - repo fix:
     - `src/server.js` starts review-crawl runtime whenever Redis is configured and inline mode is off
-  - implication:
-    - the deployed Render service must be redeployed before the external operator proof can be rerun meaningfully
+  - proof-tooling follow-up:
+    - `staging-review-ops-proof.js` was also hardened to evaluate the post-materialization snapshot instead of falsely failing when the terminal run snapshot predates intake-batch linkage
+  - latest live result after redeploy and proof-tooling fix:
+    - `STAGING_REVIEW_OPS_PROOF_COMPLETE`
+    - run status `COMPLETED`
+    - queue job state `completed`
+    - `intakeBatchId = bb81bf83-b5e1-4930-a335-8c84b028c313`
+    - `extractedCount = 30`
+    - `validCount = 30`
+    - `pagesFetched = 3`
 
 ## Latest Verified Commands
 
@@ -463,7 +603,8 @@ These tracked project-memory files exist so project context survives clone/sessi
   - only falls back to `sync-to-draft` when `--allow-url-bootstrap` is explicitly supplied
   - separates request timeout from run-settle timeout so hosted free-tier runs do not fail after a single HTTP timeout budget
   - follows `REVIEW_CRAWL_RUN_ALREADY_ACTIVE` conflicts instead of crashing immediately
-  - current live result remains blocked on a staging redeploy because the deployed Render service has not yet picked up the new server-side runtime bootstrap path
+  - now evaluates the post-materialization snapshot rather than a stale pre-link terminal snapshot
+  - latest live result is green on the deployed Render baseline
 - `scripts/release-evidence.js` now orchestrates:
   - managed Redis proof
   - existing-source restore/rollback proof
@@ -1006,7 +1147,7 @@ These tracked project-memory files exist so project context survives clone/sessi
 - Auxiliary runtime-tooling fix:
   - `local-review-stack.js` now filters out the heartbeat index key so stack status no longer reports it as a stale processor.
 - On `2026-03-29`, backend runtime hardening was extended beyond staging fixes:
-  - `npm test` now passes at `204` tests with `190` pass and `14` skipped
+  - `npm test` now passes at `218` tests with `204` pass and `14` skipped
   - `npm run test:realdb` still passes after the hardening slice
   - env parsing now enforces safe timeout relationships:
     - `HEADERS_TIMEOUT_MS > REQUEST_TIMEOUT_MS`
@@ -1029,3 +1170,173 @@ These tracked project-memory files exist so project context survives clone/sessi
   - queue health now degrades gracefully when BullMQ or Redis count probes fail instead of throwing through admin surfaces
   - worker runtime now logs `error` and `stalled` events explicitly
   - request logging now marks slow successful requests so latency regressions are visible before they become outages
+- On `2026-03-29`, another backend contract-hardening slice closed three operational gaps without adding new business surface:
+  - `src/lib/controller-error.js` now maps:
+    - `P2025 -> 404 RECORD_NOT_FOUND`
+    - `P2003 -> 409 FOREIGN_KEY_CONSTRAINT_FAILED`
+  - `src/app.js` now makes `/api/health` probe both:
+    - Postgres through Prisma
+    - Redis-backed review-crawl queue health
+  - `/api/health` response now includes `redis` with:
+    - `up`
+    - `down`
+    - `unconfigured`
+    - `skipped`
+  - `backend-sentify/render.yaml` now pins the current runtime timeout defaults explicitly:
+    - `REQUEST_TIMEOUT_MS=30000`
+    - `HEADERS_TIMEOUT_MS=31000`
+    - `KEEP_ALIVE_TIMEOUT_MS=5000`
+    - `SLOW_REQUEST_THRESHOLD_MS=1000`
+    - `DB_CONNECT_TIMEOUT_SECONDS=10`
+    - `DB_STATEMENT_TIMEOUT_MS=15000`
+    - `DB_IDLE_IN_TRANSACTION_TIMEOUT_MS=15000`
+  - targeted verification:
+    - `cd D:\Project 3\backend-sentify && node --test test/controller-error.test.js test/health.integration.test.js` -> `7/7 passed`
+    - `cd D:\Project 3\backend-sentify && npm run env:check` -> passed
+  - intent of the slice:
+    - missing-record writes no longer surface as generic `500`
+    - FK conflicts no longer surface as generic `500`
+    - API health no longer reports green while Redis-backed crawl infrastructure is unavailable
+- On `2026-03-29`, the fast backend suite was made hermetic against workstation-local runtime secrets:
+  - root cause:
+    - workstation `.env` still pointed `REDIS_URL` at a managed Redis target
+    - app-level tests such as request-logging coverage could therefore leak into external Redis auth through `/api/health`
+  - fix:
+    - added `backend-sentify/scripts/runtime-env-bootstrap.js`
+    - changed `backend-sentify/package.json` test entry to:
+      - `node --require ./scripts/runtime-env-bootstrap.js --test`
+    - the bootstrap now pins:
+      - `NODE_ENV=test`
+      - safe local `DATABASE_URL`
+      - generated JWT secret if missing
+      - `REDIS_URL=''`
+      - `REVIEW_CRAWL_INLINE_QUEUE_MODE=true`
+  - intent:
+    - unit and mocked integration tests must not depend on workstation-local runtime or staging configuration
+    - the fast suite must stay green or red because of repo code, not because of whoever last used managed sign-off locally
+  - fresh verification:
+    - `cd D:\Project 3\backend-sentify && npm test` -> passed (`213` tests: `199` pass, `14` skipped, `0` fail)
+    - `cd D:\Project 3\backend-sentify && npm run test:realdb` -> passed
+- On `2026-03-29`, the performance-proof story was tightened so local evidence became deterministic and external claims became harder to overstate:
+  - local proof harnesses now reset the database baseline automatically before benchmarking:
+    - `backend-sentify/scripts/load-merchant-reads.js`
+    - `backend-sentify/scripts/load-review-crawl-workers.js`
+    - shared helper:
+      - `backend-sentify/scripts/proof-baseline.js`
+    - escape hatch:
+      - `--skip-baseline-reset`
+  - rationale:
+    - performance evidence cannot depend on whichever synthetic rows or partial intake state happened to be left in local Postgres from a prior run
+    - the worker harness had already exposed this problem by failing with a `P2025` while reseeding onto a dirty baseline
+  - new local merchant-read proof after enforced baseline reset:
+    - command:
+      - `cd D:\Project 3\backend-sentify && node scripts/load-merchant-reads.js --extra-reviews 8000 --chunk-size 1000 --concurrency 16 --rounds 80 --timeout-ms 15000 --output load-reports/merchant-read-load-strengthened.json`
+    - result:
+      - `1280` requests
+      - `0%` error rate
+      - `p50=57.91ms`
+      - `p95=119.76ms`
+      - `p99=163.23ms`
+      - `244.05 req/s`
+      - mixed-route overall `predictability=VOLATILE`
+    - reading:
+      - local merchant reads are fast
+      - one combined cross-route SLA is still too blunt; route-level interpretation is required
+  - new local worker-pressure proof after enforced baseline reset:
+    - command:
+      - `cd D:\Project 3\backend-sentify && node scripts/load-review-crawl-workers.js --force-inline --source-count 36 --concurrency 6 --pages-per-run 15 --reviews-per-page 25 --step-ms 35 --sample-ms 100 --output load-reports/review-crawl-worker-load-strengthened.json`
+    - result:
+      - `36/36` runs completed
+      - `13500` synthetic raw reviews persisted
+      - `2318.83 raw reviews/s`
+      - processing leg:
+        - `p95=988ms`
+        - `predictability=STABLE`
+      - queue-wait leg:
+        - `p95=4760ms`
+        - `predictability=VOLATILE`
+      - observed concurrency:
+        - `averageUtilizationPercent=94.17`
+        - `classification=SATURATED`
+    - reading:
+      - the actual per-run processing work is stable
+      - worst-case behavior under this harness is dominated by waiting under saturation, not by unstable processing logic
+  - external staging read proof is now recorded as two separate bars instead of one blended “green” conclusion:
+    - average-case:
+      - `cd D:\Project 3\backend-sentify && node scripts/staging-performance-proof.js --concurrency 2 --rounds 20 --timeout-ms 120000 --max-p95-ms 5000 --max-error-rate 0 --min-rps 2 --max-cv-percent 45 --max-p95-p50-ratio 3 --output load-reports/staging-performance-proof-average.json`
+      - `STAGING_PERFORMANCE_PROOF_COMPLETE`
+      - `p95=892.93ms`
+      - `p99=1119.11ms`
+      - `3.32 req/s`
+      - `predictability=VARIABLE`
+    - stronger-concurrency:
+      - `cd D:\Project 3\backend-sentify && node scripts/staging-performance-proof.js --concurrency 4 --rounds 30 --timeout-ms 120000 --max-p95-ms 5000 --max-error-rate 0 --min-rps 2 --max-cv-percent 45 --max-p95-p50-ratio 3.5 --output load-reports/staging-performance-proof-strengthened.json`
+      - `STAGING_PERFORMANCE_PROOF_COMPLETE`
+      - `p95=872.16ms`
+      - `p99=1207.29ms`
+      - `6.74 req/s`
+      - `predictability=VARIABLE`
+    - reading:
+      - current Render plus Neon staging clears both active read bars
+      - it is still not strong enough to justify aggressive worst-case latency claims because response shape remains variable
+  - external operator-path proof stayed green on the same day:
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-review-ops-proof.js --timeout-ms 600000 --max-total-wallclock-ms 300000 --output load-reports/staging-review-ops-proof-strengthened.json`
+    - `overallStatus=STAGING_REVIEW_OPS_PROOF_COMPLETE`
+    - latest observed run:
+      - `runId=66423edd-ba80-4d1c-b5e9-15c2fe4acb3c`
+      - `totalWallClockMs=14363`
+      - `rawReviewsPerSecond=2`
+  - current aggregate runtime audit:
+    - `cd D:\Project 3\backend-sentify && node scripts/operational-health-check.js --refresh --output load-reports/operational-health-check.current.json`
+    - `overallStatus=OPERATIONAL_HEALTH_COMPLETE`
+    - pass:
+      - `liveRuntime`
+      - `adminControlPlane`
+      - `operatorPathCorrectness`
+      - `averageCaseRead`
+      - `strongerConcurrencyRead`
+      - `redisDurability`
+  - current release-evidence truth is no longer “managed sign-off complete” in the live posture:
+    - `cd D:\Project 3\backend-sentify && node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof-current.json`
+      - `passed=false`
+      - `maxmemory-policy=volatile-lru`
+    - `cd D:\Project 3\backend-sentify && node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence-current.json`
+      - `overallStatus=COMPATIBILITY_PROOF_FAILED`
+      - `managedEnvProofStatus=MANAGED_SIGNOFF_BLOCKED`
+    - meaning:
+      - staging API, DB restore proof, and operator path are green
+      - current hard blocker is Redis durability policy, not backend logic correctness
+- On `2026-03-30`, staging proof bootstrap was hardened without touching business logic:
+  - root cause:
+    - `scripts/staging-review-ops-proof.js` could still fail with a login timeout even while Render staging was healthy because `scripts/staging-proof-helpers.js` performed single-shot auth/bootstrap requests against a free-tier host
+  - fix:
+    - `scripts/staging-proof-helpers.js` now classifies transient request failures
+    - retryable HTTP statuses now include:
+      - `408`
+      - `425`
+      - `429`
+      - `500`
+      - `502`
+      - `503`
+      - `504`
+    - transient network failures now include timeout and reset-style transport errors
+    - staging proof bootstrap now warms:
+      - `/health`
+      - `/api/health`
+    - staging auth/session/operator polling now retries instead of failing immediately on the first transient timeout
+    - `staging-performance-proof.js` only uses the retry wrapper for bootstrap and warmup calls; the measured load loop still uses single-shot requests so performance metrics are not artificially softened
+  - verification:
+    - `cd D:\Project 3\backend-sentify && node --test test/staging-proof-helpers.test.js test/staging-review-ops-proof.test.js test/staging-performance-proof.test.js` -> `12/12 passed`
+    - `cd D:\Project 3\backend-sentify && node scripts/staging-review-ops-proof.js --output load-reports/staging-review-ops-proof-managed.json` -> `STAGING_REVIEW_OPS_PROOF_COMPLETE`
+    - latest observed run:
+      - `runId=f39b2c84-2e54-4a2f-8421-79a20eac2954`
+      - `status=COMPLETED`
+      - `queueJobState=completed`
+      - `intakeBatchId=bb81bf83-b5e1-4930-a335-8c84b028c313`
+      - `extractedCount=30`
+      - `validCount=30`
+      - `pagesFetched=3`
+      - `totalWallClockMs=15733`
+  - follow-up:
+    - this removed a false-negative proof mode caused by transport bootstrap fragility
+    - it did not change the operator-path business contract or Redis durability blocker

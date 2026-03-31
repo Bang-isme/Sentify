@@ -107,6 +107,54 @@ test('review crawl queue health surfaces unsafe Redis deployment policy', async 
     assert.equal(health.configured, true)
     assert.equal(health.deployment.evictionPolicyStatus, 'FAILED')
     assert.equal(health.deployment.safeForBullMq, false)
+    assert.equal(health.durabilityEnforced, false)
+    assert.equal(health.durabilityBlocking, false)
+
+    restoreModules()
+})
+
+test('review crawl queue can enforce BullMQ-safe Redis durability before enqueueing', async () => {
+    restoreModules()
+
+    withMock('../src/config/env', {
+        NODE_ENV: 'development',
+        REDIS_URL: 'redis://127.0.0.1:6379',
+        REVIEW_CRAWL_QUEUE_NAME: 'review-crawl',
+        REVIEW_CRAWL_MAX_RETRIES: 3,
+        REVIEW_CRAWL_RETRY_BASE_DELAY_MS: 5000,
+        REVIEW_CRAWL_JOB_TIMEOUT_MS: 600000,
+        REVIEW_CRAWL_WORKER_CONCURRENCY: 2,
+        REVIEW_CRAWL_LEASE_SECONDS: 90,
+        REVIEW_CRAWL_REQUIRE_SAFE_REDIS: true,
+    })
+    withMock('ioredis', function MockIORedis() {
+        return {
+            info: async () =>
+                'redis_version:8.4.0\nredis_mode:standalone\nmaxmemory_policy:volatile-lru',
+        }
+    })
+    withMock('bullmq', {
+        Queue: class MockQueue {
+            async add() {
+                throw new Error('should not enqueue when durability is unsafe')
+            }
+        },
+        Worker: class MockWorker {},
+    })
+
+    const queue = require('../src/modules/review-crawl/review-crawl.queue')
+
+    await assert.rejects(
+        () => queue.enqueueReviewCrawlRun('run-unsafe'),
+        (error) =>
+            error?.code === 'REVIEW_CRAWL_REDIS_DURABILITY_UNSAFE' &&
+            error?.statusCode === 503 &&
+            error?.details?.maxMemoryPolicy === 'volatile-lru',
+    )
+
+    const health = await queue.getReviewCrawlQueueHealth()
+    assert.equal(health.durabilityEnforced, true)
+    assert.equal(health.durabilityBlocking, true)
 
     restoreModules()
 })

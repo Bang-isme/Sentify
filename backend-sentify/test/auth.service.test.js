@@ -276,3 +276,143 @@ test('auth service session rejects manually locked accounts', async () => {
     restoreModules()
 })
 
+test('auth service updates profile and preserves restaurant memberships in the response', async () => {
+    restoreModules()
+
+    let updateArgs = null
+
+    withMock('../src/lib/security-event', {
+        logSecurityEvent: () => {},
+    })
+    withMock('../src/lib/prisma', {
+        user: {
+            findUnique: async ({ where }) => {
+                if (where.id === 'user-1') {
+                    return {
+                        id: 'user-1',
+                        email: 'owner@sentify.com',
+                        fullName: 'Sentify Owner',
+                        role: 'USER',
+                        lockedUntil: null,
+                        manuallyLockedAt: null,
+                        deactivatedAt: null,
+                        restaurants: [
+                            {
+                                restaurant: {
+                                    id: 'resto-1',
+                                    name: 'Cafe One',
+                                    slug: 'cafe-one',
+                                },
+                            },
+                        ],
+                    }
+                }
+
+                if (where.email === 'updated@sentify.com') {
+                    return null
+                }
+
+                return null
+            },
+            update: async (args) => {
+                updateArgs = args
+                return {
+                    id: 'user-1',
+                    email: 'updated@sentify.com',
+                    fullName: 'Updated Owner',
+                    role: 'USER',
+                    restaurants: [
+                        {
+                            restaurant: {
+                                id: 'resto-1',
+                                name: 'Cafe One',
+                                slug: 'cafe-one',
+                            },
+                        },
+                    ],
+                }
+            },
+        },
+    })
+
+    const authService = require('../src/services/auth.service')
+    const result = await authService.updateProfile({
+        userId: 'user-1',
+        email: 'UPDATED@Sentify.com',
+        fullName: 'Updated Owner',
+        context: { requestId: 'req-1' },
+    })
+
+    assert.deepEqual(updateArgs.data, {
+        email: 'updated@sentify.com',
+        fullName: 'Updated Owner',
+    })
+    assert.deepEqual(result.user, {
+        id: 'user-1',
+        email: 'updated@sentify.com',
+        fullName: 'Updated Owner',
+        role: 'USER',
+        restaurants: [
+            {
+                id: 'resto-1',
+                name: 'Cafe One',
+                slug: 'cafe-one',
+            },
+        ],
+    })
+
+    restoreModules()
+})
+
+test('auth service rejects profile email update when another user already owns it', async () => {
+    restoreModules()
+
+    withMock('../src/lib/security-event', {
+        logSecurityEvent: () => {},
+    })
+    withMock('../src/lib/prisma', {
+        user: {
+            findUnique: async ({ where }) => {
+                if (where.id === 'user-1') {
+                    return {
+                        id: 'user-1',
+                        email: 'owner@sentify.com',
+                        fullName: 'Sentify Owner',
+                        role: 'USER',
+                        lockedUntil: null,
+                        manuallyLockedAt: null,
+                        deactivatedAt: null,
+                        restaurants: [],
+                    }
+                }
+
+                if (where.email === 'taken@sentify.com') {
+                    return {
+                        id: 'user-2',
+                        email: 'taken@sentify.com',
+                    }
+                }
+
+                return null
+            },
+        },
+    })
+
+    const authService = require('../src/services/auth.service')
+
+    await assert.rejects(
+        () =>
+            authService.updateProfile({
+                userId: 'user-1',
+                email: 'taken@sentify.com',
+                context: { requestId: 'req-1' },
+            }),
+        (error) => {
+            assert.equal(error.code, 'EMAIL_ALREADY_EXISTS')
+            return true
+        },
+    )
+
+    restoreModules()
+})
+

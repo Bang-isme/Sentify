@@ -128,6 +128,7 @@ async function request(server, method, path, options = {}) {
 
 async function startApp(prismaOverrides = {}, options = {}) {
     const {
+        nodeEnv = 'test',
         mockCsrf = true,
         securityEventOverrides = null,
         refreshTokenServiceOverrides = null,
@@ -136,7 +137,7 @@ async function startApp(prismaOverrides = {}, options = {}) {
         moduleOverrides = {},
     } = options
 
-    process.env.NODE_ENV = 'test'
+    process.env.NODE_ENV = nodeEnv
     process.env.JWT_SECRET =
         process.env.JWT_SECRET || randomBytes(32).toString('hex')
     process.env.JWT_ISSUER = process.env.JWT_ISSUER || 'sentify-api'

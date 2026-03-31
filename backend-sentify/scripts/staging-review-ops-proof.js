@@ -5,7 +5,7 @@ const path = require('path')
 const { loadEnvFiles } = require('./load-env-files')
 const {
     loginAndReadSession,
-    requestJson,
+    requestJsonWithRetries,
 } = require('./staging-proof-helpers')
 
 loadEnvFiles({
@@ -191,7 +191,7 @@ async function waitForStableTerminalRun({
     let lastStableSeenAt = 0
 
     while (Date.now() - startedAt < timeoutMs) {
-        const response = await requestJson(baseUrl, `/api/admin/review-ops/runs/${runId}`, {
+        const response = await requestJsonWithRetries(baseUrl, `/api/admin/review-ops/runs/${runId}`, {
             cookieJar,
             timeoutMs,
             insecureTls,
@@ -243,7 +243,12 @@ async function waitForStableTerminalRun({
 
 function evaluateReviewOpsProof(result, thresholds) {
     const status = result.run?.status ?? null
-    const intakeBatchId = result.run?.intakeBatch?.id ?? result.run?.intakeBatchId ?? null
+    const intakeBatchId =
+        result.run?.intakeBatch?.id ??
+        result.run?.intakeBatchId ??
+        result.batch?.id ??
+        result.batchReadiness?.batch?.id ??
+        null
     const extractedCount = result.run?.extractedCount ?? 0
     const rawReviewsPerSecond =
         result.totalWallClockMs > 0
@@ -346,7 +351,7 @@ async function main() {
         throw new Error(`Admin staging login failed with status ${auth.loginStatus}`)
     }
 
-    const restaurantsResponse = await requestJson(baseUrl, '/api/admin/restaurants', {
+    const restaurantsResponse = await requestJsonWithRetries(baseUrl, '/api/admin/restaurants', {
         cookieJar: auth.cookieJar,
         timeoutMs: requestTimeoutMs,
         insecureTls,
@@ -360,7 +365,7 @@ async function main() {
 
     const allRestaurants = restaurantsResponse.body.data
     const fetchSourcesForRestaurant = async (candidateRestaurant) => {
-        const response = await requestJson(
+        const response = await requestJsonWithRetries(
             baseUrl,
             `/api/admin/review-ops/sources?restaurantId=${encodeURIComponent(candidateRestaurant.id)}`,
             {
@@ -462,7 +467,7 @@ async function main() {
             region: readFlag(args, '--region') || 'us',
             ...runPayload,
         }
-        const syncResponse = await requestJson(
+        const syncResponse = await requestJsonWithRetries(
             baseUrl,
             '/api/admin/review-ops/google-maps/sync-to-draft',
             {
@@ -488,7 +493,7 @@ async function main() {
             acceptedWallClockMs: Date.now() - triggerStartedAt,
         }
     } else {
-        const createRunResponse = await requestJson(
+        const createRunResponse = await requestJsonWithRetries(
             baseUrl,
             `/api/admin/review-crawl/sources/${proofSource.id}/runs`,
             {
@@ -556,7 +561,7 @@ async function main() {
     let materialization = null
 
     if (!batchId && ['COMPLETED', 'PARTIAL'].includes(terminalResult.runDetail.run?.status)) {
-        const materializeResponse = await requestJson(
+        const materializeResponse = await requestJsonWithRetries(
             baseUrl,
             `/api/admin/review-crawl/runs/${terminalResult.runDetail.run.id}/materialize-intake`,
             {
@@ -584,7 +589,7 @@ async function main() {
     let batchReadiness = null
 
     if (batchId) {
-        const batchReadinessResponse = await requestJson(
+        const batchReadinessResponse = await requestJsonWithRetries(
             baseUrl,
             `/api/admin/review-ops/batches/${batchId}/readiness`,
             {
@@ -601,7 +606,9 @@ async function main() {
 
     const evaluation = evaluateReviewOpsProof(
         {
-            run: terminalResult.runDetail.run,
+            run: materialization?.run ?? terminalResult.runDetail.run,
+            batch: materialization?.batch ?? null,
+            batchReadiness,
             queueJob: terminalResult.runDetail.queueJob,
             totalWallClockMs: terminalResult.totalWallClockMs,
             draftPolicy: triggerResult.draftPolicy,

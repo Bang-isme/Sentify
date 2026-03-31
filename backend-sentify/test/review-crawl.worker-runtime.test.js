@@ -58,6 +58,7 @@ test('review crawl worker runtime starts processor and scheduler lanes with hear
         REVIEW_CRAWL_HEARTBEAT_INTERVAL_MS: 20000,
     })
     withMock('../src/modules/review-crawl/review-crawl.queue', {
+        assertSafeRedisDeployment: async () => null,
         isQueueConfigured: () => true,
         getRedisConnection: () => ({ id: 'redis-1' }),
         createReviewCrawlWorker: (processor) => {
@@ -167,6 +168,7 @@ test('review crawl worker runtime can run in scheduler-only mode without creatin
         REVIEW_CRAWL_HEARTBEAT_INTERVAL_MS: 20000,
     })
     withMock('../src/modules/review-crawl/review-crawl.queue', {
+        assertSafeRedisDeployment: async () => null,
         isQueueConfigured: () => true,
         getRedisConnection: () => ({ id: 'redis-1' }),
         createReviewCrawlWorker: () => {
@@ -215,5 +217,54 @@ test('review crawl worker runtime can run in scheduler-only mode without creatin
 
     global.setInterval = originalSetInterval
     global.clearInterval = originalClearInterval
+    restoreModules()
+})
+
+test('review crawl worker runtime fails fast when safe Redis durability is required', async () => {
+    restoreModules()
+
+    withMock('../src/config/env', {
+        REDIS_URL: 'redis://127.0.0.1:6379',
+        REVIEW_CRAWL_WORKER_CONCURRENCY: 3,
+        REVIEW_CRAWL_SCHEDULER_INTERVAL_MS: 15000,
+        REVIEW_CRAWL_RUNTIME_MODE: 'both',
+        REVIEW_CRAWL_HEARTBEAT_INTERVAL_MS: 20000,
+    })
+    withMock('../src/modules/review-crawl/review-crawl.queue', {
+        assertSafeRedisDeployment: async () => {
+            const error = new Error('unsafe redis')
+            error.code = 'REVIEW_CRAWL_REDIS_DURABILITY_UNSAFE'
+            throw error
+        },
+        isQueueConfigured: () => true,
+        getRedisConnection: () => ({ id: 'redis-1' }),
+        createReviewCrawlWorker: () => {
+            throw new Error('worker should not be created when Redis durability is unsafe')
+        },
+        closeReviewCrawlQueueResources: async () => {},
+    })
+    withMock('../src/modules/review-crawl/review-crawl.runtime', {
+        clearProcessorHeartbeat: async () => {},
+        clearSchedulerHeartbeat: async () => {},
+        logReviewCrawlEvent: () => {},
+        releaseSchedulerLeadership: async () => true,
+        tryAcquireSchedulerLeadership: async () => true,
+        writeProcessorHeartbeat: async () => {},
+        writeSchedulerHeartbeat: async () => {},
+    })
+    withMock('../src/modules/review-crawl/review-crawl.service', {
+        processReviewCrawlRun: async () => null,
+        scheduleDueReviewCrawlRuns: async () => ({ scheduledCount: 0 }),
+    })
+
+    const {
+        startReviewCrawlWorkerRuntime,
+    } = require('../src/modules/review-crawl/review-crawl.worker-runtime')
+
+    await assert.rejects(
+        () => startReviewCrawlWorkerRuntime(),
+        (error) => error?.code === 'REVIEW_CRAWL_REDIS_DURABILITY_UNSAFE',
+    )
+
     restoreModules()
 })

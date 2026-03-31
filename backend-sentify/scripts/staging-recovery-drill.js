@@ -1056,6 +1056,7 @@ async function startServer(databaseUrl, port) {
             DATABASE_URL: databaseUrl,
             PORT: String(port),
             LOG_FORMAT: 'json',
+            REVIEW_CRAWL_INLINE_QUEUE_MODE: 'true',
         },
         stdio: ['ignore', 'pipe', 'pipe'],
         windowsHide: true,

@@ -96,6 +96,10 @@ const envSchema = z
         .string()
         .optional()
         .transform((value) => value === 'true'),
+    REVIEW_CRAWL_REQUIRE_SAFE_REDIS: z
+        .string()
+        .optional()
+        .transform((value) => value === 'true'),
     REVIEW_CRAWL_RUNTIME_MODE: z.enum(['processor', 'scheduler', 'both']).default('both'),
     REVIEW_CRAWL_WORKER_CONCURRENCY: z.coerce.number().int().positive().max(20).default(2),
     REVIEW_CRAWL_JOB_TIMEOUT_MS: z.coerce.number().int().positive().default(10 * 60 * 1000),

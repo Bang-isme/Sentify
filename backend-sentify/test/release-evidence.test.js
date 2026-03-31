@@ -3,6 +3,7 @@ const assert = require('node:assert/strict')
 
 const {
     buildCompatibilityStatus,
+    resolveManagedRedisCheckStatus,
 } = require('../scripts/release-evidence.js')
 
 test('release evidence compatibility stays complete when only optional checks are skipped', () => {
@@ -94,4 +95,17 @@ test('release evidence compatibility fails when a required check fails', () => {
     ])
 
     assert.equal(status, 'COMPATIBILITY_PROOF_FAILED')
+})
+
+test('managed Redis check fails when proof detail reports unsafe BullMQ durability', () => {
+    const status = resolveManagedRedisCheckStatus(true, {
+        redis: {
+            safeForBullMq: false,
+        },
+        result: {
+            passed: false,
+        },
+    })
+
+    assert.equal(status, 'FAILED')
 })

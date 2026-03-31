@@ -104,7 +104,9 @@ For the current codebase, the drill is considered green when:
 
 - target migrations apply cleanly
 - target `/health` returns `200`
-- target `/api/health` returns `200` with `db: up`
+- target `/api/health` returns `200` with:
+  - `db: up`
+  - `redis: up` or `redis: skipped`
 - authenticated merchant-read smoke returns the expected seeded restaurant slice
 - restored semantic digest matches the source backup digest
 - rollback smoke against the source database returns healthy health and read-route responses
@@ -231,6 +233,81 @@ Current strict managed-signoff preflight result:
 - note:
   - this preflight proves that managed Redis, staging API target, staging credentials, and DB proof artifact are configured
   - current live runtime has also been revalidated green after the `TRUST_PROXY=1` fix
+
+## 6.1 Redis Durability Remediation Path
+
+The remaining external sign-off gap is managed Redis durability, not backend business logic.
+
+Historical blocked state observed before the provider-side fix:
+
+- provider connectivity and BullMQ smoke were already green
+- active `maxmemory-policy` was `volatile-lru`
+- BullMQ durability target was `noeviction`
+- direct config mutation on the active instance was blocked:
+  - `CONFIG SET maxmemory-policy noeviction`
+  - `ERR Unsupported CONFIG parameter: maxmemory-policy`
+
+Operational rule:
+
+- do not call managed Redis sign-off complete while the provider policy is anything other than `noeviction`
+- do not enable `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true` until the provider is actually BullMQ-safe
+
+Remediation sequence:
+
+1. inspect the active Redis provider or plan in its console
+   - look for an eviction or memory-policy setting
+   - target value:
+     - `noeviction`
+2. if the active plan supports the change:
+   - update the provider-side policy to `noeviction`
+   - wait for the provider to apply the change
+3. if the active plan does not support `noeviction`:
+   - create a new managed Redis database or move to a plan/provider that supports `noeviction`
+   - update both:
+     - hosted runtime `REDIS_URL`
+     - release-evidence `RELEASE_EVIDENCE_MANAGED_REDIS_URL`
+4. rerun managed Redis proof:
+
+```powershell
+cd "D:\Project 3\backend-sentify"
+node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json
+```
+
+Success target:
+
+- `safeForBullMq = true`
+- `evictionPolicyStatus = PASSED`
+- effective policy is reported as `noeviction`
+
+5. only after Redis proof is green, enforce runtime durability:
+   - set `REVIEW_CRAWL_REQUIRE_SAFE_REDIS=true`
+   - redeploy hosted runtime
+6. rerun strict managed sign-off:
+
+```powershell
+cd "D:\Project 3\backend-sentify"
+node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json
+```
+
+Expected final state:
+
+- `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+- `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+- queue health no longer reports unsafe durability
+
+Latest successful rerun on `2026-03-31`:
+
+- `node scripts/managed-redis-proof.js --output load-reports/managed-redis-proof.latest.json`
+  - `maxmemory-policy = noeviction`
+  - `safeForBullMq = true`
+- `node scripts/release-evidence.js --source-mode existing --restaurant-slug demo-quan-pho-hong --require-managed-signoff --output load-reports/managed-release-evidence.latest.json`
+  - `overallStatus = COMPATIBILITY_PROOF_COMPLETE`
+  - `managedEnvProofStatus = MANAGED_SIGNOFF_COMPLETE`
+- `node scripts/operational-health-check.js --refresh --output load-reports/operational-health-check.current.json`
+  - `overallStatus = OPERATIONAL_HEALTH_COMPLETE`
+  - `redisDurability = PASS`
+  - `averageCaseRead = PASS`
+  - `strongerConcurrencyRead = PASS`
 
 ## 7. Provider-Managed DB Proof Drill Status
 

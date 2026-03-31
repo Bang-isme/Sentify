@@ -16,6 +16,7 @@ function runEnvProbe(overrides = {}) {
                     jwtSecretPrevious: env.JWT_SECRET_PREVIOUS ?? null,
                     authCookieDomain: env.AUTH_COOKIE_DOMAIN ?? null,
                     trustProxyValue: env.TRUST_PROXY_VALUE ?? null,
+                    reviewCrawlRequireSafeRedis: env.REVIEW_CRAWL_REQUIRE_SAFE_REDIS,
                     requestTimeoutMs: env.REQUEST_TIMEOUT_MS,
                     headersTimeoutMs: env.HEADERS_TIMEOUT_MS,
                     keepAliveTimeoutMs: env.KEEP_ALIVE_TIMEOUT_MS
@@ -103,4 +104,14 @@ test('env config rejects keep-alive timeouts that are higher than headers timeou
 
     assert.equal(result.status, 1)
     assert.match(result.stderr, /KEEP_ALIVE_TIMEOUT_MS must be lower than HEADERS_TIMEOUT_MS/)
+})
+
+test('env config parses REVIEW_CRAWL_REQUIRE_SAFE_REDIS as a boolean flag', () => {
+    const result = runEnvProbe({
+        REVIEW_CRAWL_REQUIRE_SAFE_REDIS: 'true',
+    })
+
+    assert.equal(result.status, 0)
+    const parsed = parseProbeJson(result.stdout)
+    assert.equal(parsed.reviewCrawlRequireSafeRedis, true)
 })

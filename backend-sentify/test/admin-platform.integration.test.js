@@ -516,6 +516,23 @@ test('admin platform endpoints expose health, policies, controls, and audit hist
         'HIGH',
     )
 
+    const controlsResponse = await request(server, 'GET', '/api/admin/platform/controls', {
+        token: auth,
+    })
+    assert.equal(controlsResponse.status, 200)
+    assert.equal(
+        controlsResponse.body.data.controls.crawlQueueWritesEnabled,
+        true,
+    )
+    assert.equal(
+        controlsResponse.body.data.controls.sourceSubmissionAutoBootstrapEnabled,
+        true,
+    )
+    assert.equal(
+        controlsResponse.body.data.controls.sourceSubmissionAutoBootstrapMaxPerTick,
+        20,
+    )
+
     const updateControlsResponse = await request(
         server,
         'PATCH',
@@ -606,6 +623,11 @@ test('admin platform endpoints stay hidden from non-admin users', async (t) => {
         token: auth,
     })
     assert.equal(response.status, 403)
+
+    const controlsResponse = await request(server, 'GET', '/api/admin/platform/controls', {
+        token: auth,
+    })
+    assert.equal(controlsResponse.status, 403)
 })
 
 test('admin platform release readiness falls back to managed-signoff preflight when no heavy bundle exists', async (t) => {
@@ -828,5 +850,54 @@ test('admin platform release readiness marks stale proof artifacts as stale inst
             'Managed release evidence artifact is stale',
         ),
         true,
+    )
+})
+
+test('admin platform health degrades queue status when Redis eviction policy is unsafe for BullMQ', async (t) => {
+    const { prismaOverrides } = createAdminPlatformPrismaOverrides()
+    const moduleOverrides = createReviewCrawlRuntimeModuleOverrides()
+    moduleOverrides['../src/modules/review-crawl/review-crawl.queue'] = {
+        getRedisConnection: () => null,
+        getReviewCrawlQueueHealth: async () => ({
+            configured: true,
+            counts: {
+                waiting: 0,
+                active: 0,
+                completed: 3,
+                failed: 0,
+                delayed: 0,
+            },
+            deployment: {
+                configured: true,
+                status: 'FAILED',
+                redisVersion: '8.4.0',
+                maxMemoryPolicy: 'volatile-lru',
+                minimumVersionStatus: 'PASS',
+                evictionPolicyStatus: 'FAILED',
+                safeForBullMq: false,
+                warnings: [
+                    'Redis maxmemory-policy is volatile-lru; BullMQ durability expects noeviction.',
+                ],
+            },
+        }),
+        isInlineQueueMode: () => false,
+    }
+
+    const { server } = await startApp(prismaOverrides, { moduleOverrides })
+
+    t.after(async () => {
+        await stopApp(server)
+    })
+
+    const auth = createTestToken({ userId: ADMIN_ID, tokenVersion: 0 })
+    const response = await request(server, 'GET', '/api/admin/platform/health-jobs', {
+        token: auth,
+    })
+
+    assert.equal(response.status, 200)
+    assert.equal(response.body.data.services.queue.status, 'DEGRADED')
+    assert.equal(
+        response.body.data.services.queue.deployment.evictionPolicyStatus,
+        'FAILED',
     )
 })

@@ -260,6 +260,18 @@ function buildManagedDbProofArtifact(artifactPath) {
     }
 }
 
+function resolveManagedRedisCheckStatus(runOk, detail) {
+    if (!detail) {
+        return runOk ? 'PASSED' : 'FAILED'
+    }
+
+    if (detail.result?.passed === false || detail.redis?.safeForBullMq === false) {
+        return 'FAILED'
+    }
+
+    return runOk ? 'PASSED' : 'FAILED'
+}
+
 function buildManagedSignoffAssessment({
     compatibilityStatus,
     managedRedisTarget,
@@ -416,18 +428,18 @@ async function main() {
     }
 
     const managedRedisRun = runNodeScript('managed-redis-proof.js', managedRedisArgs)
+    const managedRedisDetail = fs.existsSync(path.resolve(redisOutputPath))
+        ? readJsonFile(path.resolve(redisOutputPath))
+        : null
     checks.push({
         key: 'managedRedis',
         label: 'Managed Redis BullMQ proof',
         required: true,
-        status: managedRedisRun.ok ? 'PASSED' : 'FAILED',
+        status: resolveManagedRedisCheckStatus(managedRedisRun.ok, managedRedisDetail),
         artifactFileName: path.basename(redisOutputPath),
         stdout: managedRedisRun.stdout.trim(),
         stderr: managedRedisRun.stderr.trim(),
-        detail:
-            managedRedisRun.ok && fs.existsSync(path.resolve(redisOutputPath))
-                ? readJsonFile(path.resolve(redisOutputPath))
-                : null,
+        detail: managedRedisDetail,
     })
 
     const stagingRecoveryArgs = [
@@ -755,4 +767,5 @@ module.exports = {
     buildCompatibilityStatus,
     buildManagedSignoffAssessment,
     parseUrlTarget,
+    resolveManagedRedisCheckStatus,
 }
