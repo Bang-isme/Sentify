@@ -230,6 +230,25 @@ function getOnboardingVisualCopy(language: string) {
         'Giữ đúng tên hiển thị và URL Google Maps sẽ giúp hệ thống đồng bộ ổn định hơn ở các lần nhập tiếp theo.',
       backLabel: 'Quay lại',
       trustedProvider: 'Verified Business Provider',
+      previewModeLabel: 'Chế độ xem trước',
+      previewSettingsHint:
+        'Sau khi tạo nhà hàng, bạn sẽ thêm URL Google Maps tại đây để hệ thống có thể chạy lần nhập đầu tiên.',
+      previewReviewsHint:
+        'Sau lần nhập đầu tiên, các review gốc sẽ xuất hiện ở đây như bằng chứng cho quyết định vận hành tiếp theo.',
+      previewReviews: [
+        {
+          author: 'Linh P.',
+          timing: '2 ngày trước',
+          excerpt: 'Món ăn đẹp và chỉn chu, nhưng nhịp phục vụ chậm lại rõ rệt sau 8 giờ tối.',
+          rating: 4,
+        },
+        {
+          author: 'Minh T.',
+          timing: '5 ngày trước',
+          excerpt: 'Không gian rất tốt, nhưng món thứ hai lên hơi chậm so với kỳ vọng.',
+          rating: 3,
+        },
+      ],
     }
   }
 
@@ -246,6 +265,25 @@ function getOnboardingVisualCopy(language: string) {
         '表示名と Google Maps URL を揃えておくと、次回以降の取り込みがより安定します。',
       backLabel: '戻る',
       trustedProvider: 'Verified Business Provider',
+      previewModeLabel: 'プレビューモード',
+      previewSettingsHint:
+        '店舗作成後、この画面で Google Maps のURLを追加すると最初の取り込みを実行できるようになります。',
+      previewReviewsHint:
+        '最初の取り込み後、原文レビューがここに並び、次の運営判断の根拠として使われます。',
+      previewReviews: [
+        {
+          author: 'Aiko S.',
+          timing: '2日前',
+          excerpt: '盛り付けは素晴らしかったですが、20時以降はサービスのテンポが落ちました。',
+          rating: 4,
+        },
+        {
+          author: 'Kenji M.',
+          timing: '5日前',
+          excerpt: '空間は良かったものの、2品目の提供が想定より少し遅く感じました。',
+          rating: 3,
+        },
+      ],
     }
   }
 
@@ -261,7 +299,53 @@ function getOnboardingVisualCopy(language: string) {
       'Matching the restaurant display name and Google Maps URL keeps imports more stable over time.',
     backLabel: 'Back',
     trustedProvider: 'Verified Business Provider',
+    previewModeLabel: 'Preview mode',
+    previewSettingsHint:
+      'After the restaurant is created, this is where the Google Maps URL is added so the first import can run.',
+    previewReviewsHint:
+      'After the first import, original reviews appear here as evidence for the next operating decision.',
+    previewReviews: [
+      {
+        author: 'Linh P.',
+        timing: '2 days ago',
+        excerpt: 'Beautiful plating and strong flavors, but service pacing slowed down after 8pm.',
+        rating: 4,
+      },
+      {
+        author: 'Minh T.',
+        timing: '5 days ago',
+        excerpt: 'Loved the ambience, though the second course arrived slower than expected.',
+        rating: 3,
+      },
+    ],
   }
+}
+
+function getOnboardingPreviewIndex(route: ProductWorkspaceProps['route']) {
+  if (route === '/app/settings') {
+    return 1
+  }
+
+  if (route === '/app/reviews') {
+    return 2
+  }
+
+  return 0
+}
+
+function getOnboardingStepState(
+  index: number,
+  activeStepIndex: number,
+): 'active' | 'done' | 'pending' {
+  if (index === activeStepIndex) {
+    return 'active'
+  }
+
+  if (index < activeStepIndex) {
+    return 'done'
+  }
+
+  return 'pending'
 }
 
 function getReviewToneClasses(sentiment: SentimentBreakdownRow['label'] | null, rating: number) {
@@ -1777,11 +1861,13 @@ function RestaurantSwitcher({
 }
 
 function OnboardingPanel({
+  route,
   copy,
   createPending,
   onBack,
   onCreateRestaurant,
 }: {
+  route: ProductWorkspaceProps['route']
   copy: ProductUiCopy['app']
   createPending: boolean
   onBack: () => void
@@ -1789,6 +1875,19 @@ function OnboardingPanel({
 }) {
   const { language } = useLanguage()
   const visualCopy = getOnboardingVisualCopy(language)
+  const activeStepIndex = getOnboardingPreviewIndex(route)
+  const previewTitle =
+    route === '/app/settings'
+      ? copy.settingsSourceTitle
+      : route === '/app/reviews'
+        ? copy.reviewsTitle
+        : copy.onboardingTitle
+  const previewDescription =
+    route === '/app/settings'
+      ? copy.settingsSourceDescription
+      : route === '/app/reviews'
+        ? copy.reviewsDescription
+        : copy.onboardingDescription
 
   return (
     <section className="relative isolate overflow-hidden">
@@ -1805,14 +1904,14 @@ function OnboardingPanel({
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-[1320px] flex-col items-center px-4 pb-10 pt-28 sm:px-6 sm:pb-12 sm:pt-32 lg:px-10 lg:pb-14 lg:pt-36">
         <div className="w-full max-w-[720px] text-center text-white">
-          <div className="font-serif text-[1.5rem] font-semibold italic tracking-[-0.03em] text-white/94 sm:text-[1.8rem]">
+          <div className="font-serif text-[1.85rem] font-semibold italic tracking-[-0.03em] text-white/94 sm:text-[2.2rem]">
             Sentify
           </div>
           <h1 className="mt-5 font-serif text-[2.45rem] font-semibold tracking-[-0.06em] text-white sm:text-[3.35rem] lg:text-[4.6rem] lg:leading-[0.93]">
-            {copy.onboardingTitle}
+            {previewTitle}
           </h1>
           <p className="mx-auto mt-4 max-w-[38rem] text-[0.98rem] leading-7 text-white/80 sm:text-[1.04rem]">
-            {copy.onboardingDescription}
+            {previewDescription}
           </p>
         </div>
 
@@ -1827,15 +1926,15 @@ function OnboardingPanel({
                   <span
                     aria-hidden="true"
                     className={`absolute left-[calc(50%+1.55rem)] right-[calc(-50%+1.55rem)] top-5 h-px ${
-                      index === 0 ? 'bg-primary/75' : 'bg-white/24'
+                      index < activeStepIndex ? 'bg-primary/75' : 'bg-white/24'
                     }`}
                   />
                 ) : null}
                 <span
                   className={`flex size-10 items-center justify-center rounded-full border shadow-[0_12px_24px_-18px_rgba(0,0,0,0.55)] backdrop-blur ${
-                    index === 0
+                    getOnboardingStepState(index, activeStepIndex) === 'active'
                       ? 'border-primary/24 bg-primary text-white'
-                      : index === 1
+                      : getOnboardingStepState(index, activeStepIndex) === 'done'
                         ? 'border-[#f3d1ae]/34 bg-[#fff4e8] text-primary'
                         : 'border-white/24 bg-white/10 text-white/58'
                   }`}
@@ -1846,7 +1945,9 @@ function OnboardingPanel({
                 </span>
                 <p
                   className={`max-w-[12rem] text-center text-[0.8rem] font-semibold leading-6 ${
-                    index === 2 ? 'text-white/56' : 'text-white/86'
+                    getOnboardingStepState(index, activeStepIndex) === 'pending'
+                      ? 'text-white/56'
+                      : 'text-white/86'
                   }`}
                 >
                   {step}
@@ -1864,9 +1965,9 @@ function OnboardingPanel({
           >
             <span
               className={`flex size-10 shrink-0 items-center justify-center rounded-full border ${
-                index === 0
+                getOnboardingStepState(index, activeStepIndex) === 'active'
                   ? 'border-primary/24 bg-primary text-white'
-                  : index === 1
+                  : getOnboardingStepState(index, activeStepIndex) === 'done'
                     ? 'border-[#f3d1ae]/34 bg-[#fff4e8] text-primary'
                     : 'border-white/24 bg-white/10 text-white/58'
               }`}
@@ -1875,14 +1976,21 @@ function OnboardingPanel({
                 {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
               </span>
             </span>
-            <p className={`text-sm font-semibold ${index === 2 ? 'text-white/56' : 'text-white/88'}`}>
+            <p
+              className={`text-sm font-semibold ${
+                getOnboardingStepState(index, activeStepIndex) === 'pending'
+                  ? 'text-white/56'
+                  : 'text-white/88'
+              }`}
+            >
               {step}
             </p>
           </article>
         ))}
         </div>
 
-        <div className="mt-10 w-full max-w-[680px]">
+        {route === '/app' ? (
+          <div className="mt-10 w-full max-w-[680px]">
             <RestaurantSetupForm
               copy={copy}
               pending={createPending}
@@ -1893,7 +2001,12 @@ function OnboardingPanel({
               onSecondaryAction={onBack}
               onSubmit={onCreateRestaurant}
             />
-        </div>
+          </div>
+        ) : route === '/app/settings' ? (
+          <OnboardingSourcePreview copy={copy} visualCopy={visualCopy} />
+        ) : (
+          <OnboardingReviewsPreview copy={copy} visualCopy={visualCopy} />
+        )}
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-5 px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-white/56">
           <span>{visualCopy.trustedProvider}</span>
@@ -1904,6 +2017,120 @@ function OnboardingPanel({
         </div>
       </div>
     </section>
+  )
+}
+
+function OnboardingSourcePreview({
+  copy,
+  visualCopy,
+}: {
+  copy: ProductUiCopy['app']
+  visualCopy: ReturnType<typeof getOnboardingVisualCopy>
+}) {
+  return (
+    <div className="mt-10 w-full max-w-[960px]">
+      <SectionCard
+        title={copy.settingsSourceTitle}
+        description={copy.settingsSourceDescription}
+        tone="accent"
+        className="bg-[rgba(255,251,245,0.92)] dark:bg-[rgba(28,18,13,0.78)]"
+        headerAside={
+          <span className="inline-flex items-center rounded-full border border-primary/18 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+            {visualCopy.previewModeLabel}
+          </span>
+        }
+      >
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+          <div className="rounded-[1.45rem] border border-border-light/70 bg-surface-white/86 p-5 dark:border-border-dark dark:bg-surface-dark/72">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+              {copy.googleMapsUrlLabel}
+            </div>
+            <div className="mt-3 flex min-h-[3.4rem] items-center gap-3 rounded-[1rem] border border-border-light/70 bg-bg-light/80 px-4 text-sm font-semibold text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
+              <span className="material-symbols-outlined text-[18px] text-primary">link</span>
+              <span>{copy.googleMapsUrlPlaceholder}</span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+              {visualCopy.previewSettingsHint}
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            <SidebarStatusPill icon="warning" label={copy.sourceMissing} tone="warning" />
+            <SidebarStatusPill icon="tune" label={copy.importBlocked} tone="warning" />
+            <div className="rounded-[1.35rem] border border-dashed border-border-light/80 bg-bg-light/60 p-4 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/45 dark:text-text-silver-dark">
+              {visualCopy.googleMapsHint}
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+    </div>
+  )
+}
+
+function OnboardingReviewsPreview({
+  copy,
+  visualCopy,
+}: {
+  copy: ProductUiCopy['app']
+  visualCopy: ReturnType<typeof getOnboardingVisualCopy>
+}) {
+  return (
+    <div className="mt-10 grid w-full max-w-[1040px] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <SectionCard
+        title={copy.syncStatusTitle}
+        description={copy.syncStatusDescription}
+        tone="accent"
+        className="bg-[rgba(255,251,245,0.92)] dark:bg-[rgba(28,18,13,0.78)]"
+        headerAside={
+          <span className="inline-flex items-center rounded-full border border-primary/18 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+            {visualCopy.previewModeLabel}
+          </span>
+        }
+      >
+        <div className="grid gap-3">
+          <SidebarStatusPill icon="task_alt" label={copy.sourceReady} tone="success" />
+          <SidebarStatusPill icon="sync" label={copy.importReady} tone="success" />
+          <StatusMessage>{visualCopy.previewReviewsHint}</StatusMessage>
+          <button
+            type="button"
+            disabled
+            className="inline-flex h-11 items-center justify-center rounded-full bg-primary/85 px-5 text-sm font-bold text-white opacity-80 dark:text-bg-dark"
+          >
+            {copy.dashboardPrimaryCta}
+          </button>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title={copy.reviewsTitle}
+        description={copy.reviewsDescription}
+        className="bg-[rgba(255,253,249,0.92)] dark:bg-[rgba(23,17,14,0.82)]"
+      >
+        <div className="grid gap-3">
+          {visualCopy.previewReviews.map((review) => (
+            <article
+              key={`${review.author}-${review.timing}`}
+              className="rounded-[1.35rem] border border-border-light/70 bg-bg-light/72 p-4 dark:border-border-dark dark:bg-bg-dark/55"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
+                  {review.rating}/5
+                </span>
+                <span className="text-sm font-semibold text-text-charcoal dark:text-white">
+                  {review.author}
+                </span>
+                <span className="text-xs text-text-silver-light dark:text-text-silver-dark">
+                  {review.timing}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+                {review.excerpt}
+              </p>
+            </article>
+          ))}
+        </div>
+      </SectionCard>
+    </div>
   )
 }
 
@@ -3066,6 +3293,7 @@ export function ProductWorkspace({
           </div>
         ) : null}
         <OnboardingPanel
+          route={route}
           copy={copy}
           createPending={createPending}
           onBack={() => {

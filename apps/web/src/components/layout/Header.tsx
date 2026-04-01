@@ -229,6 +229,11 @@ export function Header({
         : useLandingChrome
           ? 'size-[1.9rem] text-[11px] leading-none tracking-[-0.01em]'
           : 'size-7 text-xs leading-none tracking-[-0.01em]'
+  const headerTypographyStyle = { fontFamily: '"Work Sans", system-ui, sans-serif' } as const
+  const headerBrandTextClass = 'text-[1.22rem] font-bold tracking-[-0.02em]'
+  const headerNavTextClass = 'text-[0.82rem] font-semibold leading-tight'
+  const headerLogoShellClass = 'size-7.5 rounded-[0.9rem]'
+  const headerLogoGlyphClass = 'text-[17px]'
 
   const shellClassName = useLandingChrome
     ? `pointer-events-auto relative grid w-full max-w-[1820px] ${
@@ -278,37 +283,29 @@ export function Header({
           <div
             className={`flex items-center justify-center rounded-full transition-all duration-300 ${
               useLandingChrome
-                ? `${marketingShellCompact ? 'size-7 rounded-[0.85rem]' : 'size-7.5 rounded-[0.9rem]'} bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.65)] group-hover:scale-105 dark:bg-gradient-to-br dark:from-[#f29a40] dark:to-[#d96f1d] dark:text-[#1b120c]`
-                : 'size-9 border border-primary/25 bg-primary/8 text-primary group-hover:rotate-180'
+                ? `${headerLogoShellClass} bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.65)] group-hover:scale-105 dark:bg-gradient-to-br dark:from-[#f29a40] dark:to-[#d96f1d] dark:text-[#1b120c]`
+                : `${headerLogoShellClass} bg-[#ff8c00] text-white shadow-[0_10px_24px_-14px_rgba(255,140,0,0.55)] group-hover:scale-105 dark:bg-gradient-to-br dark:from-[#f29a40] dark:to-[#d96f1d] dark:text-[#1b120c]`
             }`}
           >
-            {useLandingChrome ? (
-              <span
-                className={`material-symbols-outlined font-bold transition-all duration-300 ${
-                  marketingShellCompact ? 'text-[16px]' : 'text-[17px]'
-                }`}
-              >
-                bolt
-              </span>
-            ) : (
-              <span className="material-symbols-outlined text-[20px]">token</span>
-            )}
+            <span
+              className={`material-symbols-outlined font-bold transition-all duration-300 ${headerLogoGlyphClass}`}
+            >
+              bolt
+            </span>
           </div>
           <span
             className={`hidden tracking-tight sm:block ${
               useLandingChrome
-                ? `${isOnboardingAppRoute ? 'text-[1.22rem]' : marketingShellCompact ? 'text-[0.88rem] md:text-[0.9rem]' : 'text-[0.98rem]'} ${
-                    isOnboardingAppRoute ? 'font-bold' : 'font-bold'
-                  } ${
+                ? `${headerBrandTextClass} ${
                     isAuthRoute
                       ? authHeaderLeftTextClass
                       : useImmersiveOnboardingChrome
                         ? 'text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.48)]'
                         : 'text-[#1a1a1a] dark:text-[#fff7ef]'
                   } transition-all duration-300`
-                : 'text-lg font-bold text-text-charcoal dark:text-white'
+                : `${headerBrandTextClass} text-text-charcoal dark:text-white`
             }`}
-            style={useLandingChrome ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
+            style={headerTypographyStyle}
           >
             {copy.header.brand}
           </span>
@@ -338,12 +335,12 @@ export function Header({
                   <button
                     key={item.id}
                     type="button"
-                    className={`inline-flex items-center justify-center text-[0.82rem] font-semibold transition-all duration-300 ${
+                    className={`inline-flex items-center justify-center ${headerNavTextClass} transition-all duration-300 ${
                       isActive
                         ? 'text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.48)]'
                         : 'text-white/68 hover:text-[#ffd6ad]'
                     }`}
-                    style={{ fontFamily: '"Work Sans", system-ui, sans-serif' }}
+                    style={headerTypographyStyle}
                     onClick={() => onNavigate(item.route)}
                   >
                     {item.label}
@@ -351,7 +348,10 @@ export function Header({
                 )
               })
             ) : currentViewLabel ? (
-              <div className="inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
+              <div
+                className={`inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 ${headerNavTextClass} tracking-[0.02em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark`}
+                style={headerTypographyStyle}
+              >
                 <span className="size-2 rounded-full bg-primary"></span>
                 <span>{currentViewLabel}</span>
               </div>
@@ -363,14 +363,14 @@ export function Header({
                 type="button"
                 className={`inline-flex items-center justify-center ${
                   useLandingChrome
-                    ? `${marketingShellCompact ? 'text-[0.8rem] md:text-[0.83rem]' : 'text-[0.86rem]'} leading-tight tracking-normal font-bold ${
+                    ? `${headerNavTextClass} tracking-normal ${
                         isAuthRoute
                           ? `${authHeaderLeftTextClass} hover:text-[#ffb15c]`
                           : 'text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#e7d4c0] dark:hover:text-[#f29a40]'
                       } transition-all duration-300`
-                    : 'h-10 rounded-full px-4 text-xs font-bold uppercase tracking-[0.16em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary'
+                    : `h-10 rounded-full px-4 ${headerNavTextClass} tracking-[0.02em] text-text-silver-light transition hover:text-primary-dark dark:text-text-silver-dark dark:hover:text-primary`
                 }`}
-                style={useLandingChrome ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
+                style={headerTypographyStyle}
                 onClick={() => onScrollToSection(item.sectionId)}
               >
                 {item.label}
@@ -421,18 +421,18 @@ export function Header({
               aria-label={copy.header.languageLabel}
               aria-haspopup="menu"
               aria-expanded={isLanguageMenuOpen}
-              className={`flex items-center rounded-full px-3 text-xs font-bold transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+              className={`flex items-center rounded-full px-3 transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 useLandingChrome
-                  ? `${marketingShellCompact ? 'h-[1.8rem] gap-1 text-[0.72rem] md:text-[0.75rem]' : 'h-[1.95rem] gap-1 text-[0.78rem]'} leading-tight rounded-none border-0 bg-transparent px-0 font-bold ${
+                  ? `${marketingShellCompact ? 'h-[1.8rem] gap-1' : 'h-[1.95rem] gap-1'} ${headerNavTextClass} rounded-none border-0 bg-transparent px-0 ${
                       isAuthRoute
                         ? `${authHeaderRightTextClass} hover:text-[#ff8c00]`
                         : useImmersiveOnboardingChrome
                           ? 'text-[#f6e5d1] hover:text-white'
                         : 'text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]'
                     }`
-                  : 'h-9 gap-2 border border-border-light text-text-charcoal hover:border-primary/40 hover:text-primary dark:border-border-dark dark:text-white'
+                  : `h-9 gap-2 border border-border-light ${headerNavTextClass} text-text-charcoal hover:border-primary/40 hover:text-primary dark:border-border-dark dark:text-white`
               }`}
-              style={useLandingChrome ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
+              style={headerTypographyStyle}
             >
               {useLandingChrome ? (
                 <span
@@ -481,7 +481,7 @@ export function Header({
                         ? 'bg-primary/10 font-bold text-primary'
                         : 'text-text-silver-light hover:bg-black/5 hover:text-text-charcoal dark:text-text-silver-dark dark:hover:bg-white/5 dark:hover:text-white'
                     }`}
-                    style={{ fontFamily: '"Work Sans", system-ui, sans-serif' }}
+                    style={headerTypographyStyle}
                   >
                     <span>{option.label}</span>
                     {isActive ? (
@@ -596,28 +596,28 @@ export function Header({
             <>
               <button
                 type="button"
-                className={`${isAuthRoute ? 'inline-flex' : 'hidden sm:inline-flex'} items-center justify-center rounded-full px-2 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                className={`${isAuthRoute ? 'inline-flex' : 'hidden sm:inline-flex'} items-center justify-center rounded-full px-2 transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   useLandingChrome
-                    ? `${marketingShellCompact ? 'h-[1.8rem] text-[0.72rem] md:text-[0.75rem]' : 'h-[1.95rem] text-[0.78rem]'} leading-tight rounded-none px-0 font-bold ${
+                    ? `${marketingShellCompact ? 'h-[1.8rem]' : 'h-[1.95rem]'} ${headerNavTextClass} rounded-none px-0 ${
                         isAuthRoute
                           ? `${authHeaderRightTextClass} hover:text-[#ff8c00]`
                           : 'text-[#1a1a1a] hover:text-[#ff8c00] dark:text-[#f1dfca] dark:hover:text-[#f29a40]'
                       }`
-                    : 'h-9 text-text-charcoal hover:text-primary-dark dark:text-white dark:hover:text-primary'
+                    : `h-9 ${headerNavTextClass} text-text-charcoal hover:text-primary-dark dark:text-white dark:hover:text-primary`
                 }`}
-                style={useLandingChrome ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
+                style={headerTypographyStyle}
                 onClick={() => onNavigate('/login')}
               >
                 {productCopy.header.login}
               </button>
               <button
                 type="button"
-                className={`flex shrink-0 items-center justify-center whitespace-nowrap rounded-full px-4 text-xs font-bold transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                className={`flex shrink-0 items-center justify-center whitespace-nowrap rounded-full px-4 transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   useLandingChrome
-                    ? `${marketingShellCompact ? 'h-[1.9rem] min-w-[6.4rem] px-3.5 text-[0.72rem] md:text-[0.75rem] shadow-[0_10px_24px_-16px_rgba(255,140,0,0.35)]' : 'h-[2.05rem] min-w-[6.7rem] px-3.75 text-[0.78rem] shadow-[0_12px_28px_-18px_rgba(255,140,0,0.4)]'} leading-tight bg-[#ff8c00] font-bold text-white hover:bg-[#e67e00] dark:bg-[#f29a40] dark:text-[#1b120c] dark:shadow-[0_14px_30px_-18px_rgba(242,154,64,0.35)] dark:hover:bg-[#ffad57]`
-                    : 'h-9 bg-primary text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] dark:text-bg-dark dark:hover:bg-yellow-400'
+                    ? `${marketingShellCompact ? 'h-[1.9rem] min-w-[6.4rem] px-3.5 shadow-[0_10px_24px_-16px_rgba(255,140,0,0.35)]' : 'h-[2.05rem] min-w-[6.7rem] px-3.75 shadow-[0_12px_28px_-18px_rgba(255,140,0,0.4)]'} ${headerNavTextClass} bg-[#ff8c00] text-white hover:bg-[#e67e00] dark:bg-[#f29a40] dark:text-[#1b120c] dark:shadow-[0_14px_30px_-18px_rgba(242,154,64,0.35)] dark:hover:bg-[#ffad57]`
+                    : `h-9 ${headerNavTextClass} bg-primary text-white shadow-[0_4px_14px_rgba(212,175,55,0.4)] hover:bg-primary-dark hover:shadow-[0_6px_20px_rgba(212,175,55,0.6)] dark:text-bg-dark dark:hover:bg-yellow-400`
                 }`}
-                style={useLandingChrome ? { fontFamily: '"Work Sans", system-ui, sans-serif' } : undefined}
+                style={headerTypographyStyle}
                 onClick={() => onNavigate('/signup')}
               >
                 {productCopy.header.signup}

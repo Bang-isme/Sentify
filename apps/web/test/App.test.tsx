@@ -341,6 +341,33 @@ describe('Sentify app shell', () => {
     expect(screen.queryByText('Current restaurant')).not.toBeInTheDocument()
   })
 
+  it('switches onboarding previews from the header nav when no restaurants exist', async () => {
+    mockAuthenticatedSession({ restaurants: [] })
+    listRestaurantsMock.mockResolvedValue([])
+    window.location.hash = '#/app'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Connect your first restaurant' }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Review source' })).toBeInTheDocument()
+    expect(window.location.hash).toBe('#/app/settings')
+
+    await user.click(screen.getByRole('button', { name: 'Reviews' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Original reviews' })).toBeInTheDocument()
+    expect(window.location.hash).toBe('#/app/reviews')
+
+    await user.click(screen.getByRole('button', { name: 'Dashboard' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Connect your first restaurant' }),
+    ).toBeInTheDocument()
+    expect(window.location.hash).toBe('#/app')
+  })
+
   it('shows the import launch screen before the first review sync', async () => {
     const membership = createMembership({ totalReviews: 0 })
     const emptyInsight: InsightSummary = {
@@ -599,6 +626,19 @@ describe('Sentify app shell', () => {
     mockAuthenticatedSession({ restaurants: [createMembership()] })
     window.location.hash = '#/app/reviews'
     const user = userEvent.setup()
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+    const currentDate = new Date()
+    const laterDateLabel = formatter.format(
+      new Date(currentDate.getFullYear(), currentDate.getMonth(), 7),
+    )
+    const earlierDateLabel = formatter.format(
+      new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+    )
 
     render(<App />)
 
@@ -606,9 +646,9 @@ describe('Sentify app shell', () => {
 
     listReviewEvidenceMock.mockClear()
     await user.click(screen.getByRole('button', { name: 'From' }))
-    await user.click(screen.getByRole('button', { name: /march 7, 2026/i }))
+    await user.click(screen.getByRole('button', { name: laterDateLabel }))
     await user.click(screen.getByRole('button', { name: 'To' }))
-    await user.click(screen.getByRole('button', { name: /march 1, 2026/i }))
+    await user.click(screen.getByRole('button', { name: earlierDateLabel }))
     await user.click(screen.getByRole('button', { name: 'Apply filters' }))
 
     expect(listReviewEvidenceMock).not.toHaveBeenCalled()
