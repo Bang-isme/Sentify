@@ -23,6 +23,7 @@ interface HeaderAccountIdentity {
 interface HeaderProps {
   route: HeaderRoute
   isAuthenticated: boolean
+  isGuidedOnboardingFlow?: boolean
   user?: HeaderAccountIdentity | null
   onNavigate: (route: HeaderRoute) => void
   onScrollToSection: (sectionId: string) => void
@@ -36,6 +37,7 @@ function MenuDivider() {
 export function Header({
   route,
   isAuthenticated,
+  isGuidedOnboardingFlow = false,
   user = null,
   onNavigate,
   onScrollToSection,
@@ -54,7 +56,7 @@ export function Header({
     LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
   const isAppRoute = route.startsWith('/app')
   const isLandingRoute = route === '/'
-  const isOnboardingAppRoute = isAppRoute && isAuthenticated && (user?.restaurantCount ?? 0) === 0
+  const isOnboardingAppRoute = isAppRoute && isAuthenticated && isGuidedOnboardingFlow
   const isAuthRoute =
     route === '/login' || route === '/signup' || route === '/forgot-password'
   const useLandingChrome = !isAppRoute || isOnboardingAppRoute
@@ -70,12 +72,6 @@ export function Header({
         : route === '/app/settings'
           ? productCopy.header.settings
           : null
-  const onboardingAppLinks = [
-    { id: 'dashboard', label: productCopy.header.dashboard, route: '/app' as const },
-    { id: 'settings', label: productCopy.header.settings, route: '/app/settings' as const },
-    { id: 'reviews', label: productCopy.header.reviews, route: '/app/reviews' as const },
-  ]
-
   useEffect(() => {
     if (!isLanguageMenuOpen && !isAccountMenuOpen) {
       return undefined
@@ -327,27 +323,7 @@ export function Header({
           }
         >
           {isAppRoute && isAuthenticated ? (
-            isOnboardingAppRoute ? (
-              onboardingAppLinks.map((item) => {
-                const isActive = route === item.route
-
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`inline-flex items-center justify-center ${headerNavTextClass} transition-all duration-300 ${
-                      isActive
-                        ? 'text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.48)]'
-                        : 'text-white/68 hover:text-[#ffd6ad]'
-                    }`}
-                    style={headerTypographyStyle}
-                    onClick={() => onNavigate(item.route)}
-                  >
-                    {item.label}
-                  </button>
-                )
-              })
-            ) : currentViewLabel ? (
+            isOnboardingAppRoute ? null : currentViewLabel ? (
               <div
                 className={`inline-flex h-10 items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-4 ${headerNavTextClass} tracking-[0.02em] text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark`}
                 style={headerTypographyStyle}

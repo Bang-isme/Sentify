@@ -25,6 +25,7 @@ import { useLanguage } from '../../contexts/languageContext'
 
 interface ProductWorkspaceProps {
   route: '/app' | '/app/reviews' | '/app/settings'
+  isGuidedOnboardingFlow: boolean
   copy: ProductUiCopy['app']
   restaurants: RestaurantMembership[]
   selectedRestaurantId: string | null
@@ -229,6 +230,7 @@ function getOnboardingVisualCopy(language: string) {
       tipBody:
         'Giữ đúng tên hiển thị và URL Google Maps sẽ giúp hệ thống đồng bộ ổn định hơn ở các lần nhập tiếp theo.',
       backLabel: 'Quay lại',
+      nextStepLabel: 'Bước tiếp theo',
       trustedProvider: 'Verified Business Provider',
       previewModeLabel: 'Chế độ xem trước',
       previewSettingsHint:
@@ -264,6 +266,7 @@ function getOnboardingVisualCopy(language: string) {
       tipBody:
         '表示名と Google Maps URL を揃えておくと、次回以降の取り込みがより安定します。',
       backLabel: '戻る',
+      nextStepLabel: '次のステップ',
       trustedProvider: 'Verified Business Provider',
       previewModeLabel: 'プレビューモード',
       previewSettingsHint:
@@ -298,6 +301,7 @@ function getOnboardingVisualCopy(language: string) {
     tipBody:
       'Matching the restaurant display name and Google Maps URL keeps imports more stable over time.',
     backLabel: 'Back',
+    nextStepLabel: 'Next step',
     trustedProvider: 'Verified Business Provider',
     previewModeLabel: 'Preview mode',
     previewSettingsHint:
@@ -321,16 +325,22 @@ function getOnboardingVisualCopy(language: string) {
   }
 }
 
-function getOnboardingPreviewIndex(route: ProductWorkspaceProps['route']) {
-  if (route === '/app/settings') {
+function getOnboardingPreviewIndex({
+  hasRestaurant,
+  hasSource,
+}: {
+  hasRestaurant: boolean
+  hasSource: boolean
+}) {
+  if (!hasRestaurant) {
+    return 0
+  }
+
+  if (!hasSource) {
     return 1
   }
 
-  if (route === '/app/reviews') {
-    return 2
-  }
-
-  return 0
+  return 2
 }
 
 function getOnboardingStepState(
@@ -1861,33 +1871,63 @@ function RestaurantSwitcher({
 }
 
 function OnboardingPanel({
-  route,
   copy,
+  restaurant,
+  detail,
   createPending,
+  savePending,
+  importPending,
+  latestImportRun,
+  importRunsLoading,
+  importRunsError,
   onBack,
   onCreateRestaurant,
+  onSaveRestaurant,
+  onImportReviews,
 }: {
-  route: ProductWorkspaceProps['route']
   copy: ProductUiCopy['app']
+  restaurant: RestaurantMembership | null
+  detail: RestaurantDetail | null
   createPending: boolean
+  savePending: boolean
+  importPending: boolean
+  latestImportRun: ImportRunSummary | null
+  importRunsLoading: boolean
+  importRunsError: string | null
   onBack: () => void
   onCreateRestaurant: (input: CreateRestaurantInput) => Promise<void>
+  onSaveRestaurant: (input: UpdateRestaurantInput) => Promise<void>
+  onImportReviews: () => Promise<void>
 }) {
   const { language } = useLanguage()
   const visualCopy = getOnboardingVisualCopy(language)
-  const activeStepIndex = getOnboardingPreviewIndex(route)
+  const hasRestaurant = Boolean(restaurant)
+  const hasSource = Boolean(detail?.googleMapUrl ?? restaurant?.googleMapUrl)
+  const [stepOverride, setStepOverride] = useState<number | null>(null)
+  const derivedStepIndex = getOnboardingPreviewIndex({ hasRestaurant, hasSource })
+  const activeStepIndex = stepOverride ?? derivedStepIndex
   const previewTitle =
-    route === '/app/settings'
+    activeStepIndex === 1
       ? copy.settingsSourceTitle
-      : route === '/app/reviews'
-        ? copy.reviewsTitle
+      : activeStepIndex === 2
+        ? copy.onboardingSteps[2] ?? copy.dashboardPrimaryCta
         : copy.onboardingTitle
   const previewDescription =
-    route === '/app/settings'
+    activeStepIndex === 1
       ? copy.settingsSourceDescription
-      : route === '/app/reviews'
-        ? copy.reviewsDescription
+      : activeStepIndex === 2
+        ? copy.syncStatusDescription
         : copy.onboardingDescription
+
+  useEffect(() => {
+    setStepOverride((current) => {
+      if (current == null) {
+        return current
+      }
+
+      return current > derivedStepIndex ? derivedStepIndex : current
+    })
+  }, [derivedStepIndex])
 
   return (
     <section className="relative isolate overflow-hidden">
@@ -1989,23 +2029,51 @@ function OnboardingPanel({
         ))}
         </div>
 
-        {route === '/app' ? (
+        {activeStepIndex === 0 ? (
           <div className="mt-10 w-full max-w-[680px]">
             <RestaurantSetupForm
               copy={copy}
               pending={createPending}
-              actionLabel={copy.createRestaurant}
+              actionLabel={visualCopy.nextStepLabel}
               title={copy.setupTitle}
               description={copy.setupDescription}
               variant="onboarding"
               onSecondaryAction={onBack}
-              onSubmit={onCreateRestaurant}
+              onSubmit={async (input) => {
+                setStepOverride(null)
+                await onCreateRestaurant(input)
+              }}
             />
           </div>
-        ) : route === '/app/settings' ? (
-          <OnboardingSourcePreview copy={copy} visualCopy={visualCopy} />
         ) : (
-          <OnboardingReviewsPreview copy={copy} visualCopy={visualCopy} />
+          <div className="mt-10 w-full max-w-[1040px]">
+            {activeStepIndex === 1 ? (
+              <OnboardingSourceSetupPanel
+                copy={copy}
+                visualCopy={visualCopy}
+                sourceValue={detail?.googleMapUrl ?? restaurant?.googleMapUrl ?? ''}
+                pending={savePending}
+                onSaveRestaurant={async (input) => {
+                  await onSaveRestaurant(input)
+                  setStepOverride(null)
+                }}
+              />
+            ) : (
+              <OnboardingImportStep
+                copy={copy}
+                visualCopy={visualCopy}
+                restaurant={restaurant}
+                detail={detail}
+                importPending={importPending}
+                latestImportRun={latestImportRun}
+                importRunsLoading={importRunsLoading}
+                importRunsError={importRunsError}
+                language={language}
+                onEditSource={() => setStepOverride(1)}
+                onImportReviews={onImportReviews}
+              />
+            )}
+          </div>
         )}
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-5 px-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-white/56">
@@ -2020,62 +2088,153 @@ function OnboardingPanel({
   )
 }
 
-function OnboardingSourcePreview({
+function OnboardingSourceSetupPanel({
   copy,
   visualCopy,
+  sourceValue,
+  pending,
+  onSaveRestaurant,
 }: {
   copy: ProductUiCopy['app']
   visualCopy: ReturnType<typeof getOnboardingVisualCopy>
+  sourceValue: string
+  pending: boolean
+  onSaveRestaurant: (input: UpdateRestaurantInput) => Promise<void>
 }) {
-  return (
-    <div className="mt-10 w-full max-w-[960px]">
-      <SectionCard
-        title={copy.settingsSourceTitle}
-        description={copy.settingsSourceDescription}
-        tone="accent"
-        className="bg-[rgba(255,251,245,0.92)] dark:bg-[rgba(28,18,13,0.78)]"
-        headerAside={
-          <span className="inline-flex items-center rounded-full border border-primary/18 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
-            {visualCopy.previewModeLabel}
-          </span>
-        }
-      >
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
-          <div className="rounded-[1.45rem] border border-border-light/70 bg-surface-white/86 p-5 dark:border-border-dark dark:bg-surface-dark/72">
-            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
-              {copy.googleMapsUrlLabel}
-            </div>
-            <div className="mt-3 flex min-h-[3.4rem] items-center gap-3 rounded-[1rem] border border-border-light/70 bg-bg-light/80 px-4 text-sm font-semibold text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark">
-              <span className="material-symbols-outlined text-[18px] text-primary">link</span>
-              <span>{copy.googleMapsUrlPlaceholder}</span>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
-              {visualCopy.previewSettingsHint}
-            </p>
-          </div>
+  const [googleMapUrl, setGoogleMapUrl] = useState(sourceValue)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
-          <div className="grid gap-3">
-            <SidebarStatusPill icon="warning" label={copy.sourceMissing} tone="warning" />
-            <SidebarStatusPill icon="tune" label={copy.importBlocked} tone="warning" />
-            <div className="rounded-[1.35rem] border border-dashed border-border-light/80 bg-bg-light/60 p-4 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/45 dark:text-text-silver-dark">
-              {visualCopy.googleMapsHint}
+  useEffect(() => {
+    setGoogleMapUrl(sourceValue)
+  }, [sourceValue])
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const trimmedGoogleMapUrl = normalizeText(googleMapUrl)
+
+    if (!trimmedGoogleMapUrl) {
+      setFieldErrors({ googleMapUrl: copy.validation.googleMapsUrlInvalid })
+      return
+    }
+
+    const sourceValidation = isGoogleMapsUrl(trimmedGoogleMapUrl)
+
+    if (!sourceValidation.valid) {
+      setFieldErrors({
+        googleMapUrl:
+          sourceValidation.reason === 'not_google'
+            ? copy.validation.googleMapsUrlMustBeGoogle
+            : copy.validation.googleMapsUrlInvalid,
+      })
+      return
+    }
+
+    setFieldErrors({})
+    await onSaveRestaurant({
+      googleMapUrl: trimmedGoogleMapUrl,
+    })
+  }
+
+  return (
+    <SectionCard
+      title={copy.settingsSourceTitle}
+      description={copy.settingsSourceDescription}
+      tone="accent"
+      className="bg-[rgba(255,251,245,0.92)] dark:bg-[rgba(28,18,13,0.78)]"
+      headerAside={
+        <span className="inline-flex items-center rounded-full border border-primary/18 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
+          {visualCopy.previewModeLabel}
+        </span>
+      }
+    >
+      <form className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]" onSubmit={handleSubmit}>
+        <div className="rounded-[1.45rem] border border-border-light/70 bg-surface-white/86 p-5 dark:border-border-dark dark:bg-surface-dark/72">
+          <label
+            htmlFor="onboarding-source-url"
+            className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
+          >
+            <span>{copy.googleMapsUrlLabel}</span>
+            <div className="relative">
+              <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[18px] text-primary">
+                link
+              </span>
+              <input
+                id="onboarding-source-url"
+                name="googleMapUrl"
+                value={googleMapUrl}
+                onChange={(event) => {
+                  setGoogleMapUrl(event.target.value)
+                  setFieldErrors((current) => ({ ...current, googleMapUrl: undefined }))
+                }}
+                aria-label={copy.googleMapsUrlLabel}
+                aria-invalid={fieldErrors.googleMapUrl ? 'true' : 'false'}
+                className="h-12 w-full rounded-2xl border border-border-light bg-surface-white px-4 pl-12 text-base outline-none transition focus:border-primary dark:border-border-dark dark:bg-surface-dark"
+                type="url"
+                placeholder={copy.googleMapsUrlPlaceholder}
+              />
             </div>
+            <FieldError message={fieldErrors.googleMapUrl} />
+          </label>
+          <p className="mt-3 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
+            {visualCopy.previewSettingsHint}
+          </p>
+          <div className="mt-4">
+            <button
+              type="submit"
+              disabled={pending}
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
+            >
+              {pending ? copy.saving : copy.saveChanges}
+            </button>
           </div>
         </div>
-      </SectionCard>
-    </div>
+
+        <div className="grid gap-3">
+          <SidebarStatusPill icon="warning" label={copy.sourceMissing} tone="warning" />
+          <SidebarStatusPill icon="tune" label={copy.importBlocked} tone="warning" />
+          <div className="rounded-[1.35rem] border border-dashed border-border-light/80 bg-bg-light/60 p-4 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/45 dark:text-text-silver-dark">
+            {visualCopy.googleMapsHint}
+          </div>
+        </div>
+      </form>
+    </SectionCard>
   )
 }
 
-function OnboardingReviewsPreview({
+function OnboardingImportStep({
   copy,
   visualCopy,
+  restaurant,
+  detail,
+  importPending,
+  latestImportRun,
+  importRunsLoading,
+  importRunsError,
+  language,
+  onEditSource,
+  onImportReviews,
 }: {
   copy: ProductUiCopy['app']
   visualCopy: ReturnType<typeof getOnboardingVisualCopy>
+  restaurant: RestaurantMembership | null
+  detail: RestaurantDetail | null
+  importPending: boolean
+  latestImportRun: ImportRunSummary | null
+  importRunsLoading: boolean
+  importRunsError: string | null
+  language: string
+  onEditSource: () => void
+  onImportReviews: () => Promise<void>
 }) {
+  const restaurantName = detail?.name ?? restaurant?.name ?? copy.anonymousGuest
+  const googleMapUrl = detail?.googleMapUrl ?? restaurant?.googleMapUrl ?? null
+  const hasSource = Boolean(googleMapUrl)
+  const isSyncInFlight =
+    importPending || latestImportRun?.status === 'QUEUED' || latestImportRun?.status === 'RUNNING'
+
   return (
-    <div className="mt-10 grid w-full max-w-[1040px] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+    <div className="grid w-full gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
       <SectionCard
         title={copy.syncStatusTitle}
         description={copy.syncStatusDescription}
@@ -2088,48 +2247,42 @@ function OnboardingReviewsPreview({
         }
       >
         <div className="grid gap-3">
+          <SidebarStatusPill icon="storefront" label={restaurantName} />
           <SidebarStatusPill icon="task_alt" label={copy.sourceReady} tone="success" />
-          <SidebarStatusPill icon="sync" label={copy.importReady} tone="success" />
-          <StatusMessage>{visualCopy.previewReviewsHint}</StatusMessage>
+          <SidebarStatusPill
+            icon={isSyncInFlight ? 'sync' : 'check_circle'}
+            label={isSyncInFlight ? copy.syncStatusRunning : copy.importReady}
+            tone={isSyncInFlight ? 'neutral' : 'success'}
+          />
+          <StatusMessage>{latestImportRun ? getImportRunMerchantSummary(copy, latestImportRun) : visualCopy.previewReviewsHint}</StatusMessage>
           <button
             type="button"
-            disabled
-            className="inline-flex h-11 items-center justify-center rounded-full bg-primary/85 px-5 text-sm font-bold text-white opacity-80 dark:text-bg-dark"
+            disabled={!hasSource || isSyncInFlight}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
+            onClick={() => {
+              void onImportReviews()
+            }}
           >
-            {copy.dashboardPrimaryCta}
+            {isSyncInFlight ? copy.importing : copy.dashboardPrimaryCta}
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-primary/24 bg-white/72 px-5 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/8 dark:border-primary/20 dark:bg-white/5"
+            onClick={onEditSource}
+          >
+            {copy.settingsSourceTitle}
           </button>
         </div>
       </SectionCard>
 
-      <SectionCard
-        title={copy.reviewsTitle}
-        description={copy.reviewsDescription}
-        className="bg-[rgba(255,253,249,0.92)] dark:bg-[rgba(23,17,14,0.82)]"
-      >
-        <div className="grid gap-3">
-          {visualCopy.previewReviews.map((review) => (
-            <article
-              key={`${review.author}-${review.timing}`}
-              className="rounded-[1.35rem] border border-border-light/70 bg-bg-light/72 p-4 dark:border-border-dark dark:bg-bg-dark/55"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
-                  {review.rating}/5
-                </span>
-                <span className="text-sm font-semibold text-text-charcoal dark:text-white">
-                  {review.author}
-                </span>
-                <span className="text-xs text-text-silver-light dark:text-text-silver-dark">
-                  {review.timing}
-                </span>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
-                {review.excerpt}
-              </p>
-            </article>
-          ))}
-        </div>
-      </SectionCard>
+      <ImportStatusSummary
+        copy={copy}
+        latestRun={latestImportRun}
+        loading={importRunsLoading}
+        error={importRunsError}
+        language={language}
+        onOpenSettings={onEditSource}
+      />
     </div>
   )
 }
@@ -3219,6 +3372,7 @@ function SettingsPanel({
 
 export function ProductWorkspace({
   route,
+  isGuidedOnboardingFlow,
   copy,
   restaurants,
   selectedRestaurantId,
@@ -3251,18 +3405,11 @@ export function ProductWorkspace({
   onImportReviews,
 }: ProductWorkspaceProps) {
   const { language } = useLanguage()
-  const hasRestaurants = restaurants.length > 0
   const currentRestaurant =
     restaurants.find((restaurant) => restaurant.id === selectedRestaurantId) ?? restaurants[0] ?? null
-  const totalReviews =
-    dashboard.kpi?.totalReviews ??
-    selectedRestaurantDetail?.insightSummary?.totalReviews ??
-    currentRestaurant?.totalReviews ??
-    0
   const hasSource = Boolean(selectedRestaurantDetail?.googleMapUrl ?? currentRestaurant?.googleMapUrl)
   const currentRestaurantAddress = selectedRestaurantDetail?.address?.trim()
   const hasMultipleRestaurants = restaurants.length > 1
-  const showImportLaunchScreen = hasRestaurants && route === '/app' && totalReviews === 0
   const navItems = [
     {
       routeId: '/app' as const,
@@ -3281,7 +3428,7 @@ export function ProductWorkspace({
     },
   ]
 
-  if (!hasRestaurants) {
+  if (isGuidedOnboardingFlow) {
     return (
       <main
         id="main-content"
@@ -3293,13 +3440,21 @@ export function ProductWorkspace({
           </div>
         ) : null}
         <OnboardingPanel
-          route={route}
           copy={copy}
+          restaurant={currentRestaurant}
+          detail={selectedRestaurantDetail}
           createPending={createPending}
+          savePending={savePending}
+          importPending={importPending}
+          latestImportRun={latestImportRun}
+          importRunsLoading={importRunsLoading}
+          importRunsError={importRunsError || dashboardError}
           onBack={() => {
             window.location.hash = '#/'
           }}
           onCreateRestaurant={onCreateRestaurant}
+          onSaveRestaurant={onSaveRestaurant}
+          onImportReviews={onImportReviews}
         />
       </main>
     )
@@ -3311,25 +3466,7 @@ export function ProductWorkspace({
       className="min-h-screen bg-bg-light pb-16 pt-24 dark:bg-bg-dark sm:pt-28"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 xl:px-10">
-        {showImportLaunchScreen ? (
-            <div className="grid gap-6">
-              {restaurantError ? <StatusMessage tone="error">{restaurantError}</StatusMessage> : null}
-              <ImportLaunchPanel
-                copy={copy}
-                restaurant={currentRestaurant}
-                detail={selectedRestaurantDetail}
-                loading={restaurantLoading || dashboardLoading}
-                importPending={importPending}
-                latestImportRun={latestImportRun}
-                importRunsLoading={importRunsLoading}
-                importRunsError={importRunsError || dashboardError}
-                language={language}
-                onImportReviews={onImportReviews}
-                onNavigate={onNavigate}
-              />
-            </div>
-          ) : (
-          <div className="grid gap-6 xl:grid-cols-[264px_minmax(0,1fr)]">
+        <div className="grid gap-6 xl:grid-cols-[264px_minmax(0,1fr)]">
             <aside className="hidden xl:grid xl:gap-4 xl:self-start xl:sticky xl:top-28">
               <section className="rounded-[1.75rem] border border-border-light/70 bg-surface-white/90 p-4 shadow-[0_18px_60px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-border-dark/70 dark:bg-surface-dark/84">
                 <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
@@ -3555,7 +3692,6 @@ export function ProductWorkspace({
               )}
             </section>
           </div>
-          )}
       </div>
     </main>
   )

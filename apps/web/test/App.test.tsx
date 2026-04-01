@@ -82,7 +82,10 @@ function createMembership(overrides: Partial<RestaurantMembership> = {}): Restau
     name: overrides.name ?? 'Cafe Aurora',
     slug: overrides.slug ?? 'cafe-aurora',
     permission: overrides.permission ?? 'OWNER',
-    googleMapUrl: overrides.googleMapUrl ?? 'https://maps.google.com/cafe-aurora',
+    googleMapUrl:
+      overrides.googleMapUrl === undefined
+        ? 'https://maps.google.com/cafe-aurora'
+        : overrides.googleMapUrl,
     totalReviews: overrides.totalReviews ?? 12,
   }
 }
@@ -341,31 +344,81 @@ describe('Sentify app shell', () => {
     expect(screen.queryByText('Current restaurant')).not.toBeInTheDocument()
   })
 
-  it('switches onboarding previews from the header nav when no restaurants exist', async () => {
+  it('hides the app nav and keeps onboarding focused when no restaurants exist', async () => {
     mockAuthenticatedSession({ restaurants: [] })
     listRestaurantsMock.mockResolvedValue([])
     window.location.hash = '#/app'
-    const user = userEvent.setup()
 
     render(<App />)
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Connect your first restaurant' }),
     ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Dashboard' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reviews' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next step' })).toBeInTheDocument()
+  })
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
+  it('advances the first-restaurant setup to the source step in the same onboarding shell', async () => {
+    const membership = createMembership({ googleMapUrl: null, totalReviews: 0 })
+    const emptyInsight: InsightSummary = {
+      totalReviews: 0,
+      averageRating: 0,
+      positivePercentage: 0,
+      neutralPercentage: 0,
+      negativePercentage: 0,
+    }
+
+    getSessionMock
+      .mockResolvedValueOnce({
+        user: {
+          id: 'user-1',
+          email: 'owner@sentify.test',
+          fullName: 'Casey Owner',
+          restaurants: [],
+        },
+      })
+      .mockResolvedValue({
+        user: {
+          id: 'user-1',
+          email: 'owner@sentify.test',
+          fullName: 'Casey Owner',
+          restaurants: [membership],
+        },
+      })
+    listRestaurantsMock.mockResolvedValueOnce([]).mockResolvedValue([membership])
+    createRestaurantMock.mockResolvedValue(membership)
+    getRestaurantDetailMock.mockResolvedValue(
+      createDetail(membership, {
+        googleMapUrl: null,
+        insightSummary: emptyInsight,
+      }),
+    )
+    getDashboardKpiMock.mockResolvedValue(emptyInsight)
+    getLatestImportRunMock.mockResolvedValue(null)
+    listImportRunsMock.mockResolvedValue([])
+    window.location.hash = '#/app'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    await user.type(await screen.findByLabelText('Restaurant name'), 'Cafe Aurora')
+    await user.click(screen.getByRole('button', { name: 'Next step' }))
+
+    await waitFor(() => {
+      expect(createRestaurantMock).toHaveBeenCalledWith({
+        name: 'Cafe Aurora',
+        address: undefined,
+        googleMapUrl: undefined,
+      })
+    })
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/app')
+    })
+
     expect(await screen.findByRole('heading', { level: 1, name: 'Review source' })).toBeInTheDocument()
-    expect(window.location.hash).toBe('#/app/settings')
-
-    await user.click(screen.getByRole('button', { name: 'Reviews' }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Original reviews' })).toBeInTheDocument()
-    expect(window.location.hash).toBe('#/app/reviews')
-
-    await user.click(screen.getByRole('button', { name: 'Dashboard' }))
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Connect your first restaurant' }),
-    ).toBeInTheDocument()
-    expect(window.location.hash).toBe('#/app')
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
   })
 
   it('shows the import launch screen before the first review sync', async () => {
@@ -400,7 +453,7 @@ describe('Sentify app shell', () => {
     expect(
       await screen.findByRole('heading', { name: 'Run the first import and inspect the signal.' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Sync status' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { name: 'Sync status' }).length).toBeGreaterThan(0)
     expect(screen.queryByText('Operational triage dashboard')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Import reviews' }))
@@ -483,7 +536,7 @@ describe('Sentify app shell', () => {
     expect(screen.queryByText('Restaurant setup')).not.toBeInTheDocument()
   })
 
-  it('guides the user to settings when the selected restaurant is missing a source URL', async () => {
+  it('keeps the source step active when the selected restaurant is missing a source URL', async () => {
     const membership = createMembership({ googleMapUrl: null, totalReviews: 0 })
     const emptyInsight: InsightSummary = {
       totalReviews: 0,
@@ -505,16 +558,141 @@ describe('Sentify app shell', () => {
     getLatestImportRunMock.mockResolvedValue(null)
     listImportRunsMock.mockResolvedValue([])
     window.location.hash = '#/app'
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Review source' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument()
+    expect(window.location.hash).toBe('#/app')
+  })
+
+  it('returns the onboarding flow to import launch after saving the first source URL', async () => {
+    const membership = createMembership({ googleMapUrl: null, totalReviews: 0 })
+    const membershipWithSource = createMembership({
+      googleMapUrl: 'https://maps.google.com/cafe-aurora',
+      totalReviews: 0,
+    })
+    const emptyInsight: InsightSummary = {
+      totalReviews: 0,
+      averageRating: 0,
+      positivePercentage: 0,
+      neutralPercentage: 0,
+      negativePercentage: 0,
+    }
+    const updatedDetail = createDetail(membership, {
+      googleMapUrl: 'https://maps.google.com/cafe-aurora',
+      insightSummary: emptyInsight,
+    })
+
+    getSessionMock
+      .mockResolvedValueOnce({
+        user: {
+          id: 'user-1',
+          email: 'owner@sentify.test',
+          fullName: 'Casey Owner',
+          restaurants: [membership],
+        },
+      })
+      .mockResolvedValue({
+        user: {
+          id: 'user-1',
+          email: 'owner@sentify.test',
+          fullName: 'Casey Owner',
+          restaurants: [membershipWithSource],
+        },
+      })
+    listRestaurantsMock.mockResolvedValueOnce([membership]).mockResolvedValue([membershipWithSource])
+    getRestaurantDetailMock.mockResolvedValue(
+      createDetail(membership, {
+        googleMapUrl: null,
+        insightSummary: emptyInsight,
+      }),
+    )
+    updateRestaurantMock.mockResolvedValue(updatedDetail)
+    getDashboardKpiMock.mockResolvedValue(emptyInsight)
+    getLatestImportRunMock.mockResolvedValue(null)
+    listImportRunsMock.mockResolvedValue([])
+    window.location.hash = '#/app'
     const user = userEvent.setup()
 
     render(<App />)
 
-    expect(await screen.findByText('Save the Google Maps source URL.')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Open settings' }))
+    await screen.findByRole('heading', { level: 1, name: 'Review source' })
+    const sourceField = await screen.findByRole('textbox', { name: 'Google Maps URL' })
+    const sourceForm = sourceField.closest('form')
+
+    expect(sourceForm).not.toBeNull()
+    await user.clear(sourceField)
+    await user.type(sourceField, 'https://maps.google.com/cafe-aurora')
+    await user.click(within(sourceForm as HTMLFormElement).getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => {
-      expect(window.location.hash).toBe('#/app/settings')
+      expect(updateRestaurantMock).toHaveBeenCalledWith(membership.id, {
+        googleMapUrl: 'https://maps.google.com/cafe-aurora',
+      })
     })
+    await waitFor(() => {
+      expect(window.location.hash).toBe('#/app')
+    })
+
+    expect(
+      await screen.findByRole('heading', { name: 'Run the first import and inspect the signal.' }),
+    ).toBeInTheDocument()
+  })
+
+  it('enters the main dashboard only after the first import completes', async () => {
+    const membership = createMembership({ totalReviews: 0 })
+    const emptyInsight: InsightSummary = {
+      totalReviews: 0,
+      averageRating: 0,
+      positivePercentage: 0,
+      neutralPercentage: 0,
+      negativePercentage: 0,
+    }
+
+    mockAuthenticatedSession({ restaurants: [membership] })
+    listRestaurantsMock.mockResolvedValue([membership])
+    getRestaurantDetailMock.mockResolvedValue(
+      createDetail(membership, {
+        insightSummary: emptyInsight,
+      }),
+    )
+    getDashboardKpiMock.mockResolvedValue(emptyInsight)
+    getSentimentBreakdownMock.mockResolvedValue([])
+    getTrendMock.mockResolvedValue([])
+    getComplaintKeywordsMock.mockResolvedValue([])
+    getLatestImportRunMock.mockResolvedValue(null)
+    listImportRunsMock.mockResolvedValue([])
+    importReviewsMock.mockResolvedValue(
+      createQueuedImportResult({
+        run: createImportRunSummary({
+          status: 'COMPLETED',
+          phase: 'COMPLETED',
+          imported: 0,
+          skipped: 0,
+          total: 0,
+        }),
+      }),
+    )
+
+    window.location.hash = '#/app'
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Run the first import and inspect the signal.' }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Import reviews' }))
+
+    await waitFor(() => {
+      expect(importReviewsMock).toHaveBeenCalledWith(membership.id)
+    })
+    expect(await screen.findByText('Operational triage dashboard')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'Run the first import and inspect the signal.' }),
+    ).not.toBeInTheDocument()
   })
 
   it('renders a compact sync status on the dashboard instead of full import history', async () => {
@@ -616,7 +794,7 @@ describe('Sentify app shell', () => {
 
     await user.type(screen.getByLabelText('Restaurant name'), 'Cafe Aurora')
     await user.type(screen.getByLabelText('Google Maps URL'), 'https://example.com/place')
-    await user.click(screen.getByRole('button', { name: 'Create restaurant' }))
+    await user.click(screen.getByRole('button', { name: 'Next step' }))
 
     expect(createRestaurantMock).not.toHaveBeenCalled()
     expect(screen.getByText('Use a Google Maps URL.')).toBeInTheDocument()

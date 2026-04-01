@@ -184,13 +184,28 @@ function SentifyShell() {
   const [importRuns, setImportRuns] = useState<ImportRunSummary[]>([])
   const [importRunsLoading, setImportRunsLoading] = useState(false)
   const [importRunsError, setImportRunsError] = useState<string | null>(null)
+  const [completedOnboardingImportRestaurantIds, setCompletedOnboardingImportRestaurantIds] = useState<
+    string[]
+  >([])
 
   const restaurants = session?.restaurants ?? []
   const selectedRestaurantId = session?.selectedRestaurantId ?? null
   const isAuthenticated = Boolean(session)
+  const selectedRestaurantMembership =
+    restaurants.find((restaurant) => restaurant.id === selectedRestaurantId) ?? null
+  const selectedRestaurantTotalReviews =
+    restaurantDetail?.insightSummary?.totalReviews ?? selectedRestaurantMembership?.totalReviews ?? 0
+  const hasCompletedOnboardingImportLocally = Boolean(
+    selectedRestaurantId && completedOnboardingImportRestaurantIds.includes(selectedRestaurantId),
+  )
+  const hasCompletedInitialImport =
+    selectedRestaurantTotalReviews > 0 ||
+    latestImportRun?.status === 'COMPLETED' ||
+    importRuns.some((run) => run.status === 'COMPLETED') ||
+    hasCompletedOnboardingImportLocally
   const selectedRestaurantName =
     restaurantDetail?.name ??
-    restaurants.find((restaurant) => restaurant.id === selectedRestaurantId)?.name ??
+    selectedRestaurantMembership?.name ??
     undefined
   const displayName = getUserDisplayName(session?.user, productCopy.header.accountFallback)
   const accountIdentity: UserIdentityViewModel | null = session
@@ -202,6 +217,8 @@ function SentifyShell() {
         selectedRestaurantName,
       }
     : null
+  const isGuidedOnboardingFlow =
+    isAuthenticated && isAppRoute(route) && (restaurants.length === 0 || !hasCompletedInitialImport)
 
   function persistSession(nextSession: StoredSession | null) {
     setSession(nextSession)
@@ -248,6 +265,14 @@ function SentifyShell() {
       })
     })
   }
+
+  useEffect(() => {
+    if (!isGuidedOnboardingFlow || route === '/app') {
+      return
+    }
+
+    navigate('/app')
+  }, [isGuidedOnboardingFlow, route])
 
   function getErrorMessage(error: unknown, fallback: string) {
     if (error instanceof ApiClientError) {
@@ -320,6 +345,14 @@ function SentifyShell() {
   const getFeedbackError = useEffectEvent(
     (kind: keyof typeof productCopy.feedback.errors) => productCopy.feedback.errors[kind],
   )
+
+  useEffect(() => {
+    if (session?.user.id) {
+      return
+    }
+
+    setCompletedOnboardingImportRestaurantIds([])
+  }, [session?.user.id])
 
   useEffect(() => {
     function syncRouteFromHash() {
@@ -903,6 +936,9 @@ function SentifyShell() {
           ? result.run
           : await waitForImportRunToFinish(selectedRestaurantId, result.run.id)
 
+      setCompletedOnboardingImportRestaurantIds((current) =>
+        current.includes(selectedRestaurantId) ? current : [...current, selectedRestaurantId],
+      )
       setSessionSyncKey((current) => current + 1)
       setNotice({
         tone: 'success',
@@ -969,6 +1005,7 @@ function SentifyShell() {
       <Header
         route={route}
         isAuthenticated={isAuthenticated}
+        isGuidedOnboardingFlow={isGuidedOnboardingFlow}
         user={accountIdentity}
         onNavigate={navigate}
         onScrollToSection={scrollToSection}
@@ -1028,6 +1065,7 @@ function SentifyShell() {
       ) : isAppRoute(route) ? (
         <ProductWorkspace
           route={route}
+          isGuidedOnboardingFlow={isGuidedOnboardingFlow}
           copy={productCopy.app}
           restaurants={restaurants}
           selectedRestaurantId={selectedRestaurantId}
