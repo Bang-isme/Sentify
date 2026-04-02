@@ -278,7 +278,7 @@ export const productUiCopy = {
       ],
       setupTitle: 'Restaurant setup',
       setupDescription:
-        'Create the first restaurant and save a Google Maps URL so the product can pull in real operating evidence.',
+        'Create the first restaurant workspace.',
       createRestaurant: 'Create restaurant',
       createAnotherRestaurant: 'Add another restaurant',
       restaurantNameLabel: 'Restaurant name',
@@ -510,7 +510,7 @@ export const productUiCopy = {
       ],
       setupTitle: 'Thiết lập nhà hàng',
       setupDescription:
-        'Tạo nhà hàng đầu tiên và lưu URL Google Maps để sản phẩm có dữ liệu vận hành thật.',
+        'Tạo workspace đầu tiên cho nhà hàng.',
       createRestaurant: 'Tạo nhà hàng',
       createAnotherRestaurant: 'Thêm nhà hàng',
       restaurantNameLabel: 'Tên nhà hàng',
@@ -742,7 +742,7 @@ export const productUiCopy = {
       ],
       setupTitle: '店舗セットアップ',
       setupDescription:
-        '最初の店舗を作成し、Google MapsのURLを保存して、実際の運営データを取り込みます。',
+        '最初の店舗ワークスペースを作成する。',
       createRestaurant: '店舗を作成',
       createAnotherRestaurant: '別の店舗を追加',
       restaurantNameLabel: '店舗名',

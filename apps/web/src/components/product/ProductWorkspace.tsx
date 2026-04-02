@@ -195,7 +195,7 @@ function getCalendarCells(month: Date) {
   })
 }
 
-function formatSourcePreview(value: string | null) {
+function formatSourcePreview(value: string | null | undefined) {
   if (!value) {
     return null
   }
@@ -211,9 +211,6 @@ function formatSourcePreview(value: string | null) {
 
 const ONBOARDING_HERO_IMAGE =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuB6afblcPed1y-hBIwh7VBvjJ0e3ojiRtvLsF-xQd8hhwaY90ct8Edytwtn6sNKQ7LQgnkjedZAUDLL894JkAGMmEVkEG8y5fIhKnFxibIXKwHPECZCAtLlt8V60_yjSSpC3A31lrg46V2T8EaGmvdAH1kn7bLRWu4suelNkUUDS2oFCzW1sv8ncuy_FhxIUqb6xaok9DyJkKP4rnBwuw5cDmTTJhZpaX1bCZHY-V7KWR8cpo3BxfxZGBeEJstkl6CiEZ_9WPPvug'
-
-const ONBOARDING_MAP_PREVIEW_IMAGE =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuAvlIj_LmJz53jyEGEbrXgJywSkmLL2_AeNQp3khPDd31brjW4JLAktlmRdsH4Syc3eonQKLj8C11leP2zW1wfD4XrZ2Yt5rKnQG4KFjS3MnpHdpeRB4ab0ZaHSCLVEczQvyniFn0wJ8wSyUPl1XHSiYDusIpESshQ7ipSy6L-kpUOcht9vDBuz10siNb0HkeHVbkQWJ6Gf1gNkr4OD2JCv_er48oO3-RwNOx6-vFdej51gBcsiHR5quxCkNPS5dIsA_KK9Yu1yYQ'
 
 const ONBOARDING_STEP_ICONS = ['storefront', 'map', 'sync'] as const
 
@@ -356,6 +353,27 @@ function getOnboardingStepState(
   }
 
   return 'pending'
+}
+
+function canAccessOnboardingStep(
+  index: number,
+  {
+    hasRestaurant,
+    hasSource,
+  }: {
+    hasRestaurant: boolean
+    hasSource: boolean
+  },
+) {
+  if (index === 0) {
+    return true
+  }
+
+  if (index === 1) {
+    return hasRestaurant
+  }
+
+  return hasSource
 }
 
 function getReviewToneClasses(sentiment: SentimentBreakdownRow['label'] | null, rating: number) {
@@ -1374,6 +1392,7 @@ function RestaurantSetupForm({
   actionLabel,
   title,
   description,
+  initialValues,
   tone = 'default',
   actionTone = 'primary',
   embed = false,
@@ -1386,6 +1405,11 @@ function RestaurantSetupForm({
   actionLabel: string
   title: string
   description: string
+  initialValues?: {
+    name?: string | null
+    address?: string | null
+    googleMapUrl?: string | null
+  }
   tone?: 'default' | 'accent'
   actionTone?: 'primary' | 'secondary'
   embed?: boolean
@@ -1394,11 +1418,22 @@ function RestaurantSetupForm({
   onSubmit: (input: CreateRestaurantInput) => Promise<void>
 }) {
   const { language } = useLanguage()
-  const [name, setName] = useState('')
-  const [address, setAddress] = useState('')
-  const [googleMapUrl, setGoogleMapUrl] = useState('')
+  const initialName = initialValues?.name ?? ''
+  const initialAddress = initialValues?.address ?? ''
+  const initialGoogleMapUrl = initialValues?.googleMapUrl ?? ''
+  const isEditing = initialValues != null
+  const showsSourceField = variant !== 'onboarding'
+  const [name, setName] = useState(initialName)
+  const [address, setAddress] = useState(initialAddress)
+  const [googleMapUrl, setGoogleMapUrl] = useState(initialGoogleMapUrl)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [cuisine, setCuisine] = useState(() => getOnboardingVisualCopy(language).cuisineOptions[0])
+
+  useEffect(() => {
+    setName(initialName)
+    setAddress(initialAddress)
+    setGoogleMapUrl(initialGoogleMapUrl)
+    setFieldErrors({})
+  }, [initialAddress, initialGoogleMapUrl, initialName])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -1418,7 +1453,7 @@ function RestaurantSetupForm({
       nextErrors.address = copy.validation.restaurantAddressTooLong
     }
 
-    if (trimmedGoogleMapUrl) {
+    if (showsSourceField && trimmedGoogleMapUrl) {
       const sourceValidation = isGoogleMapsUrl(trimmedGoogleMapUrl)
 
       if (!sourceValidation.valid) {
@@ -1435,19 +1470,25 @@ function RestaurantSetupForm({
     }
 
     setFieldErrors({})
-    await onSubmit({
+    const nextInput: CreateRestaurantInput = {
       name: trimmedName,
       address: trimmedAddress || undefined,
-      googleMapUrl: trimmedGoogleMapUrl || undefined,
-    })
+    }
 
-    setFieldErrors({})
-    setName('')
-    setAddress('')
-    setGoogleMapUrl('')
+    if (showsSourceField) {
+      nextInput.googleMapUrl = trimmedGoogleMapUrl || undefined
+    }
+
+    await onSubmit(nextInput)
+
+    if (!isEditing) {
+      setFieldErrors({})
+      setName('')
+      setAddress('')
+      setGoogleMapUrl('')
+    }
   }
 
-  const sourcePreview = formatSourcePreview(googleMapUrl)
   const visualCopy = getOnboardingVisualCopy(language)
   const baseInputClass =
     'h-13 w-full rounded-[1.05rem] border border-[#e5d8ca] bg-[rgba(252,247,239,0.92)] px-4 text-[0.95rem] text-[#22170f] shadow-[inset_0_1px_0_rgba(255,255,255,0.62)] outline-none transition placeholder:text-[#b09883] focus:border-primary focus:bg-white focus:shadow-[0_0_0_4px_rgba(235,122,28,0.12)] focus:ring-0'
@@ -1470,8 +1511,8 @@ function RestaurantSetupForm({
           </div>
         </div>
 
-        <form className="space-y-6 px-5 py-5 sm:px-6 sm:py-6" onSubmit={handleSubmit} noValidate>
-          <div className="grid gap-4 md:grid-cols-2">
+        <form className="space-y-5 px-5 py-5 sm:px-6 sm:py-6" onSubmit={handleSubmit} noValidate>
+          <div className="grid gap-4">
             <label
               htmlFor="setup-restaurant-name"
               className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
@@ -1493,30 +1534,6 @@ function RestaurantSetupForm({
                 placeholder="Ví dụ: Le Jardin Secret"
               />
               <FieldError message={fieldErrors.name} />
-            </label>
-
-            <label
-              htmlFor="setup-restaurant-cuisine"
-              className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
-            >
-              <span>{visualCopy.cuisineLabel}</span>
-              <div className="relative">
-                <select
-                  id="setup-restaurant-cuisine"
-                  value={cuisine}
-                  onChange={(event) => setCuisine(event.target.value)}
-                  className={`${baseInputClass} appearance-none pr-12`}
-                >
-                  {visualCopy.cuisineOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[20px] text-[#8f735d]">
-                  expand_more
-                </span>
-              </div>
             </label>
           </div>
 
@@ -1547,74 +1564,6 @@ function RestaurantSetupForm({
             <FieldError message={fieldErrors.address} />
           </label>
 
-          <label
-            htmlFor="setup-restaurant-source"
-            className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
-          >
-            <span>{copy.googleMapsUrlLabel}</span>
-            <div className="relative">
-              <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-[#9b7a5f]">
-                link
-              </span>
-              <input
-                id="setup-restaurant-source"
-                aria-label={copy.googleMapsUrlLabel}
-                value={googleMapUrl}
-                onChange={(event) => {
-                  setGoogleMapUrl(event.target.value)
-                  setFieldErrors((current) => ({ ...current, googleMapUrl: undefined }))
-                }}
-                aria-invalid={fieldErrors.googleMapUrl ? 'true' : 'false'}
-                className={iconInputClass}
-                type="url"
-                placeholder={copy.googleMapsUrlPlaceholder}
-              />
-            </div>
-            <FieldError message={fieldErrors.googleMapUrl} />
-            <p className="text-[0.78rem] leading-6 text-[#9a836f]">{visualCopy.googleMapsHint}</p>
-          </label>
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(220px,0.85fr)]">
-            <div className="relative min-h-[168px] overflow-hidden rounded-[1.2rem] border border-[#e3d7ca] bg-[#efebe6] shadow-[inset_0_1px_0_rgba(255,255,255,0.56)]">
-              <img
-                alt="Google Maps preview placeholder"
-                className="h-full w-full object-cover object-center opacity-88 saturate-[0.9] contrast-[1.03] brightness-[0.96] transition duration-700"
-                src={ONBOARDING_MAP_PREVIEW_IMAGE}
-              />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,250,244,0.12)_0%,rgba(255,250,244,0.02)_34%,rgba(27,18,12,0.08)_100%)]" />
-              <div className="absolute inset-x-4 top-4 flex items-center justify-start">
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/78 bg-white/90 px-3 py-1.5 text-[0.64rem] font-bold uppercase tracking-[0.2em] text-[#8c623f] backdrop-blur">
-                  <span className="material-symbols-outlined text-[15px] text-primary">public</span>
-                  <span>{copy.googleMapsUrlLabel}</span>
-                </div>
-              </div>
-              <div className="absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-center">
-                <div className="inline-flex max-w-full items-center gap-3 rounded-full border border-white/82 bg-white/96 px-4 py-2 shadow-[0_16px_32px_-24px_rgba(34,23,15,0.55)]">
-                  <span className="material-symbols-outlined text-[20px] text-primary">
-                    near_me
-                  </span>
-                  <div className="min-w-0 text-[0.92rem] font-semibold text-[#3b291d]">
-                    {sourcePreview ?? visualCopy.mapWaiting}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[1.2rem] border border-[#efd7bf] bg-[linear-gradient(180deg,rgba(255,246,233,0.96)_0%,rgba(252,239,220,0.94)_100%)] px-4 py-4 shadow-[0_18px_36px_-30px_rgba(235,122,28,0.38)]">
-              <div className="flex items-start gap-4">
-                <span className="material-symbols-outlined rounded-full bg-white/78 p-2 text-[20px] text-primary shadow-[0_10px_20px_-16px_rgba(34,23,15,0.5)]">
-                  lightbulb
-                </span>
-                <div>
-                  <div className="text-[0.72rem] font-bold uppercase tracking-[0.2em] text-primary/82">
-                    {visualCopy.tipTitle}
-                  </div>
-                  <p className="mt-2 text-[0.84rem] leading-7 text-[#755c46]">{visualCopy.tipBody}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className="flex flex-col gap-4 border-t border-[#f0e4d7] pt-5 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
@@ -1623,7 +1572,9 @@ function RestaurantSetupForm({
                 onSecondaryAction?.()
               }}
             >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                arrow_back
+              </span>
               <span>{visualCopy.backLabel}</span>
             </button>
             <button
@@ -1906,6 +1857,13 @@ function OnboardingPanel({
   const [stepOverride, setStepOverride] = useState<number | null>(null)
   const derivedStepIndex = getOnboardingPreviewIndex({ hasRestaurant, hasSource })
   const activeStepIndex = stepOverride ?? derivedStepIndex
+  const restaurantSetupInitialValues = restaurant
+    ? {
+        name: detail?.name ?? restaurant.name,
+        address: detail?.address,
+        googleMapUrl: detail?.googleMapUrl ?? restaurant.googleMapUrl,
+      }
+    : undefined
   const previewTitle =
     activeStepIndex === 1
       ? copy.settingsSourceTitle
@@ -1928,6 +1886,14 @@ function OnboardingPanel({
       return current > derivedStepIndex ? derivedStepIndex : current
     })
   }, [derivedStepIndex])
+
+  function openOnboardingStep(index: number) {
+    if (!canAccessOnboardingStep(index, { hasRestaurant, hasSource })) {
+      return
+    }
+
+    setStepOverride(index === derivedStepIndex ? null : index)
+  }
 
   return (
     <section className="relative isolate overflow-hidden">
@@ -1970,76 +1936,119 @@ function OnboardingPanel({
                     }`}
                   />
                 ) : null}
-                <span
-                  className={`flex size-10 items-center justify-center rounded-full border shadow-[0_12px_24px_-18px_rgba(0,0,0,0.55)] backdrop-blur ${
-                    getOnboardingStepState(index, activeStepIndex) === 'active'
-                      ? 'border-primary/24 bg-primary text-white'
-                      : getOnboardingStepState(index, activeStepIndex) === 'done'
-                        ? 'border-[#f3d1ae]/34 bg-[#fff4e8] text-primary'
-                        : 'border-white/24 bg-white/10 text-white/58'
+                <button
+                  type="button"
+                  disabled={!canAccessOnboardingStep(index, { hasRestaurant, hasSource })}
+                  aria-current={index === activeStepIndex ? 'step' : undefined}
+                  className={`group flex flex-col items-center gap-3 transition ${
+                    canAccessOnboardingStep(index, { hasRestaurant, hasSource })
+                      ? 'cursor-pointer hover:-translate-y-0.5'
+                      : 'cursor-default'
                   }`}
+                  onClick={() => openOnboardingStep(index)}
                 >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
+                  <span
+                    className={`flex size-10 items-center justify-center rounded-full border shadow-[0_12px_24px_-18px_rgba(0,0,0,0.55)] backdrop-blur ${
+                      getOnboardingStepState(index, activeStepIndex) === 'active'
+                        ? 'border-primary/24 bg-primary text-white'
+                        : getOnboardingStepState(index, activeStepIndex) === 'done'
+                          ? 'border-[#f3d1ae]/34 bg-[#fff4e8] text-primary'
+                          : 'border-white/24 bg-white/10 text-white/58'
+                    }`}
+                  >
+                    <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+                      {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
+                    </span>
                   </span>
-                </span>
-                <p
-                  className={`max-w-[12rem] text-center text-[0.8rem] font-semibold leading-6 ${
-                    getOnboardingStepState(index, activeStepIndex) === 'pending'
-                      ? 'text-white/56'
-                      : 'text-white/86'
-                  }`}
-                >
-                  {step}
-                </p>
+                  <p
+                    className={`max-w-[12rem] text-center text-[0.8rem] font-semibold leading-6 ${
+                      getOnboardingStepState(index, activeStepIndex) === 'pending'
+                        ? 'text-white/56'
+                        : 'text-white/86'
+                    }`}
+                  >
+                    {step}
+                  </p>
+                </button>
               </article>
             ))}
           </div>
         </div>
 
         <div className="mt-8 grid w-full gap-4 lg:hidden">
-        {copy.onboardingSteps.map((step, index) => (
-          <article
-            key={`${step}-mobile`}
-            className="flex items-center gap-4 rounded-[1.35rem] border border-white/14 bg-[rgba(20,14,10,0.54)] px-4 py-4 text-white shadow-[0_20px_40px_-36px_rgba(0,0,0,0.45)] backdrop-blur-md"
-          >
-            <span
-              className={`flex size-10 shrink-0 items-center justify-center rounded-full border ${
-                getOnboardingStepState(index, activeStepIndex) === 'active'
-                  ? 'border-primary/24 bg-primary text-white'
-                  : getOnboardingStepState(index, activeStepIndex) === 'done'
-                    ? 'border-[#f3d1ae]/34 bg-[#fff4e8] text-primary'
-                    : 'border-white/24 bg-white/10 text-white/58'
+          {copy.onboardingSteps.map((step, index) => (
+            <button
+              key={`${step}-mobile`}
+              type="button"
+              disabled={!canAccessOnboardingStep(index, { hasRestaurant, hasSource })}
+              aria-current={index === activeStepIndex ? 'step' : undefined}
+              className={`flex items-center gap-4 rounded-[1.35rem] border border-white/14 bg-[rgba(20,14,10,0.54)] px-4 py-4 text-left text-white shadow-[0_20px_40px_-36px_rgba(0,0,0,0.45)] backdrop-blur-md transition ${
+                canAccessOnboardingStep(index, { hasRestaurant, hasSource })
+                  ? 'cursor-pointer hover:-translate-y-0.5'
+                  : 'cursor-default'
               }`}
+              onClick={() => openOnboardingStep(index)}
             >
-              <span className="material-symbols-outlined text-[20px]">
-                {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
+              <span
+                className={`flex size-10 shrink-0 items-center justify-center rounded-full border ${
+                  getOnboardingStepState(index, activeStepIndex) === 'active'
+                    ? 'border-primary/24 bg-primary text-white'
+                    : getOnboardingStepState(index, activeStepIndex) === 'done'
+                      ? 'border-[#f3d1ae]/34 bg-[#fff4e8] text-primary'
+                      : 'border-white/24 bg-white/10 text-white/58'
+                }`}
+              >
+                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+                  {ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked'}
+                </span>
               </span>
-            </span>
-            <p
-              className={`text-sm font-semibold ${
-                getOnboardingStepState(index, activeStepIndex) === 'pending'
-                  ? 'text-white/56'
-                  : 'text-white/88'
-              }`}
-            >
-              {step}
-            </p>
-          </article>
-        ))}
+              <p
+                className={`text-sm font-semibold ${
+                  getOnboardingStepState(index, activeStepIndex) === 'pending'
+                    ? 'text-white/56'
+                    : 'text-white/88'
+                }`}
+              >
+                {step}
+              </p>
+            </button>
+          ))}
         </div>
 
         {activeStepIndex === 0 ? (
           <div className="mt-10 w-full max-w-[680px]">
             <RestaurantSetupForm
               copy={copy}
-              pending={createPending}
-              actionLabel={visualCopy.nextStepLabel}
+              pending={restaurant ? savePending : createPending}
+              actionLabel={restaurant ? copy.saveChanges : visualCopy.nextStepLabel}
               title={copy.setupTitle}
               description={copy.setupDescription}
+              initialValues={restaurantSetupInitialValues}
               variant="onboarding"
-              onSecondaryAction={onBack}
+              onSecondaryAction={() => {
+                if (restaurant) {
+                  setStepOverride(null)
+                  return
+                }
+
+                onBack()
+              }}
               onSubmit={async (input) => {
+                if (restaurant) {
+                  const updateInput: UpdateRestaurantInput = {
+                    name: input.name,
+                    address: input.address ?? null,
+                  }
+
+                  if (input.googleMapUrl !== undefined) {
+                    updateInput.googleMapUrl = input.googleMapUrl ?? null
+                  }
+
+                  await onSaveRestaurant(updateInput)
+                  setStepOverride(null)
+                  return
+                }
+
                 setStepOverride(null)
                 await onCreateRestaurant(input)
               }}
@@ -2053,6 +2062,7 @@ function OnboardingPanel({
                 visualCopy={visualCopy}
                 sourceValue={detail?.googleMapUrl ?? restaurant?.googleMapUrl ?? ''}
                 pending={savePending}
+                onBack={() => setStepOverride(0)}
                 onSaveRestaurant={async (input) => {
                   await onSaveRestaurant(input)
                   setStepOverride(null)
@@ -2069,6 +2079,7 @@ function OnboardingPanel({
                 importRunsLoading={importRunsLoading}
                 importRunsError={importRunsError}
                 language={language}
+                onBack={() => setStepOverride(1)}
                 onEditSource={() => setStepOverride(1)}
                 onImportReviews={onImportReviews}
               />
@@ -2093,12 +2104,14 @@ function OnboardingSourceSetupPanel({
   visualCopy,
   sourceValue,
   pending,
+  onBack,
   onSaveRestaurant,
 }: {
   copy: ProductUiCopy['app']
   visualCopy: ReturnType<typeof getOnboardingVisualCopy>
   sourceValue: string
   pending: boolean
+  onBack: () => void
   onSaveRestaurant: (input: UpdateRestaurantInput) => Promise<void>
 }) {
   const [googleMapUrl, setGoogleMapUrl] = useState(sourceValue)
@@ -2179,7 +2192,17 @@ function OnboardingSourceSetupPanel({
           <p className="mt-3 text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
             {visualCopy.previewSettingsHint}
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col gap-3 border-t border-border-light/70 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-border-dark">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-text-silver-light transition hover:text-text-charcoal dark:text-text-silver-dark dark:hover:text-white"
+              onClick={onBack}
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                arrow_back
+              </span>
+              <span>{visualCopy.backLabel}</span>
+            </button>
             <button
               type="submit"
               disabled={pending}
@@ -2212,6 +2235,7 @@ function OnboardingImportStep({
   importRunsLoading,
   importRunsError,
   language,
+  onBack,
   onEditSource,
   onImportReviews,
 }: {
@@ -2224,6 +2248,7 @@ function OnboardingImportStep({
   importRunsLoading: boolean
   importRunsError: string | null
   language: string
+  onBack: () => void
   onEditSource: () => void
   onImportReviews: () => Promise<void>
 }) {
@@ -2267,10 +2292,13 @@ function OnboardingImportStep({
           </button>
           <button
             type="button"
-            className="inline-flex h-11 items-center justify-center rounded-full border border-primary/24 bg-white/72 px-5 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/8 dark:border-primary/20 dark:bg-white/5"
-            onClick={onEditSource}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-primary/24 bg-white/72 px-5 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/8 dark:border-primary/20 dark:bg-white/5"
+            onClick={onBack}
           >
-            {copy.settingsSourceTitle}
+            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+              arrow_back
+            </span>
+            <span>{visualCopy.backLabel}</span>
           </button>
         </div>
       </SectionCard>
@@ -2283,219 +2311,6 @@ function OnboardingImportStep({
         language={language}
         onOpenSettings={onEditSource}
       />
-    </div>
-  )
-}
-
-function ImportLaunchPanel({
-  copy,
-  restaurant,
-  detail,
-  loading,
-  importPending,
-  latestImportRun,
-  importRunsLoading,
-  importRunsError,
-  language,
-  onImportReviews,
-  onNavigate,
-}: {
-  copy: ProductUiCopy['app']
-  restaurant: RestaurantMembership | null
-  detail: RestaurantDetail | null
-  loading: boolean
-  importPending: boolean
-  latestImportRun: ImportRunSummary | null
-  importRunsLoading: boolean
-  importRunsError: string | null
-  language: string
-  onImportReviews: () => Promise<void>
-  onNavigate: (route: '/app' | '/app/reviews' | '/app/settings') => void
-}) {
-  const restaurantName = detail?.name ?? restaurant?.name ?? copy.anonymousGuest
-  const restaurantAddress = detail?.address?.trim()
-  const googleMapUrl = detail?.googleMapUrl ?? restaurant?.googleMapUrl ?? null
-  const hasSource = Boolean(googleMapUrl)
-  const sourcePreview = formatSourcePreview(googleMapUrl)
-  const isSyncInFlight =
-    importPending || latestImportRun?.status === 'QUEUED' || latestImportRun?.status === 'RUNNING'
-  const heroTitle =
-    copy.onboardingSteps[hasSource ? 2 : 1] ??
-    (hasSource ? copy.dashboardPrimaryCta : copy.settingsSourceTitle)
-  const heroDescription = latestImportRun
-    ? getImportRunMerchantSummary(copy, latestImportRun)
-    : hasSource
-      ? copy.syncStatusEmpty
-      : copy.settingsSourceDescription
-  const launchSteps = copy.onboardingSteps.map((step, index) => {
-    const state =
-      index === 0 ? 'done' : index === 1 ? (hasSource ? 'done' : 'active') : hasSource ? 'active' : 'pending'
-
-    return {
-      icon: ONBOARDING_STEP_ICONS[index] ?? 'radio_button_checked',
-      label: step,
-      state,
-    }
-  })
-
-  return (
-    <div className="mx-auto grid max-w-[1160px] gap-6">
-      <section className="relative isolate overflow-hidden rounded-[2rem] border border-[#e8d8c8] bg-[radial-gradient(circle_at_top_left,rgba(235,122,28,0.24),transparent_34%),linear-gradient(135deg,#fffaf3_0%,#fff7ee_48%,#fff2e2_100%)] p-6 shadow-[0_24px_70px_-42px_rgba(34,23,15,0.28)] sm:p-7 lg:p-8 dark:border-[#4b3421] dark:bg-[radial-gradient(circle_at_top_left,rgba(242,154,64,0.18),transparent_34%),linear-gradient(135deg,#1d140f_0%,#241912_48%,#2c1d14_100%)]">
-        <div className="absolute inset-y-0 right-0 hidden w-[38%] bg-[radial-gradient(circle_at_center,rgba(235,122,28,0.16),transparent_70%)] lg:block dark:bg-[radial-gradient(circle_at_center,rgba(242,154,64,0.12),transparent_70%)]" />
-        <div className="relative">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#f1c8a1] bg-white/72 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-primary backdrop-blur dark:border-[#5a3d25] dark:bg-white/5">
-            <span className={`size-2 rounded-full ${hasSource ? 'bg-primary' : 'bg-amber-500'}`}></span>
-            <span>{hasSource ? copy.syncStatusTitle : copy.settingsSourceTitle}</span>
-          </div>
-
-          <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <h1 className="font-serif text-[2rem] font-semibold tracking-[-0.05em] text-[#26190f] sm:text-[2.45rem] dark:text-[#fff3e8]">
-                {heroTitle}
-              </h1>
-              <p className="mt-3 max-w-2xl text-[0.98rem] leading-7 text-[#755c46] dark:text-[#e6d3c0]">
-                {heroDescription}
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <SidebarStatusPill icon="storefront" label={restaurantName} />
-                <SidebarStatusPill
-                  icon={hasSource ? 'task_alt' : 'warning'}
-                  label={hasSource ? copy.sourceStatusConnected : copy.sourceStatusNeedsConfiguration}
-                  tone={hasSource ? 'success' : 'warning'}
-                />
-                {latestImportRun ? (
-                  <SidebarStatusPill
-                    icon={latestImportRun.status === 'FAILED' ? 'error' : 'sync'}
-                    label={getImportRunMerchantSummary(copy, latestImportRun)}
-                    tone={latestImportRun.status === 'FAILED' ? 'warning' : 'neutral'}
-                  />
-                ) : null}
-              </div>
-            </div>
-
-            <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:w-auto [&>*]:w-full [&>*]:justify-center sm:[&>*]:w-auto">
-              {hasSource ? (
-                <>
-                  <button
-                    type="button"
-                    disabled={isSyncInFlight}
-                    className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-55 dark:text-bg-dark"
-                    onClick={() => {
-                      void onImportReviews()
-                    }}
-                  >
-                    {isSyncInFlight ? copy.importing : copy.dashboardPrimaryCta}
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex h-11 items-center justify-center rounded-full border border-primary/24 bg-white/72 px-5 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/8 dark:border-primary/20 dark:bg-white/5"
-                    onClick={() => onNavigate('/app/settings')}
-                  >
-                    {copy.dashboardSecondaryCta}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-dark dark:text-bg-dark"
-                  onClick={() => onNavigate('/app/settings')}
-                >
-                  {copy.dashboardSecondaryCta}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {launchSteps.map((step, index) => (
-          <article
-            key={step.label}
-            className={`rounded-[1.4rem] border px-5 py-4 transition-all duration-300 ${
-              step.state === 'done'
-                ? 'border-primary/22 bg-primary/[0.06] dark:border-primary/20 dark:bg-primary/[0.08]'
-                : step.state === 'active'
-                  ? 'border-[#f2c79d] bg-[#fff5eb] shadow-[0_18px_40px_-30px_rgba(235,122,28,0.45)] dark:border-[#6b4728] dark:bg-[#241912]'
-                  : 'border-border-light/70 bg-surface-white/82 dark:border-border-dark dark:bg-surface-dark/78'
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <span
-                className={`flex size-11 shrink-0 items-center justify-center rounded-full border ${
-                  step.state === 'done'
-                    ? 'border-primary/18 bg-primary text-white'
-                    : step.state === 'active'
-                      ? 'border-primary/18 bg-[#fff1e1] text-primary dark:bg-[#322117]'
-                      : 'border-border-light/70 bg-bg-light/70 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/55 dark:text-text-silver-dark'
-                }`}
-              >
-                <span
-                  className={`material-symbols-outlined text-[20px] ${
-                    step.state === 'active' ? 'motion-safe:animate-pulse' : ''
-                  }`}
-                >
-                  {step.icon}
-                </span>
-              </span>
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-text-silver-light dark:text-text-silver-dark">
-                  {String(index + 1).padStart(2, '0')}
-                </div>
-                <p className="mt-2 text-sm font-semibold leading-6 text-text-charcoal dark:text-white">
-                  {step.label}
-                </p>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {loading ? <StatusMessage>{copy.loadingRestaurant}</StatusMessage> : null}
-
-      <SectionCard
-        title={copy.currentRestaurant}
-        description={restaurantAddress || copy.setupDescription}
-        headerAside={
-          sourcePreview ? (
-            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-border-light/70 bg-bg-light/70 px-3 py-1.5 text-xs font-semibold text-text-charcoal dark:border-border-dark dark:bg-bg-dark/55 dark:text-white">
-              <span className="material-symbols-outlined text-[15px] text-primary">link</span>
-              <span className="truncate">{sourcePreview}</span>
-            </div>
-          ) : null
-        }
-      >
-        <div className="grid gap-3 md:grid-cols-3">
-          <SidebarStatusPill icon="storefront" label={restaurantName} />
-          <SidebarStatusPill
-            icon={hasSource ? 'task_alt' : 'warning'}
-            label={hasSource ? copy.sourceReady : copy.sourceMissing}
-            tone={hasSource ? 'success' : 'warning'}
-          />
-          <SidebarStatusPill
-            icon={hasSource ? 'sync' : 'tune'}
-            label={hasSource ? copy.importReady : copy.importBlocked}
-            tone={hasSource ? 'success' : 'warning'}
-          />
-        </div>
-      </SectionCard>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <SettingsSourceSummary
-          copy={copy}
-          detail={{ googleMapUrl }}
-          latestRun={latestImportRun}
-          language={language}
-        />
-        <ImportStatusSummary
-          copy={copy}
-          latestRun={latestImportRun}
-          loading={importRunsLoading}
-          error={importRunsError}
-          language={language}
-          onOpenSettings={() => onNavigate('/app/settings')}
-        />
-      </div>
     </div>
   )
 }
