@@ -453,7 +453,8 @@ describe('Sentify app shell', () => {
     expect(
       await screen.findByRole('heading', { name: 'Run the first import and inspect the signal.' }),
     ).toBeInTheDocument()
-    expect(screen.getAllByRole('heading', { name: 'Sync status' }).length).toBeGreaterThan(0)
+    expect(screen.getByRole('heading', { name: 'Ready to import' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Latest import' })).toBeInTheDocument()
     expect(screen.queryByText('Operational triage dashboard')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Import reviews' }))

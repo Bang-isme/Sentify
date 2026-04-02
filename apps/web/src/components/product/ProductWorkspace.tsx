@@ -229,7 +229,15 @@ function getOnboardingVisualCopy(language: string) {
       backLabel: 'Quay lại',
       nextStepLabel: 'Bước tiếp theo',
       trustedProvider: 'Verified Business Provider',
-      previewModeLabel: 'Chế độ xem trước',
+      setupNameHint: 'Dùng đúng tên hiển thị để workspace dễ nhận diện hơn.',
+      setupAddressHint: 'Địa chỉ càng đầy đủ thì bước gắn nguồn càng chính xác hơn.',
+      setupEditHint: 'Bạn vẫn có thể quay lại sửa hai thông tin này trước khi chạy lần nhập đầu tiên.',
+      importLaunchTitle: 'Sẵn sàng nhập',
+      importLaunchDescription:
+        'Kiểm tra nhanh nguồn đã sẵn sàng rồi chạy lần nhập đầu tiên khi bạn muốn bắt đầu.',
+      latestImportTitle: 'Lần nhập gần nhất',
+      latestImportDescription:
+        'Theo dõi kết quả lần nhập gần nhất hoặc xác nhận rằng chưa có dữ liệu nào được đồng bộ.',
       previewSettingsHint:
         'Sau khi tạo nhà hàng, bạn sẽ thêm URL Google Maps tại đây để hệ thống có thể chạy lần nhập đầu tiên.',
       previewReviewsHint:
@@ -265,7 +273,15 @@ function getOnboardingVisualCopy(language: string) {
       backLabel: '戻る',
       nextStepLabel: '次のステップ',
       trustedProvider: 'Verified Business Provider',
-      previewModeLabel: 'プレビューモード',
+      setupNameHint: '表示名を整えておくと、ワークスペースを見分けやすくなります。',
+      setupAddressHint: '住所が詳しいほど、次のソース設定で正しい店舗に合わせやすくなります。',
+      setupEditHint: '最初の取り込みを走らせる前なら、この情報はあとで戻って修正できます。',
+      importLaunchTitle: '取り込み準備',
+      importLaunchDescription:
+        'ソースの準備ができているかを確認し、開始したいタイミングで最初の取り込みを実行します。',
+      latestImportTitle: '最新の取り込み',
+      latestImportDescription:
+        '直近の取り込み結果を確認するか、まだ同期がない状態であることを確認します。',
       previewSettingsHint:
         '店舗作成後、この画面で Google Maps のURLを追加すると最初の取り込みを実行できるようになります。',
       previewReviewsHint:
@@ -300,7 +316,15 @@ function getOnboardingVisualCopy(language: string) {
     backLabel: 'Back',
     nextStepLabel: 'Next step',
     trustedProvider: 'Verified Business Provider',
-    previewModeLabel: 'Preview mode',
+    setupNameHint: 'Use the real display name so the workspace stays easy to identify.',
+    setupAddressHint: 'A fuller address makes the next source-matching step more accurate.',
+    setupEditHint: 'You can still come back and revise these details before the first import runs.',
+    importLaunchTitle: 'Ready to import',
+    importLaunchDescription:
+      'Confirm the source is ready, then run the first import when you want to begin.',
+    latestImportTitle: 'Latest import',
+    latestImportDescription:
+      'Review the most recent import result or confirm that nothing has synced yet.',
     previewSettingsHint:
       'After the restaurant is created, this is where the Google Maps URL is added so the first import can run.',
     previewReviewsHint:
@@ -476,32 +500,41 @@ function SectionCard({
   title: string
   description?: string
   headerAside?: ReactNode
-  tone?: 'default' | 'accent'
+  tone?: 'default' | 'accent' | 'immersive'
   className?: string
   children: ReactNode
 }) {
+  const cardToneClass =
+    tone === 'immersive'
+      ? 'border-[#8c5a2a]/40 bg-[linear-gradient(135deg,rgba(42,24,13,0.9)_0%,rgba(62,37,21,0.8)_46%,rgba(28,17,11,0.86)_100%)] shadow-[0_32px_90px_-46px_rgba(0,0,0,0.78)] backdrop-blur-xl'
+      : tone === 'accent'
+        ? 'border-primary/18 bg-primary/[0.04] dark:border-primary/15 dark:bg-primary/[0.05]'
+        : 'border-border-light/70 bg-surface-white/88 dark:border-border-dark/70 dark:bg-surface-dark/82'
+  const titleClass =
+    tone === 'immersive' ? 'text-[#fff2df] drop-shadow-[0_8px_24px_rgba(0,0,0,0.22)]' : 'text-text-charcoal dark:text-white'
+  const descriptionClass =
+    tone === 'immersive' ? 'text-[#e3c8aa]' : 'text-text-silver-light dark:text-text-silver-dark'
+
   return (
     <section
-      className={`rounded-[1.75rem] border p-5 shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur sm:p-6 ${
-        tone === 'accent'
-          ? 'border-primary/18 bg-primary/[0.04] dark:border-primary/15 dark:bg-primary/[0.05]'
-          : 'border-border-light/70 bg-surface-white/88 dark:border-border-dark/70 dark:bg-surface-dark/82'
-      } ${className ?? ''}`}
+      className={`relative rounded-[1.75rem] border p-5 shadow-[0_20px_70px_-38px_rgba(0,0,0,0.35)] backdrop-blur sm:p-6 ${cardToneClass} ${className ?? ''}`}
     >
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-text-charcoal dark:text-white">
-            {title}
-          </h2>
-          {description ? (
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-text-silver-light dark:text-text-silver-dark">
-              {description}
-            </p>
-          ) : null}
+      <div className="relative z-10">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className={`text-xl font-bold tracking-tight ${titleClass}`}>
+              {title}
+            </h2>
+            {description ? (
+              <p className={`mt-2 max-w-3xl text-sm leading-6 ${descriptionClass}`}>
+                {description}
+              </p>
+            ) : null}
+          </div>
+          {headerAside ? <div className="w-full shrink-0 sm:w-auto">{headerAside}</div> : null}
         </div>
-        {headerAside ? <div className="w-full shrink-0 sm:w-auto">{headerAside}</div> : null}
+        {children}
       </div>
-      {children}
     </section>
   )
 }
@@ -1024,6 +1057,11 @@ function ImportStatusSummary({
   error,
   language,
   onOpenSettings,
+  title,
+  description,
+  emptyMessage,
+  tone = 'accent',
+  variant = 'default',
 }: {
   copy: ProductUiCopy['app']
   latestRun: ImportRunSummary | null
@@ -1031,7 +1069,13 @@ function ImportStatusSummary({
   error: string | null
   language: string
   onOpenSettings: () => void
+  title?: string
+  description?: string
+  emptyMessage?: string
+  tone?: 'default' | 'accent' | 'immersive'
+  variant?: 'default' | 'onboarding'
 }) {
+  const isOnboardingVariant = variant === 'onboarding'
   const timingValue =
     latestRun?.completedAt ??
     latestRun?.failedAt ??
@@ -1039,22 +1083,56 @@ function ImportStatusSummary({
     latestRun?.createdAt ??
     null
 
-  const toneClass =
+  const runToneClass =
     latestRun?.status === 'FAILED'
       ? 'border-red-300/35 bg-red-500/8 dark:border-red-400/20 dark:bg-red-500/10'
       : latestRun?.status === 'RUNNING' || latestRun?.status === 'QUEUED'
         ? 'border-amber-300/35 bg-amber-500/8 dark:border-amber-400/20 dark:bg-amber-500/10'
         : 'border-border-light/70 bg-surface-white/88 dark:border-border-dark/70 dark:bg-surface-dark/82'
+  const onboardingCardClass =
+    'rounded-[1.45rem] border border-[#ecd8c4]/88 bg-[linear-gradient(180deg,rgba(255,250,244,0.98)_0%,rgba(250,242,232,0.94)_100%)] p-5 shadow-[0_24px_60px_-42px_rgba(0,0,0,0.52)]'
+  const onboardingStatCardClass =
+    'rounded-2xl border border-[#eadbc9]/85 bg-[rgba(255,249,241,0.84)] px-4 py-3'
+  const resolvedTitle = title ?? copy.syncStatusTitle
+  const resolvedDescription = description ?? copy.syncStatusDescription
+  const resolvedEmptyMessage = emptyMessage ?? copy.syncStatusEmpty
 
   return (
-    <SectionCard title={copy.syncStatusTitle} description={copy.syncStatusDescription} tone="accent">
+    <SectionCard
+      title={resolvedTitle}
+      description={resolvedDescription}
+      tone={tone}
+      className={isOnboardingVariant ? 'relative overflow-hidden' : undefined}
+    >
+      {isOnboardingVariant ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(255,232,205,0.08),transparent_28%)]"
+        />
+      ) : null}
       {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
-      {loading && !latestRun ? <StatusMessage>{copy.loadingImportHistory}</StatusMessage> : null}
+      {loading && !latestRun ? (
+        isOnboardingVariant ? (
+          <div className={`${onboardingCardClass} text-sm leading-7 text-[#6f5742]`}>
+            {copy.loadingImportHistory}
+          </div>
+        ) : (
+          <StatusMessage>{copy.loadingImportHistory}</StatusMessage>
+        )
+      ) : null}
 
-      {!loading && !latestRun ? <EmptyPanel message={copy.syncStatusEmpty} /> : null}
+      {!loading && !latestRun ? (
+        isOnboardingVariant ? (
+          <div className={`${onboardingCardClass} text-sm leading-7 text-[#6f5742]`}>
+            {resolvedEmptyMessage}
+          </div>
+        ) : (
+          <EmptyPanel message={resolvedEmptyMessage} />
+        )
+      ) : null}
 
       {latestRun ? (
-        <div className={`rounded-[1.4rem] border p-5 ${toneClass}`}>
+        <div className={isOnboardingVariant ? onboardingCardClass : `rounded-[1.4rem] border p-5 ${runToneClass}`}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-3xl">
               <div className="flex flex-wrap items-center gap-2">
@@ -1069,22 +1147,38 @@ function ImportStatusSummary({
                 >
                   {copy.importRunStatusLabels[latestRun.status]}
                 </span>
-                <span className="text-xs text-text-silver-light dark:text-text-silver-dark">
+                <span
+                  className={`text-xs ${
+                    isOnboardingVariant ? 'text-[#8b725d]' : 'text-text-silver-light dark:text-text-silver-dark'
+                  }`}
+                >
                   {copy.syncStatusLastSync}:{' '}
                   {formatDateTime(timingValue, language, copy.importHistoryUnavailable)}
                 </span>
               </div>
-              <p className="mt-3 text-base font-semibold leading-7 text-text-charcoal dark:text-white">
+              <p
+                className={`mt-3 text-base font-semibold leading-7 ${
+                  isOnboardingVariant ? 'text-[#2a1c12]' : 'text-text-charcoal dark:text-white'
+                }`}
+              >
                 {getImportRunMerchantSummary(copy, latestRun)}
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-[minmax(140px,1fr)_auto] lg:min-w-[300px]">
-              <div className="rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55">
-                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-silver-light dark:text-text-silver-dark">
+              <div className={isOnboardingVariant ? onboardingStatCardClass : 'rounded-2xl border border-border-light/70 bg-bg-light/70 px-4 py-3 dark:border-border-dark dark:bg-bg-dark/55'}>
+                <div
+                  className={`text-[11px] font-bold uppercase tracking-[0.18em] ${
+                    isOnboardingVariant ? 'text-[#8b725d]' : 'text-text-silver-light dark:text-text-silver-dark'
+                  }`}
+                >
                   {copy.syncStatusNewReviews}
                 </div>
-                <div className="mt-1 text-2xl font-black text-text-charcoal dark:text-white">
+                <div
+                  className={`mt-1 text-2xl font-black ${
+                    isOnboardingVariant ? 'text-[#2a1c12]' : 'text-text-charcoal dark:text-white'
+                  }`}
+                >
                   {formatNumber(latestRun.imported, language)}
                 </div>
               </div>
@@ -1496,100 +1590,130 @@ function RestaurantSetupForm({
 
   if (variant === 'onboarding') {
     return (
-      <section className="overflow-hidden rounded-[1.7rem] border border-[#e7dccd] bg-[linear-gradient(180deg,#fffdfa_0%,#fbf4ea_100%)] shadow-[0_34px_90px_-56px_rgba(17,11,8,0.72)] backdrop-blur-sm">
-        <div className="border-b border-[#f0e4d7] px-5 py-4 sm:px-6 sm:py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="max-w-3xl">
-              <h2 className="font-serif text-[1.65rem] font-semibold tracking-[-0.04em] text-[#2a1c12] sm:text-[1.8rem]">
-                {title}
-              </h2>
-              <p className="mt-2 max-w-2xl text-[0.9rem] leading-7 text-[#7d6652]">{description}</p>
+      <SectionCard
+        title={title}
+        description={description}
+        tone="immersive"
+        className="relative overflow-hidden"
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,243,227,0.06)_0%,transparent_38%,rgba(255,182,97,0.08)_100%)]"
+        />
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(260px,0.92fr)]">
+          <form
+            className="rounded-[1.45rem] border border-[#ecd8c4]/88 bg-[linear-gradient(180deg,rgba(255,250,244,0.98)_0%,rgba(250,242,232,0.94)_100%)] p-5 shadow-[0_24px_60px_-42px_rgba(0,0,0,0.52)]"
+            onSubmit={handleSubmit}
+            noValidate
+          >
+            <div className="grid gap-5">
+              <label
+                htmlFor="setup-restaurant-name"
+                className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
+              >
+                <span>{copy.restaurantNameLabel}</span>
+                <input
+                  id="setup-restaurant-name"
+                  required
+                  aria-label={copy.restaurantNameLabel}
+                  maxLength={FIELD_LIMITS.restaurantName}
+                  value={name}
+                  onChange={(event) => {
+                    setName(event.target.value)
+                    setFieldErrors((current) => ({ ...current, name: undefined }))
+                  }}
+                  aria-invalid={fieldErrors.name ? 'true' : 'false'}
+                  className={baseInputClass}
+                  type="text"
+                  placeholder="Ví dụ: Le Jardin Secret"
+                />
+                <FieldError message={fieldErrors.name} />
+              </label>
+
+              <label
+                htmlFor="setup-restaurant-address"
+                className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
+              >
+                <span>{copy.restaurantAddressLabel}</span>
+                <div className="relative">
+                  <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-[#9b7a5f]">
+                    location_on
+                  </span>
+                  <input
+                    id="setup-restaurant-address"
+                    aria-label={copy.restaurantAddressLabel}
+                    maxLength={FIELD_LIMITS.restaurantAddress}
+                    value={address}
+                    onChange={(event) => {
+                      setAddress(event.target.value)
+                      setFieldErrors((current) => ({ ...current, address: undefined }))
+                    }}
+                    aria-invalid={fieldErrors.address ? 'true' : 'false'}
+                    className={iconInputClass}
+                    type="text"
+                    placeholder="Số nhà, tên đường, quận, thành phố..."
+                  />
+                </div>
+                <FieldError message={fieldErrors.address} />
+              </label>
+
+              <div className="flex flex-col gap-4 border-t border-[#f0e4d7] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#6f5a47] transition hover:text-[#2a1c12]"
+                  onClick={() => {
+                    onSecondaryAction?.()
+                  }}
+                >
+                  <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                    arrow_back
+                  </span>
+                  <span>{visualCopy.backLabel}</span>
+                </button>
+                <button
+                  type="submit"
+                  disabled={pending}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-bold text-white shadow-[0_18px_36px_-18px_rgba(235,122,28,0.88)] transition hover:-translate-y-0.5 hover:bg-primary-dark active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto dark:text-bg-dark"
+                >
+                  <span>{pending ? `${actionLabel}...` : actionLabel}</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+                    chevron_right
+                  </span>
+                </button>
+              </div>
             </div>
-            <span className="hidden size-11 items-center justify-center rounded-[0.95rem] border border-[#efd8be] bg-[linear-gradient(180deg,#fff6eb_0%,#fff0dc_100%)] text-primary shadow-[0_18px_32px_-24px_rgba(235,122,28,0.6)] sm:flex">
-              <span className="material-symbols-outlined text-[22px]">restaurant</span>
-            </span>
+          </form>
+
+          <div className="grid gap-3">
+            <div className="rounded-[1.35rem] border border-[#ca8a43]/35 bg-[linear-gradient(135deg,rgba(88,53,23,0.76)_0%,rgba(52,31,16,0.92)_100%)] px-4 py-4 shadow-[0_22px_42px_-30px_rgba(0,0,0,0.55)]">
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-[20px] text-[#ffb661]">storefront</span>
+                <div className="grid gap-1">
+                  <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#ffc98d]">
+                    {copy.restaurantNameLabel}
+                  </p>
+                  <p className="text-sm font-semibold leading-7 text-[#ffe4c0]">{visualCopy.setupNameHint}</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-[1.35rem] border border-[#ca8a43]/35 bg-[linear-gradient(135deg,rgba(88,53,23,0.76)_0%,rgba(52,31,16,0.92)_100%)] px-4 py-4 shadow-[0_22px_42px_-30px_rgba(0,0,0,0.55)]">
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-[20px] text-[#ffb661]">pin_drop</span>
+                <div className="grid gap-1">
+                  <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#ffc98d]">
+                    {copy.restaurantAddressLabel}
+                  </p>
+                  <p className="text-sm font-semibold leading-7 text-[#ffe4c0]">{visualCopy.setupAddressHint}</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-[1.35rem] border border-[#d9bb97]/55 bg-[linear-gradient(180deg,rgba(255,246,234,0.96)_0%,rgba(247,235,220,0.92)_100%)] p-4 text-sm leading-7 text-[#6f5742] shadow-[0_22px_42px_-34px_rgba(0,0,0,0.38)]">
+              <p>{visualCopy.setupEditHint}</p>
+            </div>
           </div>
         </div>
-
-        <form className="space-y-5 px-5 py-5 sm:px-6 sm:py-6" onSubmit={handleSubmit} noValidate>
-          <div className="grid gap-4">
-            <label
-              htmlFor="setup-restaurant-name"
-              className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
-            >
-              <span>{copy.restaurantNameLabel}</span>
-              <input
-                id="setup-restaurant-name"
-                required
-                aria-label={copy.restaurantNameLabel}
-                maxLength={FIELD_LIMITS.restaurantName}
-                value={name}
-                onChange={(event) => {
-                  setName(event.target.value)
-                  setFieldErrors((current) => ({ ...current, name: undefined }))
-                }}
-                aria-invalid={fieldErrors.name ? 'true' : 'false'}
-                className={baseInputClass}
-                type="text"
-                placeholder="Ví dụ: Le Jardin Secret"
-              />
-              <FieldError message={fieldErrors.name} />
-            </label>
-          </div>
-
-          <label
-            htmlFor="setup-restaurant-address"
-            className="grid gap-2 text-[0.92rem] font-semibold text-[#2b1c12]"
-          >
-            <span>{copy.restaurantAddressLabel}</span>
-            <div className="relative">
-              <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[20px] text-[#9b7a5f]">
-                location_on
-              </span>
-              <input
-                id="setup-restaurant-address"
-                aria-label={copy.restaurantAddressLabel}
-                maxLength={FIELD_LIMITS.restaurantAddress}
-                value={address}
-                onChange={(event) => {
-                  setAddress(event.target.value)
-                  setFieldErrors((current) => ({ ...current, address: undefined }))
-                }}
-                aria-invalid={fieldErrors.address ? 'true' : 'false'}
-                className={iconInputClass}
-                type="text"
-                placeholder="Số nhà, tên đường, quận, thành phố..."
-              />
-            </div>
-            <FieldError message={fieldErrors.address} />
-          </label>
-
-          <div className="flex flex-col gap-4 border-t border-[#f0e4d7] pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#6f5a47] transition hover:text-[#2a1c12]"
-              onClick={() => {
-                onSecondaryAction?.()
-              }}
-            >
-              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-                arrow_back
-              </span>
-              <span>{visualCopy.backLabel}</span>
-            </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-7 text-sm font-bold text-white shadow-[0_18px_36px_-18px_rgba(235,122,28,0.88)] transition hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto dark:text-bg-dark"
-            >
-              <span>{pending ? `${actionLabel}...` : actionLabel}</span>
-              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
-                chevron_right
-              </span>
-            </button>
-          </div>
-        </form>
-      </section>
+      </SectionCard>
     )
   }
 
@@ -1905,7 +2029,6 @@ function OnboardingPanel({
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,7,5,0.58)_0%,rgba(10,7,5,0.42)_24%,rgba(10,7,5,0.52)_54%,rgba(10,7,5,0.86)_100%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,rgba(255,231,205,0.16),transparent_24%),linear-gradient(90deg,rgba(8,5,4,0.34)_0%,rgba(8,5,4,0.12)_18%,rgba(8,5,4,0.12)_82%,rgba(8,5,4,0.42)_100%)]" />
-        <div className="absolute inset-x-0 top-0 h-[16%] bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.02)_46%,rgba(255,255,255,0)_100%)] mix-blend-screen blur-sm" />
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-[1320px] flex-col items-center px-4 pb-10 pt-28 sm:px-6 sm:pb-12 sm:pt-32 lg:px-10 lg:pb-14 lg:pt-36">
@@ -2016,7 +2139,7 @@ function OnboardingPanel({
         </div>
 
         {activeStepIndex === 0 ? (
-          <div className="mt-10 w-full max-w-[680px]">
+          <div className="mt-10 w-full max-w-[1040px]">
             <RestaurantSetupForm
               copy={copy}
               pending={restaurant ? savePending : createPending}
@@ -2153,16 +2276,15 @@ function OnboardingSourceSetupPanel({
     <SectionCard
       title={copy.settingsSourceTitle}
       description={copy.settingsSourceDescription}
-      tone="accent"
-      className="bg-[rgba(255,251,245,0.92)] dark:bg-[rgba(28,18,13,0.78)]"
-      headerAside={
-        <span className="inline-flex items-center rounded-full border border-primary/18 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
-          {visualCopy.previewModeLabel}
-        </span>
-      }
+      tone="immersive"
+      className="relative overflow-hidden"
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(255,232,205,0.08),transparent_28%)]"
+      />
       <form className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]" onSubmit={handleSubmit}>
-        <div className="rounded-[1.45rem] border border-border-light/70 bg-surface-white/86 p-5 dark:border-border-dark dark:bg-surface-dark/72">
+        <div className="rounded-[1.45rem] border border-[#ecd8c4]/88 bg-[linear-gradient(180deg,rgba(255,250,244,0.98)_0%,rgba(250,242,232,0.94)_100%)] p-5 shadow-[0_24px_60px_-42px_rgba(0,0,0,0.52)]">
           <label
             htmlFor="onboarding-source-url"
             className="grid gap-2 text-sm font-semibold text-text-charcoal dark:text-white"
@@ -2214,9 +2336,19 @@ function OnboardingSourceSetupPanel({
         </div>
 
         <div className="grid gap-3">
-          <SidebarStatusPill icon="warning" label={copy.sourceMissing} tone="warning" />
-          <SidebarStatusPill icon="tune" label={copy.importBlocked} tone="warning" />
-          <div className="rounded-[1.35rem] border border-dashed border-border-light/80 bg-bg-light/60 p-4 text-sm leading-6 text-text-silver-light dark:border-border-dark dark:bg-bg-dark/45 dark:text-text-silver-dark">
+          <div className="rounded-[1.35rem] border border-[#ca8a43]/35 bg-[linear-gradient(135deg,rgba(88,53,23,0.76)_0%,rgba(52,31,16,0.92)_100%)] px-4 py-4 shadow-[0_22px_42px_-30px_rgba(0,0,0,0.55)]">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-[20px] text-[#ffb661]">warning</span>
+              <p className="text-sm font-semibold leading-7 text-[#ffe4c0]">{copy.sourceMissing}</p>
+            </div>
+          </div>
+          <div className="rounded-[1.35rem] border border-[#ca8a43]/35 bg-[linear-gradient(135deg,rgba(88,53,23,0.76)_0%,rgba(52,31,16,0.92)_100%)] px-4 py-4 shadow-[0_22px_42px_-30px_rgba(0,0,0,0.55)]">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-[20px] text-[#ffb661]">tune</span>
+              <p className="text-sm font-semibold leading-7 text-[#ffe4c0]">{copy.importBlocked}</p>
+            </div>
+          </div>
+          <div className="rounded-[1.35rem] border border-[#d9bb97]/55 bg-[linear-gradient(180deg,rgba(255,246,234,0.96)_0%,rgba(247,235,220,0.92)_100%)] p-4 text-sm leading-7 text-[#6f5742] shadow-[0_22px_42px_-34px_rgba(0,0,0,0.38)]">
             {visualCopy.googleMapsHint}
           </div>
         </div>
@@ -2259,47 +2391,50 @@ function OnboardingImportStep({
     importPending || latestImportRun?.status === 'QUEUED' || latestImportRun?.status === 'RUNNING'
 
   return (
-    <div className="grid w-full gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+    <div className="grid w-full gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
       <SectionCard
-        title={copy.syncStatusTitle}
-        description={copy.syncStatusDescription}
-        tone="accent"
-        className="bg-[rgba(255,251,245,0.92)] dark:bg-[rgba(28,18,13,0.78)]"
-        headerAside={
-          <span className="inline-flex items-center rounded-full border border-primary/18 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
-            {visualCopy.previewModeLabel}
-          </span>
-        }
+        title={visualCopy.importLaunchTitle}
+        description={visualCopy.importLaunchDescription}
+        tone="immersive"
+        className="relative overflow-hidden"
       >
-        <div className="grid gap-3">
-          <SidebarStatusPill icon="storefront" label={restaurantName} />
-          <SidebarStatusPill icon="task_alt" label={copy.sourceReady} tone="success" />
-          <SidebarStatusPill
-            icon={isSyncInFlight ? 'sync' : 'check_circle'}
-            label={isSyncInFlight ? copy.syncStatusRunning : copy.importReady}
-            tone={isSyncInFlight ? 'neutral' : 'success'}
-          />
-          <StatusMessage>{latestImportRun ? getImportRunMerchantSummary(copy, latestImportRun) : visualCopy.previewReviewsHint}</StatusMessage>
-          <button
-            type="button"
-            disabled={!hasSource || isSyncInFlight}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
-            onClick={() => {
-              void onImportReviews()
-            }}
-          >
-            {isSyncInFlight ? copy.importing : copy.dashboardPrimaryCta}
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-primary/24 bg-white/72 px-5 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/8 dark:border-primary/20 dark:bg-white/5"
-            onClick={onBack}
-          >
-            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-              arrow_back
-            </span>
-            <span>{visualCopy.backLabel}</span>
-          </button>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,180,92,0.12),transparent_26%)]"
+        />
+        <div className="rounded-[1.45rem] border border-[#ecd8c4]/88 bg-[linear-gradient(180deg,rgba(255,250,244,0.98)_0%,rgba(250,242,232,0.94)_100%)] p-5 shadow-[0_24px_60px_-42px_rgba(0,0,0,0.52)]">
+          <div className="grid gap-3">
+            <SidebarStatusPill icon="storefront" label={restaurantName} />
+            <SidebarStatusPill icon="task_alt" label={copy.sourceReady} tone="success" />
+            <SidebarStatusPill
+              icon={isSyncInFlight ? 'sync' : 'check_circle'}
+              label={isSyncInFlight ? copy.syncStatusRunning : copy.importReady}
+              tone={isSyncInFlight ? 'neutral' : 'success'}
+            />
+            <StatusMessage>
+              {latestImportRun ? getImportRunMerchantSummary(copy, latestImportRun) : visualCopy.previewReviewsHint}
+            </StatusMessage>
+            <button
+              type="button"
+              disabled={!hasSource || isSyncInFlight}
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary-dark active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-70 dark:text-bg-dark"
+              onClick={() => {
+                void onImportReviews()
+              }}
+            >
+              {isSyncInFlight ? copy.importing : copy.dashboardPrimaryCta}
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#e5d8ca] bg-[rgba(255,249,241,0.84)] px-5 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/8"
+              onClick={onBack}
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                arrow_back
+              </span>
+              <span>{visualCopy.backLabel}</span>
+            </button>
+          </div>
         </div>
       </SectionCard>
 
@@ -2310,6 +2445,10 @@ function OnboardingImportStep({
         error={importRunsError}
         language={language}
         onOpenSettings={onEditSource}
+        title={visualCopy.latestImportTitle}
+        description={visualCopy.latestImportDescription}
+        tone="immersive"
+        variant="onboarding"
       />
     </div>
   )
